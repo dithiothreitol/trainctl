@@ -1,0 +1,21 @@
+# Korpus zawiera dane osobowe (imię i nazwisko w plikach) — nigdy do repo
+# (kotwica do korzenia: tools/corpus/ ma wchodzić do repo)
+/corpus/
+
+# Node / TypeScript
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Środowisko i sekrety (klucze API intervals.icu itd.)
+.env
+.env.*
+
+# Systemowe
+.DS_Store
+Thumbs.db
+*.log
+
+# Python (tools/corpus)
+__pycache__/
+*.pyc
