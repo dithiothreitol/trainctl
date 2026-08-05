@@ -45,12 +45,12 @@ afterAll(async () => {
 })
 
 describe('serwer MCP tren', () => {
-  it('wystawia komplet 10 narzędzi', async () => {
+  it('wystawia komplet 12 narzędzi', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual([
-      'tren_diff', 'tren_init', 'tren_log', 'tren_plan', 'tren_pull',
-      'tren_push', 'tren_shift', 'tren_today', 'tren_week', 'tren_why',
+      'tren_adapt', 'tren_desk', 'tren_diff', 'tren_init', 'tren_log', 'tren_plan',
+      'tren_pull', 'tren_push', 'tren_shift', 'tren_today', 'tren_week', 'tren_why',
     ])
   })
 
@@ -102,6 +102,13 @@ describe('serwer MCP tren', () => {
     expect(log.isError).toBe(false)
     const week = await call('tren_week', { date: '2026-08-05' })
     expect(week.text).toContain('[done]')
+  })
+
+  it('agent prosi o adaptację i dostaje propozycje, nie zmieniony plan', async () => {
+    const r = await call('tren_adapt', { date: '2026-08-20' })
+    expect(r.isError).toBe(false)
+    expect(r.text).toContain('Propozycje:')
+    expect(r.text).toMatch(/Analiza \d+ dni/)
   })
 
   it('sync bez klucza API: czytelna instrukcja, nie crash serwera', async () => {

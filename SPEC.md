@@ -2,7 +2,9 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** Fazy 0–4 ZAKOŃCZONE (2026-08-05; faza 4 zweryfikowana na mockach — e2e na realnym koncie przed nami). Silnik (`@tren/core`) + CLI (`@tren/cli`) + serwer MCP (`@tren/mcp`, 10 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`); 123 testy, w tym smoke prawdziwych binarek pod natywnym Node. Następna: Faza 5 (adaptacja w pętli + tryb biurkowy).
+**Status:** **Fazy 0–5 ZAKOŃCZONE — v1 kompletna** (2026-08-05). Silnik (`@tren/core`) + CLI (`@tren/cli`) + serwer MCP (`@tren/mcp`, 12 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`) + adaptacja i tryb biurkowy; **161 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie.
+
+Otwarte przed użyciem produkcyjnym: e2e sync na realnym koncie (wymaga klucza użytkownika — patrz §7), weryfikacja składni treningów na zegarku. Dalej: kolejne sporty (`SportModule`), REST API/hosting, publikacja OSS.
 **Nazwa robocza:** `tren` (krótka komenda CLI; łatwa do zmiany przed publikacją)
 
 ## 1. Wizja
@@ -28,7 +30,12 @@ z uzasadnieniem, a renegocjacja tygodnia to jedna komenda/jedno zdanie do agenta
    solver: zachowaj liczbę akcentów, ≥48 h między ciężkimi sesjami, chroń długie
    wybieganie — i pokaż, co poświęcasz.
 4. **Świadomość biurka.** Okna treningowe (lunch vs wieczór), przerwy ruchowe między
-   sesjami z agentem („exercise snacks"), ochrona okna snu. (Faza 5, nie v1.)
+   sesjami z agentem („exercise snacks") i — najważniejsze — reguła prowadzenia
+   akcentu po dniu ciężkiej pracy umysłowej: **po tempie, nie po odczuciu**
+   (zmęczenie kognitywne obniża wytrzymałość o ~15% wyłącznie przez percepcję,
+   przy niezmienionym tętnie, laktacie i VO₂). To jedyna funkcja w tej kategorii
+   z twardym dowodem — reszta „wellness dla programistów" to folklor, który
+   świadomie odrzucamy (B-1/B-2/B-6).
 
 ## 3. Zakres
 
@@ -164,7 +171,7 @@ czystym zamknięciem sesji.
 | **2** | CLI na rdzeniu | ✅ KOMPLET (2026-08-05): `@tren/cli` — init/plan/today/log/shift/why/diff działają e2e (16 testów na realnych plikach + smoke bin); storage = pliki (`tren.yaml`, `plan/plan.yaml`+`PLAN.md` w stylu trenera, `log.jsonl`); shift z ochroną dnia startu i ostrzeżeniem I-7; why cytuje reguły; diff = dry-run regeneracji |
 | **3** | Serwer MCP + scenariusze agentowe | ✅ KOMPLET (2026-08-05): `@tren/mcp` — 8 narzędzi (`tren_init/plan/today/week/log/shift/why/diff`) nad wspólnymi handlerami z `@tren/cli` (ADR-008); katalog treningowy przez env `TREN_DIR`/cwd; walidacja wejść zod; testy scenariuszy agentowych in-memory (client↔server): generacja, why, renegocjacja week→shift→week, ochrona dnia startu, log |
 | **4** | Sync intervals.icu | ✅ KOMPLET-NA-MOCKACH (2026-08-05): `@tren/sync-intervalsicu` (port `SyncProvider` w core, ADR-002) — Basic auth `API_KEY:<klucz>`, pull aktywności/wellness (oba warianty casingu pól), push przez `events/bulk?upsert=true` z natywną składnią „steps" i celami tempa; CLI `push`/`pull` + narzędzia MCP; `pull` porównuje wykonanie z planem. **Do domknięcia: test e2e na realnym koncie i weryfikacja, że trening ląduje na zegarku** (wymaga klucza użytkownika) |
-| **5** | Adaptacja w pętli + tryb biurkowy | re-plan na danych wykonania; przerwy/okna/sen |
+| **5** | Adaptacja w pętli + tryb biurkowy | ✅ KOMPLET (2026-08-05): `engine/adapt.ts` — diagnoza z sync+dziennika (zgodność objętości, pominięte akcenty, przerwa ≥10 dni → restart ×0,55, protokół po starcie R-1/R-2 z jawnym brakiem danych dla ultra, rekalibracja po nowym wyniku); **propozycje, nie automatyczny re-plan** (ADR-011). `engine/desk.ts` — okna treningowe wokół pracy, przerwy z chodzeniem (B-3/B-4/B-5), reguła S-8/B-10 (po ciężkim dniu kognitywnym prowadź akcent po tempie, nie po RPE) + jawne odrzucenie folkloru B-1/B-2. CLI `adapt`/`desk`, MCP `tren_adapt`/`tren_desk` (razem 12 narzędzi) |
 | dalej | Kolejne sporty (SportModule), REST API, hosting | — |
 
 **Znane uproszczenia silnika v1** (świadome, do zdjęcia w kolejnych iteracjach):
@@ -203,3 +210,5 @@ z wyników startów użytkownika.
 | 008 | 2026-08-05 | Warstwą use-case'ów są handlery w `@tren/cli/src/commands.ts`; MCP zależy od `@tren/cli` | handlery są już czyste (cwd, args)→{output,code}; osobny pakiet `@tren/usecases` wyekstrahujemy dopiero przy trzecim adapterze (REST) — nie wcześniej |
 | 009 | 2026-08-05 | Klucz API poza `tren.yaml`: env `TREN_INTERVALS_API_KEY` albo `.tren-secret` (gitignore) | katalog treningowy użytkownika jest repozytorium gita — sekret w wersjonowanym pliku wcześniej czy później trafi do zdalnego repo |
 | 010 | 2026-08-05 | Podbiegi eksportowane BEZ celu tempa | pod górę tempo płaskie jest nieosiągalne — cel na zegarku alarmowałby przez całe powtórzenie; wysiłek reguluje nachylenie |
+| 011 | 2026-08-05 | Adaptacja **proponuje**, nie przepisuje planu automatycznie | filar plan-as-code: zmiana planu ma być widocznym diffem, który użytkownik zatwierdza (`tren.yaml` → `tren diff` → `tren plan`); cichy re-plan czyni z silnika czarną skrzynkę |
+| 012 | 2026-08-05 | Tryb biurkowy nie modyfikuje struktury planu; HRV-guided odłożone | B-1: siedzenie nie jest udokumentowanym czynnikiem ryzyka urazów biegowych — przerwy służą metabolizmowi, nie bieganiu. H-1: HRV nie poprawia wyników (SMD 0,20 n.i.), a wymaga pasa piersiowego i 10-dniowej bazy — koszt wdrożenia przewyższa udowodnioną korzyść |

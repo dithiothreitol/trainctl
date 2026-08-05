@@ -2,6 +2,8 @@
 /** tren — coach treningowy w terminalu. Cienki adapter nad handlerami. */
 import { Command } from 'commander'
 import {
+  cmdAdapt,
+  cmdDesk,
   cmdDiff,
   cmdInit,
   cmdLog,
@@ -72,6 +74,19 @@ program
   .description('dlaczego ten trening — cel jednostki i reguły z badań')
   .option('--date <iso>', 'inna data niż dziś')
   .action((opts) => print(cmdWhy(cwd, opts)))
+
+program
+  .command('adapt')
+  .description('przeanalizuj wykonanie i zaproponuj korekty planu (nie zmienia planu)')
+  .option('--date <iso>', 'data odniesienia (domyślnie: dziś)')
+  .action((opts) => print(cmdAdapt(cwd, opts)))
+
+program
+  .command('desk')
+  .description('dzień przy biurku: okna treningowe, przerwy, reguła tempa po pracy')
+  .option('--date <iso>', 'inna data niż dziś')
+  .option('--heavy', 'dziś ciężki dzień kognitywny (długie sesje z agentami)')
+  .action((opts) => print(cmdDesk(cwd, opts)))
 
 program
   .command('push')

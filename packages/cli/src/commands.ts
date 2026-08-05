@@ -1,7 +1,15 @@
 /** Handlery komend CLI — czyste funkcje (cwd, argumenty) → { output, code }. */
-import { diffDays, type Weekday } from '@tren/core'
+import {
+  analyzeExecution,
+  diffDays,
+  planDeskDay,
+  type ExecutionRecord,
+  type PlannedWorkout,
+  type SyncedActivity,
+  type Weekday,
+} from '@tren/core'
 import { loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
-import { appendLog, logFor, parseTime } from './logfile.ts'
+import { appendLog, logFor, parseTime, readLog, type LogEntry } from './logfile.ts'
 import {
   computePlan,
   findDay,
@@ -12,17 +20,64 @@ import {
   writePlan,
   PLAN_MD,
   PLAN_YAML,
+  type StoredPlan,
 } from './planfile.ts'
 import { KIND_PURPOSE, RULE_EXPLAIN } from './rules-explain.ts'
 import {
   compare,
   defaultProviderFactory,
   defaultRange,
+  readSnapshot,
   workoutsToPush,
   writeSnapshot,
   SYNC_FILE,
   type ProviderFactory,
 } from './sync.ts'
+
+/** Wykonanie = plan × (aktywności z sync ∪ wpisy z dziennika). */
+export function buildExecution(
+  plan: StoredPlan,
+  activities: SyncedActivity[],
+  logs: LogEntry[],
+  today: string,
+): ExecutionRecord[] {
+  const actualByDate = new Map<string, number>()
+  for (const a of activities) {
+    if (!/run/i.test(a.type)) continue
+    actualByDate.set(a.date, (actualByDate.get(a.date) ?? 0) + (a.distanceKm ?? 0))
+  }
+  const logByDate = new Map<string, LogEntry>()
+  for (const l of logs) logByDate.set(l.date, l)
+
+  const out: ExecutionRecord[] = []
+  const seen = new Set<string>()
+  for (const week of plan.weeks) {
+    for (const day of week.days) {
+      if (day.date > today) continue
+      seen.add(day.date)
+      const log = logByDate.get(day.date)
+      const synced = actualByDate.get(day.date)
+      const plannedKm = day.workout?.distanceKm ?? 0
+      const actualKm = synced ?? log?.km ?? (log?.status === 'done' ? plannedKm : undefined)
+      let status: ExecutionRecord['status']
+      if (!day.workout) status = actualKm ? 'unplanned' : 'rest'
+      else if (actualKm && actualKm > 0) status = 'done'
+      else status = 'missed'
+      out.push({
+        date: day.date,
+        plannedKm,
+        ...(actualKm !== undefined && actualKm > 0 ? { actualKm } : {}),
+        ...(day.workout ? { kind: day.workout.kind } : {}),
+        status,
+      })
+    }
+  }
+  for (const [date, km] of actualByDate) {
+    if (seen.has(date) || date > today) continue
+    out.push({ date, plannedKm: 0, actualKm: km, status: 'unplanned' })
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date))
+}
 
 export interface CmdResult {
   output: string
@@ -292,6 +347,112 @@ export async function cmdPull(
     } catch {
       lines.push('(brak planu — pominięto porównanie)')
     }
+    return ok(lines.join('\n'))
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+export function cmdAdapt(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
+  try {
+    const today = opts.date ?? localToday()
+    const plan = loadPlan(cwd)
+    const config = loadConfig(cwd)
+    const snapshot = readSnapshot(cwd)
+    const logs = readLog(cwd)
+    const execution = buildExecution(plan, snapshot?.activities ?? [], logs, today)
+
+    const currentWeek = plan.weeks.find((w) => w.days.some((d) => d.date === today))
+    const currentWeeklyKm = currentWeek?.skeleton.targetKm ?? plan.peakKmPlanned
+    const known = new Set(config.athlete.results.map((r) => `${r.date}:${r.distanceKm}`))
+    const newResults = config.athlete.results.filter(
+      (r) => r.date > plan.generatedAt && !known.has(`${r.date}:${r.distanceKm}`),
+    )
+    const lastRaceDay = [...plan.weeks.flatMap((w) => w.days)]
+      .filter((d) => d.workout?.kind === 'race' && d.date <= today)
+      .at(-1)
+
+    const proposal = analyzeExecution({
+      today,
+      execution,
+      currentWeeklyKm,
+      ...(newResults.length ? { newResults } : {}),
+      ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: plan.goal.distanceKm } } : {}),
+    })
+
+    const lines: string[] = []
+    lines.push(
+      `Analiza ${proposal.windowDays} dni (do ${today}): wykonanie ` +
+        `${Math.round(proposal.complianceKm * 100)}% objętości, ` +
+        `${proposal.missedSessions} pominiętych sesji.`,
+    )
+    if (!snapshot) {
+      lines.push('(brak sync.json — analiza tylko z dziennika; uruchom tren pull po pełne dane)')
+    }
+    if (proposal.diagnosis.length) {
+      lines.push('', 'Diagnoza:')
+      for (const d of proposal.diagnosis) lines.push(`- ${d}`)
+    }
+    lines.push('', 'Propozycje:')
+    for (const a of proposal.actions) {
+      const refs = a.ruleRefs.length ? ` [${a.ruleRefs.join(', ')}]` : ''
+      lines.push(`- ${a.type}: ${a.detail}${refs}`)
+    }
+    for (const w of proposal.warnings) lines.push(`⚠ ${w}`)
+    const volume = proposal.actions.find((a) => a.suggestedWeeklyKm)
+    if (volume) {
+      lines.push(
+        '',
+        `Aby zastosować: ustaw athlete.recentWeeklyKm: ${volume.suggestedWeeklyKm} w tren.yaml, ` +
+          'sprawdź tren diff, potem tren plan. Silnik nie przepisuje planu sam.',
+      )
+    }
+    return ok(lines.join('\n'))
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+export function cmdDesk(
+  cwd: string,
+  opts: { date?: string | undefined; heavy?: boolean | undefined } = {},
+): CmdResult {
+  try {
+    const date = opts.date ?? localToday()
+    const config = loadConfig(cwd)
+    if (!config.desk) {
+      return fail(
+        new Error(
+          'Brak sekcji desk w tren.yaml. Dodaj np.:\n' +
+            'desk:\n  workStart: "09:00"\n  workEnd: "17:00"\n  lunchMinutes: 45\n  prefer: evening',
+        ),
+      )
+    }
+    let workout: PlannedWorkout | undefined
+    try {
+      workout = findDay(loadPlan(cwd), date)?.day.workout
+    } catch {
+      workout = undefined
+    }
+    const day = planDeskDay(config.desk, workout, { heavyCognitiveDay: opts.heavy === true })
+    const lines: string[] = [`${date} · praca ${config.desk.workStart}–${config.desk.workEnd}`]
+    if (workout) {
+      lines.push(
+        `Trening: ${workout.kind}, ${workout.distanceKm} km` +
+          (day.recommended ? ` → okno ${day.recommended.label} (${day.recommended.from}–${day.recommended.to})` : ''),
+      )
+      lines.push('', 'Okna treningowe:')
+      for (const w of day.windows) {
+        lines.push(`- ${w.label}: ${w.from}–${w.to} ${w.fits ? '✓ mieści się' : '✗ za krótkie'}`)
+      }
+    } else {
+      lines.push('Dziś bez biegania.')
+    }
+    lines.push('', `Przerwy w siedzeniu (${day.breaks.length}):`)
+    lines.push(day.breaks.map((b) => `${b.at} ${b.what}`).join(' · '))
+    lines.push('', 'Uwagi:')
+    for (const g of day.guidance) lines.push(`- ${g}`)
+    lines.push('', `Reguły: ${day.ruleRefs.join(', ')} (docs/science/FOUNDATIONS.md §10.10)`)
     return ok(lines.join('\n'))
   } catch (e) {
     return fail(e)

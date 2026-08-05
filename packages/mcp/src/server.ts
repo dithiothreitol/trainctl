@@ -6,6 +6,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import {
+  cmdAdapt,
+  cmdDesk,
   cmdDiff,
   cmdInit,
   cmdLog,
@@ -114,6 +116,34 @@ export function createTrenServer(dir: string): McpServer {
       inputSchema: { date: isoDate.optional() },
     },
     async (args) => toTool(cmdWhy(dir, args)),
+  )
+
+  server.registerTool(
+    'tren_adapt',
+    {
+      description:
+        'Porównaj wykonanie (sync.json + dziennik) z planem i zaproponuj korekty: urealnienie ' +
+        'objętości, restart po przerwie, protokół po starcie, rekalibrację stref. ' +
+        'ZWRACA PROPOZYCJE — nie zmienia planu. Zastosowanie: edycja tren.yaml + tren_plan.',
+      inputSchema: { date: isoDate.optional().describe('data odniesienia (domyślnie dziś)') },
+    },
+    async (args) => toTool(cmdAdapt(dir, args)),
+  )
+
+  server.registerTool(
+    'tren_desk',
+    {
+      description:
+        'Dzień przy biurku: okna treningowe wokół godzin pracy, przerwy w siedzeniu i reguła ' +
+        'prowadzenia sesji po dniu ciężkiej pracy umysłowej (wtedy tempo, nie odczucie). ' +
+        'Ustaw heavy=true, gdy dzień był kognitywnie ciężki (długie sesje z agentami). ' +
+        'Wymaga sekcji desk w tren.yaml.',
+      inputSchema: {
+        date: isoDate.optional(),
+        heavy: z.boolean().optional().describe('ciężki dzień kognitywny'),
+      },
+    },
+    async (args) => toTool(cmdDesk(dir, args)),
   )
 
   server.registerTool(

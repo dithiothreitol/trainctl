@@ -6,9 +6,19 @@ import type { AthleteProfile, RaceGoal, Weekday } from '@tren/core'
 
 export const CONFIG_FILE = 'tren.yaml'
 
+export interface DeskConfig {
+  workStart: string
+  workEnd: string
+  lunchMinutes?: number
+  breakEveryMin?: number
+  breakMinutes?: number
+  prefer?: 'morning' | 'lunch' | 'evening'
+}
+
 export interface TrenConfig {
   athlete: AthleteProfile
   goal: RaceGoal
+  desk?: DeskConfig
 }
 
 export const CONFIG_TEMPLATE = `# tren — profil atlety i cel treningowy.
@@ -27,6 +37,11 @@ goal:
   distanceKm: 21.0975
   priority: A
   # targetTimeSec: 5700     # opcjonalny cel czasowy — tren plan oceni realność
+desk:                       # tryb biurkowy (tren desk) — opcjonalny
+  workStart: "09:00"
+  workEnd: "17:00"
+  lunchMinutes: 45
+  prefer: evening           # morning | lunch | evening
 `
 
 const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
@@ -72,7 +87,15 @@ export function loadConfig(cwd: string): TrenConfig {
     throw new Error(`Błędy w ${CONFIG_FILE}:\n  - ${errors.join('\n  - ')}`)
   }
   const goal = g as RaceGoal
-  return { athlete: a as AthleteProfile, goal: { ...goal, priority: goal.priority ?? 'A' } }
+  const desk = raw?.desk
+  if (desk && !(/^\d{1,2}:\d{2}$/.test(String(desk.workStart)) && /^\d{1,2}:\d{2}$/.test(String(desk.workEnd)))) {
+    throw new Error(`Błędy w ${CONFIG_FILE}:\n  - desk.workStart/workEnd: format HH:MM`)
+  }
+  return {
+    athlete: a as AthleteProfile,
+    goal: { ...goal, priority: goal.priority ?? 'A' },
+    ...(desk ? { desk } : {}),
+  }
 }
 
 export function writeConfigTemplate(cwd: string): void {

@@ -26,6 +26,8 @@ pnpm tren why         # dlaczego ten trening — cel jednostki + reguły z bada�
 pnpm tren log --time 58:30 --note "dobre czucie"
 pnpm tren shift --from 2026-08-06 --to 2026-08-07   # renegocjacja w obrębie tygodnia
 pnpm tren diff        # co zmieniłaby regeneracja z aktualnego tren.yaml
+pnpm tren adapt       # analiza wykonania → propozycje korekt (nie zmienia planu)
+pnpm tren desk --heavy   # dzień przy biurku: okna, przerwy, reguła tempa po pracy
 ```
 
 Synchronizacja z zegarkiem (intervals.icu jako hub → Garmin/Coros/Wahoo):
@@ -51,7 +53,8 @@ claude mcp add tren --env TREN_DIR="C:\sciezka\do\mojego-treningu" ^
 ```
 
 Narzędzia: `tren_plan`, `tren_today`, `tren_week`, `tren_log`, `tren_shift`,
-`tren_why`, `tren_diff`, `tren_init`, `tren_push`, `tren_pull`. Rozmowa jest interfejsem: „co mam dziś
+`tren_why`, `tren_diff`, `tren_init`, `tren_push`, `tren_pull`, `tren_adapt`,
+`tren_desk`. Rozmowa jest interfejsem: „co mam dziś
 wybiegać?", „w czwartek release — przesuń interwały", „czemu ten trening?".
 Agent widzi tydzień (`tren_week`), renegocjuje (`tren_shift` z ochroną dnia
 startu i ostrzeżeniem I-7) i tłumaczy plan cytując badania (`tren_why`).
