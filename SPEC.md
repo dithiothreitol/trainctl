@@ -2,7 +2,7 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** **Fazy 0–5 ZAKOŃCZONE — v1 kompletna** (2026-08-05). Silnik (`@tren/core`) + CLI (`@tren/cli`, kolorowy TUI i interaktywny kreator) + serwer MCP (`@tren/mcp`, 12 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`) + adaptacja i tryb biurkowy; **181 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie.
+**Status:** **Fazy 0–5 ZAKOŃCZONE — v1 kompletna** (2026-08-05). Silnik (`@tren/core`) + CLI (`@tren/cli`, kolorowy TUI i interaktywny kreator) + serwer MCP (`@tren/mcp`, 12 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`) + adaptacja i tryb biurkowy; **209 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie.
 
 Otwarte przed użyciem produkcyjnym: e2e sync na realnym koncie (wymaga klucza użytkownika — patrz §7), weryfikacja składni treningów na zegarku. Dalej: kolejne sporty (`SportModule`), REST API/hosting, publikacja OSS.
 
@@ -215,3 +215,4 @@ z wyników startów użytkownika.
 | 012 | 2026-08-05 | Tryb biurkowy nie modyfikuje struktury planu; HRV-guided odłożone | B-1: siedzenie nie jest udokumentowanym czynnikiem ryzyka urazów biegowych — przerwy służą metabolizmowi, nie bieganiu. H-1: HRV nie poprawia wyników (SMD 0,20 n.i.), a wymaga pasa piersiowego i 10-dniowej bazy — koszt wdrożenia przewyższa udowodnioną korzyść |
 | 013 | 2026-08-05 | Warstwa prezentacji: handlery zwracają **semantyczne bloki** (`cli/src/ui/blocks.ts`), CLI renderuje ANSI, MCP dostaje `renderPlain` | kolorowanie w handlerach wsypałoby agentowi sekwencje ANSI; rozdział pozwala zmieniać wygląd bez ruszania logiki i testować oba wyjścia osobno |
 | 014 | 2026-08-05 | Własne ~200 linii ANSI zamiast chalk/ink/blessed | zero zależności runtime, działa pod natywnym type-strippingiem Node (bez kroku budowania), pełna kontrola nad NO_COLOR/TTY/ASCII |
+| 015 | 2026-08-05 | Tryby interaktywne (`tren shift` bez dat, `tren week -i`) są **dodatkiem, nie zamiennikiem** flag; poza TTY komenda tłumaczy, jak podać argumenty | skrypty, CI i serwer MCP muszą działać bez terminala — interaktywność nie może stać się jedyną drogą |

@@ -24,7 +24,9 @@ pnpm tren plan        # generuje plan/plan.yaml + plan/PLAN.md (+ predykcja celu
 pnpm tren today       # co dziś wybiegać (--date YYYY-MM-DD dla innego dnia)
 pnpm tren why         # dlaczego ten trening — cel jednostki + reguły z badań
 pnpm tren log --time 58:30 --note "dobre czucie"
-pnpm tren shift --from 2026-08-06 --to 2026-08-07   # renegocjacja w obrębie tygodnia
+pnpm tren shift       # wybór treningu i nowego dnia z listy (strzałki/cyfry)
+pnpm tren shift --from 2026-08-06 --to 2026-08-07   # albo wprost, bez pytań
+pnpm tren week -i     # przeglądanie tygodni: ←/→, t = dziś, s = przesuń, q = wyjście
 pnpm tren diff        # co zmieniłaby regeneracja z aktualnego tren.yaml
 pnpm tren adapt       # analiza wykonania → propozycje korekt (nie zmienia planu)
 pnpm tren desk --heavy   # dzień przy biurku: okna, przerwy, reguła tempa po pracy

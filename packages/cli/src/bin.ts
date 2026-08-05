@@ -18,8 +18,10 @@ import {
   cmdToday,
   cmdWeek,
   cmdWhy,
+  localToday,
   type CmdResult,
 } from './commands.ts'
+import { runShiftPicker, runWeekBrowser } from './interactive.ts'
 import { renderAnsi } from './ui/blocks.ts'
 import { Theme } from './ui/theme.ts'
 import { withSpinner } from './ui/spinner.ts'
@@ -84,9 +86,15 @@ program
 
 program
   .command('week')
-  .description('podgląd bieżącego tygodnia (albo tygodnia z --date)')
+  .description('podgląd tygodnia; -i włącza przeglądanie strzałkami')
   .option('--date <iso>', 'data w interesującym tygodniu')
-  .action((opts) => print(cmdWeek(cwd, opts)))
+  .option('-i, --interactive', 'przeglądaj tygodnie klawiszami (←/→, s, q)')
+  .action(async (opts) => {
+    if (opts.interactive !== true) return print(cmdWeek(cwd, opts))
+    const result = await runWeekBrowser(cwd, opts.date ?? localToday(), theme)
+    console.log(result.output)
+    process.exitCode = result.code
+  })
 
 program
   .command('log')
@@ -100,10 +108,21 @@ program
 
 program
   .command('shift')
-  .description('zamień treningi między dwiema datami w tym samym tygodniu')
-  .requiredOption('--from <iso>', 'data źródłowa')
-  .requiredOption('--to <iso>', 'data docelowa')
-  .action((opts) => print(cmdShift(cwd, opts)))
+  .description('zamień treningi w tygodniu (bez argumentów: wybór z listy)')
+  .option('--from <iso>', 'data źródłowa')
+  .option('--to <iso>', 'data docelowa')
+  .action(async (opts) => {
+    if (opts.from && opts.to) return print(cmdShift(cwd, opts))
+    if (opts.from || opts.to) {
+      return print({
+        code: 1,
+        output: 'Podaj obie daty (--from i --to) albo żadnej — wtedy wybierzesz z listy.',
+      })
+    }
+    const result = await runShiftPicker(cwd, localToday(), theme)
+    console.log(result.output)
+    process.exitCode = result.code
+  })
 
 program
   .command('why')
@@ -156,6 +175,12 @@ program.addHelpText(
     theme.color('tren plan', 'brand') +
     theme.dim(' → ') +
     theme.color('tren today', 'brand') +
+    '\n' +
+    theme.dim('Interaktywnie: ') +
+    theme.color('tren shift', 'brand') +
+    theme.dim(' (wybór z listy) · ') +
+    theme.color('tren week -i', 'brand') +
+    theme.dim(' (przeglądanie strzałkami)') +
     '\n' +
     theme.dim('Kolory: NO_COLOR=1 wyłącza, TREN_ASCII=1 wymusza znaki ASCII.'),
 )
