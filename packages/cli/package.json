@@ -1,0 +1,14 @@
+{
+  "name": "@tren/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "tren": "./src/bin.ts"
+  },
+  "dependencies": {
+    "@tren/core": "workspace:*",
+    "commander": "^14.0.0",
+    "yaml": "^2.6.0"
+  }
+}

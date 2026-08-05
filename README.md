@@ -15,6 +15,23 @@ fazy, decyzje).
 - `docs/science/` — fundament naukowy z cytowaniami
 - `docs/adr/` — decyzje architektoniczne
 
+## Użycie (CLI)
+
+```
+mkdir moj-trening && cd moj-trening && git init   # plan-as-code: katalog w gicie
+pnpm tren init        # szablon tren.yaml — uzupełnij profil i wyniki startów
+pnpm tren plan        # generuje plan/plan.yaml + plan/PLAN.md (+ predykcja celu)
+pnpm tren today       # co dziś wybiegać (--date YYYY-MM-DD dla innego dnia)
+pnpm tren why         # dlaczego ten trening — cel jednostki + reguły z badań
+pnpm tren log --time 58:30 --note "dobre czucie"
+pnpm tren shift --from 2026-08-06 --to 2026-08-07   # renegocjacja w obrębie tygodnia
+pnpm tren diff        # co zmieniłaby regeneracja z aktualnego tren.yaml
+```
+
+CLI działa na bieżącym katalogu i trzyma wszystko w plikach (`tren.yaml`,
+`plan/`, `log.jsonl`) — bez konta, bez bazy; historia zmian planu to git.
+Uruchamiane natywnym type-strippingiem Node ≥23.6 (bez kroku budowania).
+
 ## Rozwój
 
 ```

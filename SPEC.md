@@ -2,7 +2,7 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** Fazy 0–1 ZAKOŃCZONE (2026-08-05). Silnik v1 w `@tren/core`: strefy (VDOT/CS), predykcja W-1…W-10, makrocykl (I/P/T), mikrocykle w house style trenera; backtest na sezonie HM 2025: mediana objętości gen/trener **1,04**, mediany różnic akcentów i sesji **0**. Następna: Faza 2 (CLI).
+**Status:** Fazy 0–2 ZAKOŃCZONE (2026-08-05). Silnik v1 (`@tren/core`): strefy, predykcja W-1…W-10, makro+mikrocykle w house style; backtest HM 2025: objętość gen/trener 1,04, Δakcentów 0. CLI (`@tren/cli`): init/plan/today/log/shift/why/diff na plikach, 80 testów łącznie. Następna: Faza 3 (serwer MCP).
 **Nazwa robocza:** `tren` (krótka komenda CLI; łatwa do zmiany przed publikacją)
 
 ## 1. Wizja
@@ -161,7 +161,7 @@ czystym zamknięciem sesji.
 |------|--------|--------------------|
 | **0** | Scaffold, ETL korpusu, research naukowy, taksonomia jednostek, ADR-y | ✅ KOMPLET: scaffold+ETL · docs/science (60 źródeł) · taksonomia + parser → JSON (100% pokrycia, 39 testów) · weryfikacja API intervals.icu |
 | **1** | Model domeny + silnik generacji (intake → makro → mikrocykle) | ✅ KOMPLET (2026-08-05): monorepo TS + `@tren/core` · strefy (VDOT D-G, CS) · predykcja W-1…W-10 · makrocykl I/P/T · mikrocykle w house style (profil z korpusu: `style_profile.py` → `house-style.ts`; sesje = objętość/14 km) · **backtest HM 2025: objętość 1,04, akcenty Δ0, sesje Δ0** — 64 testy vitest + typecheck |
-| **2** | CLI na rdzeniu | `tren init/plan/today/log/shift/why/diff` działają e2e lokalnie |
+| **2** | CLI na rdzeniu | ✅ KOMPLET (2026-08-05): `@tren/cli` — init/plan/today/log/shift/why/diff działają e2e (16 testów na realnych plikach + smoke bin); storage = pliki (`tren.yaml`, `plan/plan.yaml`+`PLAN.md` w stylu trenera, `log.jsonl`); shift z ochroną dnia startu i ostrzeżeniem I-7; why cytuje reguły; diff = dry-run regeneracji |
 | **3** | Serwer MCP + scenariusze agentowe | agent generuje, pyta „why", renegocjuje tydzień |
 | **4** | Sync intervals.icu | pull aktywności/wellness, push workoutów na zegarek |
 | **5** | Adaptacja w pętli + tryb biurkowy | re-plan na danych wykonania; przerwy/okna/sen |
@@ -199,3 +199,4 @@ z wyników startów użytkownika.
 | 004 | 2026-08-04 | Rdzeń deterministyczny, LLM na brzegach | LLM-only łamie ograniczenia fizjologiczne; testowalne = wiarygodne |
 | 005 | 2026-08-04 | Local-first: SQLite + pliki, bez konta | grupa docelowa tego oczekuje; zero backendu w v1 |
 | 006 | 2026-08-04 | Korekta ADR-002 po weryfikacji: hub bez danych Stravy; Polar pull-only; v1 = BYO API key | intervals.icu nie re-eksportuje danych Stravy od XII 2024; OAuth wymaga rejestracji mailem — zbędna w modelu BYO-key |
+| 007 | 2026-08-05 | Storage v1 = wyłącznie pliki (tren.yaml, plan/, log.jsonl) na cwd; SQLite dopiero z sync (faza 4); CLI bez kroku budowania (natywny type-stripping Node) | pliki to dosłowna realizacja filaru plan-as-code (git = historia); zero natywnych zależności; dystrybucja npm z buildem dojdzie przy publikacji |

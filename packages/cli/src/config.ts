@@ -1,0 +1,84 @@
+/** Konfiguracja atlety i celu: tren.yaml w bieżącym katalogu (plan-as-code). */
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { parse } from 'yaml'
+import type { AthleteProfile, RaceGoal, Weekday } from '@tren/core'
+
+export const CONFIG_FILE = 'tren.yaml'
+
+export interface TrenConfig {
+  athlete: AthleteProfile
+  goal: RaceGoal
+}
+
+export const CONFIG_TEMPLATE = `# tren — profil atlety i cel treningowy.
+# Uzupełnij i uruchom: tren plan
+athlete:
+  sex: unspecified          # male | female | unspecified
+  recentWeeklyKm: 45        # średnia z ostatnich ~4 tygodni
+  peakWeeklyKm: 65          # historycznie utrzymywalne maksimum (opcjonalne)
+  daysAvailable: [tue, wed, thu, sat, sun]
+  longRunDay: sat
+  results:                  # wyniki startów do kalibracji stref (Z-6: nie z zegarka!)
+    - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "przykładowa dycha" }
+goal:
+  name: "Półmaraton"
+  date: "2026-11-29"
+  distanceKm: 21.0975
+  priority: A
+  # targetTimeSec: 5700     # opcjonalny cel czasowy — tren plan oceni realność
+`
+
+const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
+
+export function loadConfig(cwd: string): TrenConfig {
+  const path = join(cwd, CONFIG_FILE)
+  if (!existsSync(path)) {
+    throw new Error(`Brak ${CONFIG_FILE} — uruchom najpierw: tren init`)
+  }
+  const raw = parse(readFileSync(path, 'utf-8')) as Partial<TrenConfig> | null
+  const errors: string[] = []
+  const a = raw?.athlete
+  const g = raw?.goal
+
+  if (!a) errors.push('athlete: brak sekcji')
+  else {
+    if (typeof a.recentWeeklyKm !== 'number' || a.recentWeeklyKm <= 0)
+      errors.push('athlete.recentWeeklyKm: wymagana liczba > 0')
+    if (!Array.isArray(a.daysAvailable) || a.daysAvailable.length === 0)
+      errors.push('athlete.daysAvailable: wymagana niepusta lista dni')
+    else
+      for (const d of a.daysAvailable)
+        if (!WEEKDAYS.includes(d)) errors.push(`athlete.daysAvailable: nieznany dzień "${d}"`)
+    if (!Array.isArray(a.results)) errors.push('athlete.results: wymagana lista (może być pusta)')
+    else
+      a.results.forEach((r, i) => {
+        if (!ISO_RE.test(String(r?.date))) errors.push(`athlete.results[${i}].date: format YYYY-MM-DD`)
+        if (typeof r?.distanceKm !== 'number' || r.distanceKm <= 0)
+          errors.push(`athlete.results[${i}].distanceKm: liczba > 0`)
+        if (typeof r?.timeSec !== 'number' || r.timeSec <= 0)
+          errors.push(`athlete.results[${i}].timeSec: liczba sekund > 0`)
+      })
+  }
+  if (!g) errors.push('goal: brak sekcji')
+  else {
+    if (!g.name) errors.push('goal.name: wymagane')
+    if (!ISO_RE.test(String(g.date))) errors.push('goal.date: format YYYY-MM-DD')
+    if (typeof g.distanceKm !== 'number' || g.distanceKm <= 0)
+      errors.push('goal.distanceKm: liczba > 0')
+  }
+  if (errors.length) {
+    throw new Error(`Błędy w ${CONFIG_FILE}:\n  - ${errors.join('\n  - ')}`)
+  }
+  const goal = g as RaceGoal
+  return { athlete: a as AthleteProfile, goal: { ...goal, priority: goal.priority ?? 'A' } }
+}
+
+export function writeConfigTemplate(cwd: string): void {
+  const path = join(cwd, CONFIG_FILE)
+  if (existsSync(path)) {
+    throw new Error(`${CONFIG_FILE} już istnieje — edytuj go albo usuń przed ponownym init.`)
+  }
+  writeFileSync(path, CONFIG_TEMPLATE, 'utf-8')
+}
