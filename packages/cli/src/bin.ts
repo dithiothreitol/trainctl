@@ -9,6 +9,7 @@ import {
   cmdAdapt,
   cmdDesk,
   cmdDiff,
+  cmdExport,
   cmdInit,
   cmdLog,
   cmdPlan,
@@ -22,7 +23,7 @@ import {
   localToday,
   type CmdResult,
 } from './commands.ts'
-import { runShiftPicker, runWeekBrowser } from './interactive.ts'
+import { runExportPicker, runShiftPicker, runWeekBrowser } from './interactive.ts'
 import { renderAnsi } from './ui/blocks.ts'
 import { Theme } from './ui/theme.ts'
 import { withSpinner } from './ui/spinner.ts'
@@ -161,6 +162,24 @@ program
   .action(async (opts) =>
     print(await withSpinner('pobieram dane z intervals.icu…', () => cmdPull(cwd, opts), theme)),
   )
+
+program
+  .command('export')
+  .description('plik na zegarek (FIT), kalendarz (ICS) albo rozpiska do wydruku')
+  .option('--what <rodzaj>', 'plan | workout | calendar | print')
+  .option('--date <iso>', 'trening do eksportu (dla --what workout)')
+  .action(async (opts) => {
+    if (opts.what) return print(cmdExport(cwd, opts))
+    if (process.stdin.isTTY !== true) {
+      return print({
+        code: 1,
+        output: 'Podaj rodzaj eksportu: tren export --what plan|workout|calendar|print',
+      })
+    }
+    const answer = await runExportPicker(cwd, localToday(), theme)
+    if (!answer) return print({ code: 0, output: theme.dim('anulowano') })
+    print(cmdExport(cwd, answer))
+  })
 
 program
   .command('reschedule')

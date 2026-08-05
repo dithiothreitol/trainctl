@@ -30,6 +30,8 @@ pnpm tren shift       # wybór treningu i nowego dnia z listy (strzałki/cyfry)
 pnpm tren shift --from 2026-08-06 --to 2026-08-07   # albo wprost, bez pytań
 pnpm tren week -i     # przeglądanie tygodni: ←/→, t = dziś, s = przesuń, q = wyjście
 pnpm tren diff        # co zmieniłaby regeneracja z aktualnego tren.yaml
+pnpm tren export      # zapyta: rozpiska do druku / plan na zegarek / jeden trening / kalendarz
+pnpm tren export --what print     # albo wprost, bez pytań
 pnpm tren adapt       # analiza wykonania → propozycje korekt (nie zmienia planu)
 pnpm tren desk --heavy   # dzień przy biurku: okna, przerwy, reguła tempa po pracy
 ```
@@ -52,6 +54,21 @@ wyłącza barwy, `TREN_ASCII=1` wymusza znaki ASCII, a przekierowanie do pliku
 lub potoku automatycznie zdejmuje formatowanie. Serwer MCP dostaje tę samą
 treść bez sekwencji ANSI — handlery opisują wyjście blokami
 (`src/ui/blocks.ts`), a kolory dokłada dopiero renderer CLI.
+
+## Eksport
+
+Trzy drogi „na zewnątrz", zależnie od tego, co masz pod ręką:
+
+| Co | Format | Do czego |
+|---|---|---|
+| `--what plan` / `workout` | `.fit` | katalog `GARMIN/Workouts` na zegarku (kabel) lub import w Garmin Connect |
+| `--what calendar` | `.ics` | Google Calendar, Outlook, kalendarz telefonu |
+| `--what print` | `.html` | rozpiska pod A4 — Ctrl+P, z kratką na odhaczanie |
+
+Bez kabla i bez plików: `tren push` wysyła treningi przez intervals.icu.
+Pliki FIT są weryfikowane binarnie w testach, a format potwierdzono, wgrywając
+wygenerowany plik do niezależnego parsera intervals.icu (struktura kroków,
+pętle powtórzeń i cele tempa odczytane poprawnie).
 
 ## Agent (MCP)
 

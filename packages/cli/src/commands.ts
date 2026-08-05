@@ -25,6 +25,7 @@ import {
   type StoredPlan,
 } from './planfile.ts'
 import { KIND_PURPOSE, RULE_EXPLAIN } from './rules-explain.ts'
+import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 
@@ -738,6 +739,52 @@ export function cmdReschedule(
     } else {
       blocks.push(b.blank(), b.hint('to podgląd; zastosuj: tren reschedule --apply (z tymi samymi --block)'))
     }
+    return okDoc(blocks)
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+export function cmdExport(
+  cwd: string,
+  opts: { what?: string | undefined; date?: string | undefined } = {},
+): CmdResult {
+  try {
+    const what = (opts.what ?? 'print') as ExportWhat
+    if (!['plan', 'workout', 'print', 'calendar'].includes(what)) {
+      return fail(new Error(`Nieznany rodzaj eksportu "${opts.what}" — plan|workout|print|calendar.`))
+    }
+    const files = runExport(cwd, { what, date: opts.date })
+    const total = files.reduce((s, f) => s + f.bytes, 0)
+    const title = {
+      plan: 'Eksport całego planu na zegarek (FIT)',
+      workout: 'Eksport treningu na zegarek (FIT)',
+      calendar: 'Eksport do kalendarza (ICS)',
+      print: 'Rozpiska do wydruku (HTML)',
+    }[what]
+
+    const blocks: Block[] = [
+      b.title(title, `${files.length} plik(ów) · ${(total / 1024).toFixed(1)} kB`),
+    ]
+    if (files.length <= 8) {
+      blocks.push(b.bullets(files.map((f) => `${f.path} — ${f.description}`)))
+    } else {
+      blocks.push(
+        b.bullets(files.slice(0, 5).map((f) => `${f.path} — ${f.description}`)),
+        b.text(`…oraz ${files.length - 5} kolejnych w ${EXPORT_DIR}/`, 'muted'),
+      )
+    }
+    blocks.push(
+      b.blank(),
+      what === 'print'
+        ? b.info('Otwórz w przeglądarce i wydrukuj (Ctrl+P) — układ jest przygotowany pod A4.')
+        : what === 'calendar'
+          ? b.info('Zaimportuj plik .ics w Google Calendar / Outlooku — treningi jako zdarzenia całodniowe.')
+          : b.info(
+              'Skopiuj pliki .fit do katalogu GARMIN/Workouts na zegarku (tryb pamięci masowej) ' +
+                'albo zaimportuj w Garmin Connect. Alternatywa bez kabla: tren push.',
+            ),
+    )
     return okDoc(blocks)
   } catch (e) {
     return fail(e)

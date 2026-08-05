@@ -89,6 +89,38 @@ export async function runShiftPicker(
   }
 }
 
+/** `tren export` bez argumentów: pyta, co wyeksportować (i który trening). */
+export async function runExportPicker(
+  cwd: string,
+  today: string,
+  theme = new Theme(),
+): Promise<{ what: string; date?: string } | undefined> {
+  const what = await select<string>(
+    'Co wyeksportować?',
+    [
+      { label: 'Rozpiska do wydruku', value: 'print', hint: 'HTML pod A4 — Ctrl+P' },
+      { label: 'Cały plan na zegarek', value: 'plan', hint: 'pliki .fit dla każdego treningu' },
+      { label: 'Jeden trening na zegarek', value: 'workout', hint: 'pojedynczy .fit' },
+      { label: 'Kalendarz', value: 'calendar', hint: '.ics do Google/Outlooka' },
+    ],
+    theme,
+  )
+  if (!what) return undefined
+  if (what !== 'workout') return { what }
+
+  let plan: StoredPlan
+  try {
+    plan = loadPlan(cwd)
+  } catch {
+    return { what }
+  }
+  const week = plan.weeks[weekOf(plan, today)]
+  if (!week) return { what }
+  const choices = dayChoices(week).filter((c) => c.hint !== 'wolne')
+  const date = await select('Który trening?', choices, theme)
+  return date ? { what, date } : undefined
+}
+
 /** `tren week -i`: przeglądanie tygodni strzałkami, `s` przesuwa trening. */
 export async function runWeekBrowser(
   cwd: string,

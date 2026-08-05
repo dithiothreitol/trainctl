@@ -23,6 +23,9 @@ importers:
       '@tren/core':
         specifier: workspace:*
         version: link:../core
+      '@tren/export':
+        specifier: workspace:*
+        version: link:../export
       '@tren/sync-intervalsicu':
         specifier: workspace:*
         version: link:../sync-intervalsicu
@@ -34,6 +37,12 @@ importers:
         version: 2.9.0
 
   packages/core: {}
+
+  packages/export:
+    dependencies:
+      '@tren/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/mcp:
     dependencies:

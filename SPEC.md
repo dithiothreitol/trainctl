@@ -2,7 +2,7 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** **Fazy 0–5 ZAKOŃCZONE — v1 kompletna** (2026-08-05). Silnik (`@tren/core`) + CLI (`@tren/cli`, kolorowy TUI i interaktywny kreator) + serwer MCP (`@tren/mcp`, 13 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`) + adaptacja i tryb biurkowy; **232 testy**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie.
+**Status:** **Fazy 0–5 ZAKOŃCZONE — v1 kompletna** (2026-08-05). Silnik (`@tren/core`) + CLI (`@tren/cli`, kolorowy TUI i interaktywny kreator) + serwer MCP (`@tren/mcp`, 14 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`) + adaptacja i tryb biurkowy; **255 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie.
 
 **Sync zweryfikowany e2e na żywym koncie 2026-08-05** (szczegóły: `docs/integrations/intervalsicu.md` §2a) — składnia treningów parsowana poprawnie, cele tempa zapisane, idempotencja działa. Otwarte: dostarczenie na fizyczny zegarek (wymaga konta spiętego z Garmin Connect). Dalej: kolejne sporty (`SportModule`), REST API/hosting, publikacja OSS.
 
@@ -71,6 +71,7 @@ tren/
 │  ├─ cli/               tren init|plan|today|log|shift|why|diff  (cienki adapter)
 │  ├─ mcp/               serwer MCP — te same use-case'y co CLI   (cienki adapter)
 │  ├─ sync-intervalsicu/ adapter SyncProvider (hub → Garmin/Coros/Wahoo)
+│  ├─ export/            FIT (zegarek), ICS (kalendarz), HTML (wydruk)
 │  └─ storage/           SQLite + pliki planu YAML/MD (adapter PlanRepository)
 ├─ tools/corpus/         ETL korpusu (Python, narzędzia jednorazowe — nie produkt)
 ├─ corpus/               dane źródłowe i pochodne (PII → gitignore!)
@@ -222,4 +223,6 @@ z wyników startów użytkownika.
 | 013 | 2026-08-05 | Warstwa prezentacji: handlery zwracają **semantyczne bloki** (`cli/src/ui/blocks.ts`), CLI renderuje ANSI, MCP dostaje `renderPlain` | kolorowanie w handlerach wsypałoby agentowi sekwencje ANSI; rozdział pozwala zmieniać wygląd bez ruszania logiki i testować oba wyjścia osobno |
 | 014 | 2026-08-05 | Własne ~200 linii ANSI zamiast chalk/ink/blessed | zero zależności runtime, działa pod natywnym type-strippingiem Node (bez kroku budowania), pełna kontrola nad NO_COLOR/TTY/ASCII |
 | 015 | 2026-08-05 | Tryby interaktywne (`tren shift` bez dat, `tren week -i`) są **dodatkiem, nie zamiennikiem** flag; poza TTY komenda tłumaczy, jak podać argumenty | skrypty, CI i serwer MCP muszą działać bez terminala — interaktywność nie może stać się jedyną drogą |
+| 017 | 2026-08-05 | Własny koder FIT (~330 linii) zamiast biblioteki; walidacja przez upload do niezależnego parsera intervals.icu | biblioteki FIT ciągną SDK Garmina i zależności binarne — tu potrzebujemy jednego typu pliku (workout); poprawność sprawdzona nie tylko własnym dekoderem w testach, ale i obcym parserem |
+| 018 | 2026-08-05 | Trzy drogi eksportu zamiast jednej: FIT (zegarek), ICS (kalendarz), HTML (wydruk) | „na urządzenie" znaczy co innego dla każdego: kabel do Garmina, kalendarz w telefonie albo kartka w kieszeni; push przez intervals.icu nie zastępuje żadnej z nich |
 | 016 | 2026-08-05 | `tren push` usuwa nieaktualne wpisy z zakresu, ale **wyłącznie z prefiksem `tren-`**; filtr zdublowany w adapterze i w komendzie | upsert zostawiał „duchy" po renegocjacji; jednocześnie skasowanie treningu dodanego ręcznie przez atletę byłoby nieodwracalną szkodą — stąd celowa redundancja zabezpieczenia |

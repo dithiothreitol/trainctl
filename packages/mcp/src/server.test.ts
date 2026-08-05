@@ -45,11 +45,11 @@ afterAll(async () => {
 })
 
 describe('serwer MCP tren', () => {
-  it('wystawia komplet 13 narzędzi', async () => {
+  it('wystawia komplet 14 narzędzi', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual([
-      'tren_adapt', 'tren_desk', 'tren_diff', 'tren_init', 'tren_log', 'tren_plan',
+      'tren_adapt', 'tren_desk', 'tren_diff', 'tren_export', 'tren_init', 'tren_log', 'tren_plan',
       'tren_pull', 'tren_push', 'tren_reschedule', 'tren_shift', 'tren_today', 'tren_week', 'tren_why',
     ])
   })
