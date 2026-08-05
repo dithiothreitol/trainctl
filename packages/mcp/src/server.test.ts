@@ -1,10 +1,12 @@
 /** Scenariusze agentowe: klient MCP ↔ serwer w pamięci, realne pliki w tmp. */
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
+import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from '@tren/core'
+import { localToday } from '@tren/cli'
 import { createTrenServer } from './server.ts'
 
 const CONFIG = `athlete:
@@ -140,5 +142,54 @@ describe('serwer MCP tren', () => {
     const r = await call('tren_diff')
     expect(r.isError).toBe(false)
     expect(r.text).toContain('ręczne przesunięcia')
+  })
+})
+
+describe('tren_init fromIntervals — profil z historii przez agenta', () => {
+  // handler MCP używa prawdziwego „dziś" — historia musi być względna do daty uruchomienia testu
+  const TODAY_MONDAY = mondayOf(localToday())
+  let icuDir: string
+  let icuClient: Client
+
+  const history: SyncedActivity[] = Array.from({ length: 16 }, (_, i) => {
+    const monday = addDays(TODAY_MONDAY, -7 * (i + 1))
+    return [
+      { externalId: `w${i}a`, date: addDays(monday, 1), type: 'Run', distanceKm: 8, movingTimeSec: 2640 },
+      { externalId: `w${i}b`, date: addDays(monday, 3), type: 'Run', distanceKm: 10, movingTimeSec: 3300 },
+      { externalId: `w${i}c`, date: addDays(monday, 5), type: 'Run', distanceKm: 18, movingTimeSec: 5940 },
+    ]
+  }).flat()
+
+  const provider: SyncProvider = {
+    name: 'intervals.icu (test)',
+    verify: async () => ({ athleteId: 'i0' }),
+    listActivities: async (oldest, newest) =>
+      history.filter((a) => a.date >= oldest && a.date <= newest),
+    listWellness: async () => [],
+    pushWorkouts: async () => ({ pushed: 0, externalIds: [] }),
+    listPlannedWorkouts: async () => [],
+    deleteWorkout: async () => {},
+  }
+
+  beforeAll(async () => {
+    icuDir = mkdtempSync(join(tmpdir(), 'tren-mcp-icu-'))
+    const server = createTrenServer(icuDir, () => provider)
+    icuClient = new Client({ name: 'test-agent', version: '0.0.0' })
+    const [ct, st] = InMemoryTransport.createLinkedPair()
+    await Promise.all([server.connect(st), icuClient.connect(ct)])
+  })
+
+  afterAll(async () => {
+    await icuClient.close()
+    rmSync(icuDir, { recursive: true, force: true })
+  })
+
+  it('tworzy tren.yaml z proweniencją; agent dostaje instrukcję potwierdzania', async () => {
+    const res = await icuClient.callTool({ name: 'tren_init', arguments: { fromIntervals: true } })
+    expect(res.isError).not.toBe(true)
+    const yaml = readFileSync(join(icuDir, 'tren.yaml'), 'utf-8')
+    expect(yaml).toContain('recentWeeklyKm: 36')
+    expect(yaml).toContain('intervals.icu')
+    expect(yaml).toContain('UZUPEŁNIJ')
   })
 })

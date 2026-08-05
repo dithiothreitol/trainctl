@@ -448,6 +448,31 @@ skonfigurowanego progu. To potwierdza słuszność decyzji z `workout-syntax.ts`
 **Nadal niezweryfikowane:** czy trening dociera na fizyczny zegarek Garmina
 (wymaga konta połączonego z Garmin Connect i samego urządzenia).
 
+## 2b. INFERENCJA PROFILU Z HISTORII — stan weryfikacji (2026-08-05, faza 6)
+
+`tren init --from-intervals` odpytuje `GET /athlete/0/activities?oldest&newest`
+(ten sam endpoint co `tren pull`, więc żadnej nowej powierzchni API).
+
+**Zweryfikowane na żywym koncie:** ścieżka przechodzi end-to-end przez prawdziwe
+API (auth 200, zapytanie o 16 tygodni wykonane), a przy **zerowej historii**
+komenda kończy się czytelnym „Brak aktywności biegowych w oknie 16 tygodni —
+profil uzupełnij ręcznie" i **nie tworzy `tren.yaml`**. To jest właściwe
+zachowanie: profil zmyślony z niczego byłby gorszy niż brak profilu.
+
+**Niezweryfikowane — wymaga konta z realną historią:** konto testowe `i665499`
+nie jest spięte z Garminem/Stravą i ma **0 aktywności** (potwierdzone także dla
+okna 2024-01-01 → dziś), więc nie dało się sprawdzić:
+
+| Pytanie | Status |
+|---|---|
+| Nazwy pól aktywności w praktyce (`distance` w m? `moving_time`?) | adapter normalizuje oba warianty casingu (§1.2) — niesprawdzone na danych |
+| Czy payload niesie znacznik startu (kategoria / `category`) | **otwarte** — heurystyka kandydatów (dystans standardowy + nazwa/tempo) działa bez tego pola; jeśli znacznik istnieje, użyć go jako sygnału pierwotnego |
+| Jakość detekcji startów na prawdziwej historii | otwarte — kandydaci są zawsze potwierdzani przez użytkownika (ADR-019), więc fałszywy pozytyw nie psuje planu |
+
+Kiedy konto dostanie realną historię (spięcie z Garminem), wystarczy uruchomić
+`tren init --from-intervals` w pustym katalogu i porównać propozycje z faktycznym
+stanem wytrenowania — wynik dopisać do tej sekcji.
+
 ## 3. Pytania otwarte
 
 Rzeczy, których nie udało się jednoznacznie potwierdzić i które trzeba

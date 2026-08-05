@@ -1,16 +1,21 @@
 /** Handlery komend CLI — czyste funkcje (cwd, argumenty) → { output, code }. */
 import {
+  addDays,
   analyzeExecution,
   diffDays,
+  inferProfile,
+  mondayOf,
   planDeskDay,
   reschedule,
   COACH_STYLE,
+  INFER_WINDOW_WEEKS,
   type ExecutionRecord,
+  type InferenceOutcome,
   type PlannedWorkout,
   type SyncedActivity,
   type Weekday,
 } from '@tren/core'
-import { loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
+import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, logFor, parseTime, readLog, type LogEntry } from './logfile.ts'
 import {
   computePlan,
@@ -70,6 +75,9 @@ import {
   SYNC_FILE,
   type ProviderFactory,
 } from './sync.ts'
+
+// dla MCP (importuje wyłącznie z @tren/cli = commands.ts)
+export { defaultProviderFactory, hasApiKey, type ProviderFactory } from './sync.ts'
 
 /** Wykonanie = plan × (aktywności z sync ∪ wpisy z dziennika). */
 export function buildExecution(
@@ -146,6 +154,80 @@ const WEEKDAY_PL: Record<Weekday, string> = {
 /** Skróty jak w planach trenera (korpus). */
 const WEEKDAY_SHORT: Record<Weekday, string> = {
   mon: 'PN', tue: 'WT', wed: 'ŚR', thu: 'CZ', fri: 'PT', sat: 'SB', sun: 'ND',
+}
+
+/** Sekundy → H:MM:SS albo MM:SS — do pokazywania czasów kandydatów. */
+export function fmtClock(sec: number): string {
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = sec % 60
+  const p = (n: number) => String(n).padStart(2, '0')
+  return h > 0 ? `${h}:${p(m)}:${p(s)}` : `${m}:${p(s)}`
+}
+
+/** Pobranie historii i inferencja profilu — wspólne dla flagi CLI, kreatora i MCP. */
+export async function fetchInferredProfile(
+  cwd: string,
+  today: string,
+  factory: ProviderFactory = defaultProviderFactory,
+): Promise<InferenceOutcome> {
+  const provider = factory(cwd)
+  const oldest = addDays(mondayOf(today), -INFER_WINDOW_WEEKS * 7)
+  const activities = await provider.listActivities(oldest, today)
+  return inferProfile(activities, today)
+}
+
+/**
+ * `tren init --from-intervals` poza TTY: zapisuje tren.yaml z propozycjami
+ * (komentarze proweniencji, ADR-019); kandydatów na wyniki tylko WYPISUJE —
+ * dopisanie do results wymaga potwierdzenia użytkownika.
+ */
+export async function cmdInitFromIntervals(
+  cwd: string,
+  opts: { date?: string | undefined } = {},
+  factory: ProviderFactory = defaultProviderFactory,
+): Promise<CmdResult> {
+  try {
+    const today = opts.date ?? localToday()
+    const outcome = await fetchInferredProfile(cwd, today, factory)
+    if (!outcome.ok) return fail(new Error(outcome.reason))
+    const p = outcome.profile
+    writeConfigTemplate(cwd, inferredConfigYaml(p))
+
+    const recent4 = p.weeklyKm.slice(-4).map((w) => w.km)
+    const blocks: Block[] = [
+      b.success(`Utworzono ${CONFIG_FILE} z profilu intervals.icu`),
+      b.kv([
+        ['Okno danych', `${p.window.oldest} → ${p.window.newest} (${INFER_WINDOW_WEEKS} pełnych tygodni)`],
+        ['Objętość bieżąca', `${p.recentWeeklyKm} km/tydz. (${p.recentBasis})`],
+        ...(p.peakWeeklyKm !== undefined
+          ? ([['Szczyt okna', `${p.peakWeeklyKm} km/tydz.`]] as [string, string][])
+          : []),
+        ['Dni treningowe', p.daysAvailable.join(', ')],
+        ...(p.longRunDay ? ([['Długie wybieganie', p.longRunDay]] as [string, string][]) : []),
+        ['Ostatnie 4 tygodnie', recent4.map((km) => `${km} km`).join(' · ')],
+      ]),
+    ]
+    for (const c of p.caveats) blocks.push(b.warn(c))
+    if (p.raceCandidates.length) {
+      blocks.push(
+        b.section('Możliwe starty do kalibracji stref (potwierdź zanim dopiszesz!)'),
+        b.bullets(
+          p.raceCandidates.slice(0, 5).map(
+            (c) =>
+              `${c.date} · ${c.name ?? 'bez nazwy'} · ${c.distanceKm} km w ${fmtClock(c.timeSec)} (${c.reason})` +
+              ` → results: { date: "${c.date}", distanceKm: ${c.distanceKm}, timeSec: ${c.timeSec} }`,
+          ),
+        ),
+      )
+    } else {
+      blocks.push(b.info('Nie znalazłem kandydatów na starty — wynik do kalibracji dopisz ręcznie.'))
+    }
+    blocks.push(b.blank(), b.hint('uzupełnij sekcję goal w tren.yaml → tren plan'))
+    return okDoc(blocks)
+  } catch (e) {
+    return fail(e)
+  }
 }
 
 export function cmdInit(cwd: string, content?: string): CmdResult {

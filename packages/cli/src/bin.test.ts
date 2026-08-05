@@ -52,6 +52,23 @@ describe('binarka CLI pod natywnym Node', () => {
     expect(run(['today', '--date', '2026-08-04'])).toMatch(/tydzień \d+\/\d+/)
   })
 
+  it('init --from-intervals bez klucza — instrukcja, nie stack trace', () => {
+    const empty = mkdtempSync(join(tmpdir(), 'tren-bin-icu-'))
+    let output = ''
+    try {
+      output = execFileSync(process.execPath, [CLI_BIN, 'init', '--from-intervals'], {
+        cwd: empty,
+        encoding: 'utf-8',
+        env: { ...process.env, TREN_INTERVALS_API_KEY: '' },
+      })
+    } catch (e) {
+      output = String((e as { stdout?: string }).stdout ?? '')
+    }
+    expect(output).toContain('Developer Settings')
+    expect(output).not.toContain('ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX')
+    rmSync(empty, { recursive: true, force: true })
+  })
+
   it('push bez klucza API ładuje adapter sync i zwraca instrukcję', () => {
     // interesuje nas, że moduły sync-intervalsicu dają się ZAŁADOWAĆ natywnie
     let output = ''

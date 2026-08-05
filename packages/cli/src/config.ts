@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse } from 'yaml'
-import type { AthleteProfile, RaceGoal, Weekday } from '@tren/core'
+import type { AthleteProfile, InferredProfile, RaceGoal, Weekday } from '@tren/core'
 
 export const CONFIG_FILE = 'tren.yaml'
 
@@ -96,6 +96,34 @@ export function loadConfig(cwd: string): TrenConfig {
     goal: { ...goal, priority: goal.priority ?? 'A' },
     ...(desk ? { desk } : {}),
   }
+}
+
+/**
+ * tren.yaml z profilu wywnioskowanego z intervals.icu (ADR-019): każda wartość
+ * z komentarzem proweniencji, cel jako jawne placeholdery — walidacja loadConfig
+ * nie przepuści pliku, dopóki użytkownik nie wpisze prawdziwego celu.
+ */
+export function inferredConfigYaml(p: InferredProfile): string {
+  return [
+    '# tren — profil atlety i cel treningowy.',
+    `# Profil zaproponowany z historii intervals.icu (pełne tygodnie ${p.window.oldest} → ${p.window.newest}).`,
+    '# To propozycje — popraw wszystko, co nie zgadza się z rzeczywistością.',
+    'athlete:',
+    `  recentWeeklyKm: ${p.recentWeeklyKm}  # ${p.recentBasis}`,
+    ...(p.peakWeeklyKm !== undefined
+      ? [`  peakWeeklyKm: ${p.peakWeeklyKm}    # najwyższy pełny tydzień okna`]
+      : []),
+    `  daysAvailable: [${p.daysAvailable.join(', ')}]  # dni z ≥10% biegów okna`,
+    ...(p.longRunDay ? [`  longRunDay: ${p.longRunDay}       # dominujący dzień najdłuższych biegów`] : []),
+    '  results:            # dopisz wynik startu po potwierdzeniu kandydatów z wyjścia komendy',
+    '    []                # (strefy kalibrujemy z wyników startów, nie z odczytów zegarka — Z-6)',
+    'goal:                 # UZUPEŁNIJ — bez celu `tren plan` odmówi (celowo)',
+    '  name: "Bieg docelowy"',
+    '  date: "RRRR-MM-DD"  # data startu',
+    '  distanceKm: 0       # 5 / 10 / 21.0975 / 42.195',
+    '  priority: A',
+    '',
+  ].join('\n')
 }
 
 export function writeConfigTemplate(cwd: string, content?: string): void {

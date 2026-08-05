@@ -33,6 +33,16 @@ export function readApiKey(cwd: string): string {
   )
 }
 
+/** Czy klucz jest osiągalny — bez rzucania (kreator pyta o pobranie historii tylko wtedy). */
+export function hasApiKey(cwd: string): boolean {
+  try {
+    readApiKey(cwd)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export type ProviderFactory = (cwd: string) => SyncProvider
 
 export const defaultProviderFactory: ProviderFactory = (cwd) =>

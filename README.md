@@ -20,6 +20,7 @@ fazy, decyzje).
 ```
 mkdir moj-trening && cd moj-trening && git init   # plan-as-code: katalog w gicie
 pnpm tren init        # interaktywny kreator profilu (--template = sam szablon)
+pnpm tren init --from-intervals   # profil z 16 tygodni historii intervals.icu
 pnpm tren plan        # generuje plan/plan.yaml + plan/PLAN.md (+ predykcja celu)
 pnpm tren today       # co dziś wybiegać (--date YYYY-MM-DD dla innego dnia)
 pnpm tren why         # dlaczego ten trening — cel jednostki + reguły z badań
@@ -35,6 +36,12 @@ pnpm tren export --what print     # albo wprost, bez pytań
 pnpm tren adapt       # analiza wykonania → propozycje korekt (nie zmienia planu)
 pnpm tren desk --heavy   # dzień przy biurku: okna, przerwy, reguła tempa po pracy
 ```
+
+Profil z prawdziwych danych zamiast samooceny: gdy klucz intervals.icu jest
+dostępny, kreator proponuje objętość, dni treningowe i dzień długiego wybiegania
+z ostatnich 16 tygodni — Enter przyjmuje propozycję, wpisanie własnej wartości ją
+nadpisuje. Kandydatów na starty (do kalibracji stref) tylko pokazujemy: wynik
+wpisany błędnie przesuwa wszystkie tempa, więc tę decyzję zostawiamy człowiekowi.
 
 Synchronizacja z zegarkiem (intervals.icu jako hub → Garmin/Coros/Wahoo):
 

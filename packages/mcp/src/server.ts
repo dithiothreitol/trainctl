@@ -11,6 +11,7 @@ import {
   cmdDiff,
   cmdExport,
   cmdInit,
+  cmdInitFromIntervals,
   cmdLog,
   cmdPlan,
   cmdPull,
@@ -20,7 +21,9 @@ import {
   cmdToday,
   cmdWeek,
   cmdWhy,
+  defaultProviderFactory,
   type CmdResult,
+  type ProviderFactory,
 } from '@tren/cli'
 
 const isoDate = z
@@ -34,7 +37,10 @@ function toTool(r: CmdResult) {
   }
 }
 
-export function createTrenServer(dir: string): McpServer {
+export function createTrenServer(
+  dir: string,
+  factory: ProviderFactory = defaultProviderFactory,
+): McpServer {
   const server = new McpServer({ name: 'tren', version: '0.1.0' })
 
   server.registerTool(
@@ -42,10 +48,16 @@ export function createTrenServer(dir: string): McpServer {
     {
       description:
         'Utwórz szablon tren.yaml (profil atlety i cel) w katalogu treningowym. ' +
-        'Nie nadpisuje istniejącego pliku.',
-      inputSchema: {},
+        'Nie nadpisuje istniejącego pliku. Z fromIntervals=true proponuje profil ' +
+        'z 16 tygodni historii intervals.icu (wymaga klucza API): wartości mają ' +
+        'komentarz proweniencji, a kandydatów na wyniki startów zwraca DO POTWIERDZENIA ' +
+        'z użytkownikiem — dopisz je do athlete.results dopiero po jego zgodzie.',
+      inputSchema: {
+        fromIntervals: z.boolean().optional().describe('profil z historii intervals.icu'),
+      },
     },
-    async () => toTool(cmdInit(dir)),
+    async (args) =>
+      toTool(args?.fromIntervals === true ? await cmdInitFromIntervals(dir, {}, factory) : cmdInit(dir)),
   )
 
   server.registerTool(
@@ -195,7 +207,7 @@ export function createTrenServer(dir: string): McpServer {
         days: z.string().optional().describe('ile dni do przodu, domyślnie 14'),
       },
     },
-    async (args) => toTool(await cmdPush(dir, args)),
+    async (args) => toTool(await cmdPush(dir, args, factory)),
   )
 
   server.registerTool(
@@ -206,7 +218,7 @@ export function createTrenServer(dir: string): McpServer {
         'i porównaj wykonanie z planem (rozjazdy: krótsze/dłuższe/brak wykonania/nieplanowane).',
       inputSchema: { days: z.string().optional().describe('ile dni wstecz, domyślnie 28') },
     },
-    async (args) => toTool(await cmdPull(dir, args)),
+    async (args) => toTool(await cmdPull(dir, args, factory)),
   )
 
   server.registerTool(

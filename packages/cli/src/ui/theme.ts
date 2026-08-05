@@ -111,6 +111,20 @@ export class Theme {
   }
 }
 
+const SPARK_UNICODE = '▁▂▃▄▅▆▇█'
+const SPARK_ASCII = '_.-:=+*#'
+
+/** Mini-wykres słupkowy w jednej linii (kreator: tygodniowa objętość z historii). */
+export function sparkline(values: number[], unicode = true): string {
+  if (values.length === 0) return ''
+  const bars = unicode ? SPARK_UNICODE : SPARK_ASCII
+  const max = Math.max(...values)
+  if (max <= 0) return bars[0]!.repeat(values.length)
+  return values
+    .map((v) => bars[Math.min(bars.length - 1, Math.round((v / max) * (bars.length - 1)))]!)
+    .join('')
+}
+
 /** Długość widoczna — bez sekwencji ANSI (do wyrównywania kolumn). */
 export function visibleLength(text: string): number {
   return stripAnsi(text).length

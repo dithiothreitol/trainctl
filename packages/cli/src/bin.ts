@@ -11,6 +11,7 @@ import {
   cmdDiff,
   cmdExport,
   cmdInit,
+  cmdInitFromIntervals,
   cmdLog,
   cmdPlan,
   cmdPull,
@@ -20,6 +21,8 @@ import {
   cmdToday,
   cmdWeek,
   cmdWhy,
+  fetchInferredProfile,
+  hasApiKey,
   localToday,
   type CmdResult,
 } from './commands.ts'
@@ -60,11 +63,23 @@ program
   .command('init')
   .description('utwórz profil (interaktywnie w terminalu)')
   .option('--template', 'zapisz szablon bez pytań')
+  .option('--from-intervals', 'zaproponuj profil z historii intervals.icu (wymaga klucza API)')
   .action(async (opts) => {
     const interactive = opts.template !== true && process.stdin.isTTY === true
-    if (!interactive) return print(cmdInit(cwd))
+    if (!interactive) {
+      if (opts.fromIntervals === true) {
+        return print(
+          await withSpinner('pobieram historię z intervals.icu…', () => cmdInitFromIntervals(cwd), theme),
+        )
+      }
+      return print(cmdInit(cwd))
+    }
     try {
-      const answers = await runWizard(theme)
+      const answers = await runWizard(theme, {
+        available: hasApiKey(cwd),
+        force: opts.fromIntervals === true,
+        fetch: () => fetchInferredProfile(cwd, localToday()),
+      })
       print(cmdInit(cwd, toYaml(answers)))
     } catch (e) {
       // Ctrl+C w kreatorze nie powinno zostawiać stack trace'u
