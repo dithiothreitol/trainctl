@@ -3,6 +3,8 @@ import {
   analyzeExecution,
   diffDays,
   planDeskDay,
+  reschedule,
+  COACH_STYLE,
   type ExecutionRecord,
   type PlannedWorkout,
   type SyncedActivity,
@@ -631,6 +633,83 @@ export function cmdDesk(
       blocks.push(b.blank())
     }
     blocks.push(b.hint(`reguły: ${day.ruleRefs.join(', ')} — docs/science/FOUNDATIONS.md §10.10`))
+    return okDoc(blocks)
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+export function cmdReschedule(
+  cwd: string,
+  opts: { block?: string[] | undefined; date?: string | undefined; apply?: boolean | undefined } = {},
+): CmdResult {
+  try {
+    const date = opts.date ?? opts.block?.[0] ?? localToday()
+    const plan = loadPlan(cwd)
+    const config = loadConfig(cwd)
+    const hit = findDay(plan, date)
+    if (!hit) return fail(new Error(`Data ${date} poza zakresem planu.`))
+    const weekIndex = plan.weeks.findIndex((w) => w.weekStart === hit.week.weekStart)
+    const week = plan.weeks[weekIndex]!
+
+    const result = reschedule({
+      week,
+      blockedDates: opts.block ?? [],
+      availableDays: config.athlete.daysAvailable,
+      qualityDayPreference: COACH_STYLE.qualityDayPreference,
+      longRunDayPreference: COACH_STYLE.longRunDayPreference,
+    })
+
+    const blocks: Block[] = [
+      b.title(
+        `Renegocjacja tygodnia · od ${week.weekStart}`,
+        opts.block?.length ? `zablokowane: ${opts.block.join(', ')}` : 'bez blokad',
+      ),
+    ]
+    if (!result.changed) {
+      blocks.push(b.success('Plan tygodnia zostaje bez zmian — nic nie wymaga przestawienia.'))
+      for (const w of result.warnings) blocks.push(b.warn(w))
+      return okDoc(blocks)
+    }
+
+    blocks.push(
+      b.table(
+        ['dzień', 'data', 'było', 'będzie'],
+        week.days.map((before, i) => {
+          const after = result.days[i]!
+          const label = (k?: string) => (k ? (KIND_LABEL[k] ?? k) : '—')
+          return [
+            WEEKDAY_SHORT[before.weekday],
+            before.date.slice(5),
+            label(before.workout?.kind),
+            label(after.workout?.kind),
+          ]
+        }),
+        week.days.map((before, i) =>
+          before.workout?.kind === result.days[i]!.workout?.kind
+            ? 'muted'
+            : result.days[i]!.workout
+              ? 'success'
+              : 'warn',
+        ),
+      ),
+      b.section('Co się zmienia'),
+      b.bullets(result.tradeoffs),
+    )
+    for (const w of result.warnings) blocks.push(b.warn(w))
+
+    if (opts.apply === true) {
+      week.days = result.days
+      plan.changes.push({
+        at: localToday(),
+        action: 'reschedule',
+        detail: `${week.weekStart}: ${result.tradeoffs.join('; ')}`,
+      })
+      writePlan(cwd, plan)
+      blocks.push(b.blank(), b.success(`Zastosowano — zapisano ${PLAN_YAML} i ${PLAN_MD}`))
+    } else {
+      blocks.push(b.blank(), b.hint('to podgląd; zastosuj: tren reschedule --apply (z tymi samymi --block)'))
+    }
     return okDoc(blocks)
   } catch (e) {
     return fail(e)

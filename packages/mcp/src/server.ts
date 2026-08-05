@@ -14,6 +14,7 @@ import {
   cmdPlan,
   cmdPull,
   cmdPush,
+  cmdReschedule,
   cmdShift,
   cmdToday,
   cmdWeek,
@@ -144,6 +145,24 @@ export function createTrenServer(dir: string): McpServer {
       },
     },
     async (args) => toTool(cmdDesk(dir, args)),
+  )
+
+  server.registerTool(
+    'tren_reschedule',
+    {
+      description:
+        'Przestaw CAŁY tydzień wokół dni, w których użytkownik nie może trenować ' +
+        '(„w czwartek mam release", „wyjazd wt–śr"). Solver trzyma ≥48 h między akcentami, ' +
+        'chroni długie wybieganie i liczbę akcentów, a gdy brakuje dni — mówi, którą jednostkę ' +
+        'poświęca i dlaczego. Domyślnie tylko podgląd; apply=true zapisuje plan. ' +
+        'Do przesunięcia pojedynczego treningu użyj tren_shift.',
+      inputSchema: {
+        block: z.array(isoDate).optional().describe('dni bez możliwości treningu'),
+        date: isoDate.optional().describe('data wskazująca tydzień (domyślnie bieżący)'),
+        apply: z.boolean().optional().describe('true = zapisz zmiany w planie'),
+      },
+    },
+    async (args) => toTool(cmdReschedule(dir, args)),
   )
 
   server.registerTool(

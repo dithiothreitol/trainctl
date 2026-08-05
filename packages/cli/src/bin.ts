@@ -14,6 +14,7 @@ import {
   cmdPlan,
   cmdPull,
   cmdPush,
+  cmdReschedule,
   cmdShift,
   cmdToday,
   cmdWeek,
@@ -160,6 +161,14 @@ program
   .action(async (opts) =>
     print(await withSpinner('pobieram dane z intervals.icu…', () => cmdPull(cwd, opts), theme)),
   )
+
+program
+  .command('reschedule')
+  .description('przestaw tydzień wokół zajętych dni (solver: akcenty, 48 h, długie)')
+  .option('--block <iso...>', 'dni, w których nie możesz trenować')
+  .option('--date <iso>', 'który tydzień (domyślnie: bieżący)')
+  .option('--apply', 'zapisz zmiany w planie (bez tego tylko podgląd)')
+  .action((opts) => print(cmdReschedule(cwd, opts)))
 
 program
   .command('diff')

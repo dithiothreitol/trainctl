@@ -2,7 +2,7 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** **Fazy 0–5 ZAKOŃCZONE — v1 kompletna** (2026-08-05). Silnik (`@tren/core`) + CLI (`@tren/cli`, kolorowy TUI i interaktywny kreator) + serwer MCP (`@tren/mcp`, 12 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`) + adaptacja i tryb biurkowy; **209 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie.
+**Status:** **Fazy 0–5 ZAKOŃCZONE — v1 kompletna** (2026-08-05). Silnik (`@tren/core`) + CLI (`@tren/cli`, kolorowy TUI i interaktywny kreator) + serwer MCP (`@tren/mcp`, 13 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`) + adaptacja i tryb biurkowy; **230 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie.
 
 Otwarte przed użyciem produkcyjnym: e2e sync na realnym koncie (wymaga klucza użytkownika — patrz §7), weryfikacja składni treningów na zegarku. Dalej: kolejne sporty (`SportModule`), REST API/hosting, publikacja OSS.
 
@@ -27,9 +27,15 @@ z uzasadnieniem, a renegocjacja tygodnia to jedna komenda/jedno zdanie do agenta
 2. **Plan-as-code.** Plan = pliki YAML/Markdown, wersjonowane gitem, diffowalne.
    Każda adaptacja ma uzasadnienie (np. „obniżam objętość 20%: 3 dni ciszy po starcie
    na 100 km"). Zero czarnej skrzynki.
-3. **Renegocjacja jako operacja pierwszej klasy.** Przesunięcie sesji to constraint
-   solver: zachowaj liczbę akcentów, ≥48 h między ciężkimi sesjami, chroń długie
-   wybieganie — i pokaż, co poświęcasz.
+3. **Renegocjacja jako operacja pierwszej klasy.** ✅ `core/solver/reschedule.ts`
+   + `tren reschedule --block <dni>` / `tren_reschedule`: pełny przegląd układów
+   tygodnia z funkcją celu (S-1 ≥48 h między akcentami, S-2 chroń długie,
+   S-3 zachowaj liczbę akcentów, S-9 różnicuj obciążenie, house style jako
+   preferencja). Twarde: dzień startu stoi, dzień przed startem lekki, dni
+   zablokowane puste. Gdy miejsc brakuje — poświęca wg ustalonej kolejności
+   (easy → hills → sharpener → akcent ciągły → interwały → długie) i **nazywa
+   każdy kompromis**. Domyślnie podgląd; `--apply` zapisuje. Zostawanie na
+   miejscu waży więcej niż preferencje dni: to renegocjacja, nie reoptymalizacja.
 4. **Świadomość biurka.** Okna treningowe (lunch vs wieczór), przerwy ruchowe między
    sesjami z agentem („exercise snacks") i — najważniejsze — reguła prowadzenia
    akcentu po dniu ciężkiej pracy umysłowej: **po tempie, nie po odczuciu**

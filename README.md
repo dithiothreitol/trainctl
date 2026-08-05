@@ -24,6 +24,8 @@ pnpm tren plan        # generuje plan/plan.yaml + plan/PLAN.md (+ predykcja celu
 pnpm tren today       # co dziś wybiegać (--date YYYY-MM-DD dla innego dnia)
 pnpm tren why         # dlaczego ten trening — cel jednostki + reguły z badań
 pnpm tren log --time 58:30 --note "dobre czucie"
+pnpm tren reschedule --block 2026-08-06   # „w czwartek release" → solver przestawia
+pnpm tren reschedule --block 2026-08-06 --apply   # i zapisuje
 pnpm tren shift       # wybór treningu i nowego dnia z listy (strzałki/cyfry)
 pnpm tren shift --from 2026-08-06 --to 2026-08-07   # albo wprost, bez pytań
 pnpm tren week -i     # przeglądanie tygodni: ←/→, t = dziś, s = przesuń, q = wyjście
@@ -62,7 +64,7 @@ claude mcp add tren --env TREN_DIR="C:\sciezka\do\mojego-treningu" ^
 
 Narzędzia: `tren_plan`, `tren_today`, `tren_week`, `tren_log`, `tren_shift`,
 `tren_why`, `tren_diff`, `tren_init`, `tren_push`, `tren_pull`, `tren_adapt`,
-`tren_desk`. Rozmowa jest interfejsem: „co mam dziś
+`tren_desk`, `tren_reschedule`. Rozmowa jest interfejsem: „co mam dziś
 wybiegać?", „w czwartek release — przesuń interwały", „czemu ten trening?".
 Agent widzi tydzień (`tren_week`), renegocjuje (`tren_shift` z ochroną dnia
 startu i ostrzeżeniem I-7) i tłumaczy plan cytując badania (`tren_why`).

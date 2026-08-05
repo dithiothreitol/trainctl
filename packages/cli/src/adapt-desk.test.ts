@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { buildExecution, cmdAdapt, cmdDesk, cmdLog, cmdPlan } from './commands.ts'
+import { buildExecution, cmdAdapt, cmdDesk, cmdLog, cmdPlan, cmdReschedule } from './commands.ts'
 import { loadPlan } from './planfile.ts'
 import { readLog } from './logfile.ts'
 
@@ -137,5 +137,35 @@ describe('tren desk', () => {
     expect(r.code).toBe(0)
     expect(r.output).toContain('Dziś bez biegania')
     rmSync(bare, { recursive: true, force: true })
+  })
+})
+
+describe('tren reschedule', () => {
+  it('podgląd nie zapisuje planu', () => {
+    const before = JSON.stringify(loadPlan(dir).weeks[2])
+    const r = cmdReschedule(dir, { block: ['2026-08-20'], date: '2026-08-20' })
+    expect(r.code).toBe(0)
+    expect(r.output).toContain('Co się zmienia')
+    expect(JSON.stringify(loadPlan(dir).weeks[2])).toBe(before)
+  })
+
+  it('--apply zapisuje nowy układ i zostawia ślad w changes', () => {
+    const r = cmdReschedule(dir, { block: ['2026-08-20'], date: '2026-08-20', apply: true })
+    expect(r.code).toBe(0)
+    expect(r.output).toContain('Zastosowano')
+    const plan = loadPlan(dir)
+    const day = plan.weeks.flatMap((w) => w.days).find((d) => d.date === '2026-08-20')!
+    expect(day.workout).toBeUndefined()
+    expect(plan.changes.some((c) => c.action === 'reschedule')).toBe(true)
+  })
+
+  it('tydzień bez konfliktów zostaje nietknięty', () => {
+    const r = cmdReschedule(dir, { date: '2026-09-01' })
+    expect(r.output).toContain('bez zmian')
+  })
+
+  it('data poza planem — czytelny błąd', () => {
+    const r = cmdReschedule(dir, { date: '2030-01-01' })
+    expect(r.code).toBe(1)
   })
 })

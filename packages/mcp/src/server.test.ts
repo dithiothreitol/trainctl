@@ -45,12 +45,12 @@ afterAll(async () => {
 })
 
 describe('serwer MCP tren', () => {
-  it('wystawia komplet 12 narzędzi', async () => {
+  it('wystawia komplet 13 narzędzi', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual([
       'tren_adapt', 'tren_desk', 'tren_diff', 'tren_init', 'tren_log', 'tren_plan',
-      'tren_pull', 'tren_push', 'tren_shift', 'tren_today', 'tren_week', 'tren_why',
+      'tren_pull', 'tren_push', 'tren_reschedule', 'tren_shift', 'tren_today', 'tren_week', 'tren_why',
     ])
   })
 
@@ -109,6 +109,25 @@ describe('serwer MCP tren', () => {
     expect(r.isError).toBe(false)
     expect(r.text).toContain('Propozycje:')
     expect(r.text).toMatch(/Analiza wykonania · \d+ dni/)
+  })
+
+  it('„w czwartek mam release" — agent przestawia cały tydzień z uzasadnieniem', async () => {
+    const preview = await call('tren_reschedule', { block: ['2026-08-20'], date: '2026-08-20' })
+    expect(preview.isError).toBe(false)
+    expect(preview.text).toContain('Co się zmienia')
+    expect(preview.text).toContain('to podgląd')
+
+    const weekBefore = await call('tren_week', { date: '2026-08-20' })
+    expect(weekBefore.text).toMatch(/08-20/)
+
+    const applied = await call('tren_reschedule', {
+      block: ['2026-08-20'], date: '2026-08-20', apply: true,
+    })
+    expect(applied.text).toContain('Zastosowano')
+
+    const weekAfter = await call('tren_week', { date: '2026-08-20' })
+    const line = weekAfter.text.split('\n').find((l) => l.includes('08-20'))!
+    expect(line).toContain('wolne')
   })
 
   it('sync bez klucza API: czytelna instrukcja, nie crash serwera', async () => {
