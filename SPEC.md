@@ -2,7 +2,7 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** Fazy 0–3 ZAKOŃCZONE (2026-08-05). Silnik v1 (`@tren/core`): strefy, predykcja W-1…W-10, makro+mikrocykle w house style (backtest HM 2025: objętość 1,04, Δakcentów 0). CLI (`@tren/cli`) + serwer MCP (`@tren/mcp`, 8 narzędzi) nad wspólnymi handlerami; 88 testów. „Coach w agencie" działa. Następna: Faza 4 (sync intervals.icu).
+**Status:** Fazy 0–4 ZAKOŃCZONE (2026-08-05; faza 4 zweryfikowana na mockach — e2e na realnym koncie przed nami). Silnik (`@tren/core`) + CLI (`@tren/cli`) + serwer MCP (`@tren/mcp`, 10 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`); 123 testy, w tym smoke prawdziwych binarek pod natywnym Node. Następna: Faza 5 (adaptacja w pętli + tryb biurkowy).
 **Nazwa robocza:** `tren` (krótka komenda CLI; łatwa do zmiany przed publikacją)
 
 ## 1. Wizja
@@ -56,7 +56,7 @@ tren/
 │  ├─ sport-running/     pierwszy plugin sportu (implementuje SportModule)
 │  ├─ cli/               tren init|plan|today|log|shift|why|diff  (cienki adapter)
 │  ├─ mcp/               serwer MCP — te same use-case'y co CLI   (cienki adapter)
-│  ├─ sync-intervalsicu/ adapter SyncProvider (hub → Garmin/Strava/Polar/Coros)
+│  ├─ sync-intervalsicu/ adapter SyncProvider (hub → Garmin/Coros/Wahoo)
 │  └─ storage/           SQLite + pliki planu YAML/MD (adapter PlanRepository)
 ├─ tools/corpus/         ETL korpusu (Python, narzędzia jednorazowe — nie produkt)
 ├─ corpus/               dane źródłowe i pochodne (PII → gitignore!)
@@ -163,7 +163,7 @@ czystym zamknięciem sesji.
 | **1** | Model domeny + silnik generacji (intake → makro → mikrocykle) | ✅ KOMPLET (2026-08-05): monorepo TS + `@tren/core` · strefy (VDOT D-G, CS) · predykcja W-1…W-10 · makrocykl I/P/T · mikrocykle w house style (profil z korpusu: `style_profile.py` → `house-style.ts`; sesje = objętość/14 km) · **backtest HM 2025: objętość 1,04, akcenty Δ0, sesje Δ0** — 64 testy vitest + typecheck |
 | **2** | CLI na rdzeniu | ✅ KOMPLET (2026-08-05): `@tren/cli` — init/plan/today/log/shift/why/diff działają e2e (16 testów na realnych plikach + smoke bin); storage = pliki (`tren.yaml`, `plan/plan.yaml`+`PLAN.md` w stylu trenera, `log.jsonl`); shift z ochroną dnia startu i ostrzeżeniem I-7; why cytuje reguły; diff = dry-run regeneracji |
 | **3** | Serwer MCP + scenariusze agentowe | ✅ KOMPLET (2026-08-05): `@tren/mcp` — 8 narzędzi (`tren_init/plan/today/week/log/shift/why/diff`) nad wspólnymi handlerami z `@tren/cli` (ADR-008); katalog treningowy przez env `TREN_DIR`/cwd; walidacja wejść zod; testy scenariuszy agentowych in-memory (client↔server): generacja, why, renegocjacja week→shift→week, ochrona dnia startu, log |
-| **4** | Sync intervals.icu | pull aktywności/wellness, push workoutów na zegarek |
+| **4** | Sync intervals.icu | ✅ KOMPLET-NA-MOCKACH (2026-08-05): `@tren/sync-intervalsicu` (port `SyncProvider` w core, ADR-002) — Basic auth `API_KEY:<klucz>`, pull aktywności/wellness (oba warianty casingu pól), push przez `events/bulk?upsert=true` z natywną składnią „steps" i celami tempa; CLI `push`/`pull` + narzędzia MCP; `pull` porównuje wykonanie z planem. **Do domknięcia: test e2e na realnym koncie i weryfikacja, że trening ląduje na zegarku** (wymaga klucza użytkownika) |
 | **5** | Adaptacja w pętli + tryb biurkowy | re-plan na danych wykonania; przerwy/okna/sen |
 | dalej | Kolejne sporty (SportModule), REST API, hosting | — |
 
@@ -201,3 +201,5 @@ z wyników startów użytkownika.
 | 006 | 2026-08-04 | Korekta ADR-002 po weryfikacji: hub bez danych Stravy; Polar pull-only; v1 = BYO API key | intervals.icu nie re-eksportuje danych Stravy od XII 2024; OAuth wymaga rejestracji mailem — zbędna w modelu BYO-key |
 | 007 | 2026-08-05 | Storage v1 = wyłącznie pliki (tren.yaml, plan/, log.jsonl) na cwd; SQLite dopiero z sync (faza 4); CLI bez kroku budowania (natywny type-stripping Node) | pliki to dosłowna realizacja filaru plan-as-code (git = historia); zero natywnych zależności; dystrybucja npm z buildem dojdzie przy publikacji |
 | 008 | 2026-08-05 | Warstwą use-case'ów są handlery w `@tren/cli/src/commands.ts`; MCP zależy od `@tren/cli` | handlery są już czyste (cwd, args)→{output,code}; osobny pakiet `@tren/usecases` wyekstrahujemy dopiero przy trzecim adapterze (REST) — nie wcześniej |
+| 009 | 2026-08-05 | Klucz API poza `tren.yaml`: env `TREN_INTERVALS_API_KEY` albo `.tren-secret` (gitignore) | katalog treningowy użytkownika jest repozytorium gita — sekret w wersjonowanym pliku wcześniej czy później trafi do zdalnego repo |
+| 010 | 2026-08-05 | Podbiegi eksportowane BEZ celu tempa | pod górę tempo płaskie jest nieosiągalne — cel na zegarku alarmowałby przez całe powtórzenie; wysiłek reguluje nachylenie |

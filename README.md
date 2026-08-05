@@ -28,6 +28,15 @@ pnpm tren shift --from 2026-08-06 --to 2026-08-07   # renegocjacja w obrębie ty
 pnpm tren diff        # co zmieniłaby regeneracja z aktualnego tren.yaml
 ```
 
+Synchronizacja z zegarkiem (intervals.icu jako hub → Garmin/Coros/Wahoo):
+
+```
+# klucz: intervals.icu → Settings → Developer Settings
+export TREN_INTERVALS_API_KEY=...        # albo plik .tren-secret (w .gitignore)
+pnpm tren push --days 14   # plan → kalendarz intervals.icu → zegarek
+pnpm tren pull --days 28   # wykonanie + wellness → sync.json, porównanie z planem
+```
+
 CLI działa na bieżącym katalogu i trzyma wszystko w plikach (`tren.yaml`,
 `plan/`, `log.jsonl`) — bez konta, bez bazy; historia zmian planu to git.
 Uruchamiane natywnym type-strippingiem Node ≥23.6 (bez kroku budowania).
@@ -42,7 +51,7 @@ claude mcp add tren --env TREN_DIR="C:\sciezka\do\mojego-treningu" ^
 ```
 
 Narzędzia: `tren_plan`, `tren_today`, `tren_week`, `tren_log`, `tren_shift`,
-`tren_why`, `tren_diff`, `tren_init`. Rozmowa jest interfejsem: „co mam dziś
+`tren_why`, `tren_diff`, `tren_init`, `tren_push`, `tren_pull`. Rozmowa jest interfejsem: „co mam dziś
 wybiegać?", „w czwartek release — przesuń interwały", „czemu ten trening?".
 Agent widzi tydzień (`tren_week`), renegocjuje (`tren_shift` z ochroną dnia
 startu i ostrzeżeniem I-7) i tłumaczy plan cytując badania (`tren_why`).

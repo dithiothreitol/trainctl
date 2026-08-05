@@ -10,6 +10,7 @@ dist/
 # Środowisko i sekrety (klucze API intervals.icu itd.)
 .env
 .env.*
+.tren-secret
 
 # Systemowe
 .DS_Store

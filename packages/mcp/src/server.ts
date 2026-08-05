@@ -10,6 +10,8 @@ import {
   cmdInit,
   cmdLog,
   cmdPlan,
+  cmdPull,
+  cmdPush,
   cmdShift,
   cmdToday,
   cmdWeek,
@@ -112,6 +114,33 @@ export function createTrenServer(dir: string): McpServer {
       inputSchema: { date: isoDate.optional() },
     },
     async (args) => toTool(cmdWhy(dir, args)),
+  )
+
+  server.registerTool(
+    'tren_push',
+    {
+      description:
+        'Wypchnij zaplanowane treningi do intervals.icu — trafiają na zegarek (Garmin/Coros/Wahoo) ' +
+        'jako treningi strukturalne z celami tempa. Wymaga klucza API (env TREN_INTERVALS_API_KEY ' +
+        'albo plik .tren-secret). Ponowny push nadpisuje te same dni (upsert).',
+      inputSchema: {
+        from: isoDate.optional().describe('początek zakresu (domyślnie dziś)'),
+        to: isoDate.optional().describe('koniec zakresu'),
+        days: z.string().optional().describe('ile dni do przodu, domyślnie 14'),
+      },
+    },
+    async (args) => toTool(await cmdPush(dir, args)),
+  )
+
+  server.registerTool(
+    'tren_pull',
+    {
+      description:
+        'Pobierz wykonane aktywności i dane wellness z intervals.icu, zapisz migawkę (sync.json) ' +
+        'i porównaj wykonanie z planem (rozjazdy: krótsze/dłuższe/brak wykonania/nieplanowane).',
+      inputSchema: { days: z.string().optional().describe('ile dni wstecz, domyślnie 28') },
+    },
+    async (args) => toTool(await cmdPull(dir, args)),
   )
 
   server.registerTool(

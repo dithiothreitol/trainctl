@@ -98,6 +98,8 @@ export interface PlannedSegment {
   reps?: number
   repM?: number
   pace?: PaceRange
+  /** Przerwa między powtórzeniami [s] — potrzebna do eksportu na zegarek. */
+  recoverySec?: number
   /** Polska fraza w stylu korpusu — render dla człowieka/zegarka. */
   description: string
 }

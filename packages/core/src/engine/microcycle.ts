@@ -118,6 +118,7 @@ function buildQualityIntervals(
       repM: 1000,
       distanceKm: reps,
       pace: z.interval,
+      recoverySec: 180,
       description:
         `${reps}*1 km (w tempie ${fmtPace(mid(z.interval))} na km), ` +
         `przerwy 3 minutowe w truchcie, po ${Math.ceil(reps / 2)} odcinku przerwa 4 minutowa w marszu.`,
@@ -131,6 +132,7 @@ function buildQualityIntervals(
       repM: 3000,
       distanceKm: reps * 3,
       pace: z.threshold,
+      recoverySec: 180,
       description:
         `${reps}*3 km (w tempie ${fmtPace(mid(z.threshold))} na km), przerwy 3 minutowe w marszu.`,
     }
@@ -142,6 +144,7 @@ function buildQualityIntervals(
       repM: 1000,
       distanceKm: reps,
       pace: z.threshold,
+      recoverySec: 120,
       description:
         `${reps}*1 km (w tempie ${fmtPace(mid(z.threshold))} na km), przerwy 2 minutowe w marszu.`,
     }
@@ -209,6 +212,7 @@ function buildSharpener(style: HouseStyle, z: PaceZones): PlannedWorkout {
         repM,
         distanceKm: (reps * repM) / 1000,
         pace: z.interval,
+        recoverySec: 60,
         description:
           `${reps}*${repM} metrów (w tempie ${fmtPace(mid(z.interval))} na km), ` +
           'przerwy 1 minutowe w truchcie.',

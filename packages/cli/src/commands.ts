@@ -14,6 +14,15 @@ import {
   PLAN_YAML,
 } from './planfile.ts'
 import { KIND_PURPOSE, RULE_EXPLAIN } from './rules-explain.ts'
+import {
+  compare,
+  defaultProviderFactory,
+  defaultRange,
+  workoutsToPush,
+  writeSnapshot,
+  SYNC_FILE,
+  type ProviderFactory,
+} from './sync.ts'
 
 export interface CmdResult {
   output: string
@@ -212,6 +221,77 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
       if (explain) lines.push(`- ${r}: ${explain}`)
     }
     lines.push('', 'Źródła i pełne parametry: docs/science/FOUNDATIONS.md §10.')
+    return ok(lines.join('\n'))
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+export async function cmdPush(
+  cwd: string,
+  opts: { from?: string | undefined; to?: string | undefined; days?: string | undefined } = {},
+  factory: ProviderFactory = defaultProviderFactory,
+): Promise<CmdResult> {
+  try {
+    const today = localToday()
+    const days = Number(opts.days ?? 14)
+    const range = defaultRange(today, Number.isFinite(days) ? Math.abs(days) : 14)
+    const from = opts.from ?? range.from
+    const to = opts.to ?? range.to
+    const plan = loadPlan(cwd)
+    const workouts = workoutsToPush(plan, from, to)
+    if (workouts.length === 0) {
+      return ok(`Brak treningów do wypchnięcia w zakresie ${from} → ${to}.`)
+    }
+    const provider = factory(cwd)
+    const res = await provider.pushWorkouts(workouts)
+    return ok(
+      `Wypchnięto ${res.pushed} treningów do ${provider.name} (${from} → ${to}).\n` +
+        'Trafią na zegarek przy najbliższej synchronizacji urządzenia.\n' +
+        'Ponowny push tych samych dni nadpisuje wpisy (upsert po external_id).',
+    )
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+export async function cmdPull(
+  cwd: string,
+  opts: { days?: string | undefined } = {},
+  factory: ProviderFactory = defaultProviderFactory,
+): Promise<CmdResult> {
+  try {
+    const today = localToday()
+    const days = Number(opts.days ?? 28)
+    const { from, to } = defaultRange(today, -(Number.isFinite(days) ? Math.abs(days) : 28))
+    const provider = factory(cwd)
+    const [activities, wellness] = await Promise.all([
+      provider.listActivities(from, to),
+      provider.listWellness(from, to).catch(() => []),
+    ])
+    writeSnapshot(cwd, { pulledAt: today, activities, wellness })
+    const runs = activities.filter((a) => /run/i.test(a.type))
+    const km = Math.round(runs.reduce((s, a) => s + (a.distanceKm ?? 0), 0))
+    const lines = [
+      `Pobrano z ${provider.name} (${from} → ${to}): ${activities.length} aktywności ` +
+        `(w tym ${runs.length} biegowych, ${km} km), ${wellness.length} wpisów wellness.`,
+      `Zapisano: ${SYNC_FILE}`,
+    ]
+    try {
+      const plan = loadPlan(cwd)
+      const rows = compare(plan, activities, from, to).filter((r) => r.status !== 'zgodne')
+      if (rows.length) {
+        lines.push('', 'Rozjazdy plan ↔ wykonanie:')
+        for (const r of rows.slice(-10)) {
+          const actual = r.actualKm === undefined ? '—' : `${r.actualKm} km`
+          lines.push(`- ${r.date}: plan ${r.plannedKm} km, wykonano ${actual} → ${r.status}`)
+        }
+      } else {
+        lines.push('Wykonanie zgodne z planem w całym zakresie.')
+      }
+    } catch {
+      lines.push('(brak planu — pominięto porównanie)')
+    }
     return ok(lines.join('\n'))
   } catch (e) {
     return fail(e)

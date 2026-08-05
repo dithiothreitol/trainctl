@@ -6,6 +6,8 @@ import {
   cmdInit,
   cmdLog,
   cmdPlan,
+  cmdPull,
+  cmdPush,
   cmdShift,
   cmdToday,
   cmdWeek,
@@ -70,6 +72,20 @@ program
   .description('dlaczego ten trening — cel jednostki i reguły z badań')
   .option('--date <iso>', 'inna data niż dziś')
   .action((opts) => print(cmdWhy(cwd, opts)))
+
+program
+  .command('push')
+  .description('wypchnij zaplanowane treningi do intervals.icu (→ zegarek)')
+  .option('--from <iso>', 'początek zakresu (domyślnie: dziś)')
+  .option('--to <iso>', 'koniec zakresu')
+  .option('--days <n>', 'ile dni do przodu (domyślnie 14)')
+  .action(async (opts) => print(await cmdPush(cwd, opts)))
+
+program
+  .command('pull')
+  .description('pobierz wykonane aktywności i wellness; porównaj z planem')
+  .option('--days <n>', 'ile dni wstecz (domyślnie 28)')
+  .action(async (opts) => print(await cmdPull(cwd, opts)))
 
 program
   .command('diff')

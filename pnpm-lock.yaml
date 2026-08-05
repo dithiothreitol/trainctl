@@ -23,6 +23,9 @@ importers:
       '@tren/core':
         specifier: workspace:*
         version: link:../core
+      '@tren/sync-intervalsicu':
+        specifier: workspace:*
+        version: link:../sync-intervalsicu
       commander:
         specifier: ^14.0.0
         version: 14.0.3
@@ -43,6 +46,12 @@ importers:
       zod:
         specifier: ^3.24.0
         version: 3.25.76
+
+  packages/sync-intervalsicu:
+    dependencies:
+      '@tren/core':
+        specifier: workspace:*
+        version: link:../core
 
 packages:
 
