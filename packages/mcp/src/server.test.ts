@@ -47,13 +47,24 @@ afterAll(async () => {
 })
 
 describe('serwer MCP tren', () => {
-  it('wystawia komplet 14 narzędzi', async () => {
+  it('wystawia komplet 15 narzędzi', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual([
       'tren_adapt', 'tren_desk', 'tren_diff', 'tren_export', 'tren_init', 'tren_log', 'tren_plan',
-      'tren_pull', 'tren_push', 'tren_reschedule', 'tren_shift', 'tren_today', 'tren_week', 'tren_why',
+      'tren_pull', 'tren_push', 'tren_reschedule', 'tren_review', 'tren_shift', 'tren_today',
+      'tren_week', 'tren_why',
     ])
+  })
+
+  it('tren_review: agent dostaje cały poniedziałkowy rytuał w jednym wywołaniu', async () => {
+    await call('tren_plan', { date: '2026-08-05' }) // review czyta plan — nie zależymy od kolejności testów
+    const r = await call('tren_review', { date: '2026-08-17' })
+    expect(r.isError).toBe(false)
+    expect(r.text).toContain('Za nami')
+    expect(r.text).toContain('Przed nami')
+    expect(r.text).toContain('Do zrobienia')
+    expect(r.text).not.toContain('[') // MCP nigdy nie dostaje ANSI (ADR-013)
   })
 
 

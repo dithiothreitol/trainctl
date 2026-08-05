@@ -1,4 +1,6 @@
 /** Handlery komend CLI — czyste funkcje (cwd, argumenty) → { output, code }. */
+import { existsSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   addDays,
   analyzeExecution,
@@ -15,6 +17,7 @@ import {
   type SyncedActivity,
   type Weekday,
 } from '@tren/core'
+import { AGENTS_FILE, AGENTS_TEMPLATE } from './agents-md.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, logFor, parseTime, readLog, type LogEntry } from './logfile.ts'
 import {
@@ -71,6 +74,7 @@ import {
   compare,
   defaultProviderFactory,
   defaultRange,
+  hasApiKey,
   readSnapshot,
   workoutsToPush,
   writeSnapshot,
@@ -195,6 +199,7 @@ export async function cmdInitFromIntervals(
     if (!outcome.ok) return fail(new Error(outcome.reason))
     const p = outcome.profile
     writeConfigTemplate(cwd, inferredConfigYaml(p))
+    writeAgentsFile(cwd)
 
     const recent4 = p.weeklyKm.slice(-4).map((w) => w.km)
     const blocks: Block[] = [
@@ -232,11 +237,24 @@ export async function cmdInitFromIntervals(
   }
 }
 
+/**
+ * Persona trenera dla agenta — powstaje razem z profilem, nigdy nie nadpisuje
+ * istniejącego pliku (użytkownik mógł go dopasować pod siebie).
+ */
+function writeAgentsFile(cwd: string): boolean {
+  const path = join(cwd, AGENTS_FILE)
+  if (existsSync(path)) return false
+  writeFileSync(path, AGENTS_TEMPLATE, 'utf-8')
+  return true
+}
+
 export function cmdInit(cwd: string, content?: string): CmdResult {
   try {
     writeConfigTemplate(cwd, content)
+    const agents = writeAgentsFile(cwd)
     return okDoc([
       b.success(`Utworzono ${CONFIG_FILE}`),
+      ...(agents ? [b.success(`Utworzono ${AGENTS_FILE} — instrukcja dla agenta (Claude Code, Codex)`)] : []),
       ...(content
         ? []
         : [
@@ -900,6 +918,143 @@ export function cmdExport(
                 'albo zaimportuj w Garmin Connect. Alternatywa bez kabla: tren push.',
             ),
     )
+    return okDoc(blocks)
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+/**
+ * Poniedziałkowy przegląd (ADR-021): co było, co to znaczy, co przed nami,
+ * co zrobić — w jednym miejscu. Wyłącznie **kompozycja** istniejących
+ * use-case'ów: żadnej nowej logiki treningowej. Read-only poza migawką sync.
+ */
+export async function cmdReview(
+  cwd: string,
+  opts: { date?: string | undefined; days?: string | undefined } = {},
+  factory: ProviderFactory = defaultProviderFactory,
+): Promise<CmdResult> {
+  try {
+    const today = opts.date ?? localToday()
+    const days = Math.abs(Number(opts.days ?? 7)) || 7
+    const from = addDays(today, -days)
+    const plan = loadPlan(cwd)
+    const config = loadConfig(cwd)
+
+    // 1) świeże dane, jeśli klucz jest pod ręką; inaczej pracujemy na migawce
+    const notes: string[] = []
+    if (hasApiKey(cwd)) {
+      try {
+        const provider = factory(cwd)
+        const [activities, wellness] = await Promise.all([
+          provider.listActivities(from, today),
+          provider.listWellness(from, today).catch(() => []),
+        ])
+        writeSnapshot(cwd, { pulledAt: today, activities, wellness })
+      } catch (e) {
+        notes.push(
+          `Nie udało się odświeżyć danych (${e instanceof Error ? e.message : e}) — ` +
+            'przegląd na ostatniej migawce.',
+        )
+      }
+    } else {
+      notes.push('Bez klucza API — przegląd z dziennika i ostatniej migawki (tren pull po klucz).')
+    }
+
+    const snapshot = readSnapshot(cwd)
+    const logs = readLog(cwd)
+    const blocks: Block[] = [
+      b.title('Przegląd tygodnia', `${from} → ${today} · ${plan.goal.name} (${plan.goal.date})`),
+    ]
+    for (const n of notes) blocks.push(b.info(n))
+
+    // 2) co się wydarzyło — te same porównania co w tren pull
+    const rows = compare(plan, snapshot?.activities ?? [], from, today)
+    const plannedKm = rows.reduce((s, r) => s + r.plannedKm, 0)
+    const actualKm = rows.reduce((s, r) => s + (r.actualKm ?? 0), 0)
+    const done = rows.filter((r) => r.status === 'zgodne' || r.status === 'dłuższe').length
+    const missed = rows.filter((r) => r.status === 'brak wykonania')
+    blocks.push(
+      b.section('Za nami'),
+      b.kv([
+        ['Objętość', `${Math.round(actualKm)} z ${Math.round(plannedKm)} km planu`],
+        ['Sesje zgodne z planem', `${done} z ${rows.filter((r) => r.plannedKm > 0).length}`],
+        ...(missed.length
+          ? ([['Bez wykonania', missed.map((r) => r.date.slice(5)).join(', ')]] as [string, string][])
+          : []),
+      ]),
+    )
+
+    // 3) sygnały adaptacji — sekcja pojawia się tylko wtedy, gdy jest co powiedzieć
+    const adapt = cmdAdapt(cwd, { date: today })
+    const meaningful = (adapt.blocks ?? []).length > 0 && !adapt.output.includes('hold-course')
+    if (adapt.code === 0 && meaningful) {
+      blocks.push(b.section('Sygnały'))
+      const lines = adapt.output
+        .split('\n')
+        .filter((l) => /^(reduce-volume|conservative-restart|recalibrate-zones|raise-baseline|post-race-recovery)/.test(l))
+      blocks.push(
+        b.bullets(lines.length ? lines : ['są propozycje korekt — szczegóły: tren adapt']),
+      )
+    } else {
+      blocks.push(b.success('Bez sygnałów do korekty — plan trzyma się rzeczywistości.'))
+    }
+
+    // 4) co przed nami — bieżący tydzień, dopóki coś w nim jeszcze zostało
+    // (w poniedziałek „przed nami" to tydzień, który się właśnie zaczyna),
+    // a gdy jest już wybiegany do końca — następny
+    const thisWeekStart = mondayOf(today)
+    const thisWeek = plan.weeks.find((w) => w.weekStart === thisWeekStart)
+    const hasFuture = thisWeek?.days.some((d) => d.date >= today && d.workout) === true
+    const week =
+      (hasFuture ? thisWeek : plan.weeks.find((w) => w.weekStart === mondayOf(addDays(today, 7)))) ??
+      plan.weeks.find((w) => w.days.some((d) => d.date >= today))
+    if (week) {
+      const sk = week.skeleton
+      const upcoming = week.days.filter((d) => d.workout)
+      blocks.push(
+        b.section(`Przed nami · tydzień od ${week.weekStart}`),
+        b.kv([
+          ['Faza', `${PHASE_LABEL[sk.phase] ?? sk.phase}${sk.deload ? ' · odciążenie' : ''}`],
+          ['Objętość', `${week.totalKm} km w ${upcoming.length} sesjach`],
+          ['Do startu', `${diffDays(today, plan.goal.date)} dni`],
+        ]),
+      )
+      const race = upcoming.find((d) => d.workout?.kind === 'race')
+      const test = upcoming.find((d) => d.workout?.kind === 'test')
+      if (race) blocks.push(b.warn(`Start w tym tygodniu: ${race.date} — dzień przed zostaje wolny (T-10).`))
+      if (test) {
+        blocks.push(
+          b.warn(`Sprawdzian: ${test.date} — po nim dopisz wynik do tren.yaml, inaczej strefy stoją (W-11).`),
+        )
+      }
+      const key = upcoming.find((d) =>
+        ['quality_intervals', 'quality_continuous'].includes(d.workout!.kind),
+      )
+      if (key) {
+        blocks.push(
+          b.panel(
+            `Kluczowa jednostka · ${key.date}`,
+            [workoutText(key), KIND_PURPOSE[key.workout!.kind]],
+            KIND_COLOR[key.workout!.kind] ?? 'accent',
+          ),
+        )
+      }
+    }
+
+    // 5) konkretne następne kroki
+    const todo: string[] = []
+    const pendingTests = (adapt.output.match(/nie ma wyniku w athlete\.results/g) ?? []).length
+    if (pendingTests > 0) todo.push('dopisz wynik pomiaru do athlete.results → tren diff → tren plan')
+    if (meaningful) todo.push('przejrzyj propozycje: tren adapt (zmiany zatwierdzasz w tren.yaml)')
+    if (hasApiKey(cwd)) todo.push('wyślij nadchodzący tydzień na zegarek: tren push --days 7')
+    else todo.push('rozpiska na lodówkę: tren export --what print')
+    if (missed.length >= 2) {
+      todo.push('jeśli sesje wypadają przez pracę — przestaw je (tren reschedule), zamiast tracić')
+    }
+    const nextRace = (config.athlete.tuneUpRaces ?? []).find((r) => r.date > today)
+    if (nextRace) todo.push(`najbliższy start kontrolny: ${nextRace.date} (${nextRace.name ?? `${nextRace.distanceKm} km`})`)
+    blocks.push(b.section('Do zrobienia'), b.bullets(todo))
     return okDoc(blocks)
   } catch (e) {
     return fail(e)

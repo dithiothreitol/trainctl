@@ -17,6 +17,7 @@ import {
   cmdPull,
   cmdPush,
   cmdReschedule,
+  cmdReview,
   cmdShift,
   cmdToday,
   cmdWeek,
@@ -203,6 +204,15 @@ program
   .option('--date <iso>', 'który tydzień (domyślnie: bieżący)')
   .option('--apply', 'zapisz zmiany w planie (bez tego tylko podgląd)')
   .action((opts) => print(cmdReschedule(cwd, opts)))
+
+program
+  .command('review')
+  .description('przegląd tygodnia: co było, sygnały, co przed nami, co zrobić')
+  .option('--days <n>', 'ile dni wstecz podsumować (domyślnie 7)')
+  .option('--date <iso>', 'data odniesienia (domyślnie: dziś)')
+  .action(async (opts) =>
+    print(await withSpinner('składam przegląd tygodnia…', () => cmdReview(cwd, opts), theme)),
+  )
 
 program
   .command('diff')

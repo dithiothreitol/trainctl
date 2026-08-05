@@ -17,6 +17,7 @@ import {
   cmdPull,
   cmdPush,
   cmdReschedule,
+  cmdReview,
   cmdShift,
   cmdToday,
   cmdWeek,
@@ -219,6 +220,24 @@ export function createTrenServer(
       inputSchema: { days: z.string().optional().describe('ile dni wstecz, domyślnie 28') },
     },
     async (args) => toTool(await cmdPull(dir, args, factory)),
+  )
+
+  server.registerTool(
+    'tren_review',
+    {
+      description:
+        'Przegląd tygodnia w jednym wywołaniu: wykonanie minionych dni vs plan, sygnały ' +
+        'do korekty, nadchodzący tydzień (faza, objętość, kluczowa jednostka, starty/sprawdziany) ' +
+        'i lista konkretnych działań. Używaj TEGO zamiast wołania tren_pull + tren_adapt + ' +
+        'tren_week po kolei — np. gdy użytkownik pyta „jak mi poszło?" albo zaczyna tydzień. ' +
+        'Działa też bez klucza API (wtedy z dziennika i ostatniej migawki). ' +
+        'Niczego nie zmienia w planie.',
+      inputSchema: {
+        days: z.string().optional().describe('ile dni wstecz podsumować, domyślnie 7'),
+        date: isoDate.optional().describe('data odniesienia (domyślnie dziś)'),
+      },
+    },
+    async (args) => toTool(await cmdReview(dir, args, factory)),
   )
 
   server.registerTool(

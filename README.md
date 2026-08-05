@@ -33,6 +33,7 @@ pnpm tren week -i     # przeglądanie tygodni: ←/→, t = dziś, s = przesuń,
 pnpm tren diff        # co zmieniłaby regeneracja z aktualnego tren.yaml
 pnpm tren export      # zapyta: rozpiska do druku / plan na zegarek / jeden trening / kalendarz
 pnpm tren export --what print     # albo wprost, bez pytań
+pnpm tren review      # rytuał tygodnia: co było, sygnały, co przed nami, co zrobić
 pnpm tren adapt       # analiza wykonania → propozycje korekt (nie zmienia planu)
 pnpm tren desk --heavy   # dzień przy biurku: okna, przerwy, reguła tempa po pracy
 ```
@@ -95,10 +96,18 @@ claude mcp add tren --env TREN_DIR="C:\sciezka\do\mojego-treningu" ^
 
 Narzędzia: `tren_plan`, `tren_today`, `tren_week`, `tren_log`, `tren_shift`,
 `tren_why`, `tren_diff`, `tren_init`, `tren_push`, `tren_pull`, `tren_adapt`,
-`tren_desk`, `tren_reschedule`. Rozmowa jest interfejsem: „co mam dziś
-wybiegać?", „w czwartek release — przesuń interwały", „czemu ten trening?".
-Agent widzi tydzień (`tren_week`), renegocjuje (`tren_shift` z ochroną dnia
-startu i ostrzeżeniem I-7) i tłumaczy plan cytując badania (`tren_why`).
+`tren_desk`, `tren_reschedule`, `tren_export`, `tren_review`. Rozmowa jest
+interfejsem: „co mam dziś wybiegać?", „w czwartek release — przesuń interwały",
+„jak mi poszło w tym tygodniu?". Agent widzi tydzień (`tren_week`), renegocjuje
+(`tren_shift` z ochroną dnia startu i ostrzeżeniem I-7) i tłumaczy plan cytując
+badania (`tren_why`).
+
+`tren init` zostawia w katalogu treningowym `AGENTS.md` — instrukcję, która
+robi z agenta trenera, a nie wykonawcę komend: poniedziałkowy przegląd, pytanie
+o kontekst przy pominiętych sesjach, zakaz regenerowania planu bez pytania.
+Kto woli powiadomienie zamiast rozmowy, znajdzie przykład zadania cron/Actions
+w [docs/examples/github-actions-review.md](docs/examples/github-actions-review.md)
+— z zastrzeżeniami, dlaczego to nie jest domyślna droga.
 
 ## Rozwój
 

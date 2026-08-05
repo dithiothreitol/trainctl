@@ -42,10 +42,17 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }))
 describe('binarka CLI pod natywnym Node', () => {
   it('--help działa (parsowanie całego drzewa komend)', () => {
     const out = run(['--help'])
-    for (const cmd of ['plan', 'today', 'week', 'log', 'shift', 'why', 'diff', 'push', 'pull']) {
+    for (const cmd of ['plan', 'today', 'week', 'log', 'shift', 'why', 'diff', 'push', 'pull', 'review']) {
       expect(out).toContain(cmd)
     }
   })
+
+  it('review poza TTY: czysty tekst bez ANSI, działa bez klucza', () => {
+    run(['plan', '--date', '2026-08-05']) // review potrzebuje planu, niezależnie od kolejności testów
+    const out = run(['review', '--date', '2026-08-17'])
+    expect(out).toContain('Przed nami')
+    expect(out).not.toMatch(/\u001b\[/)
+  }, 20_000)
 
   it('pełna ścieżka plan → today (ładuje core, sync, yaml)', () => {
     expect(run(['plan', '--date', '2026-08-05'])).toContain('Zapisano')
