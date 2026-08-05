@@ -160,7 +160,7 @@ czystym zamknięciem sesji.
 | Faza | Zakres | Definition of Done |
 |------|--------|--------------------|
 | **0** | Scaffold, ETL korpusu, research naukowy, taksonomia jednostek, ADR-y | ✅ KOMPLET: scaffold+ETL · docs/science (60 źródeł) · taksonomia + parser → JSON (100% pokrycia, 39 testów) · weryfikacja API intervals.icu |
-| **1** | Model domeny + silnik generacji (intake → makro → mikrocykle) | testy jednostkowe + backtest na korpusie |
+| **1** | Model domeny + silnik generacji (intake → makro → mikrocykle) | W TOKU (2026-08-05): ✅ monorepo TS + `@tren/core` · ✅ strefy (VDOT Danielsa-Gilberta, critical speed) · ✅ predykcja wyniku wg W-1…W-10 (zawsze przedział; HM×2,28 dla maratonu; ultra bez punktu) · ✅ planer makrocyklu wg I/P/T (fazy, deload co 4., taper wg dystansu) — 44 testy vitest · ⬜ generator mikrocykli (dni/jednostki, house style korpusu) · ⬜ backtest na korpusie |
 | **2** | CLI na rdzeniu | `tren init/plan/today/log/shift/why/diff` działają e2e lokalnie |
 | **3** | Serwer MCP + scenariusze agentowe | agent generuje, pyta „why", renegocjuje tydzień |
 | **4** | Sync intervals.icu | pull aktywności/wellness, push workoutów na zegarek |

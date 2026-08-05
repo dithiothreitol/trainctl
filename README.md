@@ -15,6 +15,18 @@ fazy, decyzje).
 - `docs/science/` — fundament naukowy z cytowaniami
 - `docs/adr/` — decyzje architektoniczne
 
+## Rozwój
+
+```
+pnpm install
+pnpm test        # vitest (packages/*/src/**/*.test.ts)
+pnpm typecheck   # tsc --noEmit
+```
+
+Reguły silnika odwołują się do ID z `docs/science/FOUNDATIONS.md` §10
+(np. `P-2`, `T-5`, `W-7`) — wartości bez pokrycia w źródłach są oznaczone
+w kodzie jako inżynierskie.
+
 ## Korpus — odtworzenie lokalne
 
 ```
