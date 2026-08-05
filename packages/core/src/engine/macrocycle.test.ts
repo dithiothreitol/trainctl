@@ -124,6 +124,16 @@ describe('planMacrocycle — przypadki brzegowe', () => {
     expect(compressed.weeks.at(-1)!.phase).toBe('race')
   })
 
+  it('wytrenowany powyżej rekomendacji nie dostaje cięcia objętości', () => {
+    const hm = planMacrocycle({
+      today: '2026-08-05',
+      goal: { ...marathon, date: '2026-10-25', distanceKm: 21.0975 },
+      athlete: { ...athlete, recentWeeklyKm: 60, peakWeeklyKm: 75 },
+    })
+    expect(hm.peakKmPlanned).toBeGreaterThanOrEqual(60) // nie tniemy do 42 (P-7)
+    expect(hm.feasibilityWarnings).toHaveLength(0)
+  })
+
   it('3 dni dyspozycyjności → 1 sesja jakościowa (I-8)', () => {
     const busy = planMacrocycle({
       today: '2026-08-05',

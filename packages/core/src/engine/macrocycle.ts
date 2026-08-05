@@ -73,7 +73,10 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   const recommended = recommendedPeakKm(goal)
   const loadOnly = Math.max(0, loadWeeks - Math.floor(loadWeeks / DELOAD_EVERY))
   const reachable = start * Math.pow(RAMP_PER_LOAD_WEEK, Math.max(0, loadOnly - 1))
-  const peakPlanned = Math.round(Math.min(recommended, cap, reachable))
+  // P-7/P-8 to podłoga dla niedotrenowanych, nie sufit: atlecie z bazą powyżej
+  // rekomendacji utrzymujemy (lekko rozwijamy) jego wolumen zamiast go ciąć.
+  const targetPeak = Math.max(recommended, Math.min(start * 1.15, cap))
+  const peakPlanned = Math.round(Math.min(targetPeak, cap, reachable))
   if (peakPlanned < recommended) {
     feasibilityWarnings.push(
       `szczyt planu ${peakPlanned} km/tydz. poniżej rekomendacji ${recommended} km/tydz. ` +

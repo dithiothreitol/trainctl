@@ -78,3 +78,58 @@ export interface MacrocyclePlan {
   peakKmRecommended: number
   feasibilityWarnings: string[]
 }
+
+// ---------------------------------------------------------------- mikrocykl
+
+export type PlannedSegmentType =
+  | 'warmup'
+  | 'easy'
+  | 'steady'
+  | 'intervals'
+  | 'hills'
+  | 'progression'
+  | 'alternating'
+  | 'cooldown'
+  | 'race'
+
+export interface PlannedSegment {
+  type: PlannedSegmentType
+  distanceKm?: number
+  reps?: number
+  repM?: number
+  pace?: PaceRange
+  /** Polska fraza w stylu korpusu — render dla człowieka/zegarka. */
+  description: string
+}
+
+export type WorkoutKind =
+  | 'easy'
+  | 'long'
+  | 'easy_hills'
+  | 'quality_intervals'
+  | 'quality_continuous'
+  | 'sharpener'
+  | 'race'
+
+export interface PlannedWorkout {
+  kind: WorkoutKind
+  segments: PlannedSegment[]
+  distanceKm: number
+  ruleRefs: string[]
+}
+
+export interface PlannedDay {
+  date: string
+  weekday: Weekday
+  /** Brak = dzień wolny (odpoczynek jest jawną częścią metodyki). */
+  workout?: PlannedWorkout
+}
+
+export interface Microcycle {
+  weekStart: string
+  skeleton: WeekSkeleton
+  days: PlannedDay[]
+  totalKm: number
+  /** Udział objętości Z1 (I-5: ≥0,75). */
+  easyShare: number
+}

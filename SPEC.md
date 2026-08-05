@@ -2,7 +2,7 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** Faza 0 ZAKOŃCZONA (2026-08-04) — scaffold, ETL + parser korpusu (100% pokrycia), research naukowy z cytowaniami, weryfikacja intervals.icu. Następna: Faza 1 (model domeny + silnik).
+**Status:** Fazy 0–1 ZAKOŃCZONE (2026-08-05). Silnik v1 w `@tren/core`: strefy (VDOT/CS), predykcja W-1…W-10, makrocykl (I/P/T), mikrocykle w house style trenera; backtest na sezonie HM 2025: mediana objętości gen/trener **1,04**, mediany różnic akcentów i sesji **0**. Następna: Faza 2 (CLI).
 **Nazwa robocza:** `tren` (krótka komenda CLI; łatwa do zmiany przed publikacją)
 
 ## 1. Wizja
@@ -160,12 +160,19 @@ czystym zamknięciem sesji.
 | Faza | Zakres | Definition of Done |
 |------|--------|--------------------|
 | **0** | Scaffold, ETL korpusu, research naukowy, taksonomia jednostek, ADR-y | ✅ KOMPLET: scaffold+ETL · docs/science (60 źródeł) · taksonomia + parser → JSON (100% pokrycia, 39 testów) · weryfikacja API intervals.icu |
-| **1** | Model domeny + silnik generacji (intake → makro → mikrocykle) | W TOKU (2026-08-05): ✅ monorepo TS + `@tren/core` · ✅ strefy (VDOT Danielsa-Gilberta, critical speed) · ✅ predykcja wyniku wg W-1…W-10 (zawsze przedział; HM×2,28 dla maratonu; ultra bez punktu) · ✅ planer makrocyklu wg I/P/T (fazy, deload co 4., taper wg dystansu) — 44 testy vitest · ⬜ generator mikrocykli (dni/jednostki, house style korpusu) · ⬜ backtest na korpusie |
+| **1** | Model domeny + silnik generacji (intake → makro → mikrocykle) | ✅ KOMPLET (2026-08-05): monorepo TS + `@tren/core` · strefy (VDOT D-G, CS) · predykcja W-1…W-10 · makrocykl I/P/T · mikrocykle w house style (profil z korpusu: `style_profile.py` → `house-style.ts`; sesje = objętość/14 km) · **backtest HM 2025: objętość 1,04, akcenty Δ0, sesje Δ0** — 64 testy vitest + typecheck |
 | **2** | CLI na rdzeniu | `tren init/plan/today/log/shift/why/diff` działają e2e lokalnie |
 | **3** | Serwer MCP + scenariusze agentowe | agent generuje, pyta „why", renegocjuje tydzień |
 | **4** | Sync intervals.icu | pull aktywności/wellness, push workoutów na zegarek |
 | **5** | Adaptacja w pętli + tryb biurkowy | re-plan na danych wykonania; przerwy/okna/sen |
 | dalej | Kolejne sporty (SportModule), REST API, hosting | — |
+
+**Znane uproszczenia silnika v1** (świadome, do zdjęcia w kolejnych iteracjach):
+jeden cel A bez startów B/C (mini-taper T-9 niezaimplementowany — tygodnie ze
+startami kontrolnymi dostają pełną objętość); długie wybieganie zawsze czysto
+spokojne (trener wplata wstawki tempowe); brak wariantu „długie w niedzielę po
+sobotnim akcencie"; kalibracja VDOT w backteście inżynierska (51), docelowo
+z wyników startów użytkownika.
 
 ## 9. Ryzyka (szczerze)
 
