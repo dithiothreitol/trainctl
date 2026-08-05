@@ -28,6 +28,9 @@ import { KIND_PURPOSE, RULE_EXPLAIN } from './rules-explain.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 
+/** Prefiks identyfikatorów, które tworzy `tren` — granica tego, co wolno nam kasować. */
+const OUR_EXTERNAL_ID_PREFIX = 'tren-'
+
 /** Kolor semantyczny jednostki treningowej — spójny w całym CLI. */
 export const KIND_COLOR: Record<string, ColorName> = {
   easy: 'easy',
@@ -436,8 +439,33 @@ export async function cmdPush(
     }
     const provider = factory(cwd)
     const res = await provider.pushWorkouts(workouts)
+
+    // Sprzątanie po renegocjacji: wpisy, które wypchnęliśmy wcześniej, a których
+    // nie ma już w planie (np. trening przesunięty na inny dzień), muszą zniknąć
+    // — inaczej zostają w kalendarzu i na zegarku jako duch.
+    const stale: string[] = []
+    try {
+      const remote = await provider.listPlannedWorkouts(from, to)
+      const current = new Set(workouts.map((w) => w.externalId))
+      for (const r of remote) {
+        // Kasujemy WYŁĄCZNIE wpisy z naszym prefiksem. Filtr jest też w adapterze,
+        // ale tu powtórzony celowo: pomyłka oznaczałaby skasowanie treningów,
+        // które użytkownik dodał sam w intervals.icu.
+        if (!r.externalId?.startsWith(OUR_EXTERNAL_ID_PREFIX)) continue
+        if (!current.has(r.externalId)) {
+          await provider.deleteWorkout(r.id)
+          stale.push(r.date)
+        }
+      }
+    } catch {
+      // brak uprawnień do listowania/kasowania nie może wywrócić samego pushu
+    }
+
     return okDoc([
       b.success(`Wypchnięto ${res.pushed} treningów do ${provider.name} (${from} → ${to})`),
+      ...(stale.length
+        ? [b.info(`Usunięto ${stale.length} nieaktualnych wpisów: ${stale.join(', ')}`)]
+        : []),
       b.table(
         ['data', 'trening'],
         workouts.map((w) => [w.date, w.name]),

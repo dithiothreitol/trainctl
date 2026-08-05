@@ -48,6 +48,13 @@ export interface PushResult {
   externalIds: string[]
 }
 
+/** Zaplanowany trening już obecny w serwisie (do sprzątania po renegocjacji). */
+export interface RemotePlannedWorkout {
+  id: string
+  date: string
+  externalId?: string
+}
+
 export interface SyncProvider {
   readonly name: string
   /** Sprawdzenie poświadczeń — zwraca identyfikator konta. */
@@ -55,6 +62,10 @@ export interface SyncProvider {
   listActivities(oldest: string, newest: string): Promise<SyncedActivity[]>
   listWellness(oldest: string, newest: string): Promise<SyncedWellness[]>
   pushWorkouts(workouts: PushableWorkout[]): Promise<PushResult>
+  /** Treningi wcześniej wypchnięte przez nas (po prefiksie `external_id`). */
+  listPlannedWorkouts(oldest: string, newest: string): Promise<RemotePlannedWorkout[]>
+  /** Usunięcie zdezaktualizowanego wpisu — inaczej zostaje na zegarku. */
+  deleteWorkout(id: string): Promise<void>
 }
 
 /** Konwersja dnia planu na format serwisu — zależna od adaptera. */

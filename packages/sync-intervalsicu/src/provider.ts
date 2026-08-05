@@ -6,11 +6,21 @@
 import type {
   PushResult,
   PushableWorkout,
+  RemotePlannedWorkout,
   SyncProvider,
   SyncedActivity,
   SyncedWellness,
 } from '@tren/core'
 import { IntervalsIcuClient, type ClientOptions } from './client.ts'
+
+/** Prefiks pozwala odróżnić nasze wpisy od tych dodanych ręcznie przez atletę. */
+export const EXTERNAL_ID_PREFIX = 'tren-'
+
+interface RawEvent {
+  id?: string | number
+  start_date_local?: string
+  external_id?: string
+}
 
 interface RawActivity {
   id?: string
@@ -101,6 +111,25 @@ export class IntervalsIcuProvider implements SyncProvider {
       if (w.atl !== undefined) entry.atl = w.atl
       return entry
     })
+  }
+
+  /** Nasze wpisy w kalendarzu — rozpoznajemy po prefiksie `external_id`. */
+  async listPlannedWorkouts(oldest: string, newest: string): Promise<RemotePlannedWorkout[]> {
+    const raw = await this.client.request<RawEvent[]>(
+      this.client.athletePath(`/events?oldest=${oldest}&newest=${newest}&category=WORKOUT`),
+    )
+    return (raw ?? [])
+      .filter((e) => e.external_id?.startsWith(EXTERNAL_ID_PREFIX))
+      .map((e) => ({
+        id: String(e.id),
+        date: (e.start_date_local ?? '').slice(0, 10),
+        ...(e.external_id ? { externalId: e.external_id } : {}),
+      }))
+  }
+
+  /** Potwierdzone e2e 2026-08-05: DELETE /events/{id} zwraca 200. */
+  async deleteWorkout(id: string): Promise<void> {
+    await this.client.request(this.client.athletePath(`/events/${id}`), { method: 'DELETE' })
   }
 
   /** Upsert po `external_id` — ponowny push tego samego dnia nadpisuje, nie duplikuje. */

@@ -28,8 +28,16 @@ const activities: SyncedActivity[] = [
   { externalId: 'a3', date: '2026-08-03', type: 'Run', distanceKm: 6.0 }, // dzień wolny
 ]
 
+let remotePlanned: { id: string; date: string; externalId?: string }[] = []
+const deleted: string[] = []
+
 const fakeProvider: SyncProvider = {
   name: 'intervals.icu (test)',
+  listPlannedWorkouts: async () => remotePlanned,
+  deleteWorkout: async (id) => {
+    deleted.push(id)
+    remotePlanned = remotePlanned.filter((r) => r.id !== id)
+  },
   verify: async () => ({ athleteId: 'i0' }),
   listActivities: async (oldest, newest) =>
     activities.filter((a) => a.date >= oldest && a.date <= newest),
@@ -80,6 +88,33 @@ describe('tren push', () => {
     const raceWeek = plan.weeks.at(-1)!
     const ws = workoutsToPush(plan, raceWeek.weekStart, plan.goal.date)
     expect(ws.some((w) => w.date === plan.goal.date)).toBe(false)
+  })
+
+  it('usuwa nieaktualne wpisy po przesunięciu treningu (duch na zegarku)', async () => {
+    remotePlanned = [
+      { id: 'e1', date: '2026-08-04', externalId: 'tren-2026-08-04' },
+      { id: 'e-stale', date: '2026-08-03', externalId: 'tren-2026-08-03' }, // dzień wolny w planie
+      { id: 'e-obcy', date: '2026-08-05', externalId: 'moj-wlasny-trening' },
+    ]
+    deleted.length = 0
+    const r = await cmdPush(dir, { from: '2026-08-03', to: '2026-08-09' }, factory)
+    expect(r.code).toBe(0)
+    expect(deleted).toContain('e-stale')
+    expect(r.output).toContain('Usunięto')
+    // wpisów spoza tren nie ruszamy
+    expect(deleted).not.toContain('e-obcy')
+  })
+
+  it('błąd sprzątania nie wywraca pushu', async () => {
+    const breaking = () => ({
+      ...fakeProvider,
+      listPlannedWorkouts: async () => {
+        throw new Error('brak uprawnień')
+      },
+    })
+    const r = await cmdPush(dir, { from: '2026-08-03', to: '2026-08-09' }, breaking)
+    expect(r.code).toBe(0)
+    expect(r.output).toContain('Wypchnięto')
   })
 
   it('pusty zakres — komunikat zamiast wywołania API', async () => {

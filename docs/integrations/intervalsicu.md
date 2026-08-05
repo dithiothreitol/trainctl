@@ -414,11 +414,45 @@ https://intervals.icu/oauth/authorize?client_id=<id>&redirect_uri=<uri>&scope=AC
 
 ---
 
+## 2a. WERYFIKACJA E2E NA ŻYWYM KONCIE (2026-08-05)
+
+Test wykonany prawdziwym kluczem API na koncie testowym (`i665499`), pełną
+ścieżką przez CLI (`tren plan` → `tren push` → `tren reschedule` → `tren push`).
+Wszystkie wpisy testowe zostały po teście usunięte.
+
+**Potwierdzone:**
+
+| Pytanie | Wynik |
+|---|---|
+| Basic auth `API_KEY:<klucz>` | ✅ 200 na `GET /athlete/0` |
+| `type: "Run"` jako wartość enum | ✅ **przyjęte** (było pytanie otwarte) |
+| Nasza składnia „steps" w `description` | ✅ sparsowana do `workout_doc.steps[]` |
+| Bloki powtórzeń `Nx` | ✅ `{text:"6x", reps:6, steps:[…]}` z zagnieżdżeniem |
+| Cele tempa bezwzględne `M:SS/km Pace` | ✅ `pace: {value: 266, units: "secs/km"}` — `4:26/km` → 266 s |
+| Kroki **bez** celu tempa (podbiegi, ADR-010) | ✅ przyjęte bez błędu |
+| Wyliczenie czasu/dystansu po stronie serwisu | ✅ `duration`, `distance` liczone z celów |
+| Idempotencja `external_id` + `upsert=true` | ✅ dwa pushe tego zakresu → 5 zdarzeń, zero duplikatów |
+| **`DELETE /events/{id}`** | ✅ **200 — endpoint istnieje** (było pytanie otwarte) |
+
+**Odkryta luka w projekcie (naprawiona):** push jest operacją upsert, więc po
+renegocjacji tygodnia trening przesunięty na inny dzień zostawiał „ducha" w
+kalendarzu i na zegarku. `tren push` usuwa teraz nieaktualne wpisy z zakresu —
+**wyłącznie te z prefiksem `tren-`**, żeby nigdy nie skasować treningu dodanego
+ręcznie przez atletę (filtr zdublowany w adapterze i w komendzie).
+
+**Uwaga o kalibracji:** konto testowe nie miało ustawionego `threshold_pace`
+dla biegania i miało zero aktywności. Nie przeszkodziło to w pushu, bo używamy
+temp **bezwzględnych** — cele względne (`Z2 Pace`, `78% Pace`) wymagałyby
+skonfigurowanego progu. To potwierdza słuszność decyzji z `workout-syntax.ts`.
+
+**Nadal niezweryfikowane:** czy trening dociera na fizyczny zegarek Garmina
+(wymaga konta połączonego z Garmin Connect i samego urządzenia).
+
 ## 3. Pytania otwarte
 
 Rzeczy, których nie udało się jednoznacznie potwierdzić i które trzeba
-zweryfikować bezpośrednio w Swaggerze / przez test API przed lub w trakcie
-Fazy 4 implementacji:
+zweryfikować bezpośrednio w Swaggerze / przez test API (część rozstrzygnięta
+w §2a — pozycje 3 i 4 poniżej są już **zamknięte**):
 
 1. **Rozbieżność OAuth token endpoint:** `/api/oauth/token` vs
    `/api/v1/oauth/token` — dwa różne źródła podają różne ścieżki.
