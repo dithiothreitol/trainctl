@@ -8,6 +8,7 @@ import {
   paceZones,
   planMacrocycle,
   predictRace,
+  testDistanceKm,
   vdotFromRace,
   type Microcycle,
   type PlannedDay,
@@ -62,7 +63,7 @@ export function computePlan(config: TrenConfig, today: string): StoredPlan {
   const zones = paceZones(vdot)
   const macro = planMacrocycle({ today, goal, athlete })
   const weeks = macro.weeks.map((skeleton) =>
-    generateMicrocycle({ skeleton, athlete, zones, goal }),
+    generateMicrocycle({ skeleton, athlete, zones, goal, testDistanceKm: testDistanceKm(goal) }),
   )
   const plan: StoredPlan = {
     generatedAt: today,

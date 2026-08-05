@@ -1669,6 +1669,9 @@ jako fakt).
 | T-7 | Szczyt objętości | ~4 tyg. przed startem, potem −22–31%/tyg. | Knopp 2024 | D |
 | T-8 | Ultra: brak danych — ekstrapolacja z ostrzeżeniem | ≥21 dni, ≥60% | **brak źródła** | **—** |
 | T-9 | Start „B": mini-taper | 3–5 dni, −20–30%, bez zmian w makrocyklu | **brak źródła** | **—** |
+| T-10 | Dzień **przed** startem B/C: wolne | korpus: 34/45 startów (76%) poprzedzone dniem bez treningu | korpus trenerski (n=1) | **korpus** |
+| T-11 | Dzień **po** starcie B/C: długie wybieganie **zostaje**, spokojnie | korpus: 19/45 (42%) startów ma nazajutrz trening, dominuje ND long „bardzo spokojnie" po sobotnim starcie | korpus trenerski (n=1) | **korpus** |
+| T-12 | Tydzień ze startem B/C **nie kasuje** akcentu tygodnia — start **jest** akcentem | korpus: brak dodatkowych sesji Z3 w tygodniach startowych | korpus; spójne z I-7 (≥48 h) | **korpus** |
 
 ### 10.6 `engine/` — reguły po starcie i po chorobie
 
@@ -1727,6 +1730,9 @@ jako fakt).
 | W-8 | `durability_factor` kalibrować z historii startów użytkownika | 20-min TT −2,9% (−8,5% do +1,1%); 6-min TT ~−10% (−31% do +1%) | Hunter 2025 | **B** |
 | W-9 | Model może uwzględniać kilometraż jako predyktor | tempo ~6% na 5 km / ~3,5% na maratonie; interwały ~2–4%; kilometraż stabilnie (p<0,0005) | Vickers 2016 | C |
 | W-10 | Nie używać zmiennych rozkładu tempa jako predyktora | dodanie ich nie poprawiło R² (0,85 → 0,85) | Oficial-Casado 2025 | C |
+| W-11 | **Kalibracja stref = wynik biegu maksymalnego**; sprawdzian all-out jest równoważny startowi | VDOT liczy się z każdego biegu na czas na znanym dystansie | Daniels & Gilbert (Z-1) | D |
+| W-12 | Rytm kalibracji: **co ~4 tygodnie** | korpus: 45 startów w 1231 dniach (8,7/rok), **mediana odstępu 28 dni**, p25 = 14 dni | korpus trenerski (n=1) | **korpus** |
+| W-13 | **Preferuj prawdziwy start** nad sztucznym sprawdzianem; sprawdzian to fallback przy pustym kalendarzu startów | korpus: **0 wzmianek** o sprawdzianie/teście na czas w 1231 dniach — trener kalibruje wyłącznie startami | korpus trenerski (n=1) | **korpus** |
 
 ### 10.10 Tryb biurkowy (faza 5)
 
@@ -1786,6 +1792,7 @@ rzeczy, które brzmią jak wiedza, a nią nie są.
 | N-18 | „Strides poprawiają ekonomię o 2%" | to wyniki z badań nad plyometrią, nie nad strides | — |
 | N-19 | Długie wybieganie >35 km dla maratonu | brak dodatkowej korzyści wobec 30–35 km | Fokkema 2020 |
 | N-20 | Redukcja intensywności w taperze | utrzymanie intensywności ma niezależny efekt SMD −0,55 | Wang 2023 |
+| N-21 | Wpisywanie sztucznych „sprawdzianów" do planu jako domyślnego mechanizmu kalibracji | trener z korpusu **ani razu** w 1231 dniach nie zaplanował sprawdzianu — kalibruje prawdziwymi startami co ~4 tyg. (W-12/W-13); sztuczny TT to fallback dla pustego kalendarza, nie metoda pierwszego wyboru | korpus trenerski (n=1) |
 
 ---
 

@@ -31,6 +31,8 @@ athlete:
   longRunDay: sat
   results:                  # wyniki startów do kalibracji stref (Z-6: nie z zegarka!)
     - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "przykładowa dycha" }
+  tuneUpRaces:              # starty kontrolne w drodze do celu (B = mini-taper, C = wbiegany)
+    []                      # - { date: "2026-09-19", distanceKm: 10, name: "Bieg jesienny", priority: B }
 goal:
   name: "Półmaraton"
   date: "2026-11-29"
@@ -75,6 +77,18 @@ export function loadConfig(cwd: string): TrenConfig {
         if (typeof r?.timeSec !== 'number' || r.timeSec <= 0)
           errors.push(`athlete.results[${i}].timeSec: liczba sekund > 0`)
       })
+    if (a.tuneUpRaces !== undefined) {
+      if (!Array.isArray(a.tuneUpRaces)) errors.push('athlete.tuneUpRaces: wymagana lista')
+      else
+        a.tuneUpRaces.forEach((r, i) => {
+          if (!ISO_RE.test(String(r?.date)))
+            errors.push(`athlete.tuneUpRaces[${i}].date: format YYYY-MM-DD`)
+          if (typeof r?.distanceKm !== 'number' || r.distanceKm <= 0)
+            errors.push(`athlete.tuneUpRaces[${i}].distanceKm: liczba > 0`)
+          if (r?.priority !== undefined && !['B', 'C'].includes(String(r.priority)))
+            errors.push(`athlete.tuneUpRaces[${i}].priority: B albo C (A to cel w sekcji goal)`)
+        })
+    }
   }
   if (!g) errors.push('goal: brak sekcji')
   else {
@@ -91,8 +105,15 @@ export function loadConfig(cwd: string): TrenConfig {
   if (desk && !(/^\d{1,2}:\d{2}$/.test(String(desk.workStart)) && /^\d{1,2}:\d{2}$/.test(String(desk.workEnd)))) {
     throw new Error(`Błędy w ${CONFIG_FILE}:\n  - desk.workStart/workEnd: format HH:MM`)
   }
+  const athlete = a as AthleteProfile
   return {
-    athlete: a as AthleteProfile,
+    athlete: {
+      ...athlete,
+      // brak priority w YAML czytamy jako B: użytkownik wpisał ten bieg świadomie
+      ...(athlete.tuneUpRaces
+        ? { tuneUpRaces: athlete.tuneUpRaces.map((r) => ({ ...r, priority: r.priority ?? 'B' })) }
+        : {}),
+    },
     goal: { ...goal, priority: goal.priority ?? 'A' },
     ...(desk ? { desk } : {}),
   }

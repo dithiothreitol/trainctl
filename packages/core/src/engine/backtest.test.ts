@@ -43,6 +43,8 @@ interface CoachWeek {
   workouts: number
   quality: number
   races: number
+  /** Daty startów kontrolnych wpisanych przez trenera w tym tygodniu. */
+  raceDates: string[]
   hasLong: boolean
 }
 
@@ -80,13 +82,16 @@ function coachWeeks(plans: CorpusPlan[], fromIso: string, toIso: string): Map<st
     )
     const w = cands[0]!.w
     const key = mondayOf(date)
-    const agg = weeks.get(key) ?? { km: 0, complete: true, workouts: 0, quality: 0, races: 0, hasLong: false }
+    const agg = weeks.get(key) ?? {
+      km: 0, complete: true, workouts: 0, quality: 0, races: 0, raceDates: [], hasLong: false,
+    }
     const kind = workoutKind(w)
     agg.km += (w.distance_km_est[0] + w.distance_km_est[1]) / 2
     agg.complete &&= w.distance_complete
     agg.workouts += 1
     if (kind === 'race') {
       agg.races += 1
+      agg.raceDates.push(date)
       agg.quality += 1 // start liczony jako sesja intensywna
     } else if (kind.startsWith('quality')) agg.quality += 1
     if (kind === 'long') agg.hasLong = true
@@ -110,11 +115,20 @@ describe.skipIf(!existsSync(CORPUS))('backtest: sezon HM wiosna 2025 vs trener',
   const recentWeeklyKm = Math.round(median(completeKms.slice(0, 2)))
   const peakWeeklyKm = Math.round(Math.max(...completeKms))
 
+  // Starty kontrolne, które trener wpisał w tym sezonie — od fazy 7 generator
+  // dostaje je na wejściu tak, jak dostałby je od użytkownika w tren.yaml.
+  const coachRaceDates = [...coach.values()].flatMap((w) => w.raceDates).sort()
+
   const athlete: AthleteProfile = {
     recentWeeklyKm,
     peakWeeklyKm,
     daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'],
     results: [],
+    tuneUpRaces: coachRaceDates.map((date) => ({
+      date,
+      distanceKm: 10, // korpus nie zawsze podaje dystans startu kontrolnego
+      priority: 'B' as const,
+    })),
   }
   const goal: RaceGoal = {
     date: RACE,
@@ -135,6 +149,8 @@ describe.skipIf(!existsSync(CORPUS))('backtest: sezon HM wiosna 2025 vs trener',
   const workoutDiffs: number[] = []
   let longAgree = 0
   let longComparable = 0
+  let raceDayAgree = 0
+  let raceDayTotal = 0
 
   for (const mc of micros) {
     const c = coach.get(mc.weekStart)
@@ -150,6 +166,10 @@ describe.skipIf(!existsSync(CORPUS))('backtest: sezon HM wiosna 2025 vs trener',
     if (c.races === 0) {
       longComparable++
       if (genLong === c.hasLong) longAgree++
+    }
+    for (const date of c.raceDates) {
+      raceDayTotal++
+      if (mc.days.find((d) => d.date === date)?.workout?.kind === 'race') raceDayAgree++
     }
     rows.push(
       `| ${mc.weekStart} | ${c.complete ? c.km.toFixed(0) : `~${c.km.toFixed(0)}`} | ${mc.totalKm} ` +
@@ -171,9 +191,11 @@ describe.skipIf(!existsSync(CORPUS))('backtest: sezon HM wiosna 2025 vs trener',
     `- mediana |różnicy akcentów|: **${median(qualityDiffs)}** (start trenera liczony jako akcent)`,
     `- mediana |różnicy liczby sesji|: **${median(workoutDiffs)}**`,
     `- zgodność długiego wybiegania (tygodnie bez startów): **${longAgree}/${longComparable}**`,
+    `- starty kontrolne trenera odwzorowane co do dnia: **${raceDayAgree}/${raceDayTotal}**`,
     '',
-    '_Kontekst: trener wplatał starty kontrolne (Falenica/ZUK), których generator v1',
-    'nie modeluje (tylko cel A) — różnice w tych tygodniach są oczekiwane._',
+    '_Od fazy 7 starty kontrolne trenera (Falenica/ZUK) są podawane generatorowi tak,_',
+    '_jak podałby je użytkownik w `tren.yaml` — mini-taper T-9, wolny dzień przed (T-10)_',
+    '_i długie wybieganie nazajutrz (T-11) wynikają z reguł, nie z ręcznej korekty._',
   ].join('\n')
   writeFileSync(REPORT, summary, 'utf-8')
 
@@ -196,5 +218,23 @@ describe.skipIf(!existsSync(CORPUS))('backtest: sezon HM wiosna 2025 vs trener',
 
   it('długie wybieganie zgodne w ≥50% tygodni bez startów', () => {
     expect(longAgree / longComparable).toBeGreaterThanOrEqual(0.5)
+  })
+
+  it('starty kontrolne trenera stoją w planie co do dnia (T-9…T-12)', () => {
+    expect(raceDayTotal).toBeGreaterThan(0)
+    expect(raceDayAgree).toBe(raceDayTotal)
+  })
+
+  it('tydzień startowy trenera: dzień przed startem wolny, długie zostaje (T-10/T-11)', () => {
+    for (const mc of micros) {
+      const race = mc.days.find((d) => d.workout?.kind === 'race' && d.date !== goal.date)
+      if (!race) continue
+      const i = mc.days.indexOf(race)
+      if (i > 0) expect(mc.days[i - 1]!.workout).toBeUndefined()
+      // po sobotnim starcie trener zostawiał niedzielne długie — generator też
+      if (i < mc.days.length - 1 && mc.days[i + 1]!.workout) {
+        expect(['long', 'easy']).toContain(mc.days[i + 1]!.workout!.kind)
+      }
+    }
   })
 })

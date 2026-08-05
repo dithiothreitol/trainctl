@@ -32,6 +32,19 @@ export interface RaceGoal {
   terrain?: 'road' | 'trail' | 'ultra'
 }
 
+/**
+ * Start B/C w drodze do celu A — bieg kontrolny, nie impreza docelowa.
+ * Tak kalibruje formę trener z korpusu: 45 startów w 1231 dniach, mediana
+ * odstępu 28 dni, zero sztucznych sprawdzianów (W-12/W-13).
+ */
+export interface TuneUpRace {
+  date: string
+  distanceKm: number
+  name?: string
+  /** 'B' = ważny bieg kontrolny (mini-taper T-9), 'C' = wbiegany bez odpuszczania. */
+  priority: 'B' | 'C'
+}
+
 export interface AthleteProfile {
   sex?: Sex
   /** Średnia objętość z ostatnich ~4 tygodni — punkt startowy progresji. */
@@ -41,6 +54,8 @@ export interface AthleteProfile {
   daysAvailable: Weekday[]
   longRunDay?: Weekday
   results: RaceResult[]
+  /** Starty kontrolne w sezonie — wpinane w makrocykl (T-9…T-12). */
+  tuneUpRaces?: TuneUpRace[]
 }
 
 /** Rozkład intensywności planu (FOUNDATIONS I-1/I-2). */
@@ -66,6 +81,10 @@ export interface WeekSkeleton {
   /** Liczba sesji jakościowych w tygodniu (I-8). */
   qualitySessions: number
   raceDate?: string
+  /** Start kontrolny B/C w tym tygodniu (nie kończy planu — T-9…T-12). */
+  tuneUp?: TuneUpRace
+  /** Sprawdzian all-out w tym tygodniu: fallback kalibracji przy pustym kalendarzu startów (W-13). */
+  testPlanned?: boolean
   flags: string[]
   ruleRefs: string[]
 }
@@ -111,6 +130,8 @@ export type WorkoutKind =
   | 'quality_intervals'
   | 'quality_continuous'
   | 'sharpener'
+  /** Sprawdzian all-out — kalibracja stref, gdy w kalendarzu nie ma startów (W-11/W-13). */
+  | 'test'
   | 'race'
 
 export interface PlannedWorkout {

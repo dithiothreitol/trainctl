@@ -45,6 +45,7 @@ export const KIND_COLOR: Record<string, ColorName> = {
   quality_intervals: 'quality',
   quality_continuous: 'quality',
   sharpener: 'quality',
+  test: 'race',
   race: 'race',
 }
 
@@ -55,6 +56,7 @@ const KIND_LABEL: Record<string, string> = {
   quality_intervals: 'interwały',
   quality_continuous: 'akcent ciągły',
   sharpener: 'rozruch',
+  test: 'SPRAWDZIAN',
   race: 'START',
 }
 
@@ -633,9 +635,39 @@ export function cmdAdapt(cwd: string, opts: { date?: string | undefined } = {}):
     const newResults = config.athlete.results.filter(
       (r) => r.date > plan.generatedAt && !known.has(`${r.date}:${r.distanceKm}`),
     )
-    const lastRaceDay = [...plan.weeks.flatMap((w) => w.days)]
+    const allDays = plan.weeks.flatMap((w) => w.days)
+    const lastRaceDay = allDays
       .filter((d) => d.workout?.kind === 'race' && d.date <= today)
       .at(-1)
+
+    // Pomiary (sprawdziany i starty kontrolne) wykonane, ale niewpisane do results —
+    // bez tego kroku kalibracja stref stoi w miejscu (W-11).
+    const resultDates = new Set(config.athlete.results.map((r) => r.date))
+    const tuneUpByDate = new Map(
+      (config.athlete.tuneUpRaces ?? []).map((r) => [r.date, r.distanceKm]),
+    )
+    const uncalibratedTests = allDays
+      .filter((d) => {
+        if (d.date > today || diffDays(d.date, today) > 60) return false
+        const isTest = d.workout?.kind === 'test'
+        const isTuneUp = d.workout?.kind === 'race' && tuneUpByDate.has(d.date)
+        if (!isTest && !isTuneUp) return false
+        if (resultDates.has(d.date)) return false
+        const log = logs.find((l) => l.date === d.date)
+        return log?.status === 'done' || (log?.timeSec ?? 0) > 0
+      })
+      .map((d) => {
+        const log = logs.find((l) => l.date === d.date)
+        const measured =
+          tuneUpByDate.get(d.date) ??
+          d.workout?.segments.find((s) => s.type === 'race')?.distanceKm ??
+          0
+        return {
+          date: d.date,
+          distanceKm: measured,
+          ...(log?.timeSec ? { timeSec: log.timeSec } : {}),
+        }
+      })
 
     const proposal = analyzeExecution({
       today,
@@ -643,6 +675,7 @@ export function cmdAdapt(cwd: string, opts: { date?: string | undefined } = {}):
       currentWeeklyKm,
       ...(newResults.length ? { newResults } : {}),
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: plan.goal.distanceKm } } : {}),
+      ...(uncalibratedTests.length ? { uncalibratedTests } : {}),
     })
 
     const compliance = Math.round(proposal.complianceKm * 100)

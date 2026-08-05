@@ -37,6 +37,13 @@ pnpm tren adapt       # analiza wykonania → propozycje korekt (nie zmienia pla
 pnpm tren desk --heavy   # dzień przy biurku: okna, przerwy, reguła tempa po pracy
 ```
 
+Starty kontrolne w sezonie wpisujesz w `tren.yaml` (`athlete.tuneUpRaces`) —
+silnik robi z nich to samo, co trener z korpusu: mini-taper przed startem B,
+wolny dzień przed, długie wybieganie nazajutrz, żadnego dokładania akcentu do
+tygodnia startowego. Gdy kalendarz startów jest pusty, plan sam wstawia
+sprawdzian na czas, żeby było z czego przeliczyć strefy — ale prawdziwy start
+zawsze ma pierwszeństwo.
+
 Profil z prawdziwych danych zamiast samooceny: gdy klucz intervals.icu jest
 dostępny, kreator proponuje objętość, dni treningowe i dzień długiego wybiegania
 z ostatnich 16 tygodni — Enter przyjmuje propozycję, wpisanie własnej wartości ją

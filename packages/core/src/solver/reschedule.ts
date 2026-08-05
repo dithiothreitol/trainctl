@@ -20,15 +20,21 @@ const QUALITY: ReadonlySet<WorkoutKind> = new Set([
   'quality_intervals',
   'quality_continuous',
   'sharpener',
+  'test', // sprawdzian jest wysiłkiem maksymalnym — obowiązuje go S-1 jak akcent
 ])
 
-/** Kolejność poświęcania, gdy brakuje miejsc — od najmniej kosztownej straty. */
+/**
+ * Kolejność poświęcania, gdy brakuje miejsc — od najmniej kosztownej straty.
+ * Sprawdzian tuż przy długim: odpuszczony test to nie jeden trening mniej,
+ * tylko brak kalibracji stref na kolejne tygodnie (W-11).
+ */
 const DROP_ORDER: WorkoutKind[] = [
   'easy',
   'easy_hills',
   'sharpener',
   'quality_continuous',
   'quality_intervals',
+  'test',
   'long',
 ]
 
@@ -107,9 +113,9 @@ function scoreArrangement(
         notes.push(`długie wybieganie poza preferowanym dniem (${slot.weekday})`)
       }
     }
-    // S-3: akcenty się liczą
+    // S-3: akcenty się liczą; sprawdzian wyżej — bez niego nie ma czym kalibrować stref
     if (QUALITY.has(kind)) {
-      score += 150
+      score += kind === 'test' ? 220 : 150
       if (req.qualityDayPreference?.includes(slot.weekday)) score += 30
     }
     if (kind === 'easy' || kind === 'easy_hills') score += 40

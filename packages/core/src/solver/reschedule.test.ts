@@ -91,6 +91,44 @@ describe('zablokowany dzień („w czwartek release")', () => {
   })
 })
 
+describe('sprawdzian w tygodniu (faza 7)', () => {
+  const w = week({ testPlanned: true })
+  const withTest = generateMicrocycle({
+    skeleton: skeleton({ testPlanned: true }),
+    athlete,
+    zones,
+    testDistanceKm: 5,
+  })
+
+  it('generator faktycznie wstawia sprawdzian', () => {
+    expect(withTest.days.some((d) => d.workout?.kind === 'test')).toBe(true)
+    void w
+  })
+
+  it('przy blokadach ginie easy, a sprawdzian zostaje (W-11 ważniejsze niż objętość)', () => {
+    const r = reschedule({
+      week: withTest,
+      blockedDates: ['2026-08-04', '2026-08-05', '2026-08-06'],
+      ...base,
+    })
+    expect(r.days.some((d) => d.workout?.kind === 'test')).toBe(true)
+    for (const d of r.dropped) expect(d.kind).not.toBe('test')
+  })
+
+  it('sprawdzian podlega S-1: nie sąsiaduje z akcentem', () => {
+    const r = reschedule({ week: withTest, blockedDates: ['2026-08-06'], ...base })
+    const hard = r.days
+      .filter((d) =>
+        ['quality_intervals', 'quality_continuous', 'test'].includes(d.workout?.kind ?? ''),
+      )
+      .map((d) => Date.parse(d.date))
+      .sort((a, b) => a - b)
+    for (let i = 1; i < hard.length; i++) {
+      expect((hard[i]! - hard[i - 1]!) / 86_400_000).toBeGreaterThanOrEqual(2)
+    }
+  })
+})
+
 describe('gdy miejsc jest za mało', () => {
   const w = week()
   const r = reschedule({

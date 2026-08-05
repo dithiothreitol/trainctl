@@ -56,6 +56,11 @@ export interface AdaptationInput {
   newResults?: RaceResult[]
   /** Dystans ostatniego startu — dla protokołu powrotu (R-1/R-3). */
   lastRace?: { date: string; distanceKm: number }
+  /**
+   * Sprawdziany i starty kontrolne wykonane w oknie, których wyniku nie ma
+   * jeszcze w `athlete.results` — pętla kalibracji jest niedomknięta (W-11).
+   */
+  uncalibratedTests?: { date: string; distanceKm: number; timeSec?: number }[]
 }
 
 const WINDOW_DAYS = 21
@@ -139,6 +144,22 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
         'Dopisz wynik do athlete.results i wygeneruj plan ponownie — strefy kalibrujemy ' +
         'z wyników startów, nie z odczytów zegarka.',
       ruleRefs: ['Z-9', 'Z-6'],
+    })
+  }
+
+  // 3b) Sprawdzian/start kontrolny bez wyniku w profilu — pętla kalibracji stoi
+  for (const t of input.uncalibratedTests ?? []) {
+    diagnosis.push(
+      `Wykonany pomiar ${t.date} (${t.distanceKm} km) nie ma wyniku w athlete.results — ` +
+        'strefy dalej liczą się ze starszego startu.',
+    )
+    actions.push({
+      type: 'recalibrate-zones',
+      detail:
+        `Dopisz wynik do athlete.results: { date: "${t.date}", distanceKm: ${t.distanceKm}, ` +
+        `timeSec: ${t.timeSec ?? '<czas w sekundach>'} } → tren diff → tren plan. ` +
+        'Sprawdzian bez wpisanego wyniku jest treningiem, który niczego nie zmienił.',
+      ruleRefs: ['W-11', 'Z-6'],
     })
   }
 

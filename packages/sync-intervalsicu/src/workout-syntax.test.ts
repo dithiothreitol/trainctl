@@ -159,4 +159,27 @@ describe('toPushableWorkout', () => {
     const day = week.days.find((d) => d.workout)!
     expect(toPushableWorkout(day, 'A')!.externalId).toBe(toPushableWorkout(day, 'B')!.externalId)
   })
+
+  it('sprawdzian trafia na zegarek: rozgrzewka z celem, część na czas BEZ celu (ADR-020)', () => {
+    const test: PlannedDay = {
+      date: '2026-09-12',
+      weekday: 'sat',
+      workout: {
+        kind: 'test',
+        distanceKm: 9,
+        ruleRefs: ['W-11'],
+        segments: [
+          { type: 'warmup', distanceKm: 3, pace: { loSecPerKm: 320, hiSecPerKm: 320 }, description: '' },
+          { type: 'race', distanceKm: 5, description: '5 kilometrów na czas' },
+          { type: 'cooldown', distanceKm: 1, description: '' },
+        ],
+      },
+    }
+    const pushed = toPushableWorkout(test, 'Maraton testowy')!
+    expect(pushed.name).toContain('Sprawdzian')
+    const lines = pushed.description.split('\n')
+    expect(lines[0]).toContain('Warmup')
+    expect(lines[1]).toBe('- 5km') // bez „Pace" — zegarek mierzy, nie pilnuje tempa
+    expect(lines[2]).toContain('Cooldown')
+  })
 })

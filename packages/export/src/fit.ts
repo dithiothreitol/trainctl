@@ -258,6 +258,9 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
         steps.push(distanceStep(seg.type === 'easy' ? 'Spokojnie' : 'Tempo', seg.distanceKm ?? 0, seg.pace, 0))
         break
       case 'race':
+        // Sprawdzian: krok na dystans BEZ celu tempa (ADR-020) — zegarek ma mierzyć,
+        // nie pilnować tempa. Sam start nie ma dystansu w planie i nie daje kroku.
+        if (seg.distanceKm) steps.push(distanceStep('Na czas', seg.distanceKm, undefined, 0))
         break
     }
   }

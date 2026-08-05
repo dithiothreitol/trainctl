@@ -22,6 +22,7 @@ const KIND_LABEL: Record<string, string> = {
   quality_intervals: 'Interwały',
   quality_continuous: 'Akcent ciągły',
   sharpener: 'Rozruch',
+  test: 'Sprawdzian',
   race: 'START',
 }
 

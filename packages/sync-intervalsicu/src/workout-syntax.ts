@@ -100,7 +100,10 @@ function segmentSteps(seg: PlannedSegment, easyPace?: PaceRange): string[] {
       return [`- ${distance(seg.distanceKm ?? 0)} ${target}`]
 
     case 'race':
-      return []
+      // Sprawdzian: krok BEZ celu tempa (ADR-020) — to pomiar, a nie realizacja
+      // zadanego tempa; cel na zegarku sterowałby wynikiem, który ma dopiero powstać.
+      // Sam start (bez dystansu w planie) nie jest wypychany jako trening.
+      return seg.distanceKm ? [`- ${distance(seg.distanceKm)}`] : []
   }
 }
 
@@ -125,6 +128,7 @@ const KIND_NAME: Record<string, string> = {
   quality_intervals: 'Interwały',
   quality_continuous: 'Akcent ciągły',
   sharpener: 'Rozruch przedstartowy',
+  test: 'Sprawdzian na czas',
   race: 'START',
 }
 

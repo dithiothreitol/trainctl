@@ -17,6 +17,13 @@ export const RULE_EXPLAIN: Record<string, string> = {
   'T-3': 'taper: redukujemy wyłącznie objętość, o 41–60% (Wang 2023)',
   'T-4': 'taper ściśle malejący tydzień do tygodnia — „strict" dał medianę −5:32 na maratonie (Smyth 2021, n=158 117)',
   'T-5': 'długość taperu zależy od dystansu: 5–10 km ~tydzień, HM ~2 tyg., maraton 2–3 tyg. (Wang 2023; Knopp 2024)',
+  'T-9': 'start kontrolny B: mini-taper (objętość tygodnia −20%), ale makrocykl bez zmian — jeden bieg nie cofa progresji',
+  'T-10': 'dzień przed startem wolny — tak robił trener w 34 z 45 startów w korpusie',
+  'T-11': 'długie wybieganie ZOSTAJE dzień po starcie, spokojnie — wzorzec z korpusu (sobota start → niedziela długie)',
+  'T-12': 'start JEST akcentem tygodnia, nie dodatkiem do niego — nie dokładamy do niego drugiej sesji jakościowej',
+  'W-11': 'strefy kalibrujemy z biegu maksymalnego: sprawdzian na czas jest tu równoważny startowi (Daniels & Gilbert)',
+  'W-12': 'kalibracja co ~4 tygodnie — tyle wynosi mediana odstępu między startami w korpusie trenerskim',
+  'W-13': 'prawdziwy start jest lepszy niż sztuczny sprawdzian; sprawdzian pojawia się tylko przy pustym kalendarzu startów',
 }
 
 export const KIND_PURPOSE: Record<WorkoutKind, string> = {
@@ -26,5 +33,6 @@ export const KIND_PURPOSE: Record<WorkoutKind, string> = {
   quality_intervals: 'Sesja interwałowa — bodziec zależny od fazy: okołoprogowy (piramida) albo VO₂max (polaryzacja).',
   quality_continuous: 'Akcent ciągły — tempo narastające lub bieg zmienny; kontrola tempa i praca okołoprogowa.',
   sharpener: 'Krótki akcent przedstartowy: podtrzymuje intensywność w taperze (T-1) bez kosztu objętości.',
+  test: 'Sprawdzian na czas — pomiar, nie trening: z wyniku przeliczamy strefy na kolejne tygodnie (W-11). Pojawia się, bo w kalendarzu nie ma startu, który zrobiłby to samo lepiej (W-13).',
   race: 'Start — cel tego cyklu.',
 }

@@ -10,6 +10,7 @@ import type {
   PlannedSegment,
   PlannedWorkout,
   RaceGoal,
+  TuneUpRace,
   Weekday,
   WeekSkeleton,
 } from '../domain/types.ts'
@@ -250,6 +251,41 @@ function buildRace(goal: RaceGoal): PlannedWorkout {
   }
 }
 
+/** Start kontrolny B/C — w korpusie zapisywany dokładnie tak: „START W FALENICY." */
+function buildTuneUp(race: TuneUpRace): PlannedWorkout {
+  const what = race.name ? race.name.toUpperCase() : `${race.distanceKm} KM`
+  return {
+    kind: 'race',
+    distanceKm: 0,
+    ruleRefs: ['T-10', 'T-11', 'T-12'],
+    segments: [{ type: 'race', description: `START W ${what}.` }],
+  }
+}
+
+/**
+ * Sprawdzian all-out (W-11): rozgrzewka z celem, część główna BEZ celu tempa —
+ * to pomiar, nie realizacja tempa. Cel na zegarku sterowałby wynikiem, który
+ * ma dopiero powstać.
+ */
+function buildTest(distanceKm: number, style: HouseStyle, z: PaceZones): PlannedWorkout {
+  return {
+    kind: 'test',
+    distanceKm: style.warmupKm + distanceKm + style.cooldownKm,
+    ruleRefs: ['W-11', 'W-12', 'W-13'],
+    segments: [
+      segWarmup(style.warmupKm, z),
+      {
+        type: 'race',
+        distanceKm,
+        description:
+          `${kmText(distanceKm)} na czas (maksymalnie, na pełnym wypoczynku) — ` +
+          'wynik dopisz do tren.yaml (athlete.results), z niego kalibrujemy strefy.',
+      },
+      segCooldown(style.cooldownKm),
+    ],
+  }
+}
+
 // ---------------------------------------------------------------- planowanie
 
 export interface MicrocycleInput {
@@ -258,6 +294,8 @@ export interface MicrocycleInput {
   zones: PaceZones
   goal?: RaceGoal
   style?: HouseStyle
+  /** Dystans sprawdzianu, gdy skeleton go przewiduje (W-11). */
+  testDistanceKm?: number
 }
 
 export function generateMicrocycle(input: MicrocycleInput): Microcycle {
@@ -271,7 +309,7 @@ export function generateMicrocycle(input: MicrocycleInput): Microcycle {
   if (skeleton.raceDate && input.goal) {
     planRaceWeek(plan, skeleton.raceDate, input.goal, available, style, zones, skeleton.weekStart)
   } else {
-    planNormalWeek(plan, skeleton, available, style, zones)
+    planNormalWeek(plan, skeleton, available, style, zones, input.testDistanceKm)
   }
 
   const days: PlannedDay[] = WEEKDAY_ORDER.map((wd) => {
@@ -338,6 +376,7 @@ function planNormalWeek(
   available: Weekday[],
   style: HouseStyle,
   zones: PaceZones,
+  testDistanceKm?: number,
 ): void {
   const target = skeleton.targetKm
   const polarized = skeleton.intensityModel === 'polarized'
@@ -347,30 +386,49 @@ function planNormalWeek(
     Math.max(style.minWorkoutsPerWeek, Math.ceil(target / style.typicalKmPerSession)),
   )
 
-  // sloty
+  // Start kontrolny / sprawdzian zajmuje swój dzień PRZED rozdaniem reszty:
+  // to on jest akcentem tygodnia, a nie doklejką do gotowego układu (T-12).
+  const idxOf = (wd: Weekday) => WEEKDAY_ORDER.indexOf(wd)
+  let peakWd: Weekday | undefined
+  let peakWorkout: PlannedWorkout | undefined
+  if (skeleton.tuneUp) {
+    const offset = diffDays(skeleton.weekStart, skeleton.tuneUp.date)
+    peakWd = WEEKDAY_ORDER[offset]
+    if (peakWd) peakWorkout = buildTuneUp(skeleton.tuneUp)
+  } else if (skeleton.testPlanned && testDistanceKm) {
+    // sprawdzian tam, gdzie trener stawia starty: weekend, preferencyjnie sobota (korpus 80%)
+    peakWd = style.longRunDayPreference.find((wd) => available.includes(wd)) ?? available.at(-1)
+    if (peakWd) peakWorkout = buildTest(testDistanceKm, style, zones)
+  }
+  // T-10: dzień przed startem/sprawdzianem zostaje wolny (korpus: 76% startów)
+  const dayBeforePeak = peakWd ? WEEKDAY_ORDER[idxOf(peakWd) - 1] : undefined
+
+  // sloty — dzień startu i dzień przed nim wypadają z puli
+  const free = available.filter((wd) => wd !== peakWd && wd !== dayBeforePeak)
+  // T-11: długie wybieganie ZOSTAJE po starcie (w korpusie: sobota start → niedziela long)
   const longWd = inTaper
     ? undefined
-    : (style.longRunDayPreference.find((wd) => available.includes(wd)) ?? available.at(-1))
+    : (style.longRunDayPreference.find((wd) => free.includes(wd)) ?? free.at(-1))
   const qualityWds: Weekday[] = []
   for (const wd of style.qualityDayPreference) {
     if (qualityWds.length >= skeleton.qualitySessions) break
-    if (!available.includes(wd) || wd === longWd) continue
-    const okGap = qualityWds.every(
-      (q) => Math.abs(WEEKDAY_ORDER.indexOf(q) - WEEKDAY_ORDER.indexOf(wd)) >= 2, // I-7
+    if (!free.includes(wd) || wd === longWd) continue
+    const okGap = [...qualityWds, ...(peakWd ? [peakWd] : [])].every(
+      (q) => Math.abs(idxOf(q) - idxOf(wd)) >= 2, // I-7 — start też jest akcentem
     )
     if (okGap) qualityWds.push(wd)
   }
   let hillsWd = inTaper
     ? undefined
     : style.hillsDayPreference.find(
-        (wd) => available.includes(wd) && wd !== longWd && !qualityWds.includes(wd),
+        (wd) => free.includes(wd) && wd !== longWd && !qualityWds.includes(wd),
       )
   const used = new Set<Weekday>([...(longWd ? [longWd] : []), ...qualityWds, ...(hillsWd ? [hillsWd] : [])])
   if (used.size > workoutsCount && hillsWd) {
     used.delete(hillsWd)
     hillsWd = undefined
   }
-  const easyWds = available.filter((wd) => !used.has(wd)).slice(0, Math.max(0, workoutsCount - used.size))
+  const easyWds = free.filter((wd) => !used.has(wd)).slice(0, Math.max(0, workoutsCount - used.size))
 
   // objętość
   const longKm = longWd ? Math.min(Math.round(style.longRunShare * target), style.longRunCapKm) : 0
@@ -380,6 +438,7 @@ function planNormalWeek(
 
   const buildAll = () => {
     plan.clear()
+    if (peakWd && peakWorkout) plan.set(peakWd, peakWorkout)
     if (longWd) plan.set(longWd, buildLong(longKm, zones))
     qualityWds.forEach((wd, i) => {
       const w =

@@ -10,6 +10,7 @@ import type {
   MacroPhase,
   MacrocyclePlan,
   RaceGoal,
+  TuneUpRace,
   WeekSkeleton,
 } from '../domain/types.ts'
 import { addDays, diffDays, mondayOf } from '../util/dates.ts'
@@ -36,6 +37,27 @@ export function taperWeeksFor(goal: RaceGoal): { weeks: number; flags: string[] 
   return { weeks: 1, flags: [] } // 5–10 km: 7–10 dni
 }
 
+/** T-9: mini-taper przed startem B — objętość tygodnia w dół o ~20%, makrocykl bez zmian. */
+const TUNE_UP_B_FACTOR = 0.8
+/**
+ * W-12: rytm kalibracji co ~4 tygodnie (mediana odstępu startów w korpusie: 28 dni).
+ * Sprawdzian wstawiamy rzadziej — to fallback (W-13), a nie metoda pierwszego wyboru:
+ * dopiero gdy przez 6 tygodni nie ma ani startu kontrolnego, ani świeżego wyniku.
+ */
+const CALIBRATION_GAP_WEEKS = 6
+/** Sprawdzian nie ma sensu tuż przed celem — tam kalibruje sam start (T-1…T-5). */
+const TEST_MIN_WEEKS_TO_GOAL = 3
+/**
+ * Ani na starcie planu: przed upływem kilku tygodni nowego bodźca nie ma czego
+ * mierzyć — plan właśnie został skalibrowany z wyniku, który ma. Wartość inż.
+ */
+const TEST_MIN_WEEK_INDEX = 4
+
+/** W-11: dystans sprawdzianu — krótszy niż cel, żeby był ostry, ale mierzalny. */
+export function testDistanceKm(goal: RaceGoal): number {
+  return goal.distanceKm <= 10 ? 3 : 5
+}
+
 /** P-7/P-8: rekomendowana objętość szczytowa dla dystansu docelowego. */
 export function recommendedPeakKm(goal: RaceGoal): number {
   if (goal.distanceKm > 42.5) return 70 // inż. — brak źródła dla ultra (T-8)
@@ -48,6 +70,11 @@ export interface MacrocycleInput {
   today: string
   goal: RaceGoal
   athlete: AthleteProfile
+}
+
+/** Data ostatniego wyniku startowego — punkt zerowy rytmu kalibracji (W-12). */
+function lastResultDate(athlete: AthleteProfile): string | undefined {
+  return athlete.results.map((r) => r.date).sort().at(-1)
 }
 
 export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
@@ -91,9 +118,26 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
 
   const qualityPerWeek = athlete.daysAvailable.length >= 4 ? 2 : 1 // I-8
 
+  // Starty kontrolne: tylko te w oknie planu i przed celem A (T-9…T-12)
+  const tuneUps = (athlete.tuneUpRaces ?? [])
+    .filter((r) => r.date >= firstWeek && r.date < goal.date)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  const tuneUpByWeek = new Map<string, TuneUpRace>()
+  for (const r of tuneUps) {
+    const ws = mondayOf(r.date)
+    // dwa starty w jednym tygodniu: ważniejszy (B) wygrywa, potem wcześniejszy
+    const prev = tuneUpByWeek.get(ws)
+    if (!prev || (prev.priority === 'C' && r.priority === 'B')) tuneUpByWeek.set(ws, r)
+  }
+
   const weeks: WeekSkeleton[] = []
   let loadTarget = start
   let sinceDeload = 0
+  // rytm kalibracji: liczony od ostatniego wyniku, resetowany startem kontrolnym (W-12)
+  const lastResult = lastResultDate(athlete)
+  let weeksSinceCalibration = lastResult
+    ? Math.max(0, Math.floor(diffDays(mondayOf(lastResult), firstWeek) / 7))
+    : CALIBRATION_GAP_WEEKS
   for (let i = 0; i < totalWeeks; i++) {
     const weekStart = addDays(firstWeek, i * 7)
     const inTaper = i >= loadWeeks
@@ -138,6 +182,40 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       ruleRefs.push(intensityModel === 'pyramidal' ? 'I-1' : 'I-2')
     }
 
+    // Start kontrolny B/C: mini-taper bez ruszania makrocyklu (T-9).
+    // `loadTarget` zostaje nietknięty — obniżamy tylko realizację tego tygodnia,
+    // żeby jeden start nie cofał całej progresji objętości.
+    const tuneUp = tuneUpByWeek.get(weekStart)
+    if (tuneUp && !inTaper) {
+      if (tuneUp.priority === 'B') {
+        targetKm = Math.round(targetKm * TUNE_UP_B_FACTOR)
+        ruleRefs.push('T-9')
+      }
+      // start JEST akcentem tygodnia — nie dokładamy do niego drugiego (T-12)
+      ruleRefs.push('T-10', 'T-11', 'T-12')
+      flags.push(`start kontrolny ${tuneUp.priority}: ${tuneUp.date}`)
+      weeksSinceCalibration = 0
+    } else {
+      weeksSinceCalibration++
+    }
+
+    // Sprawdzian — wyłącznie jako fallback (W-13): brak startów w rytmie kalibracji,
+    // faza ładowania, z dala od celu. Nigdy w taperze ani w tygodniu ze startem.
+    const weeksToGoal = totalWeeks - 1 - i
+    const wantsTest =
+      !tuneUp &&
+      !inTaper &&
+      !deload &&
+      tuneUps.length === 0 &&
+      i >= TEST_MIN_WEEK_INDEX &&
+      weeksSinceCalibration >= CALIBRATION_GAP_WEEKS &&
+      weeksToGoal >= TEST_MIN_WEEKS_TO_GOAL
+    if (wantsTest) {
+      ruleRefs.push('W-11', 'W-12', 'W-13')
+      flags.push('sprawdzian: brak startów w kalendarzu — kalibracja stref')
+      weeksSinceCalibration = 0
+    }
+
     weeks.push({
       weekStart,
       index: i,
@@ -147,8 +225,12 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       deload,
       keepIntensity: inTaper, // T-1
       keepFrequency: inTaper, // T-2
-      qualitySessions: phase === 'race' ? 1 : qualityPerWeek,
+      // start kontrolny liczy się jako akcent tygodnia (T-12), sprawdzian też (W-13)
+      qualitySessions:
+        phase === 'race' ? 1 : Math.max(1, qualityPerWeek - (tuneUp || wantsTest ? 1 : 0)),
       ...(phase === 'race' ? { raceDate: goal.date } : {}),
+      ...(tuneUp && !inTaper ? { tuneUp } : {}),
+      ...(wantsTest ? { testPlanned: true } : {}), // dzień wybiera mikrocykl (house style)
       flags,
       ruleRefs,
     })
