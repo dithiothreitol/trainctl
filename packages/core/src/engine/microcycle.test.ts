@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AthleteProfile, RaceGoal, WeekSkeleton } from '../domain/types.ts'
 import { paceZones } from '../zones/daniels.ts'
-import { fmtPace, generateMicrocycle } from './microcycle.ts'
+import { fmtPace, generateMicrocycle, kmText } from './microcycle.ts'
 
 const zones = paceZones(51)
 
@@ -176,5 +176,24 @@ describe('generateMicrocycle — przypadki brzegowe', () => {
     expect(fmtPace(255)).toBe('4:15')
     expect(fmtPace(300)).toBe('5:00')
     expect(fmtPace(329)).toBe('5:29')
+  })
+})
+
+describe('polska odmiana liczebników', () => {
+  it('kilometr / kilometry / kilometrów', () => {
+    expect(kmText(1)).toBe('1 kilometr')
+    expect(kmText(3)).toBe('3 kilometry')
+    expect(kmText(5)).toBe('5 kilometrów')
+    expect(kmText(11)).toBe('11 kilometrów')
+    expect(kmText(12)).toBe('12 kilometrów')
+    expect(kmText(22)).toBe('22 kilometry')
+    expect(kmText(23)).toBe('23 kilometry')
+    expect(kmText(25)).toBe('25 kilometrów')
+  })
+
+  it('opisy jednostek używają poprawnej formy', () => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ targetKm: 65 }), athlete, zones })
+    const long = mc.days.find((d) => d.workout?.kind === 'long')!.workout!
+    expect(long.segments[0]!.description).not.toMatch(/\d+ kilometrów \(w tempie bardzo/)
   })
 })

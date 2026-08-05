@@ -71,7 +71,7 @@ describe('tren today / why', () => {
   it('dzień treningowy: opis jednostki + kind', () => {
     const r = cmdToday(dir, { date: '2026-08-04' }) // wtorek — akcent
     expect(r.code).toBe(0)
-    expect(r.output).toContain('quality_intervals')
+    expect(r.output).toContain('interwały')
     expect(r.output).toContain('rozgrzewkowe')
   })
 
@@ -103,7 +103,7 @@ describe('tren log', () => {
     const r = cmdLog(dir, { date: '2026-08-04', status: 'done', time: '58:30', note: 'dobre czucie' })
     expect(r.code).toBe(0)
     const today = cmdToday(dir, { date: '2026-08-04' })
-    expect(today.output).toContain('zalogowano: done')
+    expect(today.output).toContain('Zalogowano: done')
     expect(today.output).toContain('dobre czucie')
   })
 

@@ -98,10 +98,10 @@ export function loadConfig(cwd: string): TrenConfig {
   }
 }
 
-export function writeConfigTemplate(cwd: string): void {
+export function writeConfigTemplate(cwd: string, content?: string): void {
   const path = join(cwd, CONFIG_FILE)
   if (existsSync(path)) {
     throw new Error(`${CONFIG_FILE} już istnieje — edytuj go albo usuń przed ponownym init.`)
   }
-  writeFileSync(path, CONFIG_TEMPLATE, 'utf-8')
+  writeFileSync(path, content ?? CONFIG_TEMPLATE, 'utf-8')
 }

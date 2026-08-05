@@ -92,7 +92,7 @@ describe('tren pull', () => {
   it('zapisuje migawkę i raportuje rozjazdy', async () => {
     const r = await cmdPull(dir, { days: '5' }, factory)
     expect(r.code).toBe(0)
-    expect(r.output).toContain('aktywności')
+    expect(r.output).toContain('Aktywności')
     expect(existsSync(join(dir, 'sync.json'))).toBe(true)
     const snap = JSON.parse(readFileSync(join(dir, 'sync.json'), 'utf-8'))
     expect(snap.activities.length).toBeGreaterThan(0)

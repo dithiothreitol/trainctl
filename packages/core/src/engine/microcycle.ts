@@ -28,6 +28,25 @@ export function fmtPace(secPerKm: number): string {
 const mid = (r: { loSecPerKm: number; hiSecPerKm: number }) =>
   Math.round((r.loSecPerKm + r.hiSecPerKm) / 2)
 
+/**
+ * Polska odmiana rzeczownika przez liczebnik: 1 kilometr, 2–4 kilometry,
+ * 5–21 kilometrów, 22–24 kilometry… Trener w korpusie pisze „23 kilometry",
+ * więc generator też musi.
+ */
+export function plural(n: number, one: string, few: string, many: string): string {
+  if (!Number.isInteger(n)) return many
+  const abs = Math.abs(n)
+  if (abs === 1) return one
+  const lastTwo = abs % 100
+  if (lastTwo >= 12 && lastTwo <= 14) return many
+  const last = abs % 10
+  return last >= 2 && last <= 4 ? few : many
+}
+
+/** „23 kilometry", „11 kilometrów", „1 kilometr". */
+export const kmText = (n: number): string =>
+  `${n} ${plural(n, 'kilometr', 'kilometry', 'kilometrów')}`
+
 // ------------------------------------------------------------ budowa jednostek
 
 function segWarmup(km: number, z: PaceZones): PlannedSegment {
@@ -35,7 +54,7 @@ function segWarmup(km: number, z: PaceZones): PlannedSegment {
     type: 'warmup',
     distanceKm: km,
     pace: { loSecPerKm: z.easy.loSecPerKm, hiSecPerKm: z.easy.hiSecPerKm },
-    description: `${km} kilometry (tempo rozgrzewkowe)`,
+    description: `${kmText(km)} (tempo rozgrzewkowe)`,
   }
 }
 
@@ -56,7 +75,7 @@ function buildEasy(km: number, z: PaceZones): PlannedWorkout {
       type: 'easy',
       distanceKm: km,
       pace: z.easy,
-      description: `${km} kilometrów (w tempie spokojnym).`,
+      description: `${kmText(km)} (w tempie spokojnym).`,
     }],
   }
 }
@@ -71,7 +90,7 @@ function buildLong(km: number, z: PaceZones): PlannedWorkout {
       type: 'easy',
       distanceKm: km,
       pace,
-      description: `${km} kilometrów (w tempie bardzo spokojnym).`,
+      description: `${kmText(km)} (w tempie bardzo spokojnym).`,
     }],
   }
 }
@@ -87,7 +106,7 @@ function buildHillsDay(easyKm: number, style: HouseStyle, z: PaceZones): Planned
         type: 'easy',
         distanceKm: easyKm,
         pace: z.easy,
-        description: `${easyKm} kilometrów (w tempie spokojnym)`,
+        description: `${kmText(easyKm)} (w tempie spokojnym)`,
       },
       {
         type: 'hills',

@@ -23,6 +23,37 @@ import {
   type StoredPlan,
 } from './planfile.ts'
 import { KIND_PURPOSE, RULE_EXPLAIN } from './rules-explain.ts'
+import { b, renderPlain, type Block } from './ui/blocks.ts'
+import type { ColorName } from './ui/theme.ts'
+
+/** Kolor semantyczny jednostki treningowej — spójny w całym CLI. */
+export const KIND_COLOR: Record<string, ColorName> = {
+  easy: 'easy',
+  long: 'long',
+  easy_hills: 'accent',
+  quality_intervals: 'quality',
+  quality_continuous: 'quality',
+  sharpener: 'quality',
+  race: 'race',
+}
+
+const KIND_LABEL: Record<string, string> = {
+  easy: 'spokojne',
+  long: 'długie',
+  easy_hills: 'podbiegi',
+  quality_intervals: 'interwały',
+  quality_continuous: 'akcent ciągły',
+  sharpener: 'rozruch',
+  race: 'START',
+}
+
+const PHASE_LABEL: Record<string, string> = {
+  base: 'baza',
+  build: 'budowanie',
+  peak: 'szczyt',
+  taper: 'taper',
+  race: 'tydzień startowy',
+}
 import {
   compare,
   defaultProviderFactory,
@@ -80,15 +111,20 @@ export function buildExecution(
 }
 
 export interface CmdResult {
+  /** Czysty tekst — to widzi MCP/agent i potok. */
   output: string
   code: number
+  /** Semantyczny opis wyjścia — CLI renderuje z kolorami. */
+  blocks?: Block[]
 }
 
 const ok = (output: string): CmdResult => ({ output, code: 0 })
-const fail = (e: unknown): CmdResult => ({
-  output: e instanceof Error ? e.message : String(e),
-  code: 1,
-})
+/** Wynik opisany blokami: CLI dostaje kolor, MCP ten sam tekst bez ozdobników. */
+const okDoc = (blocks: Block[]): CmdResult => ({ output: renderPlain(blocks), code: 0, blocks })
+const fail = (e: unknown): CmdResult => {
+  const message = e instanceof Error ? e.message : String(e)
+  return { output: message, code: 1, blocks: [b.error(message)] }
+}
 
 export function localToday(): string {
   const d = new Date()
@@ -101,14 +137,26 @@ const WEEKDAY_PL: Record<Weekday, string> = {
   fri: 'piątek', sat: 'sobota', sun: 'niedziela',
 }
 
-export function cmdInit(cwd: string): CmdResult {
+/** Skróty jak w planach trenera (korpus). */
+const WEEKDAY_SHORT: Record<Weekday, string> = {
+  mon: 'PN', tue: 'WT', wed: 'ŚR', thu: 'CZ', fri: 'PT', sat: 'SB', sun: 'ND',
+}
+
+export function cmdInit(cwd: string, content?: string): CmdResult {
   try {
-    writeConfigTemplate(cwd)
-    return ok(
-      `Utworzono ${CONFIG_FILE}.\n` +
-        'Uzupełnij profil (zwłaszcza results — kalibrujemy z wyników startów, nie z zegarka) ' +
-        'i uruchom: tren plan',
-    )
+    writeConfigTemplate(cwd, content)
+    return okDoc([
+      b.success(`Utworzono ${CONFIG_FILE}`),
+      ...(content
+        ? []
+        : [
+            b.text(
+              'Uzupełnij profil — zwłaszcza results: strefy kalibrujemy z wyników startów, ' +
+                'nie z odczytów zegarka.',
+            ),
+          ]),
+      b.hint('następny krok: tren plan'),
+    ])
   } catch (e) {
     return fail(e)
   }
@@ -119,34 +167,68 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
     const today = opts.date ?? localToday()
     const config = loadConfig(cwd)
     const plan = computePlan(config, today)
-    const lines: string[] = []
-    lines.push(
-      `Plan: ${plan.goal.name} (${plan.goal.distanceKm} km) — ${plan.goal.date}, ` +
-        `${plan.weeks.length} tyg., szczyt ${plan.peakKmPlanned} km/tydz., VDOT ${plan.vdot}.`,
-    )
+    writePlan(cwd, plan)
+
+    const weeksToRace = plan.weeks.length
+    const blocks: Block[] = [
+      b.title(
+        `${plan.goal.name} · ${plan.goal.distanceKm} km`,
+        `${plan.goal.date} · ${weeksToRace} tygodni planu`,
+      ),
+      b.kv([
+        ['Szczyt objętości', `${plan.peakKmPlanned} km/tydz.`],
+        ['Rekomendacja dla dystansu', `${plan.peakKmRecommended} km/tydz.`],
+        ['VDOT', `${plan.vdot} (${plan.vdotSource === 'result' ? 'z wyniku startu' : 'z celu — do rekalibracji'})`],
+      ]),
+    ]
+
     if (plan.prediction) {
-      lines.push(
-        `Predykcja: ${fmtTime(plan.prediction.loSec)}–${fmtTime(plan.prediction.hiSec)} ` +
-          `(${plan.prediction.method}).`,
-      )
+      const range = `${fmtTime(plan.prediction.loSec)} – ${fmtTime(plan.prediction.hiSec)}`
+      blocks.push(b.blank(), b.panel('Predykcja wyniku', [
+        `${range}   (metoda: ${plan.prediction.method})`,
+        'Zawsze przedział, nigdy pojedyncza liczba (W-1).',
+      ], 'brand'))
       const target = plan.goal.targetTimeSec
       if (target) {
         if (target < plan.prediction.loSec) {
-          lines.push(
-            `⚠ Cel ${fmtTime(target)} jest ambitniejszy niż przedział predykcji — ` +
-              'realny przy idealnym cyklu albo wart korekty.',
+          blocks.push(
+            b.warn(
+              `Cel ${fmtTime(target)} jest ambitniejszy niż przedział — realny przy idealnym cyklu albo wart korekty.`,
+            ),
           )
         } else if (target > plan.prediction.hiSec) {
-          lines.push(`Cel ${fmtTime(target)} jest zachowawczy względem predykcji.`)
+          blocks.push(b.info(`Cel ${fmtTime(target)} jest zachowawczy względem predykcji.`))
         } else {
-          lines.push(`Cel ${fmtTime(target)} mieści się w przedziale predykcji.`)
+          blocks.push(b.success(`Cel ${fmtTime(target)} mieści się w przedziale predykcji.`))
         }
       }
     }
-    for (const w of plan.feasibilityWarnings) lines.push(`⚠ ${w}`)
-    writePlan(cwd, plan)
-    lines.push(`Zapisano: ${PLAN_YAML} + ${PLAN_MD}`)
-    return ok(lines.join('\n'))
+
+    // szkic makrocyklu — jedna linia na fazę
+    const phases: string[] = []
+    let current = ''
+    let from = 0
+    plan.weeks.forEach((w, i) => {
+      const label = PHASE_LABEL[w.skeleton.phase] ?? w.skeleton.phase
+      if (label !== current) {
+        if (current) phases.push(`${current}: tyg. ${from + 1}–${i}`)
+        current = label
+        from = i
+      }
+    })
+    if (current) phases.push(`${current}: tyg. ${from + 1}–${plan.weeks.length}`)
+    blocks.push(b.section('Struktura'), b.bullets(phases))
+
+    if (plan.feasibilityWarnings.length) {
+      blocks.push(b.blank())
+      for (const w of plan.feasibilityWarnings) blocks.push(b.warn(w))
+    }
+    blocks.push(
+      b.blank(),
+      b.success(`Zapisano ${PLAN_YAML} i ${PLAN_MD}`),
+      b.hint('tren today · tren week · tren why'),
+    )
+    return okDoc(blocks)
   } catch (e) {
     return fail(e)
   }
@@ -157,18 +239,47 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
     const hit = findDay(plan, date)
-    if (!hit) return ok(`${date}: poza zakresem planu (${plan.weeks[0]?.weekStart} → ${plan.goal.date}).`)
-    const { week, day } = hit
-    const head = `${date} (${WEEKDAY_PL[day.weekday]}) · tydzień ${week.skeleton.index + 1}/${plan.weeks.length} · ${week.skeleton.phase}`
-    const entry = logFor(cwd, date)
-    const status = entry ? `\n[zalogowano: ${entry.status}${entry.note ? ` — ${entry.note}` : ''}]` : ''
-    if (!day.workout) {
-      return ok(`${head}\nDzień wolny — odpoczynek jest częścią planu.${status}`)
+    if (!hit) {
+      return okDoc([
+        b.warn(`${date}: poza zakresem planu (${plan.weeks[0]?.weekStart} ${plan.goal.date}).`),
+      ])
     }
-    return ok(
-      `${head}\n${workoutText(day)}\n(${day.workout.distanceKm} km, ${day.workout.kind})` +
-        `${status}\nDlaczego ten trening: tren why --date ${date}`,
-    )
+    const { week, day } = hit
+    const sk = week.skeleton
+    const toRace = diffDays(date, plan.goal.date)
+    const blocks: Block[] = [
+      b.title(
+        `${date} · ${WEEKDAY_PL[day.weekday]}`,
+        `tydzień ${sk.index + 1}/${plan.weeks.length} · ${PHASE_LABEL[sk.phase] ?? sk.phase}` +
+          `${sk.deload ? ' · odciążenie' : ''} · do startu: ${toRace} dni`,
+      ),
+    ]
+
+    if (!day.workout) {
+      blocks.push(b.panel('Dzień wolny', ['Odpoczynek jest częścią planu — adaptacja zachodzi w regeneracji.'], 'muted'))
+    } else {
+      const w = day.workout
+      blocks.push(
+        b.panel(
+          `${KIND_LABEL[w.kind] ?? w.kind} · ${w.distanceKm} km`,
+          [workoutText(day)],
+          KIND_COLOR[w.kind] ?? 'accent',
+        ),
+      )
+    }
+
+    const entry = logFor(cwd, date)
+    if (entry) {
+      blocks.push(
+        b.success(
+          `Zalogowano: ${entry.status}` +
+            (entry.km ? `, ${entry.km} km` : '') +
+            (entry.note ? ` — ${entry.note}` : ''),
+        ),
+      )
+    }
+    if (day.workout) blocks.push(b.hint(`dlaczego ten trening: tren why --date ${date}`))
+    return okDoc(blocks)
   } catch (e) {
     return fail(e)
   }
@@ -183,18 +294,34 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
     const { week } = hit
     const sk = week.skeleton
     const model = sk.intensityModel === 'pyramidal' ? 'piramidalnie' : 'polaryzacja'
-    const lines = [
-      `Tydzień ${sk.index + 1}/${plan.weeks.length} od ${week.weekStart} · ${sk.phase} (${model}) · ` +
-        `cel ${sk.targetKm} km, plan ${week.totalKm} km${sk.deload ? ' · ODCIĄŻENIE' : ''}` +
-        `${sk.raceDate ? ` · START ${sk.raceDate}` : ''}`,
-    ]
+    const rows: string[][] = []
+    const accents: (ColorName | undefined)[] = []
     for (const day of week.days) {
       const entry = logFor(cwd, day.date)
+      // status słowem, nie symbolem: to samo wyjście czyta agent przez MCP
       const mark = entry ? ` [${entry.status}]` : ''
-      const text = day.workout ? `${workoutText(day)} (${day.workout.distanceKm} km)` : 'wolne'
-      lines.push(`- ${day.date} ${WEEKDAY_PL[day.weekday]}: ${text}${mark}`)
+      const kind = day.workout?.kind
+      rows.push([
+        WEEKDAY_SHORT[day.weekday],
+        day.date.slice(5),
+        day.workout ? `${day.workout.distanceKm} km` : '—',
+        day.workout ? `${workoutText(day)}${mark}` : 'wolne',
+      ])
+      accents.push(kind ? KIND_COLOR[kind] : 'muted')
     }
-    return ok(lines.join('\n'))
+    const blocks: Block[] = [
+      b.title(
+        `Tydzień ${sk.index + 1}/${plan.weeks.length} · od ${week.weekStart}`,
+        `${PHASE_LABEL[sk.phase] ?? sk.phase} (${model}) · cel ${sk.targetKm} km · zaplanowano ${week.totalKm} km` +
+          `${sk.deload ? ' · ODCIĄŻENIE' : ''}`,
+      ),
+      b.table(['dzień', 'data', 'km', 'trening'], rows, accents),
+    ]
+    if (sk.raceDate) blocks.push(b.info(`Start w tym tygodniu: ${sk.raceDate}`))
+    if (sk.keepIntensity) {
+      blocks.push(b.info('Taper: objętość w dół, ale intensywność i liczba sesji zostają (T-1/T-2).'))
+    }
+    return okDoc(blocks)
   } catch (e) {
     return fail(e)
   }
@@ -242,8 +369,10 @@ export function cmdShift(cwd: string, opts: { from: string; to: string }): CmdRe
       detail: `${opts.from} ↔ ${opts.to}`,
     })
     writePlan(cwd, plan)
-    const w = warnings.map((x) => `⚠ ${x}`).join('\n')
-    return ok(`Zamieniono treningi ${opts.from} ↔ ${opts.to}.${w ? `\n${w}` : ''}`)
+    const blocks: Block[] = [b.success(`Zamieniono treningi ${opts.from} ↔ ${opts.to}`)]
+    for (const w of warnings) blocks.push(b.warn(w))
+    blocks.push(b.hint(`podgląd tygodnia: tren week --date ${opts.to}`))
+    return okDoc(blocks)
   } catch (e) {
     return fail(e)
   }
@@ -256,27 +385,32 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
     const hit = findDay(plan, date)
     if (!hit) return ok(`${date}: poza zakresem planu.`)
     const { week, day } = hit
-    const lines: string[] = []
     const sk = week.skeleton
-    lines.push(
-      `${date} · faza: ${sk.phase} (${sk.intensityModel === 'pyramidal' ? 'piramidalnie' : 'polaryzacja'})` +
-        `${sk.deload ? ' · tydzień odciążeniowy' : ''}`,
-    )
+    const blocks: Block[] = [
+      b.title(
+        `Dlaczego ten trening · ${date}`,
+        `faza: ${PHASE_LABEL[sk.phase] ?? sk.phase} (${sk.intensityModel === 'pyramidal' ? 'piramidalnie' : 'polaryzacja'})` +
+          `${sk.deload ? ' · tydzień odciążeniowy' : ''}`,
+      ),
+    ]
     if (!day.workout) {
-      lines.push(
-        'Dzień wolny. Adaptacja zachodzi w regeneracji — plan trenera zakładał ' +
-          '2–3 dni wolne tygodniowo (korpus: PN 94%, PT 92%).',
+      blocks.push(
+        b.text(
+          'Dzień wolny. Adaptacja zachodzi w regeneracji — plan trenera zakładał ' +
+            '2–3 dni wolne tygodniowo (korpus: PN 94%, PT 92%).',
+        ),
       )
-      return ok(lines.join('\n'))
+      return okDoc(blocks)
     }
-    lines.push('', KIND_PURPOSE[day.workout.kind], '')
-    const refs = new Set([...day.workout.ruleRefs, ...sk.ruleRefs])
-    for (const r of [...refs].sort()) {
-      const explain = RULE_EXPLAIN[r]
-      if (explain) lines.push(`- ${r}: ${explain}`)
-    }
-    lines.push('', 'Źródła i pełne parametry: docs/science/FOUNDATIONS.md §10.')
-    return ok(lines.join('\n'))
+    blocks.push(
+      b.panel(KIND_LABEL[day.workout.kind] ?? day.workout.kind, [KIND_PURPOSE[day.workout.kind]],
+        KIND_COLOR[day.workout.kind] ?? 'accent'),
+    )
+    const refs = [...new Set([...day.workout.ruleRefs, ...sk.ruleRefs])].sort()
+    const explained = refs.filter((r) => RULE_EXPLAIN[r]).map((r) => `${r} — ${RULE_EXPLAIN[r]}`)
+    if (explained.length) blocks.push(b.section('Reguły'), b.bullets(explained))
+    blocks.push(b.blank(), b.hint('źródła i parametry: docs/science/FOUNDATIONS.md §10'))
+    return okDoc(blocks)
   } catch (e) {
     return fail(e)
   }
@@ -300,11 +434,16 @@ export async function cmdPush(
     }
     const provider = factory(cwd)
     const res = await provider.pushWorkouts(workouts)
-    return ok(
-      `Wypchnięto ${res.pushed} treningów do ${provider.name} (${from} → ${to}).\n` +
-        'Trafią na zegarek przy najbliższej synchronizacji urządzenia.\n' +
-        'Ponowny push tych samych dni nadpisuje wpisy (upsert po external_id).',
-    )
+    return okDoc([
+      b.success(`Wypchnięto ${res.pushed} treningów do ${provider.name} (${from} → ${to})`),
+      b.table(
+        ['data', 'trening'],
+        workouts.map((w) => [w.date, w.name]),
+      ),
+      b.blank(),
+      b.info('Trafią na zegarek przy najbliższej synchronizacji urządzenia.'),
+      b.hint('ponowny push tych samych dni nadpisuje wpisy (upsert po external_id)'),
+    ])
   } catch (e) {
     return fail(e)
   }
@@ -327,27 +466,40 @@ export async function cmdPull(
     writeSnapshot(cwd, { pulledAt: today, activities, wellness })
     const runs = activities.filter((a) => /run/i.test(a.type))
     const km = Math.round(runs.reduce((s, a) => s + (a.distanceKm ?? 0), 0))
-    const lines = [
-      `Pobrano z ${provider.name} (${from} → ${to}): ${activities.length} aktywności ` +
-        `(w tym ${runs.length} biegowych, ${km} km), ${wellness.length} wpisów wellness.`,
-      `Zapisano: ${SYNC_FILE}`,
+    const blocks: Block[] = [
+      b.title(`Pobrano z ${provider.name}`, `${from} → ${to}`),
+      b.kv([
+        ['Aktywności', `${activities.length} (biegowych: ${runs.length}, ${km} km)`],
+        ['Wpisy wellness', String(wellness.length)],
+        ['Zapisano', SYNC_FILE],
+      ]),
     ]
     try {
       const plan = loadPlan(cwd)
       const rows = compare(plan, activities, from, to).filter((r) => r.status !== 'zgodne')
       if (rows.length) {
-        lines.push('', 'Rozjazdy plan ↔ wykonanie:')
-        for (const r of rows.slice(-10)) {
-          const actual = r.actualKm === undefined ? '—' : `${r.actualKm} km`
-          lines.push(`- ${r.date}: plan ${r.plannedKm} km, wykonano ${actual} → ${r.status}`)
-        }
+        blocks.push(
+          b.section('Rozjazdy plan ↔ wykonanie'),
+          b.table(
+            ['data', 'plan', 'wykonano', 'status'],
+            rows.slice(-10).map((r) => [
+              r.date,
+              `${r.plannedKm} km`,
+              r.actualKm === undefined ? '—' : `${r.actualKm} km`,
+              r.status,
+            ]),
+            rows.slice(-10).map((r) => (r.status === 'brak wykonania' ? 'warn' : 'muted')),
+          ),
+          b.blank(),
+          b.hint('propozycje korekt: tren adapt'),
+        )
       } else {
-        lines.push('Wykonanie zgodne z planem w całym zakresie.')
+        blocks.push(b.success('Wykonanie zgodne z planem w całym zakresie.'))
       }
     } catch {
-      lines.push('(brak planu — pominięto porównanie)')
+      blocks.push(b.info('Brak planu — pominięto porównanie.'))
     }
-    return ok(lines.join('\n'))
+    return okDoc(blocks)
   } catch (e) {
     return fail(e)
   }
@@ -380,34 +532,40 @@ export function cmdAdapt(cwd: string, opts: { date?: string | undefined } = {}):
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: plan.goal.distanceKm } } : {}),
     })
 
-    const lines: string[] = []
-    lines.push(
-      `Analiza ${proposal.windowDays} dni (do ${today}): wykonanie ` +
-        `${Math.round(proposal.complianceKm * 100)}% objętości, ` +
-        `${proposal.missedSessions} pominiętych sesji.`,
-    )
+    const compliance = Math.round(proposal.complianceKm * 100)
+    const blocks: Block[] = [
+      b.title(`Analiza wykonania · ${proposal.windowDays} dni do ${today}`),
+      b.kv([
+        ['Zrealizowana objętość', `${compliance}%`],
+        ['Pominięte sesje', String(proposal.missedSessions)],
+      ]),
+    ]
     if (!snapshot) {
-      lines.push('(brak sync.json — analiza tylko z dziennika; uruchom tren pull po pełne dane)')
+      blocks.push(b.info('Brak sync.json — analiza tylko z dziennika. Pełne dane: tren pull'))
     }
     if (proposal.diagnosis.length) {
-      lines.push('', 'Diagnoza:')
-      for (const d of proposal.diagnosis) lines.push(`- ${d}`)
+      blocks.push(b.section('Diagnoza'), b.bullets(proposal.diagnosis))
     }
-    lines.push('', 'Propozycje:')
+    blocks.push(b.section('Propozycje'))
     for (const a of proposal.actions) {
       const refs = a.ruleRefs.length ? ` [${a.ruleRefs.join(', ')}]` : ''
-      lines.push(`- ${a.type}: ${a.detail}${refs}`)
+      blocks.push(b.panel(a.type, [a.detail + refs], a.type === 'hold-course' ? 'success' : 'accent'))
     }
-    for (const w of proposal.warnings) lines.push(`⚠ ${w}`)
+    if (proposal.warnings.length) {
+      blocks.push(b.blank())
+      for (const w of proposal.warnings) blocks.push(b.warn(w))
+    }
     const volume = proposal.actions.find((a) => a.suggestedWeeklyKm)
     if (volume) {
-      lines.push(
-        '',
-        `Aby zastosować: ustaw athlete.recentWeeklyKm: ${volume.suggestedWeeklyKm} w tren.yaml, ` +
-          'sprawdź tren diff, potem tren plan. Silnik nie przepisuje planu sam.',
+      blocks.push(
+        b.blank(),
+        b.info(
+          `Aby zastosować: athlete.recentWeeklyKm: ${volume.suggestedWeeklyKm} w tren.yaml ` +
+            '→ tren diff → tren plan. Silnik nie przepisuje planu sam.',
+        ),
       )
     }
-    return ok(lines.join('\n'))
+    return okDoc(blocks)
   } catch (e) {
     return fail(e)
   }
@@ -435,25 +593,45 @@ export function cmdDesk(
       workout = undefined
     }
     const day = planDeskDay(config.desk, workout, { heavyCognitiveDay: opts.heavy === true })
-    const lines: string[] = [`${date} · praca ${config.desk.workStart}–${config.desk.workEnd}`]
+    const blocks: Block[] = [
+      b.title(
+        `Dzień przy biurku · ${date}`,
+        `praca ${config.desk.workStart}–${config.desk.workEnd}` +
+          (opts.heavy === true ? ' · ciężki dzień kognitywny' : ''),
+      ),
+    ]
+
     if (workout) {
-      lines.push(
-        `Trening: ${workout.kind}, ${workout.distanceKm} km` +
-          (day.recommended ? ` → okno ${day.recommended.label} (${day.recommended.from}–${day.recommended.to})` : ''),
+      blocks.push(
+        b.panel(
+          `${KIND_LABEL[workout.kind] ?? workout.kind} · ${workout.distanceKm} km`,
+          day.recommended
+            ? [`Proponowane okno: ${day.recommended.label} (${day.recommended.from}–${day.recommended.to})`]
+            : ['Żadne okno dnia pracy nie mieści tej jednostki.'],
+          KIND_COLOR[workout.kind] ?? 'accent',
+        ),
+        b.section('Okna treningowe'),
+        b.table(
+          ['okno', 'godziny', 'status'],
+          day.windows.map((w) => [w.label, `${w.from}–${w.to}`, w.fits ? 'mieści się' : 'za krótkie']),
+          day.windows.map((w) => (w.fits ? 'success' : 'muted')),
+        ),
       )
-      lines.push('', 'Okna treningowe:')
-      for (const w of day.windows) {
-        lines.push(`- ${w.label}: ${w.from}–${w.to} ${w.fits ? '✓ mieści się' : '✗ za krótkie'}`)
-      }
     } else {
-      lines.push('Dziś bez biegania.')
+      blocks.push(b.panel('Dziś bez biegania', ['Przerwy w siedzeniu zostają — to nie jest trening.'], 'muted'))
     }
-    lines.push('', `Przerwy w siedzeniu (${day.breaks.length}):`)
-    lines.push(day.breaks.map((b) => `${b.at} ${b.what}`).join(' · '))
-    lines.push('', 'Uwagi:')
-    for (const g of day.guidance) lines.push(`- ${g}`)
-    lines.push('', `Reguły: ${day.ruleRefs.join(', ')} (docs/science/FOUNDATIONS.md §10.10)`)
-    return ok(lines.join('\n'))
+
+    blocks.push(
+      b.section(`Przerwy w siedzeniu (${day.breaks.length})`),
+      b.text(day.breaks.map((x) => `${x.at} ${x.what}`).join('  ·  '), 'muted'),
+      b.section('Uwagi'),
+    )
+    for (const g of day.guidance) {
+      blocks.push(opts.heavy === true && g.includes('PO TEMPIE') ? b.warn(g) : b.text(`${g}`))
+      blocks.push(b.blank())
+    }
+    blocks.push(b.hint(`reguły: ${day.ruleRefs.join(', ')} — docs/science/FOUNDATIONS.md §10.10`))
+    return okDoc(blocks)
   } catch (e) {
     return fail(e)
   }
@@ -466,7 +644,7 @@ export function cmdDiff(cwd: string): CmdResult {
     const fresh = computePlan(config, stored.generatedAt)
     const lines: string[] = []
     if (stored.changes.length) {
-      lines.push('(plan zawiera ręczne przesunięcia — pokażą się jako różnice)')
+      lines.push('plan zawiera ręczne przesunięcia — pokażą się jako różnice')
     }
     const freshByStart = new Map(fresh.weeks.map((w) => [w.weekStart, w]))
     for (const week of stored.weeks) {
@@ -493,9 +671,15 @@ export function cmdDiff(cwd: string): CmdResult {
         lines.push(`+ tydzień ${w.weekStart}: nowy (${w.skeleton.targetKm} km)`)
       }
     }
-    if (lines.length === 0) return ok('Plan aktualny — brak różnic względem regeneracji z tren.yaml.')
-    lines.push('', 'Zastosowanie zmian: tren plan (nadpisze plan/ — masz go w gicie).')
-    return ok(lines.join('\n'))
+    if (lines.length === 0) {
+      return okDoc([b.success('Plan aktualny — brak różnic względem regeneracji z tren.yaml.')])
+    }
+    return okDoc([
+      b.title('Różnice: plan zapisany → plan z aktualnego tren.yaml'),
+      b.bullets(lines),
+      b.blank(),
+      b.hint('zastosowanie: tren plan (nadpisze plan/ — masz go w gicie)'),
+    ])
   } catch (e) {
     return fail(e)
   }

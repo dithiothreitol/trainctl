@@ -64,7 +64,7 @@ describe('serwer MCP tren', () => {
 
   it('agent pyta o dziś i o „why"', async () => {
     const today = await call('tren_today', { date: '2026-08-04' })
-    expect(today.text).toContain('quality_intervals')
+    expect(today.text).toContain('interwały')
     const why = await call('tren_why', { date: '2026-08-04' })
     expect(why.text).toContain('I-7')
     expect(why.text).toContain('FOUNDATIONS')
@@ -73,14 +73,14 @@ describe('serwer MCP tren', () => {
   it('scenariusz renegocjacji: week → shift → week', async () => {
     const before = await call('tren_week', { date: '2026-08-04' })
     expect(before.text).toContain('Tydzień 1/17')
-    expect(before.text).toMatch(/2026-08-04 wtorek: 3 kilometry/)
+    expect(before.text).toMatch(/08-04.*3 kilometry/)
 
     const shift = await call('tren_shift', { from: '2026-08-04', to: '2026-08-05' })
     expect(shift.isError).toBe(false)
     expect(shift.text).toContain('Zamieniono')
 
     const after = await call('tren_week', { date: '2026-08-04' })
-    expect(after.text).toMatch(/2026-08-05 środa: 3 kilometry/)
+    expect(after.text).toMatch(/08-05.*3 kilometry/)
   })
 
   it('shift odmawia ruszenia dnia startu (isError)', async () => {
@@ -108,7 +108,7 @@ describe('serwer MCP tren', () => {
     const r = await call('tren_adapt', { date: '2026-08-20' })
     expect(r.isError).toBe(false)
     expect(r.text).toContain('Propozycje:')
-    expect(r.text).toMatch(/Analiza \d+ dni/)
+    expect(r.text).toMatch(/Analiza wykonania · \d+ dni/)
   })
 
   it('sync bez klucza API: czytelna instrukcja, nie crash serwera', async () => {

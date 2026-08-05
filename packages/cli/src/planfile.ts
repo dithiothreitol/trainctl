@@ -130,8 +130,9 @@ export function workoutText(day: PlannedDay): string {
   const parts = day.workout.segments.map((s) => s.description)
   const cooldown = parts.findIndex((p) => p.startsWith('Na koniec treningu'))
   if (cooldown === -1) return parts.join(' + ')
-  const mains = parts.filter((_, i) => i !== cooldown)
-  return `${mains.join(' + ')}. ${parts[cooldown]}`
+  const mains = parts.filter((_, i) => i !== cooldown).join(' + ')
+  // człony bywają już zakończone kropką — nie dokładamy drugiej
+  return `${mains.replace(/\.\s*$/, '')}. ${parts[cooldown]}`
 }
 
 const PHASE_PL: Record<string, string> = {

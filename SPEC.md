@@ -2,9 +2,10 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** **Fazy 0–5 ZAKOŃCZONE — v1 kompletna** (2026-08-05). Silnik (`@tren/core`) + CLI (`@tren/cli`) + serwer MCP (`@tren/mcp`, 12 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`) + adaptacja i tryb biurkowy; **161 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie.
+**Status:** **Fazy 0–5 ZAKOŃCZONE — v1 kompletna** (2026-08-05). Silnik (`@tren/core`) + CLI (`@tren/cli`, kolorowy TUI i interaktywny kreator) + serwer MCP (`@tren/mcp`, 12 narzędzi) + sync intervals.icu (`@tren/sync-intervalsicu`) + adaptacja i tryb biurkowy; **181 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie.
 
 Otwarte przed użyciem produkcyjnym: e2e sync na realnym koncie (wymaga klucza użytkownika — patrz §7), weryfikacja składni treningów na zegarku. Dalej: kolejne sporty (`SportModule`), REST API/hosting, publikacja OSS.
+
 **Nazwa robocza:** `tren` (krótka komenda CLI; łatwa do zmiany przed publikacją)
 
 ## 1. Wizja
@@ -212,3 +213,5 @@ z wyników startów użytkownika.
 | 010 | 2026-08-05 | Podbiegi eksportowane BEZ celu tempa | pod górę tempo płaskie jest nieosiągalne — cel na zegarku alarmowałby przez całe powtórzenie; wysiłek reguluje nachylenie |
 | 011 | 2026-08-05 | Adaptacja **proponuje**, nie przepisuje planu automatycznie | filar plan-as-code: zmiana planu ma być widocznym diffem, który użytkownik zatwierdza (`tren.yaml` → `tren diff` → `tren plan`); cichy re-plan czyni z silnika czarną skrzynkę |
 | 012 | 2026-08-05 | Tryb biurkowy nie modyfikuje struktury planu; HRV-guided odłożone | B-1: siedzenie nie jest udokumentowanym czynnikiem ryzyka urazów biegowych — przerwy służą metabolizmowi, nie bieganiu. H-1: HRV nie poprawia wyników (SMD 0,20 n.i.), a wymaga pasa piersiowego i 10-dniowej bazy — koszt wdrożenia przewyższa udowodnioną korzyść |
+| 013 | 2026-08-05 | Warstwa prezentacji: handlery zwracają **semantyczne bloki** (`cli/src/ui/blocks.ts`), CLI renderuje ANSI, MCP dostaje `renderPlain` | kolorowanie w handlerach wsypałoby agentowi sekwencje ANSI; rozdział pozwala zmieniać wygląd bez ruszania logiki i testować oba wyjścia osobno |
+| 014 | 2026-08-05 | Własne ~200 linii ANSI zamiast chalk/ink/blessed | zero zależności runtime, działa pod natywnym type-strippingiem Node (bez kroku budowania), pełna kontrola nad NO_COLOR/TTY/ASCII |

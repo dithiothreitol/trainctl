@@ -19,7 +19,7 @@ fazy, decyzje).
 
 ```
 mkdir moj-trening && cd moj-trening && git init   # plan-as-code: katalog w gicie
-pnpm tren init        # szablon tren.yaml — uzupełnij profil i wyniki startów
+pnpm tren init        # interaktywny kreator profilu (--template = sam szablon)
 pnpm tren plan        # generuje plan/plan.yaml + plan/PLAN.md (+ predykcja celu)
 pnpm tren today       # co dziś wybiegać (--date YYYY-MM-DD dla innego dnia)
 pnpm tren why         # dlaczego ten trening — cel jednostki + reguły z badań
@@ -42,6 +42,12 @@ pnpm tren pull --days 28   # wykonanie + wellness → sync.json, porównanie z p
 CLI działa na bieżącym katalogu i trzyma wszystko w plikach (`tren.yaml`,
 `plan/`, `log.jsonl`) — bez konta, bez bazy; historia zmian planu to git.
 Uruchamiane natywnym type-strippingiem Node ≥23.6 (bez kroku budowania).
+
+Wyjście jest kolorowe w terminalu i czyste wszędzie indziej: `NO_COLOR=1`
+wyłącza barwy, `TREN_ASCII=1` wymusza znaki ASCII, a przekierowanie do pliku
+lub potoku automatycznie zdejmuje formatowanie. Serwer MCP dostaje tę samą
+treść bez sekwencji ANSI — handlery opisują wyjście blokami
+(`src/ui/blocks.ts`), a kolory dokłada dopiero renderer CLI.
 
 ## Agent (MCP)
 

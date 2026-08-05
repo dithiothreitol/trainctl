@@ -80,7 +80,7 @@ describe('tren adapt', () => {
     const r = cmdAdapt(dir, { date: '2026-09-01' })
     expect(r.code).toBe(0)
     expect(r.output).toContain('conservative-restart')
-    expect(r.output).toContain('brak sync.json')
+    expect(r.output).toContain('Brak sync.json')
   })
 
   it('po zalogowaniu treningów diagnoza uwzględnia dziennik', () => {
@@ -90,7 +90,7 @@ describe('tren adapt', () => {
     expect(readLog(dir).length).toBeGreaterThanOrEqual(5)
     const r = cmdAdapt(dir, { date: '2026-08-10' })
     expect(r.code).toBe(0)
-    expect(r.output).toMatch(/Analiza 21 dni/)
+    expect(r.output).toMatch(/21 dni/)
     expect(r.output).toContain('Propozycje:')
   })
 
