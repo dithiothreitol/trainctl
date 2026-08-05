@@ -32,6 +32,21 @@ CLI działa na bieżącym katalogu i trzyma wszystko w plikach (`tren.yaml`,
 `plan/`, `log.jsonl`) — bez konta, bez bazy; historia zmian planu to git.
 Uruchamiane natywnym type-strippingiem Node ≥23.6 (bez kroku budowania).
 
+## Agent (MCP)
+
+Ten sam silnik jako narzędzia dla Claude Code / innych klientów MCP:
+
+```
+claude mcp add tren --env TREN_DIR="C:\sciezka\do\mojego-treningu" ^
+  -- node "C:\...\tren\packages\mcp\src\bin.ts"
+```
+
+Narzędzia: `tren_plan`, `tren_today`, `tren_week`, `tren_log`, `tren_shift`,
+`tren_why`, `tren_diff`, `tren_init`. Rozmowa jest interfejsem: „co mam dziś
+wybiegać?", „w czwartek release — przesuń interwały", „czemu ten trening?".
+Agent widzi tydzień (`tren_week`), renegocjuje (`tren_shift` z ochroną dnia
+startu i ostrzeżeniem I-7) i tłumaczy plan cytując badania (`tren_why`).
+
 ## Rozwój
 
 ```

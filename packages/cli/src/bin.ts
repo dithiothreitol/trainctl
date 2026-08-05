@@ -8,6 +8,7 @@ import {
   cmdPlan,
   cmdShift,
   cmdToday,
+  cmdWeek,
   cmdWhy,
   type CmdResult,
 } from './commands.ts'
@@ -40,6 +41,12 @@ program
   .description('co mam dziś wybiegać')
   .option('--date <iso>', 'inna data niż dziś')
   .action((opts) => print(cmdToday(cwd, opts)))
+
+program
+  .command('week')
+  .description('podgląd bieżącego tygodnia (albo tygodnia z --date)')
+  .option('--date <iso>', 'data w interesującym tygodniu')
+  .action((opts) => print(cmdWeek(cwd, opts)))
 
 program
   .command('log')

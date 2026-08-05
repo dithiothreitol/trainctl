@@ -1,0 +1,17 @@
+{
+  "name": "@tren/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "tren-mcp": "./src/bin.ts"
+  },
+  "exports": {
+    ".": "./src/server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@tren/cli": "workspace:*",
+    "zod": "^3.24.0"
+  }
+}

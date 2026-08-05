@@ -50,7 +50,7 @@ export function cmdInit(cwd: string): CmdResult {
   }
 }
 
-export function cmdPlan(cwd: string, opts: { date?: string } = {}): CmdResult {
+export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
   try {
     const today = opts.date ?? localToday()
     const config = loadConfig(cwd)
@@ -88,7 +88,7 @@ export function cmdPlan(cwd: string, opts: { date?: string } = {}): CmdResult {
   }
 }
 
-export function cmdToday(cwd: string, opts: { date?: string } = {}): CmdResult {
+export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
   try {
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
@@ -110,9 +110,41 @@ export function cmdToday(cwd: string, opts: { date?: string } = {}): CmdResult {
   }
 }
 
+export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
+  try {
+    const date = opts.date ?? localToday()
+    const plan = loadPlan(cwd)
+    const hit = findDay(plan, date)
+    if (!hit) return ok(`${date}: poza zakresem planu (${plan.weeks[0]?.weekStart} → ${plan.goal.date}).`)
+    const { week } = hit
+    const sk = week.skeleton
+    const model = sk.intensityModel === 'pyramidal' ? 'piramidalnie' : 'polaryzacja'
+    const lines = [
+      `Tydzień ${sk.index + 1}/${plan.weeks.length} od ${week.weekStart} · ${sk.phase} (${model}) · ` +
+        `cel ${sk.targetKm} km, plan ${week.totalKm} km${sk.deload ? ' · ODCIĄŻENIE' : ''}` +
+        `${sk.raceDate ? ` · START ${sk.raceDate}` : ''}`,
+    ]
+    for (const day of week.days) {
+      const entry = logFor(cwd, day.date)
+      const mark = entry ? ` [${entry.status}]` : ''
+      const text = day.workout ? `${workoutText(day)} (${day.workout.distanceKm} km)` : 'wolne'
+      lines.push(`- ${day.date} ${WEEKDAY_PL[day.weekday]}: ${text}${mark}`)
+    }
+    return ok(lines.join('\n'))
+  } catch (e) {
+    return fail(e)
+  }
+}
+
 export function cmdLog(
   cwd: string,
-  opts: { date?: string; status?: string; km?: string; time?: string; note?: string } = {},
+  opts: {
+    date?: string | undefined
+    status?: string | undefined
+    km?: string | undefined
+    time?: string | undefined
+    note?: string | undefined
+  } = {},
 ): CmdResult {
   try {
     const date = opts.date ?? localToday()
@@ -153,7 +185,7 @@ export function cmdShift(cwd: string, opts: { from: string; to: string }): CmdRe
   }
 }
 
-export function cmdWhy(cwd: string, opts: { date?: string } = {}): CmdResult {
+export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
   try {
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)

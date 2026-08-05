@@ -6,6 +6,9 @@
   "bin": {
     "tren": "./src/bin.ts"
   },
+  "exports": {
+    ".": "./src/commands.ts"
+  },
   "dependencies": {
     "@tren/core": "workspace:*",
     "commander": "^14.0.0",
