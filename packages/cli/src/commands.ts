@@ -188,12 +188,12 @@ export async function cmdInitFromIntervals(
 
     const recent4 = p.weeklyKm.slice(-4).map((w) => w.km)
     const blocks: Block[] = [
-      b.success(`Utworzono ${CONFIG_FILE} z profilu intervals.icu`),
+      b.success(ui().init.fromIntervals(CONFIG_FILE)),
       b.kv([
-        [ui().init.window, `${p.window.oldest} → ${p.window.newest} (${INFER_WINDOW_WEEKS} pełnych tygodni)`],
-        [ui().init.currentVolume, `${p.recentWeeklyKm} km/tydz. (${p.recentBasis})`],
+        [ui().init.window, `${p.window.oldest} → ${p.window.newest}`],
+        [ui().init.currentVolume, `${messages().units.kmPerWeek(p.recentWeeklyKm)} (${p.recentBasis})`],
         ...(p.peakWeeklyKm !== undefined
-          ? ([[ui().init.windowPeak, `${p.peakWeeklyKm} km/tydz.`]] as [string, string][])
+          ? ([[ui().init.windowPeak, messages().units.kmPerWeek(p.peakWeeklyKm)]] as [string, string][])
           : []),
         [ui().init.trainingDays, p.daysAvailable.join(', ')],
         ...(p.longRunDay ? ([[ui().init.longRunDay, p.longRunDay]] as [string, string][]) : []),
@@ -238,7 +238,7 @@ export function cmdInit(cwd: string, content?: string): CmdResult {
     writeConfigTemplate(cwd, content)
     const agents = writeAgentsFile(cwd)
     return okDoc([
-      b.success(`Utworzono ${CONFIG_FILE}`),
+      b.success(ui().init.created(CONFIG_FILE)),
       ...(agents ? [b.success(`Utworzono ${AGENTS_FILE} — instrukcja dla agenta (Claude Code, Codex)`)] : []),
       ...(content
         ? []
@@ -408,7 +408,7 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
       // status słowem, nie symbolem: to samo wyjście czyta agent przez MCP
       const mark = entry ? ` [${entry.status}]` : ''
       const kind = day.workout?.kind
-      const strength = day.strength ? ` + SIŁA ~${day.strength.durationMin} min` : ''
+      const strength = day.strength ? ` ${ui().week.strengthTag(day.strength.durationMin)}` : ''
       rows.push([
         weekdayShort(day.weekday),
         day.date.slice(5),
@@ -711,12 +711,12 @@ export function cmdAdapt(cwd: string, opts: { date?: string | undefined } = {}):
     const blocks: Block[] = [
       b.title(`Analiza wykonania · ${proposal.windowDays} dni do ${today}`),
       b.kv([
-        ['Zrealizowana objętość', `${compliance}%`],
-        ['Pominięte sesje', String(proposal.missedSessions)],
+        [ui().adapt.volumeDone, `${compliance}%`],
+        [ui().adapt.missedSessions, String(proposal.missedSessions)],
       ]),
     ]
     if (!snapshot) {
-      blocks.push(b.info('Brak sync.json — analiza tylko z dziennika. Pełne dane: tren pull'))
+      blocks.push(b.info(ui().adapt.noSnapshot))
     }
     if (proposal.diagnosis.length) {
       blocks.push(b.section('Diagnoza'), b.bullets(proposal.diagnosis))
@@ -734,10 +734,7 @@ export function cmdAdapt(cwd: string, opts: { date?: string | undefined } = {}):
     if (volume) {
       blocks.push(
         b.blank(),
-        b.info(
-          `Aby zastosować: athlete.recentWeeklyKm: ${volume.suggestedWeeklyKm} w tren.yaml ` +
-            '→ tren diff → tren plan. Silnik nie przepisuje planu sam.',
-        ),
+        b.info(ui().adapt.applyHint(volume.suggestedWeeklyKm!)),
       )
     }
     return okDoc(blocks)
@@ -754,12 +751,7 @@ export function cmdDesk(
     const date = opts.date ?? localToday()
     const config = loadConfig(cwd)
     if (!config.desk) {
-      return fail(
-        new Error(
-          'Brak sekcji desk w tren.yaml. Dodaj np.:\n' +
-            'desk:\n  workStart: "09:00"\n  workEnd: "17:00"\n  lunchMinutes: 45\n  prefer: evening',
-        ),
-      )
+      return fail(new Error(ui().desk.missingSection))
     }
     let workout: PlannedWorkout | undefined
     try {
@@ -770,9 +762,9 @@ export function cmdDesk(
     const day = planDeskDay(config.desk, workout, { heavyCognitiveDay: opts.heavy === true })
     const blocks: Block[] = [
       b.title(
-        `Dzień przy biurku · ${date}`,
-        `praca ${config.desk.workStart}–${config.desk.workEnd}` +
-          (opts.heavy === true ? ' · ciężki dzień kognitywny' : ''),
+        ui().desk.title(date),
+        ui().desk.subtitle(config.desk.workStart, config.desk.workEnd) +
+          (opts.heavy === true ? ` · ${ui().desk.heavyDay}` : ''),
       ),
     ]
 
@@ -781,31 +773,38 @@ export function cmdDesk(
         b.panel(
           `${kindLabel(workout.kind)} · ${workout.distanceKm} km`,
           day.recommended
-            ? [`Proponowane okno: ${day.recommended.label} (${day.recommended.from}–${day.recommended.to})`]
-            : ['Żadne okno dnia pracy nie mieści tej jednostki.'],
+            ? [ui().desk.proposedWindow(day.recommended.label, day.recommended.from, day.recommended.to)]
+            : [ui().desk.noWindowFits],
           KIND_COLOR[workout.kind] ?? 'accent',
         ),
-        b.section('Okna treningowe'),
+        b.section(ui().desk.windows),
         b.table(
-          ['okno', 'godziny', 'status'],
-          day.windows.map((w) => [w.label, `${w.from}–${w.to}`, w.fits ? 'mieści się' : 'za krótkie']),
+          [ui().desk.columns.window, ui().desk.columns.hours, ui().desk.columns.status],
+          day.windows.map((w) => [
+            w.label,
+            `${w.from}–${w.to}`,
+            w.fits ? ui().desk.fits : ui().desk.tooShort,
+          ]),
           day.windows.map((w) => (w.fits ? 'success' : 'muted')),
         ),
       )
     } else {
-      blocks.push(b.panel('Dziś bez biegania', ['Przerwy w siedzeniu zostają — to nie jest trening.'], 'muted'))
+      blocks.push(b.panel(ui().desk.noRunToday, [ui().desk.breaksStay], 'muted'))
     }
 
     blocks.push(
-      b.section(`Przerwy w siedzeniu (${day.breaks.length})`),
+      b.section(ui().desk.breaksCount(day.breaks.length)),
       b.text(day.breaks.map((x) => `${x.at} ${x.what}`).join('  ·  '), 'muted'),
-      b.section('Uwagi'),
+      b.section(ui().desk.notes),
     )
     for (const g of day.guidance) {
-      blocks.push(opts.heavy === true && g.includes('PO TEMPIE') ? b.warn(g) : b.text(`${g}`))
+      // regułę „po tempie, nie po odczuciu" wyróżniamy — to jedyna porada,
+      // która realnie zmienia sposób prowadzenia sesji (B-10/S-8)
+      const isPaceRule = g === messages().desk.heavyDayPaceNotFeel
+      blocks.push(opts.heavy === true && isPaceRule ? b.warn(g) : b.text(g))
       blocks.push(b.blank())
     }
-    blocks.push(b.hint(`reguły: ${day.ruleRefs.join(', ')} — docs/science/FOUNDATIONS.md §10.10`))
+    blocks.push(b.hint(ui().desk.rulesHint(day.ruleRefs.join(', '))))
     return okDoc(blocks)
   } catch (e) {
     return fail(e)
@@ -835,22 +834,29 @@ export function cmdReschedule(
 
     const blocks: Block[] = [
       b.title(
-        `Renegocjacja tygodnia · od ${week.weekStart}`,
-        opts.block?.length ? `zablokowane: ${opts.block.join(', ')}` : 'bez blokad',
+        ui().reschedule.title(week.weekStart),
+        opts.block?.length
+          ? ui().reschedule.blockedDates(opts.block.join(', '))
+          : ui().reschedule.noBlocks,
       ),
     ]
     if (!result.changed) {
-      blocks.push(b.success('Plan tygodnia zostaje bez zmian — nic nie wymaga przestawienia.'))
+      blocks.push(b.success(ui().reschedule.unchanged))
       for (const w of result.warnings) blocks.push(b.warn(w))
       return okDoc(blocks)
     }
 
     blocks.push(
       b.table(
-        ['dzień', 'data', 'było', 'będzie'],
+        [
+          ui().reschedule.columns.day,
+          ui().reschedule.columns.date,
+          ui().reschedule.columns.before,
+          ui().reschedule.columns.after,
+        ],
         week.days.map((before, i) => {
           const after = result.days[i]!
-          const label = (k?: string) => (k ? (kindLabel(k)) : '—')
+          const label = (k?: string) => (k ? kindLabel(k) : ui().reschedule.none)
           return [
             weekdayShort(before.weekday),
             before.date.slice(5),
@@ -866,7 +872,7 @@ export function cmdReschedule(
               : 'warn',
         ),
       ),
-      b.section('Co się zmienia'),
+      b.section(ui().reschedule.whatChanges),
       b.bullets(result.tradeoffs),
     )
     for (const w of result.warnings) blocks.push(b.warn(w))
@@ -886,9 +892,12 @@ export function cmdReschedule(
         detail: `${week.weekStart}: ${result.tradeoffs.join('; ')}`,
       })
       writePlan(cwd, plan)
-      blocks.push(b.blank(), b.success(`Zastosowano — zapisano ${PLAN_YAML} i ${PLAN_MD}`))
+      blocks.push(
+        b.blank(),
+        b.success(ui().reschedule.applied(`${PLAN_YAML} + ${PLAN_MD}`)),
+      )
     } else {
-      blocks.push(b.blank(), b.hint('to podgląd; zastosuj: tren reschedule --apply (z tymi samymi --block)'))
+      blocks.push(b.blank(), b.hint(ui().reschedule.previewHint))
     }
     return okDoc(blocks)
   } catch (e) {
@@ -903,39 +912,32 @@ export function cmdExport(
   try {
     const what = (opts.what ?? 'print') as ExportWhat
     if (!['plan', 'workout', 'print', 'calendar', 'race'].includes(what)) {
-      return fail(new Error(`Nieznany rodzaj eksportu "${opts.what}" — plan|workout|print|calendar|race.`))
+      return fail(new Error(ui().exportCmd.unknownKind(String(opts.what))))
     }
     const files = runExport(cwd, { what, date: opts.date })
     const total = files.reduce((s, f) => s + f.bytes, 0)
-    const title = {
-      plan: 'Eksport całego planu na zegarek (FIT)',
-      workout: 'Eksport treningu na zegarek (FIT)',
-      calendar: 'Eksport do kalendarza (ICS)',
-      print: 'Rozpiska do wydruku (HTML)',
-      race: 'Pakiet startowy (HTML)',
-    }[what]
 
     const blocks: Block[] = [
-      b.title(title, `${files.length} plik(ów) · ${(total / 1024).toFixed(1)} kB`),
+      b.title(
+        ui().exportCmd.titles[what],
+        ui().exportCmd.summary(files.length, (total / 1024).toFixed(1)),
+      ),
     ]
     if (files.length <= 8) {
       blocks.push(b.bullets(files.map((f) => `${f.path} — ${f.description}`)))
     } else {
       blocks.push(
         b.bullets(files.slice(0, 5).map((f) => `${f.path} — ${f.description}`)),
-        b.text(`…oraz ${files.length - 5} kolejnych w ${EXPORT_DIR}/`, 'muted'),
+        b.text(ui().exportCmd.andMore(files.length - 5, EXPORT_DIR), 'muted'),
       )
     }
     blocks.push(
       b.blank(),
       what === 'print' || what === 'race'
-        ? b.info('Otwórz w przeglądarce i wydrukuj (Ctrl+P) — układ jest przygotowany pod A4.')
+        ? b.info(ui().exportCmd.printHint)
         : what === 'calendar'
-          ? b.info('Zaimportuj plik .ics w Google Calendar / Outlooku — treningi jako zdarzenia całodniowe.')
-          : b.info(
-              'Skopiuj pliki .fit do katalogu GARMIN/Workouts na zegarku (tryb pamięci masowej) ' +
-                'albo zaimportuj w Garmin Connect. Alternatywa bez kabla: tren push.',
-            ),
+          ? b.info(ui().exportCmd.calendarHint)
+          : b.info(ui().exportCmd.fitHint),
     )
     return okDoc(blocks)
   } catch (e) {
@@ -1008,15 +1010,13 @@ export async function cmdReview(
     const adapt = cmdAdapt(cwd, { date: today })
     const meaningful = (adapt.blocks ?? []).length > 0 && !adapt.output.includes('hold-course')
     if (adapt.code === 0 && meaningful) {
-      blocks.push(b.section('Sygnały'))
+      blocks.push(b.section(ui().review.signals))
       const lines = adapt.output
         .split('\n')
         .filter((l) => /^(reduce-volume|conservative-restart|recalibrate-zones|raise-baseline|post-race-recovery)/.test(l))
-      blocks.push(
-        b.bullets(lines.length ? lines : ['są propozycje korekt — szczegóły: tren adapt']),
-      )
+      blocks.push(b.bullets(lines.length ? lines : [ui().review.seeAdapt]))
     } else {
-      blocks.push(b.success('Bez sygnałów do korekty — plan trzyma się rzeczywistości.'))
+      blocks.push(b.success(ui().review.noSignals))
     }
 
     // 4) co przed nami — bieżący tydzień, dopóki coś w nim jeszcze zostało
@@ -1032,28 +1032,27 @@ export async function cmdReview(
       const sk = week.skeleton
       const upcoming = week.days.filter((d) => d.workout)
       blocks.push(
-        b.section(`Przed nami · tydzień od ${week.weekStart}`),
+        b.section(ui().review.ahead(week.weekStart)),
         b.kv([
-          ['Faza', `${phaseLabel(sk.phase)}${sk.deload ? ' · odciążenie' : ''}`],
-          ['Objętość', `${week.totalKm} km w ${upcoming.length} sesjach`],
-          ['Do startu', `${diffDays(today, plan.goal.date)} dni`],
+          [
+            ui().review.phase,
+            `${phaseLabel(sk.phase)}${sk.deload ? ` · ${ui().today.deload}` : ''}`,
+          ],
+          [ui().review.volume, ui().review.volumeAhead(week.totalKm, upcoming.length)],
+          [ui().review.toRace, ui().review.toRaceValue(diffDays(today, plan.goal.date))],
         ]),
       )
       const race = upcoming.find((d) => d.workout?.kind === 'race')
       const test = upcoming.find((d) => d.workout?.kind === 'test')
-      if (race) blocks.push(b.warn(`Start w tym tygodniu: ${race.date} — dzień przed zostaje wolny (T-10).`))
-      if (test) {
-        blocks.push(
-          b.warn(`Sprawdzian: ${test.date} — po nim dopisz wynik do tren.yaml, inaczej strefy stoją (W-11).`),
-        )
-      }
+      if (race) blocks.push(b.warn(ui().review.raceThisWeek(race.date)))
+      if (test) blocks.push(b.warn(ui().review.timeTrialThisWeek(test.date)))
       const key = upcoming.find((d) =>
         ['quality_intervals', 'quality_continuous'].includes(d.workout!.kind),
       )
       if (key) {
         blocks.push(
           b.panel(
-            `Kluczowa jednostka · ${key.date}`,
+            `${ui().review.keySession} · ${key.date}`,
             [workoutText(key), KIND_PURPOSE[key.workout!.kind]],
             KIND_COLOR[key.workout!.kind] ?? 'accent',
           ),
@@ -1063,17 +1062,21 @@ export async function cmdReview(
 
     // 5) konkretne następne kroki
     const todo: string[] = []
-    const pendingTests = (adapt.output.match(/nie ma wyniku w athlete\.results/g) ?? []).length
-    if (pendingTests > 0) todo.push('dopisz wynik pomiaru do athlete.results → tren diff → tren plan')
-    if (meaningful) todo.push('przejrzyj propozycje: tren adapt (zmiany zatwierdzasz w tren.yaml)')
-    if (hasApiKey(cwd)) todo.push('wyślij nadchodzący tydzień na zegarek: tren push --days 7')
-    else todo.push('rozpiska na lodówkę: tren export --what print')
-    if (missed.length >= 2) {
-      todo.push('jeśli sesje wypadają przez pracę — przestaw je (tren reschedule), zamiast tracić')
-    }
+    // Niedomkniętą kalibrację rozpoznajemy po NAZWIE POLA, nie po zdaniu:
+    // `athlete.results` brzmi tak samo w każdym języku, a polski literał
+    // sprawiłby, że ta gałąź milczy w angielskim interfejsie.
+    if (adapt.output.includes('athlete.results')) todo.push(ui().review.todoWriteResult)
+    if (meaningful) todo.push(ui().review.todoSeeAdapt)
+    if (hasApiKey(cwd)) todo.push(ui().review.todoPush)
+    else todo.push(ui().review.todoPrint)
+    if (missed.length >= 2) todo.push(ui().review.todoReschedule)
     const nextRace = (config.athlete.tuneUpRaces ?? []).find((r) => r.date > today)
-    if (nextRace) todo.push(`najbliższy start kontrolny: ${nextRace.date} (${nextRace.name ?? `${nextRace.distanceKm} km`})`)
-    blocks.push(b.section('Do zrobienia'), b.bullets(todo))
+    if (nextRace) {
+      todo.push(
+        ui().review.todoNextRace(nextRace.date, nextRace.name ?? `${nextRace.distanceKm} km`),
+      )
+    }
+    blocks.push(b.section(ui().review.todo), b.bullets(todo))
     return okDoc(blocks)
   } catch (e) {
     return fail(e)
@@ -1087,41 +1090,41 @@ export function cmdDiff(cwd: string): CmdResult {
     const fresh = computePlan(config, stored.generatedAt)
     const lines: string[] = []
     if (stored.changes.length) {
-      lines.push('plan zawiera ręczne przesunięcia — pokażą się jako różnice')
+      lines.push(ui().diff.manualShifts)
     }
     const freshByStart = new Map(fresh.weeks.map((w) => [w.weekStart, w]))
     for (const week of stored.weeks) {
       const f = freshByStart.get(week.weekStart)
       if (!f) {
-        lines.push(`- tydzień ${week.weekStart}: znika z planu`)
+        lines.push(ui().diff.weekGone(week.weekStart))
         continue
       }
       if (f.skeleton.targetKm !== week.skeleton.targetKm) {
         lines.push(
-          `~ tydzień ${week.weekStart}: objętość ${week.skeleton.targetKm} → ${f.skeleton.targetKm} km`,
+          ui().diff.weekVolume(week.weekStart, week.skeleton.targetKm, f.skeleton.targetKm),
         )
       }
       const fd = new Map(f.days.map((d) => [d.date, d]))
       for (const day of week.days) {
         const nd = fd.get(day.date)
-        const a = day.workout?.kind ?? 'wolne'
-        const b = nd?.workout?.kind ?? 'wolne'
-        if (a !== b) lines.push(`~ ${day.date}: ${a} → ${b}`)
+        const a = day.workout?.kind ?? ui().week.rest
+        const b = nd?.workout?.kind ?? ui().week.rest
+        if (a !== b) lines.push(ui().diff.dayChanged(day.date, a, b))
       }
     }
     for (const w of fresh.weeks) {
       if (!stored.weeks.some((s) => s.weekStart === w.weekStart)) {
-        lines.push(`+ tydzień ${w.weekStart}: nowy (${w.skeleton.targetKm} km)`)
+        lines.push(ui().diff.weekNew(w.weekStart, w.skeleton.targetKm))
       }
     }
     if (lines.length === 0) {
-      return okDoc([b.success('Plan aktualny — brak różnic względem regeneracji z tren.yaml.')])
+      return okDoc([b.success(ui().diff.upToDate)])
     }
     return okDoc([
-      b.title('Różnice: plan zapisany → plan z aktualnego tren.yaml'),
+      b.title(ui().diff.title),
       b.bullets(lines),
       b.blank(),
-      b.hint('zastosowanie: tren plan (nadpisze plan/ — masz go w gicie)'),
+      b.hint(ui().diff.applyHint),
     ])
   } catch (e) {
     return fail(e)

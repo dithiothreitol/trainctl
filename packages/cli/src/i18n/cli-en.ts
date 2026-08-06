@@ -297,6 +297,22 @@ export const cliEn = {
     seeAdapt: 'there are suggested corrections — details: tren adapt',
     ahead: (weekStart: string) => `Ahead of you · week of ${weekStart}`,
     todo: 'To do',
+    phase: 'Phase',
+    volumeAhead: (km: number, sessions: number) => `${n(km)} km across ${sessions} sessions`,
+    toRace: 'To race day',
+    toRaceValue: (days: number) => `${days} days`,
+    raceThisWeek: (date: string) =>
+      `Race this week: ${date} — the day before stays clear (T-10).`,
+    timeTrialThisWeek: (date: string) =>
+      `Time trial: ${date} — write the result into tren.yaml afterwards, or the zones stall (W-11).`,
+    keySession: 'Key session',
+    todoWriteResult: 'write the measured result into athlete.results → tren diff → tren plan',
+    todoSeeAdapt: 'review the proposals: tren adapt (you approve changes in tren.yaml)',
+    todoPush: 'send the coming week to your watch: tren push --days 7',
+    todoPrint: 'a sheet for the fridge: tren export --what print',
+    todoReschedule:
+      'if sessions keep falling out because of work — move them (tren reschedule) instead of losing them',
+    todoNextRace: (date: string, what: string) => `next tune-up race: ${date} (${what})`,
   },
 
   wizard: {

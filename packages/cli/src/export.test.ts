@@ -66,7 +66,8 @@ describe('eksport całego planu', () => {
     const files = readdirSync(exportDir()).filter((f) => f.endsWith('.fit'))
     expect(files.length).toBeGreaterThan(50)
     expect(files.some((f) => f.startsWith('2026-11-29'))).toBe(false) // dzień startu
-    expect(r.output).toContain('kolejnych')
+    // przy ponad ośmiu plikach lista jest skracana z dopiskiem „…oraz N kolejnych"
+    expect(r.output).toMatch(/kolejn/)
   })
 })
 

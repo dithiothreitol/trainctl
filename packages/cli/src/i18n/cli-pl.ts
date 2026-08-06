@@ -316,6 +316,24 @@ export const cliPl: CliMessages = {
     seeAdapt: 'są propozycje korekt — szczegóły: tren adapt',
     ahead: (weekStart: string) => `Przed nami · tydzień od ${weekStart}`,
     todo: 'Do zrobienia',
+    phase: 'Faza',
+    volumeAhead: (km: number, sessions: number) =>
+      `${n(km)} km w ${sessions} ${pluralPl(sessions, { one: 'sesji', few: 'sesjach', other: 'sesjach' })}`,
+    toRace: 'Do startu',
+    toRaceValue: (days: number) =>
+      `${days} ${pluralPl(days, { one: 'dzień', few: 'dni', other: 'dni' })}`,
+    raceThisWeek: (date: string) =>
+      `Start w tym tygodniu: ${date} — dzień przed zostaje wolny (T-10).`,
+    timeTrialThisWeek: (date: string) =>
+      `Sprawdzian: ${date} — po nim dopisz wynik do tren.yaml, inaczej strefy stoją (W-11).`,
+    keySession: 'Kluczowa jednostka',
+    todoWriteResult: 'dopisz wynik pomiaru do athlete.results → tren diff → tren plan',
+    todoSeeAdapt: 'przejrzyj propozycje: tren adapt (zmiany zatwierdzasz w tren.yaml)',
+    todoPush: 'wyślij nadchodzący tydzień na zegarek: tren push --days 7',
+    todoPrint: 'rozpiska na lodówkę: tren export --what print',
+    todoReschedule:
+      'jeśli sesje wypadają przez pracę — przestaw je (tren reschedule), zamiast tracić',
+    todoNextRace: (date: string, what: string) => `najbliższy start kontrolny: ${date} (${what})`,
   },
 
   wizard: {
