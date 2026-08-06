@@ -5,9 +5,44 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { PlannedDay, Weekday } from '@tren/core'
-import { encodeWorkoutFit, toIcs, toPrintableHtml, type PrintWeek } from '@tren/export'
+import { heatLadder, type PlannedDay, type Weekday } from '@tren/core'
+import {
+  encodeWorkoutFit,
+  fmtClock,
+  fmtPace,
+  toIcs,
+  toPrintableHtml,
+  toRacePackHtml,
+  type PrintWeek,
+  type RacePackInput,
+  type RaceScenario,
+} from '@tren/export'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
+
+/**
+ * Tabela korekty na temperaturę (H-1…H-5). Model milczy powyżej 25 °C i poniżej
+ * optimum — wtedy wierszy po prostu nie ma, zamiast zmyślonych liczb.
+ */
+function heatTableFor(distanceKm: number, totalSec: number): RacePackInput['heatTable'] | undefined {
+  const ladder = heatLadder(distanceKm, totalSec).filter((a) => a.timePenaltyPct > 0.05)
+  if (ladder.length === 0) return undefined
+  const first = ladder[0]!
+  return {
+    header: ['temperatura', 'realny cel', 'tempo', 'strata'],
+    rows: ladder.map((a) => [
+      `${a.tempC} °C`,
+      fmtClock(a.adjustedSec),
+      fmtPace(a.adjustedPaceSecPerKm),
+      `+${a.paceDeltaSecPerKm} s/km`,
+    ]),
+    note:
+      `Model: El Helou 2012 (n=1,79 mln finiszerów maratonu), krzywa „${first.curveLabel}", ` +
+      `optimum ${first.tOptC} °C. To przesunięcie ŚREDNIEJ populacyjnej, nie prognoza dla Ciebie ` +
+      '(pogoda tłumaczy ~10–33% wariancji tempa). Powyżej 25 °C model milczy — brak danych. ' +
+      'Wilgotności, wiatru i słońca świadomie nie liczymy: w danych obserwacyjnych ich efekt ' +
+      'okazał się artefaktem korelacji z temperaturą.',
+  }
+}
 
 export const EXPORT_DIR = 'export'
 
@@ -30,7 +65,7 @@ const PHASE_LABEL: Record<string, string> = {
   base: 'baza', build: 'budowanie', peak: 'szczyt', taper: 'taper', race: 'tydzień startowy',
 }
 
-export type ExportWhat = 'plan' | 'workout' | 'print' | 'calendar'
+export type ExportWhat = 'plan' | 'workout' | 'print' | 'calendar' | 'race'
 export type ExportFormat = 'fit' | 'ics' | 'html'
 
 export interface ExportRequest {
@@ -129,6 +164,53 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
     return files
   }
 
+  if (req.what === 'race') {
+    const scenarios: RaceScenario[] = []
+    if (plan.goal.targetTimeSec) scenarios.push({ label: 'cel', totalSec: plan.goal.targetTimeSec })
+    if (plan.prediction) {
+      scenarios.push(
+        { label: 'śmiało', totalSec: plan.prediction.loSec },
+        { label: 'ostrożnie', totalSec: plan.prediction.hiSec },
+      )
+    }
+    if (scenarios.length === 0) {
+      throw new Error(
+        'Pakiet startowy potrzebuje celu czasowego (goal.targetTimeSec) albo predykcji ' +
+          '(wynik startu w athlete.results) — nie mam z czego policzyć splitów.',
+      )
+    }
+    scenarios.sort((a, b) => a.totalSec - b.totalSec)
+    // Na opaskę: cel, jeśli jest; bez celu — wariant ostrożny. Pęknięcie w drugiej
+    // połowie kosztuje więcej, niż zbyt zachowawcze otwarcie (W-1: przedział, nie punkt).
+    const bandScenario = plan.goal.targetTimeSec
+      ? scenarios.findIndex((s) => s.label === 'cel')
+      : scenarios.length - 1
+    const provenance = plan.prediction
+      ? `Przedział z predykcji (${plan.prediction.method}, W-1) z wyników w tren.yaml; ` +
+        `równe tempo = założenie rozpiski (inż., W-10). Wygenerowano ${plan.generatedAt}.`
+      : `Wyłącznie cel czasowy z tren.yaml — bez predykcji z wyniku startu (dodaj wynik ` +
+        `do athlete.results). Równe tempo = założenie rozpiski (inż.). Wygenerowano ${plan.generatedAt}.`
+    const html = toRacePackHtml({
+      raceName: plan.goal.name,
+      raceDate: plan.goal.date,
+      distanceKm: plan.goal.distanceKm,
+      scenarios,
+      bandScenario,
+      provenance,
+      ...(heatTableFor(plan.goal.distanceKm, scenarios[bandScenario]!.totalSec)
+        ? { heatTable: heatTableFor(plan.goal.distanceKm, scenarios[bandScenario]!.totalSec)! }
+        : {}),
+    })
+    const file = join(dir, `${safeName(plan.goal.name)}-pakiet-startowy.html`)
+    writeFileSync(file, html, 'utf-8')
+    files.push({
+      path: file,
+      bytes: Buffer.byteLength(html),
+      description: `splity + opaska tempa (${scenarios.map((s) => s.label).join('/')})`,
+    })
+    return files
+  }
+
   // rozpiska do wydruku
   const weeks: PrintWeek[] = plan.weeks.map((w) => ({
     index: w.skeleton.index,
@@ -141,7 +223,9 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
       weekday: WEEKDAY_SHORT[d.weekday],
       date: d.date.slice(5).replace('-', '.'),
       km: d.workout?.distanceKm ? `${d.workout.distanceKm} km` : '',
-      text: d.workout ? workoutText(d) : '—',
+      text:
+        (d.workout ? workoutText(d) : '—') +
+        (d.strength ? ` [+ siła ~${d.strength.durationMin} min]` : ''),
     })),
   }))
   const html = toPrintableHtml({

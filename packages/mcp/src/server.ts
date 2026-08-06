@@ -167,10 +167,11 @@ export function createTrenServer(
       description:
         'Zapisz plan do pliku: `plan` = cały plan jako treningi .fit na zegarek, ' +
         '`workout` = jeden trening .fit (wymaga date), `calendar` = .ics do Google/Outlooka, ' +
-        '`print` = rozpiska HTML pod wydruk A4. Pliki lądują w katalogu export/. ' +
+        '`print` = rozpiska HTML pod wydruk A4, `race` = pakiet startowy (splity + papierowa ' +
+        'opaska tempa; wymaga celu czasowego albo predykcji). Pliki lądują w katalogu export/. ' +
         'Gdy użytkownik chce trening „na zegarek" bez kabla — rozważ najpierw tren_push.',
       inputSchema: {
-        what: z.enum(['plan', 'workout', 'calendar', 'print']),
+        what: z.enum(['plan', 'workout', 'calendar', 'print', 'race']),
         date: isoDate.optional().describe('trening do eksportu przy what=workout'),
       },
     },

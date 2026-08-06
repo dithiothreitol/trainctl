@@ -181,15 +181,15 @@ program
 
 program
   .command('export')
-  .description('plik na zegarek (FIT), kalendarz (ICS) albo rozpiska do wydruku')
-  .option('--what <rodzaj>', 'plan | workout | calendar | print')
+  .description('plik na zegarek (FIT), kalendarz (ICS), rozpiska albo pakiet startowy')
+  .option('--what <rodzaj>', 'plan | workout | calendar | print | race')
   .option('--date <iso>', 'trening do eksportu (dla --what workout)')
   .action(async (opts) => {
     if (opts.what) return print(cmdExport(cwd, opts))
     if (process.stdin.isTTY !== true) {
       return print({
         code: 1,
-        output: 'Podaj rodzaj eksportu: tren export --what plan|workout|calendar|print',
+        output: 'Podaj rodzaj eksportu: tren export --what plan|workout|calendar|print|race',
       })
     }
     const answer = await runExportPicker(cwd, localToday(), theme)

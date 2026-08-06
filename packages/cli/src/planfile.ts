@@ -7,6 +7,7 @@ import {
   generateMicrocycle,
   paceZones,
   planMacrocycle,
+  planStrengthWeek,
   predictRace,
   testDistanceKm,
   vdotFromRace,
@@ -65,6 +66,21 @@ export function computePlan(config: TrenConfig, today: string): StoredPlan {
   const weeks = macro.weeks.map((skeleton) =>
     generateMicrocycle({ skeleton, athlete, zones, goal, testDistanceKm: testDistanceKm(goal) }),
   )
+  if (config.strength?.enabled) {
+    for (const week of weeks) {
+      const { byDate, notes } = planStrengthWeek({
+        week,
+        phase: week.skeleton.phase,
+        deload: week.skeleton.deload,
+        ...(config.strength.days?.length ? { daysPreference: config.strength.days } : {}),
+      })
+      for (const day of week.days) {
+        const session = byDate.get(day.date)
+        if (session) day.strength = session
+      }
+      if (notes.length) week.strengthNotes = notes
+    }
+  }
   const plan: StoredPlan = {
     generatedAt: today,
     vdot: Math.round(vdot * 10) / 10,
@@ -168,8 +184,10 @@ export function renderMarkdown(plan: StoredPlan): string {
     lines.push('| Dzień | Data | Trening |', '|---|---|---|')
     for (const day of week.days) {
       const [, m, d] = day.date.split('-')
-      lines.push(`| ${WEEKDAY_PL[day.weekday]} | ${Number(d)}.${m} | ${workoutText(day)} |`)
+      const strength = day.strength ? ` **+ SIŁA** ~${day.strength.durationMin} min` : ''
+      lines.push(`| ${WEEKDAY_PL[day.weekday]} | ${Number(d)}.${m} | ${workoutText(day)}${strength} |`)
     }
+    for (const note of week.strengthNotes ?? []) lines.push(`> ${note}`)
   }
   if (plan.changes.length) {
     lines.push('', '## Zmiany', '')

@@ -2,6 +2,8 @@
   "name": "@tren/cli",
   "version": "0.0.0",
   "private": true,
+  "description": "tren: CLI — plan/today/week/shift/review/push/pull/export",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "tren": "./src/bin.ts"

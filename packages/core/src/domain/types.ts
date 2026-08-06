@@ -141,11 +141,25 @@ export interface PlannedWorkout {
   ruleRefs: string[]
 }
 
+/**
+ * Sesja siłowa obok planu biegowego (F-1…F-4). Osobny tor, nie WorkoutKind:
+ * siła nie wnosi kilometrów, nie podlega solverowi biegowemu i nie jedzie
+ * na zegarek jako trening biegowy.
+ */
+export interface StrengthSession {
+  kind: 'heavy'
+  description: string
+  durationMin: number
+  ruleRefs: string[]
+}
+
 export interface PlannedDay {
   date: string
   weekday: Weekday
   /** Brak = dzień wolny (odpoczynek jest jawną częścią metodyki). */
   workout?: PlannedWorkout
+  /** Równoległa sesja siłowa — tylko gdy moduł siły jest włączony. */
+  strength?: StrengthSession
 }
 
 export interface Microcycle {
@@ -155,4 +169,6 @@ export interface Microcycle {
   totalKm: number
   /** Udział objętości Z1 (I-5: ≥0,75). */
   easyShare: number
+  /** Uwagi modułu siły (np. „zmieściła się 1 z 2 sesji") — jawność zamiast cichego przycięcia. */
+  strengthNotes?: string[]
 }

@@ -15,10 +15,18 @@ export interface DeskConfig {
   prefer?: 'morning' | 'lunch' | 'evening'
 }
 
+/** Siła obok biegania (F-1…F-4) — opt-in, bo wymaga dostępu do ciężarów. */
+export interface StrengthConfig {
+  enabled: boolean
+  /** Preferowane dni; puste = silnik wybiera dni wolne/spokojne. */
+  days?: Weekday[]
+}
+
 export interface TrenConfig {
   athlete: AthleteProfile
   goal: RaceGoal
   desk?: DeskConfig
+  strength?: StrengthConfig
 }
 
 export const CONFIG_TEMPLATE = `# tren — profil atlety i cel treningowy.
@@ -44,6 +52,9 @@ desk:                       # tryb biurkowy (tren desk) — opcjonalny
   workEnd: "17:00"
   lunchMinutes: 45
   prefer: evening           # morning | lunch | evening
+# strength:                 # siła 2×/tydz. obok biegania (opt-in; wymaga ciężarów)
+#   enabled: true           # cel: ekonomia biegu (F-8) — NIE "ochrona przed urazami" (F-9)
+#   days: [mon, fri]        # opcjonalnie: preferowane dni
 `
 
 const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
@@ -105,6 +116,18 @@ export function loadConfig(cwd: string): TrenConfig {
   if (desk && !(/^\d{1,2}:\d{2}$/.test(String(desk.workStart)) && /^\d{1,2}:\d{2}$/.test(String(desk.workEnd)))) {
     throw new Error(`Błędy w ${CONFIG_FILE}:\n  - desk.workStart/workEnd: format HH:MM`)
   }
+  const strength = raw?.strength
+  if (strength) {
+    const errs: string[] = []
+    if (typeof strength.enabled !== 'boolean') errs.push('strength.enabled: true albo false')
+    if (strength.days !== undefined) {
+      if (!Array.isArray(strength.days)) errs.push('strength.days: lista dni')
+      else
+        for (const d of strength.days)
+          if (!WEEKDAYS.includes(d)) errs.push(`strength.days: nieznany dzień "${d}"`)
+    }
+    if (errs.length) throw new Error(`Błędy w ${CONFIG_FILE}:\n  - ${errs.join('\n  - ')}`)
+  }
   const athlete = a as AthleteProfile
   return {
     athlete: {
@@ -116,6 +139,7 @@ export function loadConfig(cwd: string): TrenConfig {
     },
     goal: { ...goal, priority: goal.priority ?? 'A' },
     ...(desk ? { desk } : {}),
+    ...(strength ? { strength } : {}),
   }
 }
 

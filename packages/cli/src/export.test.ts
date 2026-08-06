@@ -110,11 +110,61 @@ describe('rozpiska do wydruku', () => {
   })
 })
 
+describe('pakiet startowy (--what race)', () => {
+  it('generuje splity i opaskę z predykcji (bez celu czasowego)', () => {
+    const r = cmdExport(dir, { what: 'race' })
+    expect(r.code).toBe(0)
+    const file = readdirSync(exportDir()).find((f) => f.includes('pakiet-startowy'))!
+    const html = readFileSync(join(exportDir(), file), 'utf-8')
+    expect(html).toContain('śmiało')
+    expect(html).toContain('ostrożnie')
+    expect(html).toContain('Opaska — ostrożnie') // bez celu opaska bierze wariant bezpieczny
+    expect(html).toContain('W-1')
+  })
+
+  it('z celem czasowym opaska bierze cel', () => {
+    const withTarget = mkdtempSync(join(tmpdir(), 'tren-exp-tgt-'))
+    writeFileSync(
+      join(withTarget, 'tren.yaml'),
+      CONFIG.replace('priority: A', 'priority: A\n  targetTimeSec: 12600'),
+      'utf-8',
+    )
+    cmdPlan(withTarget, { date: '2026-08-05' })
+    const r = cmdExport(withTarget, { what: 'race' })
+    expect(r.code).toBe(0)
+    const file = readdirSync(join(withTarget, 'export')).find((f) => f.includes('pakiet'))!
+    const html = readFileSync(join(withTarget, 'export', file), 'utf-8')
+    expect(html).toContain('Opaska — cel')
+    expect(html).toContain('3:30:00')
+    rmSync(withTarget, { recursive: true, force: true })
+  })
+
+  it('bez celu i bez predykcji — czytelna odmowa', () => {
+    const bare = mkdtempSync(join(tmpdir(), 'tren-exp-bare-'))
+    writeFileSync(
+      join(bare, 'tren.yaml'),
+      CONFIG.replace(/results:[\s\S]*?goal:/, 'results: []\ngoal:').replace(
+        'priority: A',
+        'priority: A\n  targetTimeSec: 12600',
+      ),
+      'utf-8',
+    )
+    cmdPlan(bare, { date: '2026-08-05' })
+    // wygenerowany z celem — teraz usuwamy cel z planu, symulując brak obu źródeł
+    const planYaml = join(bare, 'plan', 'plan.yaml')
+    writeFileSync(planYaml, readFileSync(planYaml, 'utf-8').replace(/targetTimeSec: \d+\n/, ''), 'utf-8')
+    const r = cmdExport(bare, { what: 'race' })
+    expect(r.code).toBe(1)
+    expect(r.output).toContain('nie mam z czego')
+    rmSync(bare, { recursive: true, force: true })
+  })
+})
+
 describe('walidacja', () => {
   it('nieznany rodzaj eksportu', () => {
     const r = cmdExport(dir, { what: 'pdf' })
     expect(r.code).toBe(1)
-    expect(r.output).toContain('plan|workout|print|calendar')
+    expect(r.output).toContain('plan|workout|print|calendar|race')
   })
 
   it('brak planu — komunikat, nie wyjątek', () => {

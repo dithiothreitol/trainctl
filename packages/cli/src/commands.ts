@@ -376,6 +376,17 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
       )
     }
 
+    if (day.strength) {
+      blocks.push(
+        b.panel(`Siła · ~${day.strength.durationMin} min`, [day.strength.description], 'accent'),
+        b.text(
+          day.workout
+            ? 'Osobno od biegania: ≥3 h odstępu (S-4); bieg spokojny obok siły jest OK (S-5).'
+            : 'Dzień bez biegania — idealny na siłę (zero konfliktu z sesjami biegowymi).',
+          'muted',
+        ),
+      )
+    }
     const entry = logFor(cwd, date)
     if (entry) {
       blocks.push(
@@ -409,11 +420,12 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
       // status słowem, nie symbolem: to samo wyjście czyta agent przez MCP
       const mark = entry ? ` [${entry.status}]` : ''
       const kind = day.workout?.kind
+      const strength = day.strength ? ' + SIŁA' : ''
       rows.push([
         WEEKDAY_SHORT[day.weekday],
         day.date.slice(5),
         day.workout ? `${day.workout.distanceKm} km` : '—',
-        day.workout ? `${workoutText(day)}${mark}` : 'wolne',
+        day.workout ? `${workoutText(day)}${strength}${mark}` : `wolne${strength ? ' + SIŁA ~35 min' : ''}`,
       ])
       accents.push(kind ? KIND_COLOR[kind] : 'muted')
     }
@@ -501,7 +513,7 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
           `${sk.deload ? ' · tydzień odciążeniowy' : ''}`,
       ),
     ]
-    if (!day.workout) {
+    if (!day.workout && !day.strength) {
       blocks.push(
         b.text(
           'Dzień wolny. Adaptacja zachodzi w regeneracji — plan trenera zakładał ' +
@@ -510,11 +522,33 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
       )
       return okDoc(blocks)
     }
+    if (day.strength) {
+      blocks.push(
+        b.panel('Siła', [day.strength.description], 'accent'),
+        b.section('Po co siła biegaczowi'),
+        b.text(
+          'Cel: ekonomia biegu — mniejszy koszt tlenowy tej samej prędkości (F-8, efekt mały: ' +
+            '~2–8% RE w badaniach 10+ tygodni). To NIE jest „ochrona przed urazami" — jedyna ' +
+            'metaanaliza na biegaczach dała wynik nieistotny (F-9). Uczciwie: u biegaczy 34–45 lat ' +
+            'efekt na ekonomię też wychodzi nieistotny (F-15), a dowody na wynik kończą się na ' +
+            '1,5–10 km w laboratorium (F-17). W taperze siła znika z planu (F-13).',
+        ),
+      )
+      const refs = day.strength.ruleRefs.filter((r) => RULE_EXPLAIN[r]).map((r) => `${r} — ${RULE_EXPLAIN[r]}`)
+      if (refs.length) blocks.push(b.section('Reguły'), b.bullets(refs))
+      if (!day.workout) {
+        blocks.push(b.blank(), b.hint('źródła i parametry: docs/science/FOUNDATIONS.md §10.8'))
+        return okDoc(blocks)
+      }
+      blocks.push(b.blank())
+    }
+    const workout = day.workout
+    if (!workout) return okDoc(blocks)
     blocks.push(
-      b.panel(KIND_LABEL[day.workout.kind] ?? day.workout.kind, [KIND_PURPOSE[day.workout.kind]],
-        KIND_COLOR[day.workout.kind] ?? 'accent'),
+      b.panel(KIND_LABEL[workout.kind] ?? workout.kind, [KIND_PURPOSE[workout.kind]],
+        KIND_COLOR[workout.kind] ?? 'accent'),
     )
-    const refs = [...new Set([...day.workout.ruleRefs, ...sk.ruleRefs])].sort()
+    const refs = [...new Set([...workout.ruleRefs, ...sk.ruleRefs])].sort()
     const explained = refs.filter((r) => RULE_EXPLAIN[r]).map((r) => `${r} — ${RULE_EXPLAIN[r]}`)
     if (explained.length) blocks.push(b.section('Reguły'), b.bullets(explained))
     blocks.push(b.blank(), b.hint('źródła i parametry: docs/science/FOUNDATIONS.md §10'))
@@ -884,8 +918,8 @@ export function cmdExport(
 ): CmdResult {
   try {
     const what = (opts.what ?? 'print') as ExportWhat
-    if (!['plan', 'workout', 'print', 'calendar'].includes(what)) {
-      return fail(new Error(`Nieznany rodzaj eksportu "${opts.what}" — plan|workout|print|calendar.`))
+    if (!['plan', 'workout', 'print', 'calendar', 'race'].includes(what)) {
+      return fail(new Error(`Nieznany rodzaj eksportu "${opts.what}" — plan|workout|print|calendar|race.`))
     }
     const files = runExport(cwd, { what, date: opts.date })
     const total = files.reduce((s, f) => s + f.bytes, 0)
@@ -894,6 +928,7 @@ export function cmdExport(
       workout: 'Eksport treningu na zegarek (FIT)',
       calendar: 'Eksport do kalendarza (ICS)',
       print: 'Rozpiska do wydruku (HTML)',
+      race: 'Pakiet startowy (HTML)',
     }[what]
 
     const blocks: Block[] = [
@@ -909,7 +944,7 @@ export function cmdExport(
     }
     blocks.push(
       b.blank(),
-      what === 'print'
+      what === 'print' || what === 'race'
         ? b.info('Otwórz w przeglądarce i wydrukuj (Ctrl+P) — układ jest przygotowany pod A4.')
         : what === 'calendar'
           ? b.info('Zaimportuj plik .ics w Google Calendar / Outlooku — treningi jako zdarzenia całodniowe.')

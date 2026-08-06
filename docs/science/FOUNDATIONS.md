@@ -1692,8 +1692,8 @@ jako fakt).
 | S-1 | ≥48 h między sesjami jakościowymi (Z3) | twarde | Casado 2022 (hard day–easy day) | D |
 | S-2 | Chronić długie wybieganie | najwyższy priorytet po liczbie akcentów | Fokkema 2020 (największe β) | C |
 | S-3 | Zachować liczbę akcentów przy przesuwaniu | — | Wang 2023 (T-2, analogia z taperu) | D |
-| S-4 | ≥6 h między sesją siłową i biegową tego samego dnia | twarde | Vikestad 2024 | B |
-| S-5 | Ciężka sesja siłowa (≥80% 1RM) **nie <24 h przed sesją jakościową** | twarde | Silva 2022 | **A** |
+| S-4 | Odstęp siła↔bieg tego samego dnia: **≥3 h udokumentowane** (ochrona mocy, SMD −0,28 przy tej samej sesji); „≥6 h" to zalecenie z dyskusji Vikestad, nie wynik — trzymamy 6 h jako margines inż. | ≥3 h (dowód) / 6 h (inż.) | Schumann 2022 (10.1007/s40279-021-01587-7, 43 badania); Vikestad & Dalen 2024 (zalecenie autorów) | **A** / D |
+| S-5 | Ciężka sesja siłowa (≥80% 1RM) **nie <24 h przed sesją jakościową**; bieg SUBmaksymalny 24 h po sile jest OK (VO₂/HR/La bez zmian) | twarde dla jakości; deficyt momentu siły utrzymuje się do 48 h | de Carvalho e Silva 2022 (10.1186/s40798-022-00497-w, 19 badań) — korekta atrybucji z „Silva 2022" | **A−** |
 | S-6 | Kolejność siła↔bieg w obrębie sesji: **swobodna** dla adaptacji tlenowej | miękkie | Eddens 2018 (VO₂max: brak efektu kolejności) | **A** |
 | S-7 | Nie planować sesji do wyczerpania przed blokiem wymagającej pracy umysłowej | miękkie, preferencja | Yao 2025 (P3 ↓, p=0,020) | B |
 | S-8 | Po dniu intensywnej pracy kognitywnej preferować preskrypcję **po tempie**, nie po RPE | miękkie | Marcora 2009 (RPE ↑ przy identycznej fizjologii); Habay 2023 (g=−0,32) | **A** |
@@ -1715,6 +1715,11 @@ jako fakt).
 | F-10 | Nie cytować RR 0,315 jako danych o biegaczach | 4 badania z piłki nożnej i wojska, zero biegowych | Lauersen 2014 (analiza źródeł) | **A** |
 | F-11 | Rozciąganie **nie** redukuje urazów | RR 0,963 [0,846; 1,095] | Lauersen 2014 | **A** |
 | F-12 | Siłownia 2×/tyg. w bazie, 0–1×/tyg. w okresie startowym | — | Haugen 2022 | D |
+| F-13 | **Taper: siłę odstawić całkiem** — 4 tyg. detrainingu siły przy utrzymanym bieganiu nie kasuje efektu, wynik 3000 m dalej się poprawiał | koszt energ.: −5,75% → −6,31%; 3000 m: −2,40% → −4,43% po 4 tyg. przerwy | Berryman, Mujika, Bosquet 2020 (10.3390/sports9010001, **n=8!**) | B− |
+| F-14 | Utrzymanie poza blokiem: 1 sesja/tyg. wystarcza | 13 tyg. utrzymania zachowuje przyrost siły i CSA — **dane z kolarzy, ekstrapolacja** | Rønnestad 2010 (PMID 20799042) | B (pośredni) |
+| F-15 | **Uczciwość wobec 34–45 lat**: w tej grupie wiekowej efekt na ekonomię jest NIEISTOTNY — moduł nie obiecuje sekund, tylko przenoszenie zakupów po schodach | 21–31,5 lat: g=−0,51 ist.; 34,1–44,8 lat: g=−0,12 [−0,41; 0,17] n.i. | Eihara 2022 (10.1186/s40798-022-00511-1) | **A−** |
+| F-16 | Durability: siła podtrzymuje ekonomię w końcówce długiego wysiłku | RE po 90 min: +2,1% vs −0,6% kontroli (p=0,04); TTE @95% VO₂max +35% | Zanini 2025 (10.1249/MSS.0000000000003685; **1 RCT, n=28**) | B |
+| F-17 | Wynik z siły potwierdzony tylko w LABORATORIUM na 1,5–10 km — **zero badań nad maratonem/HM i realnymi zawodami**; częsty konfundent: siłę DOKŁADANO do treningu (grupy różniły się całkowitym obciążeniem) | TT/TTE: ES −0,469 [−0,872; −0,066] (ciężka siła) | Llanos-Lagos 2024b (10.1007/s40279-024-02018-z, 38 badań, 894 os.); zastrzeżenie: Blagrove 2018 | **A−** |
 
 ### 10.9 Predykcja wyniku
 
@@ -1765,6 +1770,19 @@ jako fakt).
 | H-9 | Nie kodować reguł dla cyklu menstruacyjnego i choroby | dowody = case reports n=2 i n=1 | Dupuit 2025; Hottenrott 2021 | **D, bardzo słabe** |
 | H-10 | Po zmianie wysokości: re-baseline | spadek ~72 h, powrót ~9. dnia | Bahenský & Grosicki 2021 | B |
 
+### 10.13 `zones/heat.ts` — korekta tempa na temperaturę
+
+| # | Reguła | Wartości / parametry | Źródło | Siła |
+|---|--------|----------------------|--------|------|
+| H-1 | Zależność wynik↔temperatura jest **kwadratowa**, nie liniowa: `strata_prędkości% = k·(T−T_opt)²` powyżej optimum | model wielomianowy 2. stopnia | El Helou 2012 (10.1371/journal.pone.0037407, **n=1 791 972**); Mantzios 2021 (krzywa U) | **C** |
+| H-2 | Temperatura optymalna **rośnie** u wolniejszych, a parabola **jednocześnie się stromi** — jedno przesunięcie krzywej tego nie odda | M: P1 3,8 °C/k=0,0145 · Q1 6,0/0,034 · mediana 6,2/0,040 · Q3 7,4/0,048 | El Helou 2012 **Tab. S3** (suplement) | **C** |
+| H-3 | Wolniejsi tracą **3–4,6× więcej** — ale **przy tym samym ΔT nad optimum**. W jednym biegu (ta sama temperatura bezwzględna) iloraz spada do ~2×, bo czołówka ma niższe optimum, więc jej ΔT jest większe i częściowo kompensuje łagodniejszą krzywą. **Nie mylić tych dwóch porównań** | +10 °C nad optimum: 1,44% (P1) vs 4,61% (Q3) = 3,2×; oba przy 20 °C: 3,8% vs 7,6% = 2,0× | El Helou 2012 Tab. S3; Nikolaidis 2019 (n=244 642); Vihma 2010 | **C** |
+| H-4 | **Strata prędkości ≠ kara czasowa**: `kara% = s/(100−s)·100` | 21,4% straty prędkości = 27,3% kary czasu | arytmetyka; pułapka wskazana przy ekstrakcji Tab. S3 | — |
+| H-5 | **Model milczy powyżej 25 °C** (dane: 1,7–25,2 °C); WBGT 21 °C to rekomendowany próg odwołania biegu masowego | odmowa liczby zamiast ekstrapolacji | El Helou 2012 (zakres danych); Roberts w Racinais 2015 | **C**/D |
+| H-6 | Korekta to przesunięcie **średniej populacyjnej**, nie prognoza indywidualna | pogoda tłumaczy R²=0,17 (Berlin, n=668 509) do 0,33 (Mantzios) | Weiss 2024 (10.1371/journal.pone.0312097); Mantzios 2021 | **C** |
+| H-7 | Aklimatyzacja: gros adaptacji w 7 dni, 6–10 dni do pełnej; decay ~2,5%/dzień | TT: ES 0,49; 10 dni ES 0,86 vs 5 dni 0,11 | Benjamin 2019 (10.3389/fphys.2019.01448, 35 badań); Daanen 2018 | **A** |
+| H-8 | Efektu aklimatyzacji **nie wyrażać w s/km na trasie** — wszystkie liczby pochodzą z laboratoryjnych TT (głównie kolarskich) | „decay in competitive sporting performance remains to be clarified" | Racinais 2015 (cytat autorów); Lorenzo 2010 (rowery) | D |
+
 ### 10.12 Reguły „czego NIE robić" (anty-wzorce)
 
 Te wpisy są równie ważne jak reguły pozytywne — chronią przed wpisaniem do kodu
@@ -1793,6 +1811,16 @@ rzeczy, które brzmią jak wiedza, a nią nie są.
 | N-19 | Długie wybieganie >35 km dla maratonu | brak dodatkowej korzyści wobec 30–35 km | Fokkema 2020 |
 | N-20 | Redukcja intensywności w taperze | utrzymanie intensywności ma niezależny efekt SMD −0,55 | Wang 2023 |
 | N-21 | Wpisywanie sztucznych „sprawdzianów" do planu jako domyślnego mechanizmu kalibracji | trener z korpusu **ani razu** w 1231 dniach nie zaplanował sprawdzianu — kalibruje prawdziwymi startami co ~4 tyg. (W-12/W-13); sztuczny TT to fallback dla pustego kalendarza, nie metoda pierwszego wyboru | korpus trenerski (n=1) |
+| N-22 | „Siła da Ci X minut w maratonie" | zero badań nad maratonem/HM i realnymi zawodami; dowody kończą się na 1,5–10 km w laboratorium (F-17); dodatkowo Blagrove: żadne badanie nie wykazało transferu RE→wynik | Llanos-Lagos 2024b; Blagrove 2018 |
+| N-23 | „Mechanizm siły to dłuższy krok / sztywniejsza noga" jako fakt | żadne badanie nie mierzyło zmiennych biomechanicznych PODCZAS biegu po interwencji siłowej | Trowell 2020 (10.1007/s40279-019-01184-9) |
+| N-24 | Reguła „≥6 h między siłą a bieganiem" jako wynik badań | to zalecenie z dyskusji (Vikestad); badania włączone używały odstępów 2–10 min; udokumentowane jest ≥3 h dla ochrony mocy | Schumann 2022 vs Vikestad 2024 |
+| N-25 | Przelicznik „temperatura + punkt rosy > 130 → 1% na 10 punktów" (chart Hadleya) | pochodzi z **bloga** (2013), rozpowszechniony przez kalkulatory biegowe; zero recenzowanych publikacji, zero walidacji | — |
+| N-26 | Stałe liniowe typu „+2 s/milę na °F", „+10 s/km na 5 °C" jako uniwersalne | zależność jest kwadratowa, a nachylenie różni się **3–4,6×** między elitą a amatorem; wartość trafna dla biegacza 4 h jest ~4,7× za duża dla czołówki | El Helou 2012; Vihma 2010 |
+| N-27 | Człon wilgotności w korekcie tempa poniżej ~30 °C | efekt niezależny wykazano **tylko przy 36 °C** (Jenkins 2023, n=14); w dużych zbiorach obserwacyjnych to artefakt korelacji z temperaturą (r=−0,69). Wilgotność przewiduje DNF, nie czas | Jenkins 2023 (10.1113/EP090969); Vihma 2010 |
+| N-28 | Osobny człon nasłonecznienia lub wiatru | „neither cloud cover nor low solar loads" nie zwiększają szansy na szybki maraton; wiatr z Bostonu jest specyficzny dla trasy punkt-punkt | Ely 2007b (PMID 17986912); Vihma 2010 |
+| N-29 | Różnicowanie korekty cieplnej po płci | źródła sprzeczne: El Helou daje elitarnym kobietom T_opt 9,9 °C i stromszą krzywą, Vihma i Llewellyn nie wykrywają efektu u czołowych kobiet, Berlin 2024 — efekt silniejszy u mężczyzn | trzy sprzeczne zbiory |
+| N-30 | Nazywanie „WBGT" wartości liczonej z T i RH z API pogodowego | WBGT wymaga temperatury globusa i termometru wilgotnego z wentylacją; progi ACSM i modele Ely/Mantzios są dla prawdziwego WBGT | Racinais 2015 |
+| N-31 | Ekstrapolacja reguły maratońskiej na **ultra** | w ultra zależność się **odwraca** — najszybsi cierpią bardziej (Western States) | Bouscaren 2019 |
 
 ---
 
@@ -1830,6 +1858,8 @@ trafić do kodu jako fakt bez uprzedniego domknięcia.
 | **Meta-analiza „training determinants of marathon performance" (JSAMS 2019)** | współczynniki meta-regresji | jsams.org 403; ScienceDirect abstrakt niedostępny |
 | **Kofeina a RMSSD** | czy istnieje meta-analiza i jaki wynik | PDF uszkodzony; kwestia pozostaje sporna |
 | **Task Force 1996 (standardy HRV)** | oryginalne progi | cytowane wtórnie przez Damoun 2024 |
+| **Balsalobre-Fernández 2016, JSCR 30(8)** | ES i CI metaanalizy (5 badań, 93 os.) | JSCR 402/403 na trzech hostach (re-check 2026-08-06). **Nie kodować liczb z tej pracy** — F-1 cytuje ją tylko jako opis praktyki |
+| **Doma & Deakin 2013 (apnm-2012-0362) i Doma 2019 (Sports Med 49)** | prawdopodobne PIERWOTNE źródło reguły „6 h odstępu" | oba niedostępne (403/login). Dopóki nieotwarte, „6 h" pozostaje wartością inż. z marginesem, a dowodowe jest ≥3 h (Schumann 2022) — patrz S-4 |
 
 ### 11.2 Rzeczy, dla których **nie znaleziono żadnego źródła**
 

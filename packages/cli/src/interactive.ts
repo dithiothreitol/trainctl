@@ -99,6 +99,7 @@ export async function runExportPicker(
     'Co wyeksportować?',
     [
       { label: 'Rozpiska do wydruku', value: 'print', hint: 'HTML pod A4 — Ctrl+P' },
+      { label: 'Pakiet startowy', value: 'race', hint: 'splity + opaska tempa do wycięcia' },
       { label: 'Cały plan na zegarek', value: 'plan', hint: 'pliki .fit dla każdego treningu' },
       { label: 'Jeden trening na zegarek', value: 'workout', hint: 'pojedynczy .fit' },
       { label: 'Kalendarz', value: 'calendar', hint: '.ics do Google/Outlooka' },

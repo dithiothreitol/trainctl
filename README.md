@@ -45,6 +45,14 @@ tygodnia startowego. Gdy kalendarz startów jest pusty, plan sam wstawia
 sprawdzian na czas, żeby było z czego przeliczyć strefy — ale prawdziwy start
 zawsze ma pierwszeństwo.
 
+Siłownia dwa razy w tygodniu (`strength: {enabled: true}` w `tren.yaml`) to
+osobny tor obok biegania: nie dokłada kilometrów, znika w taperze i nigdy nie
+ląduje dzień przed akcentem. Uzasadnienie jest jedno i mówimy je wprost —
+**ekonomia biegu**, nie „ochrona przed urazami": jedyna metaanaliza na samych
+biegaczach dała wynik nieistotny. `tren why` w dniu siłowni dopowiada resztę
+prawdy: efekt jest mały, u biegaczy 34–45 lat statystycznie znika, a badania
+kończą się na 10 km w laboratorium.
+
 Profil z prawdziwych danych zamiast samooceny: gdy klucz intervals.icu jest
 dostępny, kreator proponuje objętość, dni treningowe i dzień długiego wybiegania
 z ostatnich 16 tygodni — Enter przyjmuje propozycję, wpisanie własnej wartości ją
@@ -79,6 +87,7 @@ Trzy drogi „na zewnątrz", zależnie od tego, co masz pod ręką:
 | `--what plan` / `workout` | `.fit` | katalog `GARMIN/Workouts` na zegarku (kabel) lub import w Garmin Connect |
 | `--what calendar` | `.ics` | Google Calendar, Outlook, kalendarz telefonu |
 | `--what print` | `.html` | rozpiska pod A4 — Ctrl+P, z kratką na odhaczanie |
+| `--what race` | `.html` | pakiet startowy: splity, papierowa opaska tempa na nadgarstek, tabela korekty na temperaturę |
 
 Bez kabla i bez plików: `tren push` wysyła treningi przez intervals.icu.
 Pliki FIT są weryfikowane binarnie w testach, a format potwierdzono, wgrywając

@@ -2,6 +2,8 @@
   "name": "@tren/core",
   "version": "0.0.0",
   "private": true,
+  "description": "tren: silnik planów treningowych — strefy, makro/mikrocykle, solver, adaptacja",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

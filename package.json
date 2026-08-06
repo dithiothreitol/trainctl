@@ -1,9 +1,11 @@
 {
   "name": "tren",
   "private": true,
+  "description": "Coach treningowy w terminalu: plan jako kod, trener jako narzędzie agenta (CLI + MCP)",
+  "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "test": "vitest run",

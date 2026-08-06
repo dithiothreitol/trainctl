@@ -24,6 +24,13 @@ export const RULE_EXPLAIN: Record<string, string> = {
   'W-11': 'strefy kalibrujemy z biegu maksymalnego: sprawdzian na czas jest tu równoważny startowi (Daniels & Gilbert)',
   'W-12': 'kalibracja co ~4 tygodnie — tyle wynosi mediana odstępu między startami w korpusie trenerskim',
   'W-13': 'prawdziwy start jest lepszy niż sztuczny sprawdzian; sprawdzian pojawia się tylko przy pustym kalendarzu startów',
+  'F-1': 'siła 2–3×/tydz. jako dawka bazowa (Blagrove 2018 — opis praktyki badań, nie dose-response)',
+  'F-2': 'cel: ≥24 sesje siły łącznie w bloku — poniżej efekt nieistotny (Berryman 2018, SMD 0,63 vs 0,10)',
+  'F-3': 'blok siły 10–14 tygodni; 6–8 tyg. nie wystarcza (Eihara 2022)',
+  'F-4': 'ciężko: ≥80% 1RM, wielostawowo, wolny ciężar — im ciężej, tym większy efekt na ekonomię (Llanos-Lagos 2024)',
+  'F-13': 'taper: siła znika z planu — 4 tyg. detrainingu nie kasuje adaptacji (Berryman 2020, uwaga: n=8)',
+  'S-4': 'siła i bieg tego samego dnia: ≥3 h odstępu udokumentowane (Schumann 2022); 6 h to margines inżynierski',
+  'S-5': 'ciężka siła nie później niż 24 h przed sesją jakościową — deficyt siły trwa do 48 h (de Carvalho e Silva 2022)',
 }
 
 export const KIND_PURPOSE: Record<WorkoutKind, string> = {
