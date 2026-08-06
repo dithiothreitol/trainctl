@@ -67,12 +67,12 @@ function print(result: CmdResult): void {
 const s = theme.sym
 const banner =
   theme.bold(theme.color('tren', 'brand')) +
-  theme.dim(` ${s.dot} plan treningowy jako kod, trener jako narzędzie agenta`)
+  theme.dim(` ${s.dot} ${ui().cmd.banner}`)
 
 program
   .name('tren')
   .description(banner)
-  .option('--lang <kod>', 'język interfejsu: en | pl (albo TREN_LANG / language w tren.yaml)')
+  .option('--lang <kod>', ui().cmd.lang)
   .configureHelp({
     styleTitle: (str) => theme.bold(theme.color(str, 'accent')),
     styleCommandText: (str) => theme.color(str, 'brand'),
@@ -85,15 +85,15 @@ program
 
 program
   .command('init')
-  .description('utwórz profil (interaktywnie w terminalu)')
-  .option('--template', 'zapisz szablon bez pytań')
-  .option('--from-intervals', 'zaproponuj profil z historii intervals.icu (wymaga klucza API)')
+  .description(ui().cmd.init)
+  .option('--template', ui().cmd.initTemplate)
+  .option('--from-intervals', ui().cmd.initFromIntervals)
   .action(async (opts) => {
     const interactive = opts.template !== true && process.stdin.isTTY === true
     if (!interactive) {
       if (opts.fromIntervals === true) {
         return print(
-          await withSpinner('pobieram historię z intervals.icu…', () => cmdInitFromIntervals(cwd), theme),
+          await withSpinner(ui().cmd.spinnerInit, () => cmdInitFromIntervals(cwd), theme),
         )
       }
       return print(cmdInit(cwd))
@@ -107,7 +107,7 @@ program
       print(cmdInit(cwd, toYaml(answers)))
     } catch (e) {
       // Ctrl+C w kreatorze nie powinno zostawiać stack trace'u
-      console.log(theme.dim('\nprzerwano'))
+      console.log(theme.dim(`\n${ui().common.interrupted}`))
       process.exitCode = 1
       void e
     }
@@ -115,21 +115,21 @@ program
 
 program
   .command('plan')
-  .description('wygeneruj plan z tren.yaml → plan/plan.yaml + plan/PLAN.md')
-  .option('--date <iso>', 'data „dzisiaj" (domyślnie: dziś)')
+  .description(ui().cmd.plan)
+  .option('--date <iso>', ui().cmd.optDate)
   .action((opts) => print(cmdPlan(cwd, opts)))
 
 program
   .command('today')
-  .description('co mam dziś wybiegać')
-  .option('--date <iso>', 'inna data niż dziś')
+  .description(ui().cmd.today)
+  .option('--date <iso>', ui().cmd.optDateOther)
   .action((opts) => print(cmdToday(cwd, opts)))
 
 program
   .command('week')
-  .description('podgląd tygodnia; -i włącza przeglądanie strzałkami')
-  .option('--date <iso>', 'data w interesującym tygodniu')
-  .option('-i, --interactive', 'przeglądaj tygodnie klawiszami (←/→, s, q)')
+  .description(ui().cmd.week)
+  .option('--date <iso>', ui().cmd.optDateWeek)
+  .option('-i, --interactive', ui().cmd.weekInteractive)
   .action(async (opts) => {
     if (opts.interactive !== true) return print(cmdWeek(cwd, opts))
     const result = await runWeekBrowser(cwd, opts.date ?? localToday(), theme)
@@ -139,25 +139,25 @@ program
 
 program
   .command('log')
-  .description('zaloguj wykonanie treningu')
-  .option('--date <iso>', 'data (domyślnie: dziś)')
-  .option('--status <s>', 'done|skipped|modified', 'done')
-  .option('--km <n>', 'przebiegnięte km')
-  .option('--time <t>', 'czas MM:SS albo HH:MM:SS')
-  .option('--note <text>', 'notatka (samopoczucie, warunki)')
+  .description(ui().cmd.log)
+  .option('--date <iso>', ui().cmd.optDate)
+  .option('--status <s>', ui().cmd.optStatus, 'done')
+  .option('--km <n>', ui().cmd.optKm)
+  .option('--time <t>', ui().cmd.optTime)
+  .option('--note <text>', ui().cmd.optNote)
   .action((opts) => print(cmdLog(cwd, opts)))
 
 program
   .command('shift')
-  .description('zamień treningi w tygodniu (bez argumentów: wybór z listy)')
-  .option('--from <iso>', 'data źródłowa')
-  .option('--to <iso>', 'data docelowa')
+  .description(ui().cmd.shift)
+  .option('--from <iso>', ui().cmd.optFrom)
+  .option('--to <iso>', ui().cmd.optTo)
   .action(async (opts) => {
     if (opts.from && opts.to) return print(cmdShift(cwd, opts))
     if (opts.from || opts.to) {
       return print({
         code: 1,
-        output: 'Podaj obie daty (--from i --to) albo żadnej — wtedy wybierzesz z listy.',
+        output: ui().shift.bothDates,
       })
     }
     const result = await runShiftPicker(cwd, localToday(), theme)
@@ -167,98 +167,98 @@ program
 
 program
   .command('why')
-  .description('dlaczego ten trening — cel jednostki i reguły z badań')
-  .option('--date <iso>', 'inna data niż dziś')
+  .description(ui().cmd.why)
+  .option('--date <iso>', ui().cmd.optDateOther)
   .action((opts) => print(cmdWhy(cwd, opts)))
 
 program
   .command('adapt')
-  .description('przeanalizuj wykonanie i zaproponuj korekty planu')
-  .option('--date <iso>', 'data odniesienia (domyślnie: dziś)')
+  .description(ui().cmd.adapt)
+  .option('--date <iso>', ui().cmd.optDate)
   .action((opts) => print(cmdAdapt(cwd, opts)))
 
 program
   .command('desk')
-  .description('dzień przy biurku: okna treningowe, przerwy, reguła tempa po pracy')
-  .option('--date <iso>', 'inna data niż dziś')
-  .option('--heavy', 'dziś ciężki dzień kognitywny (długie sesje z agentami)')
+  .description(ui().cmd.desk)
+  .option('--date <iso>', ui().cmd.optDateOther)
+  .option('--heavy', ui().cmd.optHeavy)
   .action((opts) => print(cmdDesk(cwd, opts)))
 
 program
   .command('push')
-  .description('wypchnij zaplanowane treningi do intervals.icu (→ zegarek)')
-  .option('--from <iso>', 'początek zakresu (domyślnie: dziś)')
-  .option('--to <iso>', 'koniec zakresu')
-  .option('--days <n>', 'ile dni do przodu (domyślnie 14)')
+  .description(ui().cmd.push)
+  .option('--from <iso>', ui().cmd.optFromRange)
+  .option('--to <iso>', ui().cmd.optToRange)
+  .option('--days <n>', ui().cmd.optDaysAhead)
   .action(async (opts) =>
-    print(await withSpinner('wysyłam treningi do intervals.icu…', () => cmdPush(cwd, opts), theme)),
+    print(await withSpinner(ui().cmd.spinnerPush, () => cmdPush(cwd, opts), theme)),
   )
 
 program
   .command('pull')
-  .description('pobierz wykonane aktywności i wellness; porównaj z planem')
-  .option('--days <n>', 'ile dni wstecz (domyślnie 28)')
+  .description(ui().cmd.pull)
+  .option('--days <n>', ui().cmd.optDaysBack)
   .action(async (opts) =>
-    print(await withSpinner('pobieram dane z intervals.icu…', () => cmdPull(cwd, opts), theme)),
+    print(await withSpinner(ui().cmd.spinnerPull, () => cmdPull(cwd, opts), theme)),
   )
 
 program
   .command('export')
-  .description('plik na zegarek (FIT), kalendarz (ICS), rozpiska albo pakiet startowy')
-  .option('--what <rodzaj>', 'plan | workout | calendar | print | race')
-  .option('--date <iso>', 'trening do eksportu (dla --what workout)')
+  .description(ui().cmd.export)
+  .option('--what <rodzaj>', ui().cmd.optExportWhat)
+  .option('--date <iso>', ui().cmd.optExportDate)
   .action(async (opts) => {
     if (opts.what) return print(cmdExport(cwd, opts))
     if (process.stdin.isTTY !== true) {
       return print({
         code: 1,
-        output: 'Podaj rodzaj eksportu: tren export --what plan|workout|calendar|print|race',
+        output: ui().exportCmd.pickWhat,
       })
     }
     const answer = await runExportPicker(cwd, localToday(), theme)
-    if (!answer) return print({ code: 0, output: theme.dim('anulowano') })
+    if (!answer) return print({ code: 0, output: theme.dim(ui().common.cancelled) })
     print(cmdExport(cwd, answer))
   })
 
 program
   .command('reschedule')
-  .description('przestaw tydzień wokół zajętych dni (solver: akcenty, 48 h, długie)')
-  .option('--block <iso...>', 'dni, w których nie możesz trenować')
-  .option('--date <iso>', 'który tydzień (domyślnie: bieżący)')
-  .option('--apply', 'zapisz zmiany w planie (bez tego tylko podgląd)')
+  .description(ui().cmd.reschedule)
+  .option('--block <iso...>', ui().cmd.optBlock)
+  .option('--date <iso>', ui().cmd.optWhichWeek)
+  .option('--apply', ui().cmd.optApply)
   .action((opts) => print(cmdReschedule(cwd, opts)))
 
 program
   .command('review')
-  .description('przegląd tygodnia: co było, sygnały, co przed nami, co zrobić')
-  .option('--days <n>', 'ile dni wstecz podsumować (domyślnie 7)')
-  .option('--date <iso>', 'data odniesienia (domyślnie: dziś)')
+  .description(ui().cmd.review)
+  .option('--days <n>', ui().cmd.optReviewDays)
+  .option('--date <iso>', ui().cmd.optDate)
   .action(async (opts) =>
-    print(await withSpinner('składam przegląd tygodnia…', () => cmdReview(cwd, opts), theme)),
+    print(await withSpinner(ui().cmd.spinnerReview, () => cmdReview(cwd, opts), theme)),
   )
 
 program
   .command('diff')
-  .description('co by się zmieniło po regeneracji planu z aktualnego tren.yaml')
+  .description(ui().cmd.diff)
   .action(() => print(cmdDiff(cwd)))
 
 program.addHelpText(
   'after',
   '\n' +
-    theme.dim('Pierwsze kroki: ') +
+    theme.dim(ui().cmd.firstSteps) +
     theme.color('tren init', 'brand') +
     theme.dim(' → ') +
     theme.color('tren plan', 'brand') +
     theme.dim(' → ') +
     theme.color('tren today', 'brand') +
     '\n' +
-    theme.dim('Interaktywnie: ') +
+    theme.dim(ui().cmd.interactively) +
     theme.color('tren shift', 'brand') +
-    theme.dim(' (wybór z listy) · ') +
+    theme.dim(ui().cmd.pickFromList) +
     theme.color('tren week -i', 'brand') +
-    theme.dim(' (przeglądanie strzałkami)') +
+    theme.dim(ui().cmd.browseArrows) +
     '\n' +
-    theme.dim('Kolory: NO_COLOR=1 wyłącza, TREN_ASCII=1 wymusza znaki ASCII.'),
+    theme.dim(ui().cmd.colorsHint),
 )
 
 program.parse()
