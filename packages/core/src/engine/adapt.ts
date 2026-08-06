@@ -13,6 +13,7 @@
  *  - nie udzielamy porad medycznych (R-7).
  */
 import type { RaceResult, WorkoutKind } from '../domain/types.ts'
+import { messages } from '../i18n/index.ts'
 import { diffDays } from '../util/dates.ts'
 
 export interface ExecutionRecord {
@@ -86,26 +87,22 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const diagnosis: string[] = []
   const actions: AdaptationAction[] = []
   const warnings: string[] = []
+  const m = messages()
 
   // 1) Najdłuższa przerwa bez biegania w oknie
   const runDays = window.filter((e) => (e.actualKm ?? 0) > 0).map((e) => e.date)
   const lastRun = runDays.at(-1)
   const layoff = lastRun ? diffDays(lastRun, input.today) : WINDOW_DAYS
   if (layoff >= LAYOFF_DAYS) {
-    diagnosis.push(`${layoff} dni bez biegania — plan sprzed przerwy jest nieaktualny.`)
+    const restartKm = Math.round(input.currentWeeklyKm * 0.55)
+    diagnosis.push(m.adapt.layoffDiagnosis(layoff))
     actions.push({
       type: 'conservative-restart',
-      detail:
-        `Restart: objętość ×0,5–0,6 (≈${Math.round(input.currentWeeklyKm * 0.55)} km/tydz.), ` +
-        'bez sesji Z3 przez 5–7 dni, potem normalna progresja. ' +
-        'Nie nadrabiamy opuszczonych kilometrów.',
-      suggestedWeeklyKm: Math.round(input.currentWeeklyKm * 0.55),
+      detail: m.adapt.restartAfterLayoff(restartKm, layoff),
+      suggestedWeeklyKm: restartKm,
       ruleRefs: ['R-5', 'P-3'],
     })
-    warnings.push(
-      'Protokół restartu po przerwie to ekstrapolacja bez bezpośredniego źródła (R-5) — ' +
-        'traktuj jako punkt wyjścia, nie normę.',
-    )
+    warnings.push(m.adapt.restartExtrapolated)
   }
 
   // 2) Świeży start — protokół powrotu (R-1/R-2/R-3)
@@ -113,52 +110,40 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
     const sinceRace = diffDays(input.lastRace.date, input.today)
     if (sinceRace >= 0 && sinceRace <= 6) {
       const ultra = input.lastRace.distanceKm > 42.5
-      diagnosis.push(
-        `${sinceRace} dni po starcie na ${input.lastRace.distanceKm} km — okres powrotu.`,
-      )
+      diagnosis.push(m.adapt.postRaceDiagnosis(sinceRace, input.lastRace.distanceKm))
       actions.push({
         type: 'post-race-recovery',
         detail: ultra
-          ? 'Ultra: dłuższa cisza niż po maratonie, powrót wg samopoczucia — brak danych, ' +
-            'żeby podać konkretny protokół.'
+          ? m.adapt.postRaceUltra
           : sinceRace < 2
-            ? 'Pierwsze 48 h bez biegania. Potem 40 min w tempie okolic LT1 co drugi dzień ' +
-              '(48/96/144 h) — powrót w 48 h nie pogarsza regeneracji, poprawia skoczność w 96 h.'
-            : 'Lekkie bieganie ~40 min w tempie spokojnym co drugi dzień; bez akcentów ' +
-              'do końca pierwszego tygodnia.',
+            ? m.adapt.postRaceMarathon
+            : m.adapt.postRaceShort,
         ruleRefs: ultra ? ['R-3'] : ['R-1', 'R-2'],
       })
-      if (ultra) {
-        warnings.push('Brak źródeł dla powrotu po ultra — reguły maratońskiej NIE ekstrapolujemy (R-3).')
-      }
+      if (ultra) warnings.push(m.adapt.noUltraSources)
     }
   }
 
   // 3) Nowy wynik startu → rekalibracja stref
   if (input.newResults?.length) {
     const latest = [...input.newResults].sort((a, b) => a.date.localeCompare(b.date)).at(-1)!
-    diagnosis.push(`Nowy wynik: ${latest.distanceKm} km (${latest.date}) — strefy do przeliczenia.`)
+    diagnosis.push(m.adapt.newResultDiagnosis(latest.distanceKm, latest.date))
     actions.push({
       type: 'recalibrate-zones',
-      detail:
-        'Dopisz wynik do athlete.results i wygeneruj plan ponownie — strefy kalibrujemy ' +
-        'z wyników startów, nie z odczytów zegarka.',
+      detail: m.adapt.recalibrateFromResult,
       ruleRefs: ['Z-9', 'Z-6'],
     })
   }
 
   // 3b) Sprawdzian/start kontrolny bez wyniku w profilu — pętla kalibracji stoi
   for (const t of input.uncalibratedTests ?? []) {
-    diagnosis.push(
-      `Wykonany pomiar ${t.date} (${t.distanceKm} km) nie ma wyniku w athlete.results — ` +
-        'strefy dalej liczą się ze starszego startu.',
-    )
+    diagnosis.push(m.adapt.uncalibratedTestDiagnosis(t.date, t.distanceKm))
     actions.push({
       type: 'recalibrate-zones',
       detail:
-        `Dopisz wynik do athlete.results: { date: "${t.date}", distanceKm: ${t.distanceKm}, ` +
-        `timeSec: ${t.timeSec ?? '<czas w sekundach>'} } → tren diff → tren plan. ` +
-        'Sprawdzian bez wpisanego wyniku jest treningiem, który niczego nie zmienił.',
+        `${m.adapt.uncalibratedTestAction(
+          t.date, t.distanceKm, String(t.timeSec ?? m.adapt.timeSecPlaceholder),
+        )} ${m.adapt.timeTrialWithoutResult}`,
       ruleRefs: ['W-11', 'Z-6'],
     })
   }
@@ -168,51 +153,35 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
     if (compliance < 0.7) {
       const realistic = Math.max(10, Math.round((actualKm / WINDOW_DAYS) * 7))
       diagnosis.push(
-        `Wykonano ${Math.round(compliance * 100)}% zaplanowanej objętości ` +
-          `(${Math.round(actualKm)} z ${Math.round(plannedKm)} km).`,
+        m.adapt.complianceLow(
+          Math.round(compliance * 100), Math.round(actualKm), Math.round(plannedKm),
+        ),
       )
       actions.push({
         type: 'reduce-volume',
-        detail:
-          `Plan jest napisany na objętość, której nie realizujesz. Urealnij bazę do ` +
-          `≈${realistic} km/tydz. (średnia z ostatnich 3 tyg.) i progresuj od niej. ` +
-          'Plan wykonywany w 100% bije ambitniejszy plan wykonywany w 60%.',
+        detail: m.adapt.reduceVolume(realistic),
         suggestedWeeklyKm: realistic,
         ruleRefs: ['P-1', 'P-3'],
       })
     } else if (compliance > 1.2 && missedSessions === 0) {
       const raised = Math.round(input.currentWeeklyKm * 1.1)
-      diagnosis.push(`Regularnie przekraczasz plan (${Math.round(compliance * 100)}% objętości).`)
+      diagnosis.push(m.adapt.complianceHigh(Math.round(compliance * 100)))
       actions.push({
         type: 'raise-baseline',
-        detail:
-          `Podnieś bazę w tren.yaml do ≈${raised} km/tydz. — ale kolejny cykl i tak ` +
-          'ograniczy wzrost do ~10%/tydz.; skoki objętości nie kupują formy szybciej.',
+        detail: m.adapt.raiseVolume(raised),
         suggestedWeeklyKm: raised,
         ruleRefs: ['P-3'],
       })
     } else {
-      diagnosis.push(
-        `Wykonanie zgodne z planem (${Math.round(compliance * 100)}% objętości, ` +
-          `${missedSessions} pominiętych sesji).`,
-      )
-      actions.push({
-        type: 'hold-course',
-        detail: 'Bez zmian — kontynuuj bieżący mezocykl.',
-        ruleRefs: [],
-      })
+      diagnosis.push(m.adapt.onTrack(Math.round(compliance * 100), missedSessions))
+      actions.push({ type: 'hold-course', detail: m.adapt.holdCourse, ruleRefs: [] })
     }
   }
 
   // 5) Akcenty: sygnał jakościowy niezależny od kilometrów
   if (missedQuality >= 2) {
-    diagnosis.push(
-      `Pominięte akcenty: ${missedQuality}. To one, nie kilometry, budują górny zakres formy.`,
-    )
-    warnings.push(
-      'Jeśli akcenty regularnie wypadają przez pracę — przesuwaj je (tren shift), ' +
-        'zamiast je tracić. Dwie sesje jakościowe w tygodniu to cel (I-8).',
-    )
+    diagnosis.push(m.adapt.missedQuality(missedQuality))
+    warnings.push(m.adapt.shiftInsteadOfLosing)
   }
 
   return {

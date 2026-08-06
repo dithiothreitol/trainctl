@@ -3,7 +3,11 @@ import type { AthleteProfile, Microcycle, RaceGoal, WeekSkeleton } from '../doma
 import { generateMicrocycle } from '../engine/microcycle.ts'
 import { COACH_STYLE } from '../engine/house-style.ts'
 import { paceZones } from '../zones/daniels.ts'
+import { setLocale } from '../i18n/index.ts'
 import { reschedule } from './reschedule.ts'
+
+// Sens kompromisów czytamy po polsku; tłumaczenia pilnuje i18n/i18n.test.ts.
+setLocale('pl')
 
 const zones = paceZones(51)
 const athlete: AthleteProfile = {

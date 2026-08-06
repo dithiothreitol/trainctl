@@ -15,6 +15,7 @@
  * zerowej różnicy w tętnie, laktacie i VO₂).
  */
 import type { PlannedWorkout } from '../domain/types.ts'
+import { messages } from '../i18n/index.ts'
 
 export interface DeskProfile {
   /** "HH:MM" */
@@ -39,7 +40,10 @@ export interface DeskBreak {
 export interface TrainingWindow {
   from: string
   to: string
-  label: 'rano' | 'lunch' | 'wieczór'
+  /** Identyfikator okna — stabilny, niezależny od języka (logika porównuje jego). */
+  key: 'morning' | 'lunch' | 'evening'
+  /** Nazwa dla użytkownika, w bieżącym języku. */
+  label: string
   fits: boolean
   note?: string
 }
@@ -54,7 +58,7 @@ export interface DeskDay {
 
 const toMin = (hhmm: string): number => {
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm)
-  if (!m) throw new Error(`Zła godzina "${hhmm}" — format HH:MM`)
+  if (!m) throw new Error(messages().desk.badTime(hhmm))
   return Number(m[1]) * 60 + Number(m[2])
 }
 const toHhmm = (min: number): string =>
@@ -81,7 +85,8 @@ export function planDeskDay(
 ): DeskDay {
   const start = toMin(profile.workStart)
   const end = toMin(profile.workEnd)
-  if (end <= start) throw new Error('workEnd musi być późniejsze niż workStart')
+  const m = messages()
+  if (end <= start) throw new Error(m.desk.endBeforeStart)
   const everyMin = Math.min(profile.breakEveryMin ?? 30, 30) // B-3: interwał ≤30 min
   const breakMin = profile.breakMinutes ?? 3
   const lunch = profile.lunchMinutes ?? 45
@@ -90,26 +95,39 @@ export function planDeskDay(
   // metaanaliza wykazała efekt tylko dla chodzenia.
   const breaks: DeskBreak[] = []
   for (let t = start + everyMin; t < end; t += everyMin) {
-    breaks.push({ at: toHhmm(t), minutes: breakMin, what: `${breakMin} min chodu` })
+    breaks.push({ at: toHhmm(t), minutes: breakMin, what: m.desk.walkBreak(breakMin) })
   }
   // Jedna przerwa dłuższa: „exercise snack" — schody (B-5).
   const midday = breaks.find((b) => toMin(b.at) >= start + 3 * everyMin)
   if (midday) {
     midday.minutes = Math.max(3, breakMin)
-    midday.what = '3 min schodów (exercise snack)'
+    midday.what = m.desk.stairSnack
   }
 
   const needMin = workout ? estimateMinutes(workout) : 0
   const lunchStart = start + Math.round((end - start) / 2)
   const windows: TrainingWindow[] = [
-    { from: toHhmm(start - 90), to: profile.workStart, label: 'rano', fits: 90 >= needMin },
+    {
+      from: toHhmm(start - 90),
+      to: profile.workStart,
+      key: 'morning',
+      label: m.desk.windowMorning,
+      fits: 90 >= needMin,
+    },
     {
       from: toHhmm(lunchStart),
       to: toHhmm(lunchStart + lunch),
-      label: 'lunch',
+      key: 'lunch',
+      label: m.desk.windowLunch,
       fits: lunch >= needMin,
     },
-    { from: profile.workEnd, to: toHhmm(end + 150), label: 'wieczór', fits: 150 >= needMin },
+    {
+      from: profile.workEnd,
+      to: toHhmm(end + 150),
+      key: 'evening',
+      label: m.desk.windowEvening,
+      fits: 150 >= needMin,
+    },
   ]
 
   const guidance: string[] = []
@@ -120,52 +138,30 @@ export function planDeskDay(
   if (workout) {
     const fitting = windows.filter((w) => w.fits)
     const byPreference = profile.prefer
-      ? fitting.filter((w) => w.label === (profile.prefer === 'evening' ? 'wieczór' : profile.prefer === 'morning' ? 'rano' : 'lunch'))
+      ? fitting.filter((w) => w.key === profile.prefer)
       : []
     recommended = byPreference[0] ?? fitting[0]
 
     if (isQuality && opts.heavyCognitiveDay) {
-      const evening = windows.find((w) => w.label === 'wieczór')
-      if (recommended?.label === 'wieczór' || !recommended) {
-        recommended = windows.find((w) => w.fits && w.label === 'rano') ?? evening ?? recommended
+      const evening = windows.find((w) => w.key === 'evening')
+      if (recommended?.key === 'evening' || !recommended) {
+        recommended = windows.find((w) => w.fits && w.key === 'morning') ?? evening ?? recommended
       }
-      guidance.push(
-        'Dziś ciężki dzień kognitywny, a w planie jest akcent: prowadź go PO TEMPIE z zegarka, ' +
-          'nie po odczuciu. Zmęczenie umysłowe podnosi odczuwany wysiłek przy niezmienionej ' +
-          'fizjologii (tętno, laktat, VO₂ bez różnic) i skraca wytrzymałość o ~15%. ' +
-          'Jeśli tempo docelowe „nie idzie" mimo prawidłowego tętna — to percepcja, nie forma.',
-      )
-      guidance.push(
-        'Jeśli możesz, przenieś akcent przed blok pracy albo na inny dzień (tren shift) — ' +
-          'sesja do wyczerpania przed wymagającą pracą umysłową też pogarsza jej jakość.',
-      )
+      guidance.push(m.desk.heavyDayPaceNotFeel, m.desk.moveAccentEarlier)
       ruleRefs.push('B-10', 'S-8', 'S-7')
     }
     if (!isQuality && opts.heavyCognitiveDay) {
-      guidance.push(
-        'Spokojna jednostka po ciężkim dniu umysłowym jest bezpieczna — nie ścigaj się z zegarkiem, ' +
-          'trzymaj górną granicę tempa spokojnego.',
-      )
+      guidance.push(m.desk.easyIsSafe)
       ruleRefs.push('B-10')
     }
     if (!windows.some((w) => w.fits)) {
-      guidance.push(
-        `Żadne okno nie mieści ${needMin} min — skróć jednostkę albo przesuń ją na inny dzień. ` +
-          'Skrócony trening wykonany bije pełny pominięty.',
-      )
+      guidance.push(m.desk.nothingFits(needMin))
     }
   } else {
-    guidance.push('Dziś dzień wolny od biegania — przerwy w siedzeniu zostają, one nie są treningiem.')
+    guidance.push(m.desk.restDayBreaks)
   }
 
-  guidance.push(
-    'Przerwy projektuj pod niską adherencję: lepiej trafić w połowę z nich niż zaplanować idealny ' +
-      'rytm i porzucić go po tygodniu (6-miesięczny RCT w biurach nie zmienił zachowań).',
-  )
-  guidance.push(
-    'Godziny przed monitorem nie zmieniają struktury planu treningowego — siedzenie nie jest ' +
-      'udokumentowanym czynnikiem ryzyka urazów biegowych. Przerwy robimy dla metabolizmu, nie dla biegania.',
-  )
+  guidance.push(m.desk.lowAdherenceByDesign, m.desk.sittingIsNotInjuryRisk)
   ruleRefs.push('B-1')
 
   return {

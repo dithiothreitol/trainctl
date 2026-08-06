@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { setLocale } from '../i18n/index.ts'
 import { analyzeExecution, type ExecutionRecord } from './adapt.ts'
+
+// Testy sprawdzają SENS propozycji; komunikaty czytamy po polsku dla
+// czytelności asercji (kompletność tłumaczeń pilnuje i18n/i18n.test.ts).
+setLocale('pl')
 
 const TODAY = '2026-08-31'
 

@@ -14,6 +14,7 @@
  *  S-9 różnicuj obciążenie · house style: preferowane dni akcentów i długiego.
  */
 import type { Microcycle, PlannedDay, PlannedWorkout, Weekday, WorkoutKind } from '../domain/types.ts'
+import { messages } from '../i18n/index.ts'
 import { diffDays } from '../util/dates.ts'
 
 const QUALITY: ReadonlySet<WorkoutKind> = new Set([
@@ -110,7 +111,7 @@ function scoreArrangement(
       if (req.longRunDayPreference?.includes(slot.weekday)) {
         score += 60
       } else {
-        notes.push(`długie wybieganie poza preferowanym dniem (${slot.weekday})`)
+        notes.push(messages().solver.longRunOffPreferredDay(slot.weekday))
       }
     }
     // S-3: akcenty się liczą; sprawdzian wyżej — bez niego nie ma czym kalibrować stref
@@ -133,7 +134,7 @@ function scoreArrangement(
     for (const date of qualityDates) {
       if (Math.abs(diffDays(date, longSlot.slot.date)) === 1) {
         score -= 60
-        notes.push(`długie wybieganie sąsiaduje z akcentem ${date} — dwa ciężkie dni z rzędu (S-9)`)
+        notes.push(messages().solver.longRunNextToAccent(date))
       }
     }
   }
@@ -179,11 +180,11 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
   const warnings: string[] = []
   for (const date of req.blockedDates) {
     if (!week.days.some((d) => d.date === date)) {
-      warnings.push(`data ${date} jest poza tym tygodniem — pominięta`)
+      warnings.push(messages().solver.dateOutsideWeek(date))
     }
   }
   if (raceDay && blocked.has(raceDay.date)) {
-    warnings.push('dnia startu nie da się zablokować — solver go nie rusza')
+    warnings.push(messages().solver.cannotBlockRaceDay)
     blocked.delete(raceDay.date)
   }
 
@@ -220,8 +221,8 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
       from: victim.originalDate,
       reason:
         victim.workout.kind === 'easy' || victim.workout.kind === 'easy_hills'
-          ? 'zabrakło dnia — spokojna jednostka kosztuje najmniej (objętość, nie bodziec)'
-          : 'zabrakło dnia po zablokowaniu terminów',
+          ? messages().solver.droppedEasy
+          : messages().solver.droppedOther,
     })
   }
 
@@ -255,8 +256,7 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
   for (const note of best?.notes ?? []) tradeoffs.push(`kompromis: ${note}`)
   if (dropped.length) {
     warnings.push(
-      'Nie nadrabiamy odpuszczonych kilometrów w kolejnych dniach — dokładanie objętości ' +
-        'po wypadniętej sesji działa przeciw progresji (P-1/P-3).',
+      messages().solver.noMakeUp,
     )
   }
 

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { PlannedWorkout } from '../domain/types.ts'
+import { setLocale } from '../i18n/index.ts'
 import { planDeskDay } from './desk.ts'
+
+// Sens porad czytamy po polsku; kompletność tłumaczeń pilnuje i18n.test.ts.
+setLocale('pl')
 
 const profile = { workStart: '09:00', workEnd: '17:00' }
 
@@ -61,9 +65,9 @@ describe('okna treningowe', () => {
       ruleRefs: [],
       segments: [{ type: 'easy', distanceKm: 5, pace: { loSecPerKm: 300, hiSecPerKm: 320 }, description: '' }],
     }
-    expect(planDeskDay(profile, short).windows.find((w) => w.label === 'lunch')!.fits).toBe(true)
-    expect(planDeskDay(profile, easy).windows.find((w) => w.label === 'lunch')!.fits).toBe(false)
-    expect(planDeskDay(profile, easy).windows.find((w) => w.label === 'wieczór')!.fits).toBe(true)
+    expect(planDeskDay(profile, short).windows.find((w) => w.key === 'lunch')!.fits).toBe(true)
+    expect(planDeskDay(profile, easy).windows.find((w) => w.key === 'lunch')!.fits).toBe(false)
+    expect(planDeskDay(profile, easy).windows.find((w) => w.key === 'evening')!.fits).toBe(true)
   })
 
   it('długie wybieganie (≈3 h) nie mieści się w żadnym oknie dnia pracy — moduł mówi to wprost', () => {
@@ -74,7 +78,7 @@ describe('okna treningowe', () => {
 
   it('preferencja użytkownika wygrywa wśród okien, które pasują', () => {
     const day = planDeskDay({ ...profile, prefer: 'evening' }, easy)
-    expect(day.recommended?.label).toBe('wieczór')
+    expect(day.recommended?.key).toBe('evening')
   })
 })
 

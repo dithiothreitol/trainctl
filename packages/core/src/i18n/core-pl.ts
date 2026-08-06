@@ -137,8 +137,25 @@ export const corePl: CoreMessages = {
   },
 
   adapt: {
+    layoffDiagnosis: (days: number) =>
+      `${days} ${pluralPl(days, { one: 'dzień', few: 'dni', other: 'dni' })} bez biegania — ` +
+      'plan sprzed przerwy jest nieaktualny.',
+    postRaceDiagnosis: (days: number, distanceKm: number) =>
+      `${days} ${pluralPl(days, { one: 'dzień', few: 'dni', other: 'dni' })} po starcie na ` +
+      `${n(distanceKm)} km — okres powrotu.`,
+    newResultDiagnosis: (distanceKm: number, date: string) =>
+      `Nowy wynik: ${n(distanceKm)} km (${date}) — strefy do przeliczenia.`,
+    uncalibratedTestDiagnosis: (date: string, distanceKm: number) =>
+      `Wykonany pomiar ${date} (${n(distanceKm)} km) nie ma wyniku w athlete.results — ` +
+      'strefy dalej liczą się ze starszego startu.',
+    uncalibratedTestAction: (date: string, distanceKm: number, timeSec: string) =>
+      `Dopisz wynik do athlete.results: { date: "${date}", distanceKm: ${n(distanceKm)}, ` +
+      `timeSec: ${timeSec} } → tren diff → tren plan.`,
+    timeSecPlaceholder: '<czas w sekundach>',
     restartAfterLayoff: (weeklyKm: number, days: number) =>
-      `Restart: objętość ×0,5–0,6 (≈${weeklyKm} km/tydz.) po ${days} dniach przerwy. ` +
+      `Restart: objętość ×0,5–0,6 (≈${weeklyKm} km/tydz.) po ${days} ` +
+      `${pluralPl(days, { one: 'dniu', few: 'dniach', other: 'dniach' })} przerwy, ` +
+      'bez sesji Z3 przez 5–7 dni, potem normalna progresja. ' +
       'Nie nadrabiamy opuszczonych kilometrów.',
     restartExtrapolated:
       'Protokół restartu po przerwie to ekstrapolacja bez bezpośredniego źródła (R-5) — ' +
@@ -159,11 +176,12 @@ export const corePl: CoreMessages = {
     olderResultStillUsed: 'strefy dalej liczą się ze starszego startu.',
     timeTrialWithoutResult:
       'Sprawdzian bez wpisanego wyniku jest treningiem, który niczego nie zmienił.',
-    complianceLow: (pct: number, missed: number) =>
-      `Wykonano ${pct}% zaplanowanej objętości (pominiętych sesji: ${missed}).`,
+    complianceLow: (pct: number, actualKm: number, plannedKm: number) =>
+      `Wykonano ${pct}% zaplanowanej objętości (${actualKm} z ${plannedKm} km).`,
     reduceVolume: (realistic: number) =>
       'Plan jest napisany na objętość, której nie realizujesz. Urealnij bazę do ' +
-      `≈${realistic} km/tydz. (średnia z ostatnich 3 tyg.) i progresuj od niej.`,
+      `≈${realistic} km/tydz. (średnia z ostatnich 3 tyg.) i progresuj od niej. ` +
+      'Plan wykonywany w 100% bije ambitniejszy plan wykonywany w 60%.',
     complianceHigh: (pct: number) => `Regularnie przekraczasz plan (${pct}% objętości).`,
     raiseVolume: (raised: number) =>
       `Podnieś bazę w tren.yaml do ≈${raised} km/tydz. — ale kolejny cykl i tak ` +
@@ -185,6 +203,7 @@ export const corePl: CoreMessages = {
     windowLunch: 'lunch',
     windowEvening: 'wieczór',
     stairSnack: '3 min schodów (exercise snack)',
+    walkBreak: (minutes: number) => `${n(minutes)} min chodu`,
     heavyDayPaceNotFeel:
       'Dziś ciężki dzień kognitywny, a w planie jest akcent: prowadź go PO TEMPIE z zegarka, ' +
       'nie po odczuciu. Zmęczenie umysłowe podnosi odczuwany wysiłek przy niezmienionej ' +

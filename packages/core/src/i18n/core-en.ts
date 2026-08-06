@@ -126,8 +126,22 @@ export const coreEn = {
   },
 
   adapt: {
+    layoffDiagnosis: (days: number) =>
+      `${days} days without running — the plan from before the break is out of date.`,
+    postRaceDiagnosis: (days: number, distanceKm: number) =>
+      `${days} days after a ${n(distanceKm)} km race — recovery window.`,
+    newResultDiagnosis: (distanceKm: number, date: string) =>
+      `New result: ${n(distanceKm)} km (${date}) — zones need recomputing.`,
+    uncalibratedTestDiagnosis: (date: string, distanceKm: number) =>
+      `The measurement on ${date} (${n(distanceKm)} km) has no result in athlete.results — ` +
+      'zones are still computed from the older race.',
+    uncalibratedTestAction: (date: string, distanceKm: number, timeSec: string) =>
+      `Add the result to athlete.results: { date: "${date}", distanceKm: ${n(distanceKm)}, ` +
+      `timeSec: ${timeSec} } → tren diff → tren plan.`,
+    timeSecPlaceholder: '<time in seconds>',
     restartAfterLayoff: (weeklyKm: number, days: number) =>
-      `Restart: volume ×0.5–0.6 (≈${weeklyKm} km/week) after ${days} days off. ` +
+      `Restart: volume ×0.5–0.6 (≈${weeklyKm} km/week) after ${days} days off, ` +
+      'no Z3 sessions for 5–7 days, then normal progression. ' +
       'We do not make up the missed kilometres.',
     restartExtrapolated:
       'The post-layoff restart protocol is an extrapolation with no direct source (R-5) — ' +
@@ -147,11 +161,12 @@ export const coreEn = {
     olderResultStillUsed: 'zones are still computed from the older race result.',
     timeTrialWithoutResult:
       'A time trial with no result written down is a workout that changed nothing.',
-    complianceLow: (pct: number, missed: number) =>
-      `You completed ${pct}% of the planned volume (${missed} sessions missed).`,
+    complianceLow: (pct: number, actualKm: number, plannedKm: number) =>
+      `You completed ${pct}% of the planned volume (${actualKm} of ${plannedKm} km).`,
     reduceVolume: (realistic: number) =>
-      `The plan is written for a volume you are not running. Bring the base down to ` +
-      `≈${realistic} km/week (your average of the last 3 weeks) and progress from there.`,
+      'The plan is written for a volume you are not running. Bring the base down to ' +
+      `≈${realistic} km/week (your average of the last 3 weeks) and progress from there. ` +
+      'A plan you complete fully beats a bolder plan you complete 60% of.',
     complianceHigh: (pct: number) => `You consistently exceed the plan (${pct}% of volume).`,
     raiseVolume: (raised: number) =>
       `Raise the base in tren.yaml to ≈${raised} km/week — but the next cycle will still ` +
@@ -173,6 +188,7 @@ export const coreEn = {
     windowLunch: 'lunch',
     windowEvening: 'evening',
     stairSnack: '3 min of stairs (exercise snack)',
+    walkBreak: (minutes: number) => `${n(minutes)} min walk`,
     heavyDayPaceNotFeel:
       'Heavy cognitive day and an accent on the plan: run it BY PACE from the watch, ' +
       'not by feel. Mental fatigue raises perceived effort while the physiology is unchanged ' +
