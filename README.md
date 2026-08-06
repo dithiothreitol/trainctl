@@ -78,6 +78,28 @@ lub potoku automatycznie zdejmuje formatowanie. Serwer MCP dostaje tę samą
 treść bez sekwencji ANSI — handlery opisują wyjście blokami
 (`src/ui/blocks.ts`), a kolory dokłada dopiero renderer CLI.
 
+## Język
+
+Domyślnie angielski; polski jako drugi język:
+
+```
+tren today --lang pl            # jednorazowo
+export TREN_LANG=pl             # na sesję
+echo 'language: pl' >> tren.yaml   # na stałe, razem z katalogiem treningowym
+```
+
+Kolejność: flaga bije zmienną, zmienna bije `tren.yaml`. Serwer MCP dziedziczy
+język katalogu, więc agent mówi tak samo jak `plan/PLAN.md`. Polski nie jest
+tłumaczeniem angielskiego — opisy jednostek to głos trenera z korpusu
+(„6 kilometrów w tempie spokojnym", „przerwy 2 minutowe w marszu"), a angielski
+brzmi jak zapis anglojęzycznego planu („6 km easy", „2 min walk recovery").
+Liczebniki są odmieniane (1 kilometr / 3 kilometry / 5 kilometrów, z pułapką
+12–14), a liczby dziesiętne mają przecinek.
+
+**Stan:** silnik, wszystkie komendy i `--help` są dwujęzyczne; kilka
+powierzchni (PLAN.md, kreator, pickery, opisy narzędzi MCP, objaśnienia reguł)
+czeka jeszcze na przepięcie — patrz tabela w [SPEC.md](SPEC.md) §8.
+
 ## Eksport
 
 Trzy drogi „na zewnątrz", zależnie od tego, co masz pod ręką:
