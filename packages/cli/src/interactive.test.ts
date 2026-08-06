@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 import { cmdPlan } from './commands.ts'
 import { ui } from './i18n/index.ts'
 import { dayChoices, runShiftPicker, runWeekBrowser } from './interactive.ts'
@@ -30,8 +30,8 @@ goal:
 
 let dir: string
 beforeAll(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-int-'))
-  writeFileSync(join(dir, 'tren.yaml'), CONFIG, 'utf-8')
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-int-'))
+  writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 })
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
@@ -164,7 +164,7 @@ describe('poza terminalem', () => {
   })
 
   it('brak planu — komunikat zamiast wyjątku', async () => {
-    const empty = mkdtempSync(join(tmpdir(), 'tren-noplan-'))
+    const empty = mkdtempSync(join(tmpdir(), 'trainctl-noplan-'))
     const r = await runShiftPicker(empty, '2026-08-05')
     expect(r.code).toBe(1)
     rmSync(empty, { recursive: true, force: true })

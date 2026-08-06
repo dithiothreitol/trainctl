@@ -13,7 +13,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 import {
   cmdAdapt,
   cmdDesk,
@@ -97,8 +97,8 @@ const TODAY = '2026-08-06'
 let dir: string
 
 beforeAll(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-leak-'))
-  writeFileSync(join(dir, 'tren.yaml'), CONFIG, 'utf-8')
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-leak-'))
+  writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
   cmdPlan(dir, { date: TODAY })
 })
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
@@ -130,7 +130,7 @@ describe('komendy po angielsku nie przeciekają polskim', () => {
   ]
 
   for (const [name, run] of cases) {
-    it(name, () => expectEnglish(`tren ${name}`, run().output))
+    it(name, () => expectEnglish(`trainctl ${name}`, run().output))
   }
 })
 
@@ -139,8 +139,8 @@ describe('pliki dla człowieka nie przeciekają polskim', () => {
     expectEnglish('PLAN.md', readFileSync(join(dir, 'plan', 'PLAN.md'), 'utf-8'))
   })
 
-  it('tren.yaml z szablonu', () => {
-    expectEnglish('tren.yaml', configTemplate())
+  it('trainctl.yaml z szablonu', () => {
+    expectEnglish('trainctl.yaml', configTemplate())
   })
 
   it('AGENTS.md — instrukcja, którą czyta agent w katalogu treningowym', () => {

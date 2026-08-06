@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { cmdAdapt, cmdExport, cmdLog, cmdPlan, cmdToday, cmdWhy } from './commands.ts'
 import { loadConfig } from './config.ts'
 import { loadPlan } from './planfile.ts'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
@@ -45,19 +45,19 @@ goal:
 
 let dir: string
 const setup = (yaml: string) => {
-  writeFileSync(join(dir, 'tren.yaml'), yaml, 'utf-8')
+  writeFileSync(join(dir, 'trainctl.yaml'), yaml, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 }
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-tu-'))
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-tu-'))
 })
 afterEach(() => rmSync(dir, { recursive: true, force: true }))
 
 describe('konfiguracja startów kontrolnych', () => {
   it('wczytuje tuneUpRaces i domyśla priority B', () => {
     writeFileSync(
-      dir + '/tren.yaml',
+      dir + '/trainctl.yaml',
       NO_RACES.replace(
         'goal:',
         '  tuneUpRaces:\n    - { date: "2026-09-05", distanceKm: 10 }\ngoal:',
@@ -71,7 +71,7 @@ describe('konfiguracja startów kontrolnych', () => {
 
   it('odrzuca priority A w tuneUpRaces (cel A jest w sekcji goal)', () => {
     writeFileSync(
-      dir + '/tren.yaml',
+      dir + '/trainctl.yaml',
       NO_RACES.replace(
         'goal:',
         '  tuneUpRaces:\n    - { date: "2026-09-05", distanceKm: 10, priority: A }\ngoal:',
@@ -92,7 +92,7 @@ describe('plan ze startami kontrolnymi', () => {
     expect(days.get('2026-09-04')!.workout).toBeUndefined()
   })
 
-  it('tren today mówi o starcie, tren why cytuje reguły startowe', () => {
+  it('trainctl today mówi o starcie, trainctl why cytuje reguły startowe', () => {
     expect(cmdToday(dir, { date: '2026-09-05' }).output).toContain('START')
     const why = cmdWhy(dir, { date: '2026-09-05' }).output
     expect(why).toMatch(/T-1[012]/)
@@ -127,7 +127,7 @@ describe('pętla kalibracji: pomiar → wynik → strefy', () => {
     cmdLog(dir, { date: '2026-09-05', status: 'done', time: '39:20' })
     const before = loadPlan(dir).vdot
     writeFileSync(
-      join(dir, 'tren.yaml'),
+      join(dir, 'trainctl.yaml'),
       WITH_RACES.replace(
         '  tuneUpRaces:',
         '    - { date: "2026-09-05", distanceKm: 10, timeSec: 2360 }\n  tuneUpRaces:',

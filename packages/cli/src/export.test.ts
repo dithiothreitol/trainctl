@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { cmdExport, cmdPlan } from './commands.ts'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
@@ -27,8 +27,8 @@ let dir: string
 const exportDir = () => join(dir, 'export')
 
 beforeAll(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-exp-'))
-  writeFileSync(join(dir, 'tren.yaml'), CONFIG, 'utf-8')
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-exp-'))
+  writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 })
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
@@ -130,9 +130,9 @@ describe('pakiet startowy (--what race)', () => {
   })
 
   it('z celem czasowym opaska bierze cel', () => {
-    const withTarget = mkdtempSync(join(tmpdir(), 'tren-exp-tgt-'))
+    const withTarget = mkdtempSync(join(tmpdir(), 'trainctl-exp-tgt-'))
     writeFileSync(
-      join(withTarget, 'tren.yaml'),
+      join(withTarget, 'trainctl.yaml'),
       CONFIG.replace('priority: A', 'priority: A\n  targetTimeSec: 12600'),
       'utf-8',
     )
@@ -147,9 +147,9 @@ describe('pakiet startowy (--what race)', () => {
   })
 
   it('bez celu i bez predykcji — czytelna odmowa', () => {
-    const bare = mkdtempSync(join(tmpdir(), 'tren-exp-bare-'))
+    const bare = mkdtempSync(join(tmpdir(), 'trainctl-exp-bare-'))
     writeFileSync(
-      join(bare, 'tren.yaml'),
+      join(bare, 'trainctl.yaml'),
       CONFIG.replace(/results:[\s\S]*?goal:/, 'results: []\ngoal:').replace(
         'priority: A',
         'priority: A\n  targetTimeSec: 12600',
@@ -175,7 +175,7 @@ describe('walidacja', () => {
   })
 
   it('brak planu — komunikat, nie wyjątek', () => {
-    const empty = mkdtempSync(join(tmpdir(), 'tren-exp-none-'))
+    const empty = mkdtempSync(join(tmpdir(), 'trainctl-exp-none-'))
     const r = cmdExport(empty, { what: 'print' })
     expect(r.code).toBe(1)
     expect(existsSync(join(empty, 'export'))).toBe(false)

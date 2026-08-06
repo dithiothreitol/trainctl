@@ -10,11 +10,11 @@ import type {
   SyncProvider,
   SyncedActivity,
   SyncedWellness,
-} from '@tren/core'
+} from '@trainctl/core'
 import { IntervalsIcuClient, type ClientOptions } from './client.ts'
 
 /** Prefiks pozwala odróżnić nasze wpisy od tych dodanych ręcznie przez atletę. */
-export const EXTERNAL_ID_PREFIX = 'tren-'
+export const EXTERNAL_ID_PREFIX = 'trainctl-'
 
 interface RawEvent {
   id?: string | number

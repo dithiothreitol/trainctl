@@ -8,7 +8,7 @@
  *    (F-15) — moduł komunikuje niepewność, nie obiecuje sekund;
  *  - dowody nie sięgają maratonu ani realnych zawodów (F-17, N-22).
  *
- * Moduł jest OPT-IN (sekcja `strength` w tren.yaml) i nie zmienia ani jednego
+ * Moduł jest OPT-IN (sekcja `strength` w trainctl.yaml) i nie zmienia ani jednego
  * kilometra planu biegowego — dokłada równoległą ścieżkę do istniejących dni.
  */
 import type { MacroPhase, Microcycle, PlannedDay, StrengthSession, Weekday } from '../domain/types.ts'

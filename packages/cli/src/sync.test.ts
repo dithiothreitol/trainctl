@@ -3,11 +3,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { PushableWorkout, SyncProvider, SyncedActivity } from '@tren/core'
+import type { PushableWorkout, SyncProvider, SyncedActivity } from '@trainctl/core'
 import { cmdPlan, cmdPull, cmdPush } from './commands.ts'
 import { loadPlan } from './planfile.ts'
 import { compare, readApiKey, workoutsToPush, SECRET_FILE } from './sync.ts'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
@@ -56,26 +56,26 @@ const fakeProvider: SyncProvider = {
 const factory = () => fakeProvider
 
 beforeAll(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-sync-'))
-  writeFileSync(join(dir, 'tren.yaml'), CONFIG, 'utf-8')
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-sync-'))
+  writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 })
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
 describe('klucz API', () => {
-  it('czyta z pliku .tren-secret', () => {
+  it('czyta z pliku .trainctl-secret', () => {
     writeFileSync(join(dir, SECRET_FILE), 'sekretny-klucz\n', 'utf-8')
     expect(readApiKey(dir)).toBe('sekretny-klucz')
   })
 
   it('bez klucza — instrukcja, nie stack trace', () => {
-    const empty = mkdtempSync(join(tmpdir(), 'tren-nokey-'))
+    const empty = mkdtempSync(join(tmpdir(), 'trainctl-nokey-'))
     expect(() => readApiKey(empty)).toThrow(/Developer Settings/)
     rmSync(empty, { recursive: true, force: true })
   })
 })
 
-describe('tren push', () => {
+describe('trainctl push', () => {
   it('wypycha treningi z zakresu, pomija dni wolne i starty', async () => {
     const r = await cmdPush(dir, { from: '2026-08-03', to: '2026-08-09' }, factory)
     expect(r.code).toBe(0)
@@ -98,8 +98,8 @@ describe('tren push', () => {
 
   it('usuwa nieaktualne wpisy po przesunięciu treningu (duch na zegarku)', async () => {
     remotePlanned = [
-      { id: 'e1', date: '2026-08-04', externalId: 'tren-2026-08-04' },
-      { id: 'e-stale', date: '2026-08-03', externalId: 'tren-2026-08-03' }, // dzień wolny w planie
+      { id: 'e1', date: '2026-08-04', externalId: 'trainctl-2026-08-04' },
+      { id: 'e-stale', date: '2026-08-03', externalId: 'trainctl-2026-08-03' }, // dzień wolny w planie
       { id: 'e-obcy', date: '2026-08-05', externalId: 'moj-wlasny-trening' },
     ]
     deleted.length = 0
@@ -107,7 +107,7 @@ describe('tren push', () => {
     expect(r.code).toBe(0)
     expect(deleted).toContain('e-stale')
     expect(r.output).toContain('Usunięto')
-    // wpisów spoza tren nie ruszamy
+    // wpisów spoza trainctl nie ruszamy
     expect(deleted).not.toContain('e-obcy')
   })
 
@@ -129,7 +129,7 @@ describe('tren push', () => {
   })
 })
 
-describe('tren pull', () => {
+describe('trainctl pull', () => {
   it('zapisuje migawkę i raportuje rozjazdy', async () => {
     const r = await cmdPull(dir, { days: '5' }, factory)
     expect(r.code).toBe(0)

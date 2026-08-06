@@ -116,7 +116,7 @@ describe.skipIf(!existsSync(CORPUS))('backtest: sezon HM wiosna 2025 vs trener',
   const peakWeeklyKm = Math.round(Math.max(...completeKms))
 
   // Starty kontrolne, które trener wpisał w tym sezonie — od fazy 7 generator
-  // dostaje je na wejściu tak, jak dostałby je od użytkownika w tren.yaml.
+  // dostaje je na wejściu tak, jak dostałby je od użytkownika w trainctl.yaml.
   const coachRaceDates = [...coach.values()].flatMap((w) => w.raceDates).sort()
 
   const athlete: AthleteProfile = {
@@ -194,7 +194,7 @@ describe.skipIf(!existsSync(CORPUS))('backtest: sezon HM wiosna 2025 vs trener',
     `- starty kontrolne trenera odwzorowane co do dnia: **${raceDayAgree}/${raceDayTotal}**`,
     '',
     '_Od fazy 7 starty kontrolne trenera (Falenica/ZUK) są podawane generatorowi tak,_',
-    '_jak podałby je użytkownik w `tren.yaml` — mini-taper T-9, wolny dzień przed (T-10)_',
+    '_jak podałby je użytkownik w `trainctl.yaml` — mini-taper T-9, wolny dzień przed (T-10)_',
     '_i długie wybieganie nazajutrz (T-11) wynikają z reguł, nie z ręcznej korekty._',
   ].join('\n')
   writeFileSync(REPORT, summary, 'utf-8')

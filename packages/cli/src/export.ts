@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { getLocale, heatLadder, messages, type PlannedDay } from '@tren/core'
+import { getLocale, heatLadder, messages, type PlannedDay } from '@trainctl/core'
 import {
   encodeWorkoutFit,
   fmtClock,
@@ -16,7 +16,7 @@ import {
   type PrintWeek,
   type RacePackInput,
   type RaceScenario,
-} from '@tren/export'
+} from '@trainctl/export'
 import { ui } from './i18n/index.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 
@@ -156,8 +156,8 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
         }
       })
     const ics = toIcs(entries, {
-      planName: `${plan.goal.name} (tren)`,
-      uidPrefix: `tren-${safeName(plan.goal.name)}`,
+      planName: `${plan.goal.name} (trainctl)`,
+      uidPrefix: `trainctl-${safeName(plan.goal.name)}`,
       stamp: `${plan.generatedAt.replace(/-/g, '')}T000000Z`,
     })
     const file = join(dir, `${safeName(plan.goal.name)}.ics`)

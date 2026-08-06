@@ -1,10 +1,10 @@
 # Opcjonalnie: tygodniowy przegląd jako zadanie GitHub Actions
 
-**To jest przykład, nie część produktu.** Domyślny model `tren` jest local-first:
+**To jest przykład, nie część produktu.** Domyślny model `trainctl` jest local-first:
 katalog treningowy leży na Twoim dysku, klucz API nigdzie nie wyjeżdża, a
 rozmowa z agentem jest kanałem, w którym zapadają decyzje. Ten plik jest dla
 osób, które i tak trzymają katalog treningowy w repozytorium na GitHubie i chcą
-w poniedziałek rano dostać powiadomienie zamiast pamiętać o `tren review`.
+w poniedziałek rano dostać powiadomienie zamiast pamiętać o `trainctl review`.
 
 ## Zanim to włączysz — trzy rzeczy, o których warto wiedzieć
 
@@ -24,7 +24,7 @@ w poniedziałek rano dostać powiadomienie zamiast pamiętać o `tren review`.
 ## Workflow
 
 Zapisz jako `.github/workflows/review.yml` w repozytorium z katalogiem
-treningowym. `tren` musi być dostępny — poniżej zakładam, że repo `tren` jest
+treningowym. `trainctl` musi być dostępny — poniżej zakładam, że repo `trainctl` jest
 sklonowane obok albo dodane jako submoduł.
 
 ```yaml
@@ -45,26 +45,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: tren (silnik)
+      - name: trainctl (silnik)
         uses: actions/checkout@v4
         with:
-          repository: <twoje-konto>/tren
-          path: .tren-engine
+          repository: <twoje-konto>/trainctl
+          path: .trainctl-engine
 
       - uses: actions/setup-node@v4
         with:
           node-version: '23'      # natywny type-stripping: bez kroku budowania
 
       - run: corepack enable && pnpm install --frozen-lockfile
-        working-directory: .tren-engine
+        working-directory: .trainctl-engine
 
       - name: Przegląd
         id: review
         env:
-          TREN_INTERVALS_API_KEY: ${{ secrets.TREN_INTERVALS_API_KEY }}
+          TRAINCTL_INTERVALS_API_KEY: ${{ secrets.TRAINCTL_INTERVALS_API_KEY }}
           NO_COLOR: '1'           # czysty tekst do komentarza
         run: |
-          node .tren-engine/packages/cli/src/bin.ts review --days 7 > review.txt
+          node .trainctl-engine/packages/cli/src/bin.ts review --days 7 > review.txt
           {
             echo 'body<<EOF'
             cat review.txt
@@ -84,15 +84,15 @@ jobs:
 ```
 
 `NO_COLOR=1` jest tu istotne: bez tego do komentarza trafiłyby sekwencje ANSI.
-`tren review` niczego nie zapisuje w planie (poza migawką `sync.json`), więc
+`trainctl review` niczego nie zapisuje w planie (poza migawką `sync.json`), więc
 workflow nie potrzebuje uprawnień do zapisu w repozytorium.
 
 ## Wariant bez GitHuba
 
 To samo lokalnie, bez wysyłania czegokolwiek na zewnątrz:
 
-- **Windows**: Harmonogram zadań → cotygodniowo → `tren review`
-- **macOS/Linux**: `crontab -e` → `0 6 * * 1 cd ~/trening && tren review | tee -a review.log`
+- **Windows**: Harmonogram zadań → cotygodniowo → `trainctl review`
+- **macOS/Linux**: `crontab -e` → `0 6 * * 1 cd ~/trening && trainctl review | tee -a review.log`
 
 Albo po prostu poproś agenta w poniedziałek: „zrób przegląd tygodnia". Ta droga
 jako jedyna zada Ci pytania, gdy coś w danych nie będzie się zgadzać.

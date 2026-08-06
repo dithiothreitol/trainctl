@@ -3,7 +3,7 @@
  * Same teksty siedzą w katalogu tłumaczeń; tutaj zostaje wyłącznie dostęp
  * po ID reguły i po rodzaju jednostki.
  */
-import type { WorkoutKind } from '@tren/core'
+import type { WorkoutKind } from '@trainctl/core'
 import { ui } from './i18n/index.ts'
 
 /** Objaśnienie reguły po jej ID (np. `I-7`); undefined, gdy reguły nie opisano. */

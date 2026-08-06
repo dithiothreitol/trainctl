@@ -18,7 +18,7 @@ import {
   type PlannedWorkout,
   type SyncedActivity,
   type Weekday,
-} from '@tren/core'
+} from '@trainctl/core'
 import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
 import { ui } from './i18n/index.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
@@ -41,8 +41,8 @@ import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 
-/** Prefiks identyfikatorów, które tworzy `tren` — granica tego, co wolno nam kasować. */
-const OUR_EXTERNAL_ID_PREFIX = 'tren-'
+/** Prefiks identyfikatorów, które tworzy `trainctl` — granica tego, co wolno nam kasować. */
+const OUR_EXTERNAL_ID_PREFIX = 'trainctl-'
 
 /** Kolor semantyczny jednostki treningowej — spójny w całym CLI. */
 export const KIND_COLOR: Record<string, ColorName> = {
@@ -73,7 +73,7 @@ import {
   type ProviderFactory,
 } from './sync.ts'
 
-// dla MCP (importuje wyłącznie z @tren/cli = commands.ts)
+// dla MCP (importuje wyłącznie z @trainctl/cli = commands.ts)
 export { defaultProviderFactory, hasApiKey, type ProviderFactory } from './sync.ts'
 export { readConfigLanguage } from './config.ts'
 // serwer MCP opisuje narzędzia tym samym katalogiem, co CLI
@@ -172,7 +172,7 @@ export async function fetchInferredProfile(
 }
 
 /**
- * `tren init --from-intervals` poza TTY: zapisuje tren.yaml z propozycjami
+ * `trainctl init --from-intervals` poza TTY: zapisuje trainctl.yaml z propozycjami
  * (komentarze proweniencji, ADR-019); kandydatów na wyniki tylko WYPISUJE —
  * dopisanie do results wymaga potwierdzenia użytkownika.
  */
@@ -249,7 +249,7 @@ export function cmdInit(cwd: string, content?: string): CmdResult {
         : [
             b.text(ui().init.fillProfile),
           ]),
-      b.hint(ui().common.nextStep('tren plan')),
+      b.hint(ui().common.nextStep('trainctl plan')),
     ])
   } catch (e) {
     return fail(e)
@@ -330,7 +330,7 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
     blocks.push(
       b.blank(),
       b.success(ui().common.saved(`${PLAN_YAML} + ${PLAN_MD}`)),
-      b.hint('tren today · tren week · tren why'),
+      b.hint('trainctl today · trainctl week · trainctl why'),
     )
     return okDoc(blocks)
   } catch (e) {
@@ -1000,7 +1000,7 @@ export async function cmdReview(
     ]
     for (const n of notes) blocks.push(b.info(n))
 
-    // 2) co się wydarzyło — te same porównania co w tren pull
+    // 2) co się wydarzyło — te same porównania co w trainctl pull
     const rows = compare(plan, snapshot?.activities ?? [], from, today)
     const plannedKm = rows.reduce((s, r) => s + r.plannedKm, 0)
     const actualKm = rows.reduce((s, r) => s + (r.actualKm ?? 0), 0)

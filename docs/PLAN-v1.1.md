@@ -36,18 +36,18 @@ przykład w docs.
 - Każda stała silnika cytuje ID reguły z FOUNDATIONS §10 albo jest jawnie
   oznaczona komentarzem jako wartość inżynierska.
 - Adaptacja **proponuje, nie przepisuje** (ADR-011) — nic w v1.1 tego nie zmienia.
-- Sekrety (ADR-009): klucz intervals.icu wyłącznie z env `TREN_INTERVALS_API_KEY`
-  albo `.tren-secret`; **nigdy w repo, testach ani fixture'ach**. Testy e2e na
+- Sekrety (ADR-009): klucz intervals.icu wyłącznie z env `TRAINCTL_INTERVALS_API_KEY`
+  albo `.trainctl-secret`; **nigdy w repo, testach ani fixture'ach**. Testy e2e na
   żywym koncie: tylko lokalnie, po teście posprzątać konto (wzorzec z fazy 4),
   na końcu sprawdzić, że 0 plików w repo zawiera klucz.
-- Kasowanie zdalne tylko z prefiksem `tren-` (ADR-016) — bez zmian.
+- Kasowanie zdalne tylko z prefiksem `trainctl-` (ADR-016) — bez zmian.
 
 **Kolejność faz:** 6 → 7 → 8. Fazy 6 i 7 są niezależne (można odwrócić), ale 8
 konsumuje wyniki obu (review raportuje sprawdziany i korzysta z fabryki providera).
 
 ---
 
-## Faza 6 — `tren init --from-intervals`: profil z historii, nie z deklaracji
+## Faza 6 — `trainctl init --from-intervals`: profil z historii, nie z deklaracji
 
 **Cel.** Największe źródło błędu planu to dziś samoocena (`recentWeeklyKm`
 wpisywane z pamięci). Prawdziwy trener zaczyna od „pokaż mi ostatnie 3 miesiące" —
@@ -83,7 +83,7 @@ Decyzje projektowe:
   ostatniej 4-tce → cofnij się do ostatniego aktywnego bloku i dodaj caveat.
 - Przerwa ≥10 dni na końcu okna → caveat spójny z regułą restartu w
   `engine/adapt.ts` (×0,55) — inferencja **nie** aplikuje restartu, tylko
-  raportuje; decyzja należy do generatora po edycji tren.yaml.
+  raportuje; decyzja należy do generatora po edycji trainctl.yaml.
 - `raceCandidates` to **zawsze propozycje**: heurystyka = dystans w ±3% dystansu
   standardowego (5 / 10 / 21,0975 / 42,195) **i** (nazwa łapie
   `/(bieg|maraton|półmaraton|parkrun|race|run)/i` **lub** tempo w górnym decylu
@@ -96,10 +96,10 @@ Decyzje projektowe:
 
 ### 6.2 CLI: kreator i flaga
 
-- `tren init --from-intervals`: pobiera 16 tygodni przez `ProviderFactory`
+- `trainctl init --from-intervals`: pobiera 16 tygodni przez `ProviderFactory`
   (wzorzec z `cmdPush`/`cmdPull` — `factory: ProviderFactory = defaultProviderFactory`
   jako parametr, wstrzykiwalny w testach).
-- W TTY: kreator (`ui/wizard.ts`) — gdy klucz jest osiągalny (env/`.tren-secret`),
+- W TTY: kreator (`ui/wizard.ts`) — gdy klucz jest osiągalny (env/`.trainctl-secret`),
   pierwsze pytanie brzmi „Znalazłem klucz intervals.icu — pobrać historię i
   zaproponować profil? [T/n]". Wartości wywnioskowane stają się **domyślnymi
   odpowiedziami** kolejnych pytań (Enter = akceptacja), nie cichym zapisem.
@@ -113,9 +113,9 @@ Decyzje projektowe:
 
 ### 6.3 MCP
 
-`tren_init` dostaje `fromIntervals: z.boolean().optional()` + aktualizacja
+`trainctl_init` dostaje `fromIntervals: z.boolean().optional()` + aktualizacja
 opisu (jawnie: wartości to propozycje z proweniencją; kandydatów na wyniki
-agent ma potwierdzić z użytkownikiem przed dopisaniem do `tren.yaml`).
+agent ma potwierdzić z użytkownikiem przed dopisaniem do `trainctl.yaml`).
 
 ### 6.4 Testy
 
@@ -127,15 +127,15 @@ agent ma potwierdzić z użytkownikiem przed dopisaniem do `tren.yaml`).
 - `commands`: `cmdInit` z fałszywą fabryką (jak testy push/pull) — YAML z
   komentarzami proweniencji; bez klucza → kod 1 i instrukcja.
 - `bin.test.ts`: smoke `--from-intervals` bez klucza (czytelny błąd, nie stack).
-- MCP: scenariusz `tren_init` z `fromIntervals` na fałszywym providerze
-  (wymaga przewleczenia fabryki do `createTrenServer` — analogicznie jak w CLI).
+- MCP: scenariusz `trainctl_init` z `fromIntervals` na fałszywym providerze
+  (wymaga przewleczenia fabryki do `createTrainctlServer` — analogicznie jak w CLI).
 - **E2E na żywym koncie (lokalnie, klucz od użytkownika):** inferencja na
   realnej historii, porównanie z faktycznym stanem wytrenowania; wynik do
   `docs/integrations/intervalsicu.md` §2b. Po teście: 0 plików z kluczem.
 
 ### 6.5 DoD fazy 6
 
-`tren init --from-intervals` i kreator z propozycjami działają e2e; wartości
+`trainctl init --from-intervals` i kreator z propozycjami działają e2e; wartości
 w YAML mają proweniencję; kandydaci na wyniki są potwierdzani, nigdy zapisywani
 automatycznie; testy jednostkowe + komendowe + MCP + smoke bin zielone;
 docs/integrations §2b uzupełnione; ADR-019 wpisany; SPEC/README/pamięć
@@ -145,7 +145,7 @@ zaktualizowane; commit.
 
 ## Faza 7 — sprawdziany wpisane w makrocykl
 
-**Cel.** `tren adapt` umie rekalibrować strefy po nowym wyniku, ale nic tego
+**Cel.** `trainctl adapt` umie rekalibrować strefy po nowym wyniku, ale nic tego
 wyniku nie wymusza — plan ma sam planować biegi kontrolne, domykając pętlę
 plan → test → rekalibracja → lepszy plan.
 
@@ -178,12 +178,12 @@ plan → test → rekalibracja → lepszy plan.
   w bazie/budowaniu, zero w taperze i oknie R-1/R-2. Jeśli korpus pokaże inny
   wzorzec — korpus wygrywa; decyzję zapisać w ADR.
 - `engine/microcycle.ts`: opis house-style („sprawdzian 3 km na pełnym
-  wypoczynku; wynik dopisz do tren.yaml — z niego kalibrujemy strefy") +
+  wypoczynku; wynik dopisz do trainctl.yaml — z niego kalibrujemy strefy") +
   rozgrzewka/schłodzenie wg profilu korpusu.
 - `solver/reschedule.ts`: `test` w hierarchii poświęcania tuż przy `long`
   (kasujemy easy zanim ruszymy sprawdzian); ochrona odstępów jak dla akcentu.
 - `engine/adapt.ts`: wpis w logu z czasem w dniu `test` → propozycja „dopisz
-  wynik do tren.yaml (athlete.results) → tren plan zrekalibruje strefy"
+  wynik do trainctl.yaml (athlete.results) → trainctl plan zrekalibruje strefy"
   (propose-only, ADR-011).
 - `why`: cel jednostki = kalibracja + próba generalna nawyków startowych;
   cytuje W-11…W-13.
@@ -219,7 +219,7 @@ startach kontrolnych); commit.
 
 ---
 
-## Faza 8 — `tren review` + pakiet onboardingowy agenta
+## Faza 8 — `trainctl review` + pakiet onboardingowy agenta
 
 **Cel.** Poniedziałkowy rytuał trenera jako jedna komenda: co było, co to
 znaczy, co przed nami, co zrobić — czytelne dla człowieka w CLI i dla agenta
@@ -241,26 +241,26 @@ minuty wie, jak być trenerem.
 4. **Nadchodzący tydzień**: km, akcenty, sprawdzian jeśli jest, jedno zdanie
    „why" dla kluczowej jednostki.
 5. **Do zrobienia**: checklista akcji (dopisz wynik sprawdzianu; po propozycjach
-   adapt → edycja `tren.yaml` → `tren diff` → `tren plan`; `tren push --days 7`
+   adapt → edycja `trainctl.yaml` → `trainctl diff` → `trainctl plan`; `trainctl push --days 7`
    gdy klucz jest).
 
 Wyjście w blokach (ADR-013). Komenda jest read-only poza migawką `sync.json`.
 
 ### 8.2 CLI + MCP
 
-- `bin.ts`: `tren review` (+ `--days`), wpis w helpie.
-- MCP: `tren_review` — opis: „poniedziałkowy przegląd: wykonanie, sygnały,
+- `bin.ts`: `trainctl review` (+ `--days`), wpis w helpie.
+- MCP: `trainctl_review` — opis: „poniedziałkowy przegląd: wykonanie, sygnały,
   tydzień przed nami, akcje; użyj zamiast wołania pull+adapt+week po kolei".
   Licznik narzędzi: **15** (aktualizacja `server.test.ts`).
 
 ### 8.3 Pakiet onboardingowy
 
-- `tren init` (i kreator) zapisuje — o ile nie istnieje — **`AGENTS.md`**
+- `trainctl init` (i kreator) zapisuje — o ile nie istnieje — **`AGENTS.md`**
   w katalogu treningowym: persona trenera dla dowolnego agenta. Treść:
-  rytuały (poniedziałek → `tren_review`; przed każdą zmianą → `tren_week`),
+  rytuały (poniedziałek → `trainctl_review`; przed każdą zmianą → `trainctl_week`),
   zasady (dnia startu nie ruszamy; przy pominięciach pytaj o kontekst — choroba
-  ≠ zawał roboty; adapt proponuje — zmiany przez `tren.yaml` → `tren_diff` →
-  `tren_plan`), oraz czego nie robić (nie regeneruj planu bez pytania — ADR-011).
+  ≠ zawał roboty; adapt proponuje — zmiany przez `trainctl.yaml` → `trainctl_diff` →
+  `trainctl_plan`), oraz czego nie robić (nie regeneruj planu bez pytania — ADR-011).
 - `docs/examples/github-actions-review.md` + `review.yml`: **opcjonalny** wzorzec
   „review co poniedziałek jako komentarz do issue" dla osób trzymających katalog
   na GitHubie. Jawne zastrzeżenia: klucz w sekretach GH i dane wellness płynące
@@ -273,13 +273,13 @@ Wyjście w blokach (ADR-013). Komenda jest read-only poza migawką `sync.json`.
 - `review` z fałszywą fabryką (ścieżka pull) i bez klucza (ścieżka snapshot);
   pusty log przy świeżym planie → sekcje 4–5 nadal się renderują; tydzień bez
   propozycji adapt → komunikat „bez zmian", nie pusta sekcja.
-- MCP: scenariusz `tren_review` + licznik 15 narzędzi.
-- `bin.test.ts`: smoke `tren review` poza TTY (czysty plain-text).
+- MCP: scenariusz `trainctl_review` + licznik 15 narzędzi.
+- `bin.test.ts`: smoke `trainctl review` poza TTY (czysty plain-text).
 - Test blokowy: wyjście MCP bez ANSI (istniejąca gwarancja obejmuje nową komendę).
 
 ### 8.5 DoD fazy 8
 
-`tren review` działa w CLI (kolor) i MCP (plain, 15 narzędzi); offline bez
+`trainctl review` działa w CLI (kolor) i MCP (plain, 15 narzędzi); offline bez
 klucza; `AGENTS.md` powstaje przy init i jest idempotentny (nie nadpisuje);
 przykład Actions w docs z zastrzeżeniami; ADR-021; README (sekcja „rytuał
 tygodniowy"); pamięć; commit.

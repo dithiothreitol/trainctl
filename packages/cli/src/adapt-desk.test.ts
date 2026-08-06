@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildExecution, cmdAdapt, cmdDesk, cmdLog, cmdPlan, cmdReschedule } from './commands.ts'
 import { loadPlan } from './planfile.ts'
 import { readLog } from './logfile.ts'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
@@ -34,8 +34,8 @@ const WITH_DESK = BASE + `desk:
 let dir: string
 
 beforeAll(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-p5-'))
-  writeFileSync(join(dir, 'tren.yaml'), WITH_DESK, 'utf-8')
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-p5-'))
+  writeFileSync(join(dir, 'trainctl.yaml'), WITH_DESK, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 })
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
@@ -81,7 +81,7 @@ describe('buildExecution', () => {
   })
 })
 
-describe('tren adapt', () => {
+describe('trainctl adapt', () => {
   it('bez danych wykonania proponuje konserwatywny restart', () => {
     const r = cmdAdapt(dir, { date: '2026-09-01' })
     expect(r.code).toBe(0)
@@ -103,13 +103,13 @@ describe('tren adapt', () => {
   it('propozycja objętości mówi wprost, jak ją zastosować (nie zmienia planu sama)', () => {
     const r = cmdAdapt(dir, { date: '2026-08-10' })
     if (r.output.includes('recentWeeklyKm')) {
-      expect(r.output).toContain('tren diff')
+      expect(r.output).toContain('trainctl diff')
       expect(r.output).toContain('Silnik nie przepisuje planu sam')
     }
   })
 })
 
-describe('tren desk', () => {
+describe('trainctl desk', () => {
   it('pokazuje okna, przerwy i reguły', () => {
     const r = cmdDesk(dir, { date: '2026-08-04' })
     expect(r.code).toBe(0)
@@ -127,9 +127,9 @@ describe('tren desk', () => {
     expect(heavy.output).toContain('B-10')
   })
 
-  it('bez sekcji desk w tren.yaml — instrukcja z gotowym fragmentem', () => {
-    const bare = mkdtempSync(join(tmpdir(), 'tren-nodesk-'))
-    writeFileSync(join(bare, 'tren.yaml'), BASE, 'utf-8')
+  it('bez sekcji desk w trainctl.yaml — instrukcja z gotowym fragmentem', () => {
+    const bare = mkdtempSync(join(tmpdir(), 'trainctl-nodesk-'))
+    writeFileSync(join(bare, 'trainctl.yaml'), BASE, 'utf-8')
     const r = cmdDesk(bare, { date: '2026-08-04' })
     expect(r.code).toBe(1)
     expect(r.output).toContain('workStart')
@@ -137,8 +137,8 @@ describe('tren desk', () => {
   })
 
   it('działa bez wygenerowanego planu (same przerwy)', () => {
-    const bare = mkdtempSync(join(tmpdir(), 'tren-desk-only-'))
-    writeFileSync(join(bare, 'tren.yaml'), WITH_DESK, 'utf-8')
+    const bare = mkdtempSync(join(tmpdir(), 'trainctl-desk-only-'))
+    writeFileSync(join(bare, 'trainctl.yaml'), WITH_DESK, 'utf-8')
     const r = cmdDesk(bare, { date: '2026-08-04' })
     expect(r.code).toBe(0)
     expect(r.output).toContain('Dziś bez biegania')
@@ -146,7 +146,7 @@ describe('tren desk', () => {
   })
 })
 
-describe('tren reschedule', () => {
+describe('trainctl reschedule', () => {
   it('podgląd nie zapisuje planu', () => {
     const before = JSON.stringify(loadPlan(dir).weeks[2])
     const r = cmdReschedule(dir, { block: ['2026-08-20'], date: '2026-08-20' })

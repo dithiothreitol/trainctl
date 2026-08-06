@@ -1,20 +1,20 @@
 {
-  "name": "@tren/cli",
+  "name": "@trainctl/cli",
   "version": "0.0.0",
   "private": true,
-  "description": "tren: CLI — plan/today/week/shift/review/push/pull/export",
+  "description": "trainctl: CLI — plan/today/week/shift/review/push/pull/export",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "tren": "./src/bin.ts"
+    "trainctl": "./src/bin.ts"
   },
   "exports": {
     ".": "./src/commands.ts"
   },
   "dependencies": {
-    "@tren/core": "workspace:*",
-    "@tren/export": "workspace:*",
-    "@tren/sync-intervalsicu": "workspace:*",
+    "@trainctl/core": "workspace:*",
+    "@trainctl/export": "workspace:*",
+    "@trainctl/sync-intervalsicu": "workspace:*",
     "commander": "^14.0.0",
     "yaml": "^2.6.0"
   }

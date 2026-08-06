@@ -1,12 +1,12 @@
-/** Konfiguracja atlety i celu: tren.yaml w bieżącym katalogu (plan-as-code). */
+/** Konfiguracja atlety i celu: trainctl.yaml w bieżącym katalogu (plan-as-code). */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse } from 'yaml'
-import { DEFAULT_LOCALE, getLocale } from '@tren/core'
-import type { AthleteProfile, InferredProfile, RaceGoal, Weekday } from '@tren/core'
+import { DEFAULT_LOCALE, getLocale } from '@trainctl/core'
+import type { AthleteProfile, InferredProfile, RaceGoal, Weekday } from '@trainctl/core'
 import { ui } from './i18n/index.ts'
 
-export const CONFIG_FILE = 'tren.yaml'
+export const CONFIG_FILE = 'trainctl.yaml'
 
 export interface DeskConfig {
   workStart: string
@@ -24,7 +24,7 @@ export interface StrengthConfig {
   days?: Weekday[]
 }
 
-export interface TrenConfig {
+export interface TrainctlConfig {
   athlete: AthleteProfile
   goal: RaceGoal
   desk?: DeskConfig
@@ -35,7 +35,7 @@ export interface TrenConfig {
 
 /**
  * Język z pliku konfiguracyjnego, czytany BEZ pełnej walidacji profilu:
- * `tren init` i komunikaty błędów muszą znać język, zanim ktokolwiek sprawdzi,
+ * `trainctl init` i komunikaty błędów muszą znać język, zanim ktokolwiek sprawdzi,
  * czy `athlete.recentWeeklyKm` jest liczbą.
  */
 export function readConfigLanguage(cwd: string): string | undefined {
@@ -58,8 +58,8 @@ const pad = (code: string, comment: string): string =>
   comment ? `${code.padEnd(25)} # ${comment}` : code
 
 /**
- * Szablon tren.yaml w bieżącym języku. Wiersz `language:` jest ODKOMENTOWANY,
- * gdy pracujemy w języku innym niż domyślny — dzięki temu `tren init --lang pl`
+ * Szablon trainctl.yaml w bieżącym języku. Wiersz `language:` jest ODKOMENTOWANY,
+ * gdy pracujemy w języku innym niż domyślny — dzięki temu `trainctl init --lang pl`
  * zostawia katalog, który przy następnym uruchomieniu nadal mówi po polsku.
  */
 export function configTemplate(): string {
@@ -103,7 +103,7 @@ export function configTemplate(): string {
 const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
 
-export function loadConfig(cwd: string): TrenConfig {
+export function loadConfig(cwd: string): TrainctlConfig {
   const path = join(cwd, CONFIG_FILE)
   const t = ui()
   const v = t.configFile.validate
@@ -113,7 +113,7 @@ export function loadConfig(cwd: string): TrenConfig {
   if (!existsSync(path)) {
     throw new Error(t.common.missingConfig(CONFIG_FILE))
   }
-  const raw = parse(readFileSync(path, 'utf-8')) as Partial<TrenConfig> | null
+  const raw = parse(readFileSync(path, 'utf-8')) as Partial<TrainctlConfig> | null
   const errors: string[] = []
   const a = raw?.athlete
   const g = raw?.goal
@@ -190,7 +190,7 @@ export function loadConfig(cwd: string): TrenConfig {
 }
 
 /**
- * tren.yaml z profilu wywnioskowanego z intervals.icu (ADR-019): każda wartość
+ * trainctl.yaml z profilu wywnioskowanego z intervals.icu (ADR-019): każda wartość
  * z komentarzem proweniencji, cel jako jawne placeholdery — walidacja loadConfig
  * nie przepuści pliku, dopóki użytkownik nie wpisze prawdziwego celu.
  */

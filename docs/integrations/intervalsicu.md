@@ -137,7 +137,7 @@ odczytem [wątku o pobieraniu planowanych treningów](https://forum.intervals.ic
 dedykowany wątek [Bulk import of ZWO, MRC and ERG files](https://forum.intervals.icu/t/bulk-import-of-zwo-mrc-and-erg-files/5312)).
 Potwierdzone też bezpośrednio w API: `POST .../events/bulk` akceptuje
 alternatywnie `filename` + `file_contents_base64` (przykład w dokumentacji
-używa `workout.fit`) zamiast pola `description`. Dla „tren" praktyczny wniosek:
+używa `workout.fit`) zamiast pola `description`. Dla „trainctl" praktyczny wniosek:
 **natywny format tekstowy jest wystarczający i wygodniejszy** niż
 generowanie plików binarnych — pasuje do filozofii „plan jako kod" z SPEC.md.
 
@@ -203,7 +203,7 @@ implementacją warto sprawdzić ten wątek ponownie**):
 - Dla jednoosobowego użycia CLI (jeden athlete, klucz API) te limity są
   praktycznie nieosiągalne przy normalnym użyciu (kilka-kilkanaście wywołań
   dziennie). Miałyby znaczenie dopiero przy hostowanej, wieloużytkownikowej
-  wersji „tren" przez OAuth.
+  wersji „trainctl" przez OAuth.
 
 **Formalny „Developer ToS"** (osobny dokument prawny dla deweloperów, analog
 Strava API Agreement) — **nie znalazłem** takiego dokumentu w wyszukiwaniach.
@@ -252,7 +252,7 @@ Konkretne, żywe projekty na tym samym API, które planujemy użyć:
 - [rbrands/intervals-icu-sync](https://github.com/rbrands/intervals-icu-sync) —
   *„Connect any GenAI tool to your intervals.icu data — includes MCP server,
   Python scripts, system prompts and coaching logic based on Joe Friel"* —
-  koncepcyjnie najbliższy „tren" z istniejących projektów.
+  koncepcyjnie najbliższy „trainctl" z istniejących projektów.
 - [eddmann/intervals-icu-mcp](https://github.com/eddmann/intervals-icu-mcp) —
   serwer MCP (~33 gwiazdki/26 forków wg jednego odczytu).
 - [hhopke/intervals-icu-mcp](https://github.com/hhopke/intervals-icu-mcp) —
@@ -320,14 +320,14 @@ its API"*, spójny z wcześniejszym zapisem Davida (28.11.2024,
 o tym, że dane ze Stravy podlegają jej ToS i nie mogą być pokazywane nawet
 followersom w samym intervals.icu, a co dopiero przez API zewnętrznym appkom.
 
-**Konsekwencja praktyczna dla „tren":** to nie jest już tylko kwestia „czy
+**Konsekwencja praktyczna dla „trainctl":** to nie jest już tylko kwestia „czy
 robimy integrację bezpośrednią ze Strava" (odpowiedź: nie, i słusznie) — to
-oznacza, że **droga danych „zegarek → Strava → intervals.icu → API → tren"
+oznacza, że **droga danych „zegarek → Strava → intervals.icu → API → trainctl"
 prawdopodobnie nie zwróci pełnych danych** (streams, laps) przez API
 intervals.icu, niezależnie od architektury huba. Hub w pełni działa tylko
 dla ścieżki „zegarek → bezpośrednie połączenie z intervals.icu (Garmin
 Connect / Polar Flow / Coros / Suunto / Wahoo w Ustawieniach intervals.icu)
-→ API". Użytkownicy „tren", którzy mają podłączoną **tylko** Stravę (a nie
+→ API". Użytkownicy „trainctl", którzy mają podłączoną **tylko** Stravę (a nie
 bezpośrednio swój zegarek) do intervals.icu, mogą nie mieć widocznych
 pełnych danych dla naszego narzędzia.
 
@@ -398,7 +398,7 @@ Content-Type: application/json
   "type": "Run",
   "name": "5x3min Tempo",
   "description": "- 15m 60% Pace Warmup\n\n5x\n- 3m 85% Pace\n- 2m 60% Pace\n\n- 10m 50% Pace Cooldown",
-  "external_id": "tren-2026-02-03-tempo"
+  "external_id": "trainctl-2026-02-03-tempo"
 }]
 ```
 (`type: "Ride"` w oryginalnym przykładzie z dokumentacji zamieniony tu na
@@ -417,7 +417,7 @@ https://intervals.icu/oauth/authorize?client_id=<id>&redirect_uri=<uri>&scope=AC
 ## 2a. WERYFIKACJA E2E NA ŻYWYM KONCIE (2026-08-05)
 
 Test wykonany prawdziwym kluczem API na koncie testowym (`i665499`), pełną
-ścieżką przez CLI (`tren plan` → `tren push` → `tren reschedule` → `tren push`).
+ścieżką przez CLI (`trainctl plan` → `trainctl push` → `trainctl reschedule` → `trainctl push`).
 Wszystkie wpisy testowe zostały po teście usunięte.
 
 **Potwierdzone:**
@@ -436,8 +436,8 @@ Wszystkie wpisy testowe zostały po teście usunięte.
 
 **Odkryta luka w projekcie (naprawiona):** push jest operacją upsert, więc po
 renegocjacji tygodnia trening przesunięty na inny dzień zostawiał „ducha" w
-kalendarzu i na zegarku. `tren push` usuwa teraz nieaktualne wpisy z zakresu —
-**wyłącznie te z prefiksem `tren-`**, żeby nigdy nie skasować treningu dodanego
+kalendarzu i na zegarku. `trainctl push` usuwa teraz nieaktualne wpisy z zakresu —
+**wyłącznie te z prefiksem `trainctl-`**, żeby nigdy nie skasować treningu dodanego
 ręcznie przez atletę (filtr zdublowany w adapterze i w komendzie).
 
 **Uwaga o kalibracji:** konto testowe nie miało ustawionego `threshold_pace`
@@ -450,13 +450,13 @@ skonfigurowanego progu. To potwierdza słuszność decyzji z `workout-syntax.ts`
 
 ## 2b. INFERENCJA PROFILU Z HISTORII — stan weryfikacji (2026-08-05, faza 6)
 
-`tren init --from-intervals` odpytuje `GET /athlete/0/activities?oldest&newest`
-(ten sam endpoint co `tren pull`, więc żadnej nowej powierzchni API).
+`trainctl init --from-intervals` odpytuje `GET /athlete/0/activities?oldest&newest`
+(ten sam endpoint co `trainctl pull`, więc żadnej nowej powierzchni API).
 
 **Zweryfikowane na żywym koncie:** ścieżka przechodzi end-to-end przez prawdziwe
 API (auth 200, zapytanie o 16 tygodni wykonane), a przy **zerowej historii**
 komenda kończy się czytelnym „Brak aktywności biegowych w oknie 16 tygodni —
-profil uzupełnij ręcznie" i **nie tworzy `tren.yaml`**. To jest właściwe
+profil uzupełnij ręcznie" i **nie tworzy `trainctl.yaml`**. To jest właściwe
 zachowanie: profil zmyślony z niczego byłby gorszy niż brak profilu.
 
 **Niezweryfikowane — wymaga konta z realną historią:** konto testowe `i665499`
@@ -470,7 +470,7 @@ okna 2024-01-01 → dziś), więc nie dało się sprawdzić:
 | Jakość detekcji startów na prawdziwej historii | otwarte — kandydaci są zawsze potwierdzani przez użytkownika (ADR-019), więc fałszywy pozytyw nie psuje planu |
 
 Kiedy konto dostanie realną historię (spięcie z Garminem), wystarczy uruchomić
-`tren init --from-intervals` w pustym katalogu i porównać propozycje z faktycznym
+`trainctl init --from-intervals` w pustym katalogu i porównać propozycje z faktycznym
 stanem wytrenowania — wynik dopisać do tej sekcji.
 
 ## 3. Pytania otwarte
@@ -501,7 +501,7 @@ w §2a — pozycje 3 i 4 poniżej są już **zamknięte**):
    że tak, ale nie znalazłem wprost przetestowanego potwierdzenia.
 7. **Czas odpowiedzi na wniosek o rejestrację aplikacji OAuth** (e-mail do
    david@intervals.icu) — brak danych; istotne dla planowania Fazy 4, jeśli
-   „tren" ma kiedyś wyjść poza model „każdy użytkownik wkleja własny API
+   „trainctl" ma kiedyś wyjść poza model „każdy użytkownik wkleja własny API
    key".
 8. **Czy istnieje formalny dokument Developer ToS/Agreement** analogiczny do
    Strava API Agreement — nie znaleziony; być może po prostu nie istnieje i
@@ -517,8 +517,8 @@ w §2a — pozycje 3 i 4 poniżej są już **zamknięte**):
 |---|---|---|
 | Wykonalność techniczna | **Niskie** | Wielosource'owy dowód: 3+ niezależne biblioteki, 3+ serwery MCP, 1 produkt komercyjny na tym samym API; cookbook z gotowymi przykładami curl pokrywa dokładnie potrzebne operacje (activities, wellness, events CRU). |
 | Bus factor / projekt jednoosobowy | **Średnie** | Zgodne z już zapisanym ryzykiem w SPEC.md §9. David aktywny i responsywny na forum, ale to nadal jedna osoba (pełny etat od IX 2024, więc ryzyko niższe niż dla projektu-hobby, ale wciąż realne). Mitygacja z SPEC (port `SyncProvider` + fallback FIT/GPX) jest właściwa i wystarczająca. |
-| **„Strava" jako noga huba** | **Wysokie — wymaga korekty ADR-002** | Od XI 2024 intervals.icu nie re-eksponuje danych ze Stravy przez własne API stronom trzecim. Dla „tren" oznacza to, że użytkownicy podłączeni do intervals.icu wyłącznie przez Stravę mogą nie mieć widocznych pełnych danych. To nie unieważnia decyzji o hubie, ale **zawęża jej realny zakres do integracji bezpośrednich** (Garmin/Polar/Coros/Suunto/Wahoo skonfigurowanych wprost w ustawieniach intervals.icu). |
-| Push planowanych treningów na zegarek (kluczowa funkcja pętli plan→wykonanie) | **Niskie dla Garmina, średnie dla reszty** | Garmin: potwierdzone wprost, w tym cele tempa dla biegania (z zastrzeżeniem „mixing HR+pace WIP" i wymogu ustawienia threshold pace). Polar: push **nie istnieje** (ograniczenie platformy). Coros/Wahoo/Suunto: zgłaszane jako działające, ale bez potwierdzenia niuansów dla biegania. Praktyczna rekomendacja: v1 „tren" zakładać pełne wsparcie pętli tylko dla Garmina, resztę traktować jako „powinno działać, do zweryfikowania ręcznie". |
+| **„Strava" jako noga huba** | **Wysokie — wymaga korekty ADR-002** | Od XI 2024 intervals.icu nie re-eksponuje danych ze Stravy przez własne API stronom trzecim. Dla „trainctl" oznacza to, że użytkownicy podłączeni do intervals.icu wyłącznie przez Stravę mogą nie mieć widocznych pełnych danych. To nie unieważnia decyzji o hubie, ale **zawęża jej realny zakres do integracji bezpośrednich** (Garmin/Polar/Coros/Suunto/Wahoo skonfigurowanych wprost w ustawieniach intervals.icu). |
+| Push planowanych treningów na zegarek (kluczowa funkcja pętli plan→wykonanie) | **Niskie dla Garmina, średnie dla reszty** | Garmin: potwierdzone wprost, w tym cele tempa dla biegania (z zastrzeżeniem „mixing HR+pace WIP" i wymogu ustawienia threshold pace). Polar: push **nie istnieje** (ograniczenie platformy). Coros/Wahoo/Suunto: zgłaszane jako działające, ale bez potwierdzenia niuansów dla biegania. Praktyczna rekomendacja: v1 „trainctl" zakładać pełne wsparcie pętli tylko dla Garmina, resztę traktować jako „powinno działać, do zweryfikowania ręcznie". |
 | Rate limity | **Niskie** dla CLI jednoosobowego, **nieznane** dla przyszłego multi-user | Limity API key (5000/dzień) są rzędy wielkości większe niż potrzeby pojedynczego atlety. Dopiero hostowana wersja wieloużytkownikowa przez OAuth musiałaby to modelować. |
 | ToS / goodwill autora | **Niskie-średnie** | Brak formalnego Developer Agreement = mniejsza pewność prawna, ale też brak sztywnych zakazów jak u Stravy. Jedyna zidentyfikowana czerwona linia Davida („nie być czystą nakładką na Stravę") jest zgodna z naszym planem — i tak nie budujemy re-eksportu danych Stravy. Rejestracja OAuth wymaga ręcznego maila — wprowadza zależność czasową (nieznaną) przy przejściu z „własny klucz API" na „aplikacja OAuth dla wielu userów", ale nie blokuje v1. |
 | Ryzyko prawne/AI-specyficzne | **Niskie po stronie intervals.icu, istotne po stronie Stravy** | Intervals.icu nie ma żadnej wykrytej klauzuli anty-AI — wręcz przeciwnie, ma oficjalną kategorię forum „AI Tools" z wieloma działającymi integracjami LLM/MCP bez śladu sprzeciwu. Całe ryzyko prawne dot. AI/coachingu jest po stronie Stravy (zakaz trenowania modeli, niejasność co do inference) — architektura hub **słusznie** to omija, z zastrzeżeniem z wiersza wyżej (dane ze Stravy i tak nie przejdą przez intervals.icu do nas). |
@@ -531,7 +531,7 @@ w §2a — pozycje 3 i 4 poniżej są już **zamknięte**):
 dostępną opcją — z jedną istotną korektą zakresu względem ADR-002.**
 
 Co się potwierdza w 100%: API jest darmowe, dobrze udokumentowane praktyką
-(cookbook + żywe forum + Swagger), ma dokładnie te endpointy, których „tren"
+(cookbook + żywe forum + Swagger), ma dokładnie te endpointy, których „trainctl"
 potrzebuje (activities, streams, wellness read/write, events read/create z
 natywnym formatem tekstowym obsługującym cele tempa dla biegania), i ma
 wielokrotnie potwierdzony precedens: inne open-source'owe i komercyjne
@@ -563,6 +563,6 @@ wprost — tylko precyzuje, na czym realnie polega.
 
 Dla Fazy 0 checklist: pozycję „weryfikacja API intervals.icu" można odhaczyć
 jako zrobioną, z dopiskiem odsyłającym do pytań otwartych w sekcji 3 do
-domknięcia na starcie Fazy 4 (rejestracja OAuth, jeśli „tren" ma kiedyś
+domknięcia na starcie Fazy 4 (rejestracja OAuth, jeśli „trainctl" ma kiedyś
 wyjść poza model BYO-API-key, powinna pójść w e-mailu do Davida z dużym
 wyprzedzeniem, bo czas odpowiedzi jest nieznany).

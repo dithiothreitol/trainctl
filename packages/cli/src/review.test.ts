@@ -3,11 +3,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { SyncProvider, SyncedActivity } from '@tren/core'
+import type { SyncProvider, SyncedActivity } from '@trainctl/core'
 import { cmdInit, cmdLog, cmdPlan, cmdReview } from './commands.ts'
 import { AGENTS_FILE } from './agents-md.ts'
 import { SECRET_FILE } from './sync.ts'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
@@ -52,13 +52,13 @@ let dir: string
 const withKey = () => writeFileSync(join(dir, SECRET_FILE), 'klucz-testowy', 'utf-8')
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-rev-'))
-  writeFileSync(join(dir, 'tren.yaml'), CONFIG, 'utf-8')
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-rev-'))
+  writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 })
 afterEach(() => rmSync(dir, { recursive: true, force: true }))
 
-describe('tren review — z kluczem API', () => {
+describe('trainctl review — z kluczem API', () => {
   it('odświeża dane i pokazuje wszystkie cztery sekcje', async () => {
     withKey()
     const r = await cmdReview(dir, { date: TODAY }, factory)
@@ -78,7 +78,7 @@ describe('tren review — z kluczem API', () => {
   it('proponuje wysyłkę na zegarek, gdy klucz jest', async () => {
     withKey()
     const r = await cmdReview(dir, { date: TODAY }, factory)
-    expect(r.output).toContain('tren push')
+    expect(r.output).toContain('trainctl push')
   })
 
   it('błąd sieci nie wywraca przeglądu — praca na migawce', async () => {
@@ -96,13 +96,13 @@ describe('tren review — z kluczem API', () => {
   })
 })
 
-describe('tren review — bez klucza (offline)', () => {
+describe('trainctl review — bez klucza (offline)', () => {
   it('działa z dziennika i mówi, czego brakuje', async () => {
     cmdLog(dir, { date: '2026-08-11', status: 'done', km: '12' })
     const r = await cmdReview(dir, { date: TODAY }, factory)
     expect(r.code).toBe(0)
     expect(r.output).toContain('Bez klucza API')
-    expect(r.output).toContain('tren export --what print') // zamiast push
+    expect(r.output).toContain('trainctl export --what print') // zamiast push
   })
 
   it('świeży plan bez żadnych danych nadal daje sensowny przegląd', async () => {
@@ -113,7 +113,7 @@ describe('tren review — bez klucza (offline)', () => {
   })
 })
 
-describe('tren review — treść merytoryczna', () => {
+describe('trainctl review — treść merytoryczna', () => {
   it('uprzedza o starcie kontrolnym w nadchodzącym tygodniu', async () => {
     const r = await cmdReview(dir, { date: '2026-08-31' }, factory)
     expect(r.output).toContain('2026-09-05')
@@ -132,7 +132,7 @@ describe('tren review — treść merytoryczna', () => {
   })
 
   it('bez planu — czytelny błąd zamiast wyjątku', async () => {
-    const empty = mkdtempSync(join(tmpdir(), 'tren-rev-none-'))
+    const empty = mkdtempSync(join(tmpdir(), 'trainctl-rev-none-'))
     const r = await cmdReview(empty, { date: TODAY }, factory)
     expect(r.code).toBe(1)
     rmSync(empty, { recursive: true, force: true })
@@ -140,20 +140,20 @@ describe('tren review — treść merytoryczna', () => {
 })
 
 describe('pakiet onboardingowy agenta', () => {
-  it('tren init tworzy AGENTS.md z rytuałami i zasadami', () => {
-    const fresh = mkdtempSync(join(tmpdir(), 'tren-agents-'))
+  it('trainctl init tworzy AGENTS.md z rytuałami i zasadami', () => {
+    const fresh = mkdtempSync(join(tmpdir(), 'trainctl-agents-'))
     const r = cmdInit(fresh)
     expect(r.code).toBe(0)
     expect(r.output).toContain(AGENTS_FILE)
     const text = readFileSync(join(fresh, AGENTS_FILE), 'utf-8')
-    expect(text).toContain('tren_review')
+    expect(text).toContain('trainctl_review')
     expect(text).toContain('Nie regeneruj planu bez pytania')
     expect(text).toContain('athlete.results')
     rmSync(fresh, { recursive: true, force: true })
   })
 
   it('istniejącego AGENTS.md nie nadpisuje (użytkownik mógł go zmienić)', () => {
-    const fresh = mkdtempSync(join(tmpdir(), 'tren-agents2-'))
+    const fresh = mkdtempSync(join(tmpdir(), 'trainctl-agents2-'))
     writeFileSync(join(fresh, AGENTS_FILE), 'moje zasady', 'utf-8')
     cmdInit(fresh)
     expect(readFileSync(join(fresh, AGENTS_FILE), 'utf-8')).toBe('moje zasady')

@@ -1,14 +1,14 @@
 {
-  "name": "@tren/export",
+  "name": "@trainctl/export",
   "version": "0.0.0",
   "private": true,
-  "description": "tren: eksport FIT (zegarek), ICS (kalendarz), HTML (druk, pakiet startowy)",
+  "description": "trainctl: eksport FIT (zegarek), ICS (kalendarz), HTML (druk, pakiet startowy)",
   "license": "MIT",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@tren/core": "workspace:*"
+    "@trainctl/core": "workspace:*"
   }
 }

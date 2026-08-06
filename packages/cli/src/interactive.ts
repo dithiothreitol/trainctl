@@ -4,7 +4,7 @@
  * w funkcjach `*Choices` — pętla wejścia jest cienka i wymaga TTY.
  */
 import { emitKeypressEvents } from 'node:readline'
-import { messages, type Microcycle, type PlannedDay } from '@tren/core'
+import { messages, type Microcycle, type PlannedDay } from '@trainctl/core'
 import { cmdShift, cmdWeek } from './commands.ts'
 import { ui } from './i18n/index.ts'
 import { loadPlan, workoutText, type StoredPlan } from './planfile.ts'
@@ -46,7 +46,7 @@ export interface InteractiveResult {
   code: number
 }
 
-/** `tren shift` bez argumentów: wybierz trening → wybierz nowy dzień. */
+/** `trainctl shift` bez argumentów: wybierz trening → wybierz nowy dzień. */
 export async function runShiftPicker(
   cwd: string,
   today: string,
@@ -83,7 +83,7 @@ export async function runShiftPicker(
   }
 }
 
-/** `tren export` bez argumentów: pyta, co wyeksportować (i który trening). */
+/** `trainctl export` bez argumentów: pyta, co wyeksportować (i który trening). */
 export async function runExportPicker(
   cwd: string,
   today: string,
@@ -120,13 +120,13 @@ export async function runExportPicker(
   return date ? { what, date } : undefined
 }
 
-/** `tren week -i`: przeglądanie tygodni strzałkami, `s` przesuwa trening. */
+/** `trainctl week -i`: przeglądanie tygodni strzałkami, `s` przesuwa trening. */
 export async function runWeekBrowser(
   cwd: string,
   today: string,
   theme = new Theme(),
 ): Promise<InteractiveResult> {
-  if (!canPrompt()) return { code: 1, output: ui().common.needsTerminal('tren week') }
+  if (!canPrompt()) return { code: 1, output: ui().common.needsTerminal('trainctl week') }
   let plan: StoredPlan
   try {
     plan = loadPlan(cwd)

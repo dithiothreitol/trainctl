@@ -1,10 +1,10 @@
-/** `tren init --from-intervals`: profil z historii, propozycje z proweniencją (ADR-019). */
+/** `trainctl init --from-intervals`: profil z historii, propozycje z proweniencją (ADR-019). */
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from '@tren/core'
-import { setLocale } from '@tren/core'
+import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from '@trainctl/core'
+import { setLocale } from '@trainctl/core'
 import { cmdInitFromIntervals } from './commands.ts'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
@@ -54,15 +54,15 @@ const factory = () => fakeProvider
 
 let dir: string
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-initicu-'))
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-initicu-'))
 })
 afterEach(() => rmSync(dir, { recursive: true, force: true }))
 
 describe('cmdInitFromIntervals', () => {
-  it('zapisuje tren.yaml z wartościami i komentarzami proweniencji', async () => {
+  it('zapisuje trainctl.yaml z wartościami i komentarzami proweniencji', async () => {
     const r = await cmdInitFromIntervals(dir, { date: TODAY }, factory)
     expect(r.code).toBe(0)
-    const yaml = readFileSync(join(dir, 'tren.yaml'), 'utf-8')
+    const yaml = readFileSync(join(dir, 'trainctl.yaml'), 'utf-8')
     expect(yaml).toContain('recentWeeklyKm: 42')
     expect(yaml).toContain('mediana')
     expect(yaml).toContain('intervals.icu')
@@ -72,7 +72,7 @@ describe('cmdInitFromIntervals', () => {
 
   it('cel jest placeholderem — loadConfig celowo go nie przepuści', async () => {
     await cmdInitFromIntervals(dir, { date: TODAY }, factory)
-    const yaml = readFileSync(join(dir, 'tren.yaml'), 'utf-8')
+    const yaml = readFileSync(join(dir, 'trainctl.yaml'), 'utf-8')
     expect(yaml).toContain('UZUPEŁNIJ')
     expect(yaml).toContain('date: "RRRR-MM-DD"')
     expect(yaml).toContain('distanceKm: 0')
@@ -82,17 +82,17 @@ describe('cmdInitFromIntervals', () => {
     const r = await cmdInitFromIntervals(dir, { date: TODAY }, factory)
     expect(r.output).toContain('Bieg po Zdrowie')
     expect(r.output).toContain('potwierdź')
-    const yaml = readFileSync(join(dir, 'tren.yaml'), 'utf-8')
+    const yaml = readFileSync(join(dir, 'trainctl.yaml'), 'utf-8')
     expect(yaml).not.toContain('Bieg po Zdrowie')
     expect(yaml).not.toContain('2599')
   })
 
-  it('istniejący tren.yaml nie jest nadpisywany', async () => {
-    writeFileSync(join(dir, 'tren.yaml'), 'athlete: {}\n', 'utf-8')
+  it('istniejący trainctl.yaml nie jest nadpisywany', async () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), 'athlete: {}\n', 'utf-8')
     const r = await cmdInitFromIntervals(dir, { date: TODAY }, factory)
     expect(r.code).toBe(1)
     expect(r.output).toContain('już istnieje')
-    expect(readFileSync(join(dir, 'tren.yaml'), 'utf-8')).toBe('athlete: {}\n')
+    expect(readFileSync(join(dir, 'trainctl.yaml'), 'utf-8')).toBe('athlete: {}\n')
   })
 
   it('za mało danych → czytelna odmowa, plik nie powstaje', async () => {

@@ -94,7 +94,7 @@ describe('reguła kluczowa: akcent po ciężkim dniu kognitywnym (B-10/S-8)', ()
 
   it('sugeruje przesunięcie akcentu (S-7)', () => {
     const day = planDeskDay(profile, intervals, { heavyCognitiveDay: true })
-    expect(day.guidance.some((g) => g.includes('tren shift'))).toBe(true)
+    expect(day.guidance.some((g) => g.includes('trainctl shift'))).toBe(true)
     expect(day.ruleRefs).toContain('S-7')
   })
 

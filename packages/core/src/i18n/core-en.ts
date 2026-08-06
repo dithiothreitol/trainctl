@@ -81,7 +81,7 @@ export const coreEn = {
       `${km(totalKm)} progression run (${from} → ${to}/km).`,
     timeTrial: (value: number) =>
       `${km(value)} time trial (all-out, fully rested) — ` +
-      'write the result into tren.yaml (athlete.results), that is what recalibrates your zones.',
+      'write the result into trainctl.yaml (athlete.results), that is what recalibrates your zones.',
     raceGoal: (name: string) => `RACE: ${name.toUpperCase()}.`,
     raceOther: (what: string) => `RACE: ${what}.`,
     restDay: 'rest day',
@@ -137,7 +137,7 @@ export const coreEn = {
       'come first (S-5); we do not squeeze strength in at the cost of running quality.',
     shortfallByDays: (placed: number, target: number, days: string) =>
       `Only ${placed} of ${target} strength sessions fit this week — the days you chose (${days}) ` +
-      'clash with accents or with the 48 h spacing. Widen `strength.days` in tren.yaml, ' +
+      'clash with accents or with the 48 h spacing. Widen `strength.days` in trainctl.yaml, ' +
       'or leave it empty and let the engine pick.',
   },
 
@@ -180,7 +180,7 @@ export const coreEn = {
       'zones are still computed from the older race.',
     uncalibratedTestAction: (date: string, distanceKm: number, timeSec: string) =>
       `Add the result to athlete.results: { date: "${date}", distanceKm: ${n(distanceKm)}, ` +
-      `timeSec: ${timeSec} } → tren diff → tren plan.`,
+      `timeSec: ${timeSec} } → trainctl diff → trainctl plan.`,
     timeSecPlaceholder: '<time in seconds>',
     restartAfterLayoff: (weeklyKm: number, days: number) =>
       `Restart: volume ×0.5–0.6 (≈${weeklyKm} km/week) after ${days} days off, ` +
@@ -212,7 +212,7 @@ export const coreEn = {
       'A plan you complete fully beats a bolder plan you complete 60% of.',
     complianceHigh: (pct: number) => `You consistently exceed the plan (${pct}% of volume).`,
     raiseVolume: (raised: number) =>
-      `Raise the base in tren.yaml to ≈${raised} km/week — but the next cycle will still ` +
+      `Raise the base in trainctl.yaml to ≈${raised} km/week — but the next cycle will still ` +
       'cap growth at ~10%/week; volume jumps do not buy fitness any faster.',
     onTrack: (pct: number, missed: number) =>
       `Execution matches the plan (${pct}% of volume, ${missed} sessions missed).`,
@@ -220,7 +220,7 @@ export const coreEn = {
     missedQuality: (count: number) =>
       `Accents missed: ${count}. Those, not the kilometres, build the top end of your fitness.`,
     shiftInsteadOfLosing:
-      'If work keeps eating your accents — move them (tren shift) instead of losing them. ' +
+      'If work keeps eating your accents — move them (trainctl shift) instead of losing them. ' +
       'Two quality sessions a week is the target (I-8).',
   },
 
@@ -238,7 +238,7 @@ export const coreEn = {
       '(heart rate, lactate, VO₂ all the same) and cuts time to exhaustion by ~15%. ' +
       'If the target pace "will not come" despite a normal heart rate — that is perception, not form.',
     moveAccentEarlier:
-      'If you can, move the accent before the work block or to another day (tren shift) — ' +
+      'If you can, move the accent before the work block or to another day (trainctl shift) — ' +
       'a session to exhaustion before demanding mental work degrades that work too.',
     easyIsSafe:
       'An easy session after a heavy mental day is safe — do not race the watch, ' +

@@ -1,6 +1,6 @@
 /**
  * Persona trenera dla agenta pracującego w katalogu treningowym (faza 8).
- * Plik trafia do katalogu użytkownika przy `tren init` i jest czytany przez
+ * Plik trafia do katalogu użytkownika przy `trainctl init` i jest czytany przez
  * Claude Code / Codex jako instrukcja projektu — bez niego agent zna narzędzia,
  * ale nie wie, jak być trenerem.
  *

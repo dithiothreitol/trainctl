@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { cmdDiff, cmdInit, cmdLog, cmdPlan, cmdShift, cmdToday, cmdWhy } from './commands.ts'
 import { loadPlan } from './planfile.ts'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
@@ -33,26 +33,26 @@ goal:
 let dir: string
 
 beforeAll(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-e2e-'))
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-e2e-'))
 })
 afterAll(() => {
   rmSync(dir, { recursive: true, force: true })
 })
 
-describe('tren init', () => {
+describe('trainctl init', () => {
   it('tworzy szablon i nie nadpisuje istniejącego', () => {
     const r = cmdInit(dir)
     expect(r.code).toBe(0)
-    expect(existsSync(join(dir, 'tren.yaml'))).toBe(true)
+    expect(existsSync(join(dir, 'trainctl.yaml'))).toBe(true)
     const again = cmdInit(dir)
     expect(again.code).toBe(1)
     expect(again.output).toContain('już istnieje')
   })
 })
 
-describe('tren plan', () => {
+describe('trainctl plan', () => {
   it('generuje plan.yaml + PLAN.md z predykcją i oceną celu', () => {
-    writeFileSync(join(dir, 'tren.yaml'), CONFIG, 'utf-8')
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
     const r = cmdPlan(dir, { date: TODAY })
     expect(r.code).toBe(0)
     expect(r.output).toContain('Predykcja')
@@ -73,7 +73,7 @@ describe('tren plan', () => {
   })
 })
 
-describe('tren today / why', () => {
+describe('trainctl today / why', () => {
   it('dzień treningowy: opis jednostki + kind', () => {
     const r = cmdToday(dir, { date: '2026-08-04' }) // wtorek — akcent
     expect(r.code).toBe(0)
@@ -104,7 +104,7 @@ describe('tren today / why', () => {
   })
 })
 
-describe('tren log', () => {
+describe('trainctl log', () => {
   it('loguje wykonanie i today je pokazuje', () => {
     const r = cmdLog(dir, { date: '2026-08-04', status: 'done', time: '58:30', note: 'dobre czucie' })
     expect(r.code).toBe(0)
@@ -119,7 +119,7 @@ describe('tren log', () => {
   })
 })
 
-describe('tren shift', () => {
+describe('trainctl shift', () => {
   it('zamienia treningi w obrębie tygodnia', () => {
     const before = loadPlan(dir)
     const tueKind = before.weeks[0]!.days[1]!.workout?.kind
@@ -151,7 +151,7 @@ describe('tren shift', () => {
   })
 })
 
-describe('tren diff', () => {
+describe('trainctl diff', () => {
   it('po ręcznych przesunięciach uprzedza o różnicach', () => {
     const r = cmdDiff(dir)
     expect(r.code).toBe(0)
@@ -159,9 +159,9 @@ describe('tren diff', () => {
   })
 
   it('zmiana profilu → widoczne różnice objętości', () => {
-    writeFileSync(join(dir, 'tren.yaml'), CONFIG.replace('recentWeeklyKm: 55', 'recentWeeklyKm: 65'), 'utf-8')
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('recentWeeklyKm: 55', 'recentWeeklyKm: 65'), 'utf-8')
     const r = cmdDiff(dir)
     expect(r.output).toContain('objętość')
-    expect(r.output).toContain('tren plan')
+    expect(r.output).toContain('trainctl plan')
   })
 })

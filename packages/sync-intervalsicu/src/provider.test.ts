@@ -3,7 +3,7 @@
  * Kształt odpowiedzi wzorowany na przykładach z docs/integrations/intervalsicu.md §2.
  */
 import { describe, expect, it } from 'vitest'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 
 setLocale('pl')
 import { IntervalsIcuClient, IntervalsIcuError } from './client.ts'
@@ -135,7 +135,7 @@ describe('pull wellness', () => {
 
 describe('push treningów', () => {
   const workout = {
-    externalId: 'tren-2026-08-04',
+    externalId: 'trainctl-2026-08-04',
     date: '2026-08-04',
     name: 'Interwały — Maraton',
     description: '- 3km 5:20/km Pace Warmup\n\n5x\n- 1km 4:15/km Pace\n- 3m 6:30/km Pace',
@@ -146,7 +146,7 @@ describe('push treningów', () => {
   it('POST events/bulk z upsert i poprawnym payloadem', async () => {
     const { provider: p, calls } = provider(() => ({ body: {} }))
     const res = await p.pushWorkouts([workout])
-    expect(res).toEqual({ pushed: 1, externalIds: ['tren-2026-08-04'] })
+    expect(res).toEqual({ pushed: 1, externalIds: ['trainctl-2026-08-04'] })
     expect(calls[0]!.url).toContain('/events/bulk?upsert=true')
     expect(calls[0]!.init!.method).toBe('POST')
     const body = JSON.parse(String(calls[0]!.init!.body)) as Record<string, unknown>[]
@@ -154,7 +154,7 @@ describe('push treningów', () => {
       category: 'WORKOUT',
       type: 'Run',
       start_date_local: '2026-08-04T00:00:00',
-      external_id: 'tren-2026-08-04',
+      external_id: 'trainctl-2026-08-04',
       distance_target: 12000,
     })
     expect(body[0]!['description']).toContain('4:15/km Pace')

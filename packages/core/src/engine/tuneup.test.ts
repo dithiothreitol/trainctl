@@ -178,7 +178,7 @@ describe('sprawdzian w mikrocyklu', () => {
     expect(seg.at(-1)?.type).toBe('cooldown')
   })
 
-  it('opis mówi wprost, po co to jest — wynik do tren.yaml', () => {
+  it('opis mówi wprost, po co to jest — wynik do trainctl.yaml', () => {
     expect(test!.workout!.segments[1]!.description).toContain('na czas')
     expect(test!.workout!.segments[1]!.description).toContain('results')
   })

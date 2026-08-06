@@ -1,11 +1,11 @@
 /**
- * Serwer MCP „tren" — te same use-case'y co CLI, jako narzędzia agenta.
- * Cienki adapter: handlery z @tren/cli są warstwą use-case'ów (ADR-008);
+ * Serwer MCP „trainctl" — te same use-case'y co CLI, jako narzędzia agenta.
+ * Cienki adapter: handlery z @trainctl/cli są warstwą use-case'ów (ADR-008);
  * tu tylko schematy wejść i mapowanie CmdResult → wynik narzędzia MCP.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import { ui } from '@tren/cli'
+import { ui } from '@trainctl/cli'
 import {
   cmdAdapt,
   cmdDesk,
@@ -26,7 +26,7 @@ import {
   defaultProviderFactory,
   type CmdResult,
   type ProviderFactory,
-} from '@tren/cli'
+} from '@trainctl/cli'
 
 const isoDate = () => z.string().regex(/^\d{4}-\d{2}-\d{2}$/, ui().mcp.isoDate)
 
@@ -37,15 +37,15 @@ function toTool(r: CmdResult) {
   }
 }
 
-export function createTrenServer(
+export function createTrainctlServer(
   dir: string,
   factory: ProviderFactory = defaultProviderFactory,
 ): McpServer {
   const t = ui().mcp
-  const server = new McpServer({ name: 'tren', version: '0.1.0' })
+  const server = new McpServer({ name: 'trainctl', version: '0.1.0' })
 
   server.registerTool(
-    'tren_init',
+    'trainctl_init',
     {
       description: t.init,
       inputSchema: {
@@ -57,7 +57,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_plan',
+    'trainctl_plan',
     {
       description: t.plan,
       inputSchema: { date: isoDate().optional().describe(t.planDate) },
@@ -66,7 +66,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_today',
+    'trainctl_today',
     {
       description: t.today,
       inputSchema: { date: isoDate().optional() },
@@ -75,7 +75,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_week',
+    'trainctl_week',
     {
       description: t.week,
       inputSchema: { date: isoDate().optional().describe(t.weekDate) },
@@ -84,7 +84,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_log',
+    'trainctl_log',
     {
       description: t.log,
       inputSchema: {
@@ -99,7 +99,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_shift',
+    'trainctl_shift',
     {
       description: t.shift,
       inputSchema: {
@@ -111,7 +111,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_why',
+    'trainctl_why',
     {
       description: t.why,
       inputSchema: { date: isoDate().optional() },
@@ -120,7 +120,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_adapt',
+    'trainctl_adapt',
     {
       description: t.adapt,
       inputSchema: { date: isoDate().optional().describe(t.adaptDate) },
@@ -129,7 +129,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_desk',
+    'trainctl_desk',
     {
       description: t.desk,
       inputSchema: {
@@ -141,7 +141,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_export',
+    'trainctl_export',
     {
       description: t.export,
       inputSchema: {
@@ -153,7 +153,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_reschedule',
+    'trainctl_reschedule',
     {
       description: t.reschedule,
       inputSchema: {
@@ -166,7 +166,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_push',
+    'trainctl_push',
     {
       description: t.push,
       inputSchema: {
@@ -179,7 +179,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_pull',
+    'trainctl_pull',
     {
       description: t.pull,
       inputSchema: { days: z.string().optional().describe(t.pullDays) },
@@ -188,7 +188,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_review',
+    'trainctl_review',
     {
       description: t.review,
       inputSchema: {
@@ -200,7 +200,7 @@ export function createTrenServer(
   )
 
   server.registerTool(
-    'tren_diff',
+    'trainctl_diff',
     {
       description: t.diff,
       inputSchema: {},

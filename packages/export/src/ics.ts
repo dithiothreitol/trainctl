@@ -3,7 +3,7 @@
  * kalendarza telefonu. Zdarzenia całodniowe, bo trening ma dzień, nie godzinę
  * (o porze decyduje tryb biurkowy).
  */
-import type { PlannedDay } from '@tren/core'
+import type { PlannedDay } from '@trainctl/core'
 
 export interface IcsOptions {
   planName: string
@@ -58,11 +58,11 @@ export interface IcsEntry {
 
 export function toIcs(entries: IcsEntry[], opts: IcsOptions): string {
   const stamp = opts.stamp ?? '20260101T000000Z'
-  const prefix = opts.uidPrefix ?? 'tren'
+  const prefix = opts.uidPrefix ?? 'trainctl'
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//tren//plan treningowy//PL',
+    'PRODID:-//trainctl//plan treningowy//PL',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeIcs(opts.planName)}`,
@@ -70,7 +70,7 @@ export function toIcs(entries: IcsEntry[], opts: IcsOptions): string {
   for (const entry of entries) {
     lines.push(
       'BEGIN:VEVENT',
-      `UID:${prefix}-${entry.day.date}@tren`,
+      `UID:${prefix}-${entry.day.date}@trainctl`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${compact(entry.day.date)}`,
       `DTEND;VALUE=DATE:${nextDay(entry.day.date)}`,

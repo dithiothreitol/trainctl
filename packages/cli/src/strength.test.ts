@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { cmdExport, cmdPlan, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { loadPlan } from './planfile.ts'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
@@ -29,12 +29,12 @@ const WITH_STRENGTH = BASE + `strength:
 
 let dir: string
 const setup = (yaml: string) => {
-  writeFileSync(join(dir, 'tren.yaml'), yaml, 'utf-8')
+  writeFileSync(join(dir, 'trainctl.yaml'), yaml, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 }
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-str-'))
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-str-'))
 })
 afterEach(() => rmSync(dir, { recursive: true, force: true }))
 
@@ -63,7 +63,7 @@ describe('opt-in', () => {
   })
 
   it('błędna konfiguracja siły → czytelny komunikat', () => {
-    writeFileSync(join(dir, 'tren.yaml'), BASE + 'strength:\n  enabled: tak\n', 'utf-8')
+    writeFileSync(join(dir, 'trainctl.yaml'), BASE + 'strength:\n  enabled: tak\n', 'utf-8')
     const r = cmdPlan(dir, { date: '2026-08-05' })
     expect(r.code).toBe(1)
     expect(r.output).toContain('strength.enabled')

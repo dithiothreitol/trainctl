@@ -1,14 +1,14 @@
 {
-  "name": "@tren/sync-intervalsicu",
+  "name": "@trainctl/sync-intervalsicu",
   "version": "0.0.0",
   "private": true,
-  "description": "tren: adapter intervals.icu (pull aktywności/wellness, push treningów)",
+  "description": "trainctl: adapter intervals.icu (pull aktywności/wellness, push treningów)",
   "license": "MIT",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@tren/core": "workspace:*"
+    "@trainctl/core": "workspace:*"
   }
 }

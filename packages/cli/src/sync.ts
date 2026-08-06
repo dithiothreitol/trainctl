@@ -1,16 +1,16 @@
 /**
  * Warstwa sync w CLI: klucz API z env/pliku, push planu i pull wykonania.
- * Klucz NIGDY nie trafia do tren.yaml (plik jest w repo użytkownika) —
- * czytamy z env TREN_INTERVALS_API_KEY albo z .tren-secret (gitignore).
+ * Klucz NIGDY nie trafia do trainctl.yaml (plik jest w repo użytkownika) —
+ * czytamy z env TRAINCTL_INTERVALS_API_KEY albo z .trainctl-secret (gitignore).
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { addDays, type SyncProvider, type SyncedActivity, type SyncedWellness } from '@tren/core'
-import { IntervalsIcuProvider, toPushableWorkout } from '@tren/sync-intervalsicu'
+import { addDays, type SyncProvider, type SyncedActivity, type SyncedWellness } from '@trainctl/core'
+import { IntervalsIcuProvider, toPushableWorkout } from '@trainctl/sync-intervalsicu'
 import { ui } from './i18n/index.ts'
 import { loadPlan, type StoredPlan } from './planfile.ts'
 
-export const SECRET_FILE = '.tren-secret'
+export const SECRET_FILE = '.trainctl-secret'
 export const SYNC_FILE = 'sync.json'
 
 export interface SyncSnapshot {
@@ -20,7 +20,7 @@ export interface SyncSnapshot {
 }
 
 export function readApiKey(cwd: string): string {
-  const fromEnv = process.env['TREN_INTERVALS_API_KEY']?.trim()
+  const fromEnv = process.env['TRAINCTL_INTERVALS_API_KEY']?.trim()
   if (fromEnv) return fromEnv
   const path = join(cwd, SECRET_FILE)
   if (existsSync(path)) {

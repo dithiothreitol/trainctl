@@ -1,4 +1,4 @@
-# Fundament naukowy silnika `tren`
+# Fundament naukowy silnika `trainctl`
 
 **Status:** Faza 0 — research zakończony 2026-08-04
 **Zakres:** bieganie (v1). Reguły dla triathlonu/ultra oznaczone jako ekstrapolacje.
@@ -22,7 +22,7 @@ Każde twierdzenie ma **siłę dowodów** w jednej z pięciu kategorii:
 (sedentary), Tier 1 (recreationally active), Tier 2 (trained/developmental), Tier 3
 (highly trained/national), Tier 4 (elite/international), Tier 5 (world class).
 To istotne, bo **większość „klasycznych" badań o rozkładzie intensywności dotyczy
-Tier 3–5, a docelowy użytkownik `tren` to Tier 1–2.**
+Tier 3–5, a docelowy użytkownik `trainctl` to Tier 1–2.**
 
 > McKay AKA, Stellingwerff T, Smith ES, Martin DT, Mujika I, Goosey-Tolfrey VL, et al.
 > *Defining Training and Performance Caliber: A Participant Classification Framework.*
@@ -412,7 +412,7 @@ Zarzuty:
 Rekomendacja autorów: opierać się na **klasycznych zasadach treningu (progresywne
 przeciążenie) i reakcji zawodnika**, nie na metrykach typu ACWR.
 
-**Decyzja dla `tren`:** **nie implementować ACWR jako guardraila blokującego.**
+**Decyzja dla `trainctl`:** **nie implementować ACWR jako guardraila blokującego.**
 Można liczyć i pokazywać stosunek 7 d / 28 d jako **deskryptor** („twoje obciążenie
 z ostatniego tygodnia to 1,35× średniej z 4 tygodni"), bez progów, bez „sweet spota",
 bez języka ryzyka urazu. To uczciwie odzwierciedla stan dowodów.
@@ -447,7 +447,7 @@ overtraining syndrome.* Med Sci Sports Exerc. 1998;30(7):1164–1168 — **pozio
 ⚠️ **Progu numerycznego monotonii (powszechnie cytowane „>2,0") nie udało się
 potwierdzić w źródle pierwotnym** — patrz sekcja 11.
 
-**Decyzja dla `tren`:** liczyć monotonię i strain, używać jako **sygnału
+**Decyzja dla `trainctl`:** liczyć monotonię i strain, używać jako **sygnału
 diagnostycznego przy generowaniu tygodnia** (unikać planów, gdzie wszystkie dni mają
 identyczne obciążenie), ale **nie podawać progu numerycznego** jako granicy
 bezpieczeństwa. Monotonia jest przydatna jako *cel projektowy planu*
@@ -675,7 +675,7 @@ ekonomii"), pochodzą z badań nad **plyometrią i treningiem eksplozywnym**
 — czyli z sekcji 7, nie z badań nad przebieżkami.
 Klasyfikacja: **poziom D/E** — konsensus praktyczny bez bezpośrednich dowodów.
 Silnik może wstawiać strides (są tanie i zgodne z praktyką korpusu), ale
-**uzasadnienie w `tren why` musi być uczciwe**: „praktyka trenerska; brak
+**uzasadnienie w `trainctl why` musi być uczciwe**: „praktyka trenerska; brak
 bezpośrednich badań", nie „udowodniono poprawę ekonomii".
 
 ### 4.6 „Norwegian method" / double threshold — hype vs dowody
@@ -716,7 +716,7 @@ lub amatorów.**
 
 **Werdykt dla silnika:** double threshold to **poziom D bez ani jednego badania
 kontrolowanego**, opisany wyłącznie u zawodników 1500/5000 m robiących 150–180 km/tyg.
-Wymaga pomiaru laktatu, którego użytkownik `tren` nie ma. **Nie implementować
+Wymaga pomiaru laktatu, którego użytkownik `trainctl` nie ma. **Nie implementować
 w v1.** Jeśli kiedyś — jako jawnie eksperymentalny tryb dla użytkownika Tier 3+
 z mleczanomierzem, z ostrzeżeniem o statusie dowodów. Wersja „double threshold
 na czuja bez laktatu" to nie ta metoda, tylko dwie sesje progowe w jeden dzień
@@ -931,7 +931,7 @@ CP/CS **sama spada o ~10% po 2 h**, a rozrzut indywidualny to 1–31%.
 Nie da się tego naprawić jednym wykładnikiem — to zmienna osobnicza,
 którą trzeba **kalibrować z historii startów użytkownika**, nie zgadywać.
 
-### 6.5 Rekomendacja: predykcja w `tren`
+### 6.5 Rekomendacja: predykcja w `trainctl`
 
 Hierarchia predyktorów (od najlepszego):
 
@@ -1331,7 +1331,7 @@ wewnątrzosobniczego. **Reguła: HRV-guided tylko z pasa piersiowego.**
 | Cykl menstruacyjny | ⚠️ **case report n=2**: RMSSD niższy w późnej fazie lutealnej (p=0,005–0,045) (Dupuit 2025); inne badania nie potwierdzają — **kwestia nierozstrzygnięta** |
 | Wysokość | baseline przesuwa się; spadek przez ~72 h, powrót ~9. dnia — wymaga re-baseline'u (Bahenský & Grosicki 2021) |
 
-### 8.6 Wniosek dla `tren`
+### 8.6 Wniosek dla `trainctl`
 
 HRV-guided należy do fazy 5+ (wymaga danych wellness z intervals.icu).
 **Realistyczna obietnica:** nie „szybszy progres", ale „mniej sesji jakościowych
@@ -1404,7 +1404,7 @@ prac** — to zlepek dwóch różnych liczb: 24 min/dzień akcelerometrycznego M
 maksymalnej redukcji ryzyka (BMJ 2019) i ~60–75 min/dzień samoopisowej aktywności
 umiarkowanej dla pełnej neutralizacji (Lancet 2016).
 
-**Dobra wiadomość dla `tren`:** użytkownik trenujący do maratonu 4–6×/tyg. jest
+**Dobra wiadomość dla `trainctl`:** użytkownik trenujący do maratonu 4–6×/tyg. jest
 w najwyższym kwartylu aktywności. Główny efekt zdrowotny ma już „za darmo".
 Przerwy w siedzeniu to dla niego kwestia glikemii poposiłkowej i komfortu,
 nie śmiertelności.
@@ -1455,7 +1455,7 @@ klasyfikowanych jako intensywne.
   CVD HR = 0,66 [0,50; 0,88]
 - Zależność niemal liniowa, bez plateau w obserwowanym zakresie
 
-⚠️ **Kluczowe zastrzeżenie dla `tren`: badanie dotyczy osób, które NIE trenują.**
+⚠️ **Kluczowe zastrzeżenie dla `trainctl`: badanie dotyczy osób, które NIE trenują.**
 Nie ma podstaw twierdzić, że biegacz robiący 50 km/tyg. odniesie dodatkową korzyść
 z VILPA. Przenoszenie tych HR na naszego użytkownika byłoby nieuczciwe.
 
@@ -1564,7 +1564,7 @@ neutralnych dokumentów, potem jazda do wyczerpania przy 80% peak power.
 > **Przedział predykcji −0,74 do +0,09** — bardzo duża zmienność międzyosobnicza.
 > Płeć, wiek, BMI, poziom trenowania **nie moderowały** podatności.
 
-**To jest najbardziej wartościowy wniosek sekcji 9 dla `tren`:** dzień intensywnej
+**To jest najbardziej wartościowy wniosek sekcji 9 dla `trainctl`:** dzień intensywnej
 pracy kognitywnej (a taki jest domyślny dzień naszego użytkownika) **obniża
 wytrzymałość o ~15% przez podniesienie percepcji wysiłku, nie przez fizjologię**.
 Konsekwencje praktyczne:
@@ -1590,7 +1590,7 @@ n=263 pracowników biurowych, 23 klastry, 3 ramiona, 6 miesięcy.
 
 Ostry kontrapunkt do ostrych efektów laboratoryjnych z 9.1–9.3: **przełożenie
 „rób przerwy w siedzeniu" na trwałą zmianę zachowań pracownika biurowego
-nie udało się w RCT.** Funkcja „exercise snacks" w `tren` powinna być projektowana
+nie udało się w RCT.** Funkcja „exercise snacks" w `trainctl` powinna być projektowana
 z założeniem niskiej adherencji — czyli jako coś taniego i opcjonalnego,
 nie jako filar planu.
 

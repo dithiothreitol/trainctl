@@ -35,12 +35,12 @@ const run = (args: string[], env: NodeJS.ProcessEnv = {}) =>
   execFileSync(process.execPath, [CLI_BIN, ...args], {
     cwd: dir,
     encoding: 'utf-8',
-    env: { ...process.env, TREN_LANG: 'pl', ...env },
+    env: { ...process.env, TRAINCTL_LANG: 'pl', ...env },
   })
 
 beforeAll(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-bin-'))
-  writeFileSync(join(dir, 'tren.yaml'), CONFIG, 'utf-8')
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-bin-'))
+  writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
 })
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
@@ -64,9 +64,9 @@ describe('binarka CLI pod natywnym Node', () => {
     expect(run(['today', '--date', '2026-08-04'])).toMatch(/tydzień \d+\/\d+/)
   }, 20_000) // dwa starty realnej binarki — domyślne 5 s bywa ciasne na obciążonej maszynie
 
-  it('wybór języka działa na prawdziwej binarce: --lang, TREN_LANG, domyślny angielski', () => {
-    // domyślnie angielski (czyścimy TREN_LANG, żeby nie dziedziczyć ustawienia z `run`)
-    const en = run(['today', '--date', '2026-08-04'], { TREN_LANG: '' })
+  it('wybór języka działa na prawdziwej binarce: --lang, TRAINCTL_LANG, domyślny angielski', () => {
+    // domyślnie angielski (czyścimy TRAINCTL_LANG, żeby nie dziedziczyć ustawienia z `run`)
+    const en = run(['today', '--date', '2026-08-04'], { TRAINCTL_LANG: '' })
     expect(en).toMatch(/week \d+\/\d+/)
     expect(en).not.toMatch(/[ąćęłńóśźż]/)
 
@@ -76,11 +76,11 @@ describe('binarka CLI pod natywnym Node', () => {
     // flaga bije zmienną — i to w obie strony
     expect(run(['today', '--date', '2026-08-04', '--lang', 'en'])).toMatch(/week \d+\/\d+/)
     expect(
-      run(['today', '--date', '2026-08-04', '--lang', 'pl'], { TREN_LANG: 'en' }),
+      run(['today', '--date', '2026-08-04', '--lang', 'pl'], { TRAINCTL_LANG: 'en' }),
     ).toMatch(/tydzień \d+\/\d+/)
 
     // nieznany język nie wywraca komendy — wraca do angielskiego
-    expect(run(['today', '--date', '2026-08-04', '--lang', 'klingon'], { TREN_LANG: '' }))
+    expect(run(['today', '--date', '2026-08-04', '--lang', 'klingon'], { TRAINCTL_LANG: '' }))
       .toMatch(/week \d+\/\d+/)
   }, 40_000)
 
@@ -92,13 +92,13 @@ describe('binarka CLI pod natywnym Node', () => {
   })
 
   it('init --from-intervals bez klucza — instrukcja, nie stack trace', () => {
-    const empty = mkdtempSync(join(tmpdir(), 'tren-bin-icu-'))
+    const empty = mkdtempSync(join(tmpdir(), 'trainctl-bin-icu-'))
     let output = ''
     try {
       output = execFileSync(process.execPath, [CLI_BIN, 'init', '--from-intervals'], {
         cwd: empty,
         encoding: 'utf-8',
-        env: { ...process.env, TREN_INTERVALS_API_KEY: '' },
+        env: { ...process.env, TRAINCTL_INTERVALS_API_KEY: '' },
       })
     } catch (e) {
       output = String((e as { stdout?: string }).stdout ?? '')
@@ -134,11 +134,11 @@ describe('binarka MCP pod natywnym Node', () => {
     const out = execFileSync(process.execPath, [MCP_BIN], {
       input: req,
       encoding: 'utf-8',
-      env: { ...process.env, TREN_DIR: dir },
+      env: { ...process.env, TRAINCTL_DIR: dir },
       timeout: 30_000,
     })
     expect(out).toContain('"serverInfo"')
-    expect(out).toContain('tren_push')
-    expect(out).toContain('tren_today')
+    expect(out).toContain('trainctl_push')
+    expect(out).toContain('trainctl_today')
   })
 })

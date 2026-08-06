@@ -132,7 +132,7 @@ describe('rekalibracja i akcenty', () => {
     )
     const p = analyzeExecution({ today: TODAY, execution: exec, currentWeeklyKm: 60 })
     expect(p.diagnosis.some((d) => d.includes('Pominięte akcenty'))).toBe(true)
-    expect(p.warnings.some((w) => w.includes('tren shift'))).toBe(true)
+    expect(p.warnings.some((w) => w.includes('trainctl shift'))).toBe(true)
   })
 
   it('nigdy nie używa ACWR ani języka ryzyka urazu (P-4)', () => {

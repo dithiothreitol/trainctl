@@ -10,8 +10,8 @@
  * w mm/s (m/s × 1000), zamieniając s/km na m/s. Szybsze tempo = wyższa prędkość,
  * więc granice zakresu zamieniają się miejscami.
  */
-import { messages } from '@tren/core'
-import type { PlannedWorkout, PaceRange } from '@tren/core'
+import { messages } from '@trainctl/core'
+import type { PlannedWorkout, PaceRange } from '@trainctl/core'
 
 // ---------------------------------------------------------------- prymitywy
 

@@ -91,7 +91,7 @@ export const corePl: CoreMessages = {
       `${n(totalKm)} km w tempie narastającym (od ${from} do ${to} na km).`,
     timeTrial: (value: number) =>
       `${km(value)} na czas (maksymalnie, na pełnym wypoczynku) — ` +
-      'wynik dopisz do tren.yaml (athlete.results), z niego kalibrujemy strefy.',
+      'wynik dopisz do trainctl.yaml (athlete.results), z niego kalibrujemy strefy.',
     raceGoal: (name: string) => `START: ${name.toUpperCase()}.`,
     raceOther: (what: string) => `START W ${what}.`,
     restDay: 'dzień wolny',
@@ -143,7 +143,7 @@ export const corePl: CoreMessages = {
       'mają pierwszeństwo (S-5); nie upychamy siły kosztem jakości biegania.',
     shortfallByDays: (placed: number, target: number, days: string) =>
       `W tym tygodniu zmieściły się ${placed} z ${target} sesji siły — wybrane dni (${days}) ` +
-      'kolidują z akcentami albo z odstępem 48 h. Poszerz `strength.days` w tren.yaml ' +
+      'kolidują z akcentami albo z odstępem 48 h. Poszerz `strength.days` w trainctl.yaml ' +
       'albo zostaw puste, a silnik dobierze dni sam.',
   },
 
@@ -188,7 +188,7 @@ export const corePl: CoreMessages = {
       'strefy dalej liczą się ze starszego startu.',
     uncalibratedTestAction: (date: string, distanceKm: number, timeSec: string) =>
       `Dopisz wynik do athlete.results: { date: "${date}", distanceKm: ${n(distanceKm)}, ` +
-      `timeSec: ${timeSec} } → tren diff → tren plan.`,
+      `timeSec: ${timeSec} } → trainctl diff → trainctl plan.`,
     timeSecPlaceholder: '<czas w sekundach>',
     restartAfterLayoff: (weeklyKm: number, days: number) =>
       `Restart: objętość ×0,5–0,6 (≈${weeklyKm} km/tydz.) po ${days} ` +
@@ -222,7 +222,7 @@ export const corePl: CoreMessages = {
       'Plan wykonywany w 100% bije ambitniejszy plan wykonywany w 60%.',
     complianceHigh: (pct: number) => `Regularnie przekraczasz plan (${pct}% objętości).`,
     raiseVolume: (raised: number) =>
-      `Podnieś bazę w tren.yaml do ≈${raised} km/tydz. — ale kolejny cykl i tak ` +
+      `Podnieś bazę w trainctl.yaml do ≈${raised} km/tydz. — ale kolejny cykl i tak ` +
       'ograniczy wzrost do ~10%/tydz.; skoki objętości nie kupują formy szybciej.',
     onTrack: (pct: number, missed: number) =>
       `Wykonanie zgodne z planem (${pct}% objętości, pominiętych sesji: ${missed}).`,
@@ -230,7 +230,7 @@ export const corePl: CoreMessages = {
     missedQuality: (count: number) =>
       `Pominięte akcenty: ${count}. To one, nie kilometry, budują górny zakres formy.`,
     shiftInsteadOfLosing:
-      'Jeśli akcenty regularnie wypadają przez pracę — przesuwaj je (tren shift), ' +
+      'Jeśli akcenty regularnie wypadają przez pracę — przesuwaj je (trainctl shift), ' +
       'zamiast je tracić. Dwie sesje jakościowe w tygodniu to cel (I-8).',
   },
 
@@ -248,7 +248,7 @@ export const corePl: CoreMessages = {
       'fizjologii (tętno, laktat, VO₂ bez różnic) i skraca wytrzymałość o ~15%. ' +
       'Jeśli tempo docelowe „nie idzie" mimo prawidłowego tętna — to percepcja, nie forma.',
     moveAccentEarlier:
-      'Jeśli możesz, przenieś akcent przed blok pracy albo na inny dzień (tren shift) — ' +
+      'Jeśli możesz, przenieś akcent przed blok pracy albo na inny dzień (trainctl shift) — ' +
       'sesja do wyczerpania przed wymagającą pracą umysłową też pogarsza jej jakość.',
     easyIsSafe:
       'Spokojna jednostka po ciężkim dniu umysłowym jest bezpieczna — nie ścigaj się z zegarkiem, ' +

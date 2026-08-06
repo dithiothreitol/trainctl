@@ -1,6 +1,6 @@
 /**
  * Kontrola jakości katalogów CLI — odpowiednik `core/src/i18n/i18n.test.ts`,
- * ale dla warstwy interfejsu: nagłówków, kreatora, szablonu tren.yaml,
+ * ale dla warstwy interfejsu: nagłówków, kreatora, szablonu trainctl.yaml,
  * instrukcji dla agenta i opisów narzędzi MCP.
  *
  * Kompilator pilnuje kompletu kluczy. Tutaj sprawdzamy to, czego typ nie
@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
-import { setLocale, withLocale, type Locale } from '@tren/core'
+import { setLocale, withLocale, type Locale } from '@trainctl/core'
 import { cmdDiff, cmdPlan } from '../commands.ts'
 import { configTemplate, inferredConfigYaml } from '../config.ts'
 import { cliEn, type CliMessages } from './cli-en.ts'
@@ -165,10 +165,10 @@ describe('instrukcja dla agenta (AGENTS.md)', () => {
 
   it('nazwy narzędzi i plików przeżywają tłumaczenie', () => {
     for (const doc of [en, pl]) {
-      for (const token of ['tren_review', 'tren_plan', 'tren_diff', 'tren_shift', 'tren_why']) {
+      for (const token of ['trainctl_review', 'trainctl_plan', 'trainctl_diff', 'trainctl_shift', 'trainctl_why']) {
         expect(doc).toContain(token)
       }
-      expect(doc).toContain('tren.yaml')
+      expect(doc).toContain('trainctl.yaml')
       expect(doc).toContain('plan/plan.yaml')
       expect(doc).toContain('log.jsonl')
       expect(doc).toContain('docs/science/FOUNDATIONS.md')
@@ -184,7 +184,7 @@ describe('instrukcja dla agenta (AGENTS.md)', () => {
   })
 })
 
-describe('szablon tren.yaml', () => {
+describe('szablon trainctl.yaml', () => {
   it('przetłumaczone komentarze nie psują YAML-a — obie wersje parsują się tak samo', () => {
     const structure = (locale: Locale) => {
       const parsed = withLocale(locale, () => parse(configTemplate())) as Record<string, unknown>
@@ -255,10 +255,10 @@ describe('opisy narzędzi MCP', () => {
 
   it('odwołania do innych narzędzi przetrwały tłumaczenie', () => {
     for (const catalog of Object.values(CATALOGS)) {
-      expect(catalog.mcp.plan).toContain('tren_diff')
-      expect(catalog.mcp.week).toContain('tren_shift')
-      expect(catalog.mcp.reschedule).toContain('tren_shift')
-      expect(catalog.mcp.review).toContain('tren_pull')
+      expect(catalog.mcp.plan).toContain('trainctl_diff')
+      expect(catalog.mcp.week).toContain('trainctl_shift')
+      expect(catalog.mcp.reschedule).toContain('trainctl_shift')
+      expect(catalog.mcp.review).toContain('trainctl_pull')
     }
   })
 })
@@ -277,11 +277,11 @@ describe('ui() podąża za językiem', () => {
 })
 
 describe('plan pamięta język, w którym powstał', () => {
-  it('tren diff mówi, że opisy w PLAN.md są w innym języku niż bieżący', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'tren-locale-'))
+  it('trainctl diff mówi, że opisy w PLAN.md są w innym języku niż bieżący', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'trainctl-locale-'))
     try {
       writeFileSync(
-        join(dir, 'tren.yaml'),
+        join(dir, 'trainctl.yaml'),
         `athlete:
   recentWeeklyKm: 45
   daysAvailable: [tue, thu, sat]
@@ -301,7 +301,7 @@ goal:
       // ale opisy w plan/PLAN.md zostały polskie — i to musi być powiedziane
       const enDiff = withLocale('en', () => cmdDiff(dir))
       expect(enDiff.output).toContain('"pl"')
-      expect(enDiff.output).toContain('tren plan')
+      expect(enDiff.output).toContain('trainctl plan')
 
       // bez zmiany języka żadnej uwagi nie ma
       const plDiff = withLocale('pl', () => cmdDiff(dir))

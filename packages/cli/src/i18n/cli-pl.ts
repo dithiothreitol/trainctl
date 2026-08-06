@@ -7,7 +7,7 @@
  *  - cudzysłowy drukarskie „…", półpauza — w zdaniu, dywiz w złożeniach,
  *  - tryb rozkazujący w podpowiedziach („uruchom", „dopisz"), bo tak mówi trener.
  */
-import { formatNumber, pluralPl } from '@tren/core'
+import { formatNumber, pluralPl } from '@trainctl/core'
 import type { CliMessages } from './cli-en.ts'
 
 const n = (value: number) => formatNumber('pl', value)
@@ -23,11 +23,11 @@ const przerwy = (count: number) =>
 export const cliPl: CliMessages = {
   cmd: {
     banner: 'plan treningowy jako kod, trener jako narzędzie agenta',
-    lang: 'język interfejsu: en | pl (albo TREN_LANG / language w tren.yaml)',
+    lang: 'język interfejsu: en | pl (albo TRAINCTL_LANG / language w trainctl.yaml)',
     init: 'utwórz profil (interaktywnie w terminalu)',
     initTemplate: 'zapisz szablon bez pytań',
     initFromIntervals: 'zaproponuj profil z historii intervals.icu (wymaga klucza API)',
-    plan: 'wygeneruj plan z tren.yaml → plan/plan.yaml + plan/PLAN.md',
+    plan: 'wygeneruj plan z trainctl.yaml → plan/plan.yaml + plan/PLAN.md',
     today: 'co mam dziś wybiegać',
     week: 'podgląd tygodnia; -i włącza przeglądanie strzałkami',
     weekInteractive: 'przeglądaj tygodnie klawiszami (←/→, s, q)',
@@ -41,7 +41,7 @@ export const cliPl: CliMessages = {
     pull: 'pobierz wykonane aktywności i wellness; porównaj z planem',
     export: 'plik na zegarek (FIT), kalendarz (ICS), rozpiska albo pakiet startowy',
     reschedule: 'przestaw tydzień wokół zajętych dni (solver: akcenty, 48 h, długie)',
-    diff: 'co by się zmieniło po regeneracji planu z aktualnego tren.yaml',
+    diff: 'co by się zmieniło po regeneracji planu z aktualnego trainctl.yaml',
     optDate: 'data (domyślnie: dziś)',
     optDateOther: 'inna data niż dziś',
     optDateWeek: 'data w interesującym tygodniu',
@@ -66,7 +66,7 @@ export const cliPl: CliMessages = {
     interactively: 'Interaktywnie: ',
     pickFromList: ' (wybór z listy) · ',
     browseArrows: ' (przeglądanie strzałkami)',
-    colorsHint: 'Kolory: NO_COLOR=1 wyłącza, TREN_ASCII=1 wymusza znaki ASCII.',
+    colorsHint: 'Kolory: NO_COLOR=1 wyłącza, TRAINCTL_ASCII=1 wymusza znaki ASCII.',
     spinnerPush: 'wysyłam treningi do intervals.icu…',
     spinnerPull: 'pobieram dane z intervals.icu…',
     spinnerReview: 'przygotowuję przegląd tygodnia…',
@@ -78,8 +78,8 @@ export const cliPl: CliMessages = {
     saved: (what: string) => `Zapisano ${what}`,
     outsidePlan: (date: string, from: string, to: string) =>
       `${date}: poza zakresem planu (${from} → ${to}).`,
-    noPlan: 'Brak planu — uruchom najpierw: tren plan',
-    missingConfig: (file: string) => `Brak ${file} — uruchom najpierw: tren init`,
+    noPlan: 'Brak planu — uruchom najpierw: trainctl plan',
+    missingConfig: (file: string) => `Brak ${file} — uruchom najpierw: trainctl init`,
     configErrors: (file: string, errors: string) => `Błędy w ${file}:\n  - ${errors}`,
     cancelled: 'anulowano',
     interrupted: 'przerwano',
@@ -107,7 +107,7 @@ export const cliPl: CliMessages = {
     lastFourWeeks: 'Ostatnie cztery tygodnie',
     raceCandidates: 'Możliwe starty do kalibracji stref (potwierdź, zanim dopiszesz!)',
     noRaceCandidates: 'Nie znalazłem kandydatów na starty — wynik do kalibracji dopisz ręcznie.',
-    fillGoal: 'uzupełnij sekcję goal w tren.yaml → tren plan',
+    fillGoal: 'uzupełnij sekcję goal w trainctl.yaml → trainctl plan',
     unnamed: 'bez nazwy',
   },
 
@@ -136,7 +136,7 @@ export const cliPl: CliMessages = {
     restDayTitle: 'Dzień wolny',
     restDayBody: 'Odpoczynek jest częścią planu — adaptacja zachodzi w regeneracji.',
     logged: (status: string) => `Zalogowano: ${status}`,
-    whyHint: (date: string) => `dlaczego ten trening: tren why --date ${date}`,
+    whyHint: (date: string) => `dlaczego ten trening: trainctl why --date ${date}`,
     strengthTitle: (minutes: number) => `Siła · ~${n(minutes)} min`,
     strengthAloneDay: 'Dzień bez biegania — idealny na siłownię (zero konfliktu z sesjami biegowymi).',
     strengthWithEasy:
@@ -171,9 +171,9 @@ export const cliPl: CliMessages = {
 
   shift: {
     swapped: (from: string, to: string) => `Zamieniono treningi ${from} ↔ ${to}`,
-    weekHint: (date: string) => `podgląd tygodnia: tren week --date ${date}`,
+    weekHint: (date: string) => `podgląd tygodnia: trainctl week --date ${date}`,
     bothDates: 'Podaj obie daty (--from i --to) albo żadnej — wtedy wybierzesz z listy.',
-    sameWeekOnly: 'shift działa w obrębie jednego tygodnia (pełna renegocjacja — tren reschedule)',
+    sameWeekOnly: 'shift działa w obrębie jednego tygodnia (pełna renegocjacja — trainctl reschedule)',
     notRaceDay: 'Dnia startu nie ruszamy.',
     dayBeforeRaceLight: 'Dzień przed startem zostaje lekki — nie wstawiam tam akcentu.',
     outsidePlan: (date: string) => `Data ${date} poza planem`,
@@ -181,7 +181,7 @@ export const cliPl: CliMessages = {
       `akcenty ${a} i ${b} są dzień po dniu — reguła I-7 zaleca ≥48 h między sesjami jakościowymi`,
     strengthSameDay: (date: string) =>
       `${date}: akcent wylądował w dniu sesji siłowej — S-5 odradza ciężką siłę ` +
-      'przy jednostce jakościowej; przenieś siłownię albo wygeneruj plan ponownie (tren plan)',
+      'przy jednostce jakościowej; przenieś siłownię albo wygeneruj plan ponownie (trainctl plan)',
     strengthDayBefore: (date: string, next: string) =>
       `${date}: sesja siłowa wypada dzień przed akcentem (${next}) — ` +
       'S-5 zaleca ≥24 h odstępu po ciężkiej sile',
@@ -229,7 +229,7 @@ export const cliPl: CliMessages = {
     mismatches: 'Rozjazdy plan ↔ wykonanie',
     columns: { date: 'data', planned: 'plan', actual: 'wykonano', status: 'status' },
     allMatched: 'Wykonanie zgodne z planem w całym zakresie.',
-    adaptHint: 'propozycje korekt: tren adapt',
+    adaptHint: 'propozycje korekt: trainctl adapt',
     noPlanSkipped: 'Brak planu — pominięto porównanie.',
   },
 
@@ -245,11 +245,11 @@ export const cliPl: CliMessages = {
     title: (days: number, today: string) => `Analiza wykonania · ${dni(days)} do ${today}`,
     volumeDone: 'Zrealizowana objętość',
     missedSessions: 'Pominięte sesje',
-    noSnapshot: 'Brak sync.json — analiza tylko z dziennika. Pełne dane: tren pull',
+    noSnapshot: 'Brak sync.json — analiza tylko z dziennika. Pełne dane: trainctl pull',
     diagnosis: 'Diagnoza',
     proposals: 'Propozycje',
     applyHint: (weeklyKm: number) =>
-      `Aby zastosować: athlete.recentWeeklyKm: ${weeklyKm} w tren.yaml → tren diff → tren plan. ` +
+      `Aby zastosować: athlete.recentWeeklyKm: ${weeklyKm} w trainctl.yaml → trainctl diff → trainctl plan. ` +
       'Silnik nie przepisuje planu sam.',
   },
 
@@ -258,7 +258,7 @@ export const cliPl: CliMessages = {
     subtitle: (from: string, to: string) => `praca ${from}–${to}`,
     heavyDay: 'ciężki dzień kognitywny',
     missingSection:
-      'Brak sekcji desk w tren.yaml. Dodaj np.:\n' +
+      'Brak sekcji desk w trainctl.yaml. Dodaj np.:\n' +
       'desk:\n  workStart: "09:00"\n  workEnd: "17:00"\n  lunchMinutes: 45\n  prefer: evening',
     proposedWindow: (label: string, from: string, to: string) =>
       `Proponowane okno: ${label} (${from}–${to})`,
@@ -282,23 +282,23 @@ export const cliPl: CliMessages = {
     columns: { day: 'dzień', date: 'data', before: 'było', after: 'będzie' },
     whatChanges: 'Co się zmienia',
     applied: (files: string) => `Zastosowano — zapisano ${files}`,
-    previewHint: 'to podgląd; zastosuj: tren reschedule --apply (z tymi samymi --block)',
+    previewHint: 'to podgląd; zastosuj: trainctl reschedule --apply (z tymi samymi --block)',
     none: '—',
   },
 
   diff: {
-    title: 'Różnice: plan zapisany → plan z aktualnego tren.yaml',
-    upToDate: 'Plan aktualny — brak różnic względem regeneracji z tren.yaml.',
+    title: 'Różnice: plan zapisany → plan z aktualnego trainctl.yaml',
+    upToDate: 'Plan aktualny — brak różnic względem regeneracji z trainctl.yaml.',
     manualShifts: 'plan zawiera ręczne przesunięcia — pokażą się jako różnice',
     weekGone: (weekStart: string) => `- tydzień ${weekStart}: znika z planu`,
     weekVolume: (weekStart: string, before: number, after: number) =>
       `~ tydzień ${weekStart}: objętość ${n(before)} → ${n(after)} km`,
     dayChanged: (date: string, before: string, after: string) => `~ ${date}: ${before} → ${after}`,
     weekNew: (weekStart: string, km: number) => `+ tydzień ${weekStart}: nowy (${n(km)} km)`,
-    applyHint: 'zastosowanie: tren plan (nadpisze plan/ — masz go w gicie)',
+    applyHint: 'zastosowanie: trainctl plan (nadpisze plan/ — masz go w gicie)',
     localeChanged: (planLocale: string, current: string) =>
       `plan wygenerowano w języku „${planLocale}”, a pracujesz w „${current}” — ` +
-      'uruchom tren plan, żeby przegenerować opisy',
+      'uruchom trainctl plan, żeby przegenerować opisy',
   },
 
   exportCmd: {
@@ -319,7 +319,7 @@ export const cliPl: CliMessages = {
       'Zaimportuj plik .ics w Google Calendar / Outlooku — treningi jako zdarzenia całodniowe.',
     fitHint:
       'Skopiuj pliki .fit do katalogu GARMIN/Workouts na zegarku (tryb pamięci masowej) ' +
-      'albo zaimportuj w Garmin Connect. Alternatywa bez kabla: tren push.',
+      'albo zaimportuj w Garmin Connect. Alternatywa bez kabla: trainctl push.',
     needDate: 'Podaj datę treningu (--date).',
     raceDayNotWorkout: 'To dzień startu — nie eksportujemy go jako treningu.',
     restDayNothing: (date: string) => `${date} to dzień wolny — nie ma czego eksportować.`,
@@ -327,15 +327,15 @@ export const cliPl: CliMessages = {
     needTargetOrPrediction:
       'Pakiet startowy potrzebuje celu czasowego (goal.targetTimeSec) albo predykcji ' +
       '(wynik startu w athlete.results) — nie mam z czego policzyć splitów.',
-    pickWhat: 'Podaj rodzaj eksportu: tren export --what plan|workout|calendar|print|race',
+    pickWhat: 'Podaj rodzaj eksportu: trainctl export --what plan|workout|calendar|print|race',
     scenarioGoal: 'cel',
     scenarioBold: 'śmiało',
     scenarioSafe: 'ostrożnie',
     provenanceWithPrediction: (method: string, generatedAt: string) =>
-      `Przedział z predykcji (${method}, W-1) z wyników w tren.yaml; równe tempo = założenie ` +
+      `Przedział z predykcji (${method}, W-1) z wyników w trainctl.yaml; równe tempo = założenie ` +
       `rozpiski (inż., W-10). Wygenerowano ${generatedAt}.`,
     provenanceGoalOnly: (generatedAt: string) =>
-      'Wyłącznie cel czasowy z tren.yaml — bez predykcji z wyniku startu (dodaj wynik do ' +
+      'Wyłącznie cel czasowy z trainctl.yaml — bez predykcji z wyniku startu (dodaj wynik do ' +
       `athlete.results). Równe tempo = założenie rozpiski (inż.). Wygenerowano ${generatedAt}.`,
     splitsAndBand: (scenarios: string) => `splity + opaska tempa (${scenarios})`,
     fileRacePack: 'pakiet-startowy',
@@ -366,14 +366,14 @@ export const cliPl: CliMessages = {
     refreshFailed: (error: string) =>
       `Nie udało się odświeżyć danych (${error}) — przegląd na ostatniej migawce.`,
     noKey:
-      'Bez klucza API — przegląd z dziennika i ostatniej migawki (tren pull, gdy będzie klucz).',
+      'Bez klucza API — przegląd z dziennika i ostatniej migawki (trainctl pull, gdy będzie klucz).',
     doneSessions: 'Wykonane sesje',
     volume: 'Objętość',
     volumeValue: (actualKm: number, plannedKm: number) =>
       `${n(actualKm)} z ${n(plannedKm)} km planu`,
     signals: 'Sygnały',
     noSignals: 'Bez sygnałów do korekty — plan trzyma się rzeczywistości.',
-    seeAdapt: 'są propozycje korekt — szczegóły: tren adapt',
+    seeAdapt: 'są propozycje korekt — szczegóły: trainctl adapt',
     ahead: (weekStart: string) => `Przed nami · tydzień od ${weekStart}`,
     todo: 'Do zrobienia',
     phase: 'Faza',
@@ -385,19 +385,19 @@ export const cliPl: CliMessages = {
     raceThisWeek: (date: string) =>
       `Start w tym tygodniu: ${date} — dzień przed zostaje wolny (T-10).`,
     timeTrialThisWeek: (date: string) =>
-      `Sprawdzian: ${date} — po nim dopisz wynik do tren.yaml, inaczej strefy stoją (W-11).`,
+      `Sprawdzian: ${date} — po nim dopisz wynik do trainctl.yaml, inaczej strefy stoją (W-11).`,
     keySession: 'Kluczowa jednostka',
-    todoWriteResult: 'dopisz wynik pomiaru do athlete.results → tren diff → tren plan',
-    todoSeeAdapt: 'przejrzyj propozycje: tren adapt (zmiany zatwierdzasz w tren.yaml)',
-    todoPush: 'wyślij nadchodzący tydzień na zegarek: tren push --days 7',
-    todoPrint: 'rozpiska na lodówkę: tren export --what print',
+    todoWriteResult: 'dopisz wynik pomiaru do athlete.results → trainctl diff → trainctl plan',
+    todoSeeAdapt: 'przejrzyj propozycje: trainctl adapt (zmiany zatwierdzasz w trainctl.yaml)',
+    todoPush: 'wyślij nadchodzący tydzień na zegarek: trainctl push --days 7',
+    todoPrint: 'rozpiska na lodówkę: trainctl export --what print',
     todoReschedule:
-      'jeśli sesje wypadają przez pracę — przestaw je (tren reschedule), zamiast tracić',
+      'jeśli sesje wypadają przez pracę — przestaw je (trainctl reschedule), zamiast tracić',
     todoNextRace: (date: string, what: string) => `najbliższy start kontrolny: ${date} (${what})`,
   },
 
   wizard: {
-    header: 'tren — konfiguracja profilu',
+    header: 'trainctl — konfiguracja profilu',
     enterSkips: 'Enter pomija pytania opcjonalne.',
     goal: 'Cel',
     goalName: 'Nazwa zawodów',
@@ -470,7 +470,7 @@ export const cliPl: CliMessages = {
     previewClosed: 'zamknięto podgląd',
     shiftNeedsTerminal:
       'Tryb interaktywny wymaga terminala. Podaj daty wprost:\n' +
-      '  tren shift --from 2026-08-04 --to 2026-08-05',
+      '  trainctl shift --from 2026-08-04 --to 2026-08-05',
   },
 
   print: {
@@ -482,7 +482,7 @@ export const cliPl: CliMessages = {
     subtitle: (weeks: number, peakKm: number, vdot: number, generatedAt: string) =>
       `Plan ${weeks}-tygodniowy · szczyt ${n(peakKm)} km/tydz. · VDOT ${n(vdot)} · ` +
       `wygenerowano ${generatedAt}`,
-    footer: 'Wygenerowane przez tren. Uzasadnienia jednostek: tren why --date <data>.',
+    footer: 'Wygenerowane przez trainctl. Uzasadnienia jednostek: trainctl why --date <data>.',
     strengthTag: (minutes: number) => `[+ siła ~${n(minutes)} min]`,
     rest: '—',
   },
@@ -504,7 +504,7 @@ export const cliPl: CliMessages = {
 
   sync: {
     missingKey: (secretFile: string) =>
-      'Brak klucza API intervals.icu. Ustaw zmienną TREN_INTERVALS_API_KEY ' +
+      'Brak klucza API intervals.icu. Ustaw zmienną TRAINCTL_INTERVALS_API_KEY ' +
       `albo zapisz klucz w pliku ${secretFile} (dodaj go do .gitignore!).\n` +
       'Klucz: intervals.icu → Settings → Developer Settings.',
   },
@@ -535,8 +535,8 @@ export const cliPl: CliMessages = {
 
   configFile: {
     templateHeader: [
-      '# tren — profil atlety i cel treningowy.',
-      '# Uzupełnij i uruchom: tren plan',
+      '# trainctl — profil atlety i cel treningowy.',
+      '# Uzupełnij i uruchom: trainctl plan',
     ],
     templateLanguage: 'język interfejsu i opisów planu: en | pl (domyślnie: en)',
     templateAthlete: {
@@ -550,9 +550,9 @@ export const cliPl: CliMessages = {
     },
     templateGoal: {
       name: 'Półmaraton',
-      targetTime: 'opcjonalny cel czasowy — tren plan oceni realność',
+      targetTime: 'opcjonalny cel czasowy — trainctl plan oceni realność',
     },
-    templateDesk: 'tryb biurkowy (tren desk) — opcjonalny',
+    templateDesk: 'tryb biurkowy (trainctl desk) — opcjonalny',
     templateDeskPrefer: 'morning | lunch | evening',
     templateStrength: {
       section: 'siła 2×/tydz. obok biegania (opt-in; wymaga ciężarów)',
@@ -560,7 +560,7 @@ export const cliPl: CliMessages = {
       days: 'opcjonalnie: preferowane dni',
     },
     inferredHeader: (from: string, to: string) => [
-      '# tren — profil atlety i cel treningowy.',
+      '# trainctl — profil atlety i cel treningowy.',
       `# Profil zaproponowany z historii intervals.icu (pełne tygodnie ${from} → ${to}).`,
       '# To propozycje — popraw wszystko, co nie zgadza się z rzeczywistością.',
     ],
@@ -569,11 +569,11 @@ export const cliPl: CliMessages = {
     inferredLongRun: 'dominujący dzień najdłuższych biegów',
     inferredResults: 'dopisz wynik startu po potwierdzeniu kandydatów z wyjścia komendy',
     inferredResultsWhy: '(strefy kalibrujemy z wyników startów, nie z odczytów zegarka — Z-6)',
-    inferredGoal: 'UZUPEŁNIJ — bez celu `tren plan` odmówi (celowo)',
+    inferredGoal: 'UZUPEŁNIJ — bez celu `trainctl plan` odmówi (celowo)',
     inferredGoalName: 'Bieg docelowy',
     inferredGoalDate: 'data startu',
     inferredResultHint: 'dopisz wynik startu — z niego kalibrujemy strefy (nie z zegarka)',
-    generatedByWizard: '# Wygenerowane przez `tren init`. Śmiało edytuj i uruchom `tren plan`.',
+    generatedByWizard: '# Wygenerowane przez `trainctl init`. Śmiało edytuj i uruchom `trainctl plan`.',
     validate: {
       missingSection: (path: string) => `${path}: brak sekcji`,
       numberGtZero: (path: string) => `${path}: wymagana liczba > 0`,
@@ -643,21 +643,21 @@ export const cliPl: CliMessages = {
     dirLine: (dir: string, locale: string) => `katalog treningowy: ${dir} · język: ${locale}`,
     isoDate: 'data w formacie RRRR-MM-DD',
     init:
-      'Utwórz szablon tren.yaml (profil atlety i cel) w katalogu treningowym. ' +
+      'Utwórz szablon trainctl.yaml (profil atlety i cel) w katalogu treningowym. ' +
       'Nie nadpisuje istniejącego pliku. Z fromIntervals=true proponuje profil ' +
       'z 16 tygodni historii intervals.icu (wymaga klucza API): wartości mają ' +
       'komentarz proweniencji, a kandydatów na wyniki startów zwraca DO POTWIERDZENIA ' +
       'z użytkownikiem — dopisz je do athlete.results dopiero po jego zgodzie.',
     initFromIntervals: 'profil z historii intervals.icu',
     plan:
-      'Wygeneruj plan treningowy z tren.yaml → plan/plan.yaml + plan/PLAN.md. ' +
+      'Wygeneruj plan treningowy z trainctl.yaml → plan/plan.yaml + plan/PLAN.md. ' +
       'Zwraca podsumowanie: szczyt objętości, predykcję wyniku (przedział) i ocenę realności celu. ' +
-      'NADPISUJE istniejący plan — przy wątpliwościach najpierw tren_diff.',
+      'NADPISUJE istniejący plan — przy wątpliwościach najpierw trainctl_diff.',
     planDate: 'data „dzisiaj” (domyślnie: bieżąca)',
     today: 'Trening na dziś (albo wskazaną datę): opis jednostki, kilometraż, status z dziennika.',
     week:
       'Podgląd całego tygodnia treningowego (faza, cel km, dzień po dniu, statusy z dziennika). ' +
-      'Użyj PRZED renegocjacją tygodnia (tren_shift), żeby zobaczyć kontekst.',
+      'Użyj PRZED renegocjacją tygodnia (trainctl_shift), żeby zobaczyć kontekst.',
     weekDate: 'dowolna data w interesującym tygodniu',
     log: 'Zapisz wykonanie treningu w dzienniku (log.jsonl).',
     logStatus: 'domyślnie done',
@@ -676,34 +676,34 @@ export const cliPl: CliMessages = {
     adapt:
       'Porównaj wykonanie (sync.json + dziennik) z planem i zaproponuj korekty: urealnienie ' +
       'objętości, restart po przerwie, protokół po starcie, rekalibrację stref. ' +
-      'ZWRACA PROPOZYCJE — nie zmienia planu. Zastosowanie: edycja tren.yaml + tren_plan.',
+      'ZWRACA PROPOZYCJE — nie zmienia planu. Zastosowanie: edycja trainctl.yaml + trainctl_plan.',
     adaptDate: 'data odniesienia (domyślnie dziś)',
     desk:
       'Dzień przy biurku: okna treningowe wokół godzin pracy, przerwy w siedzeniu i reguła ' +
       'prowadzenia sesji po dniu ciężkiej pracy umysłowej (wtedy tempo, nie odczucie). ' +
       'Ustaw heavy=true, gdy dzień był kognitywnie ciężki (długie sesje z agentami). ' +
-      'Wymaga sekcji desk w tren.yaml.',
+      'Wymaga sekcji desk w trainctl.yaml.',
     deskHeavy: 'ciężki dzień kognitywny',
     export:
       'Zapisz plan do pliku: `plan` = cały plan jako treningi .fit na zegarek, ' +
       '`workout` = jeden trening .fit (wymaga date), `calendar` = .ics do Google/Outlooka, ' +
       '`print` = rozpiska HTML pod wydruk A4, `race` = pakiet startowy (splity + papierowa ' +
       'opaska tempa; wymaga celu czasowego albo predykcji). Pliki lądują w katalogu export/. ' +
-      'Gdy użytkownik chce trening „na zegarek” bez kabla — rozważ najpierw tren_push.',
+      'Gdy użytkownik chce trening „na zegarek” bez kabla — rozważ najpierw trainctl_push.',
     exportDate: 'trening do eksportu przy what=workout',
     reschedule:
       'Przestaw CAŁY tydzień wokół dni, w których użytkownik nie może trenować ' +
       '(„w czwartek mam release”, „wyjazd wt–śr”). Solver trzyma ≥48 h między akcentami, ' +
       'chroni długie wybieganie i liczbę akcentów, a gdy brakuje dni — mówi, którą jednostkę ' +
       'poświęca i dlaczego. Domyślnie tylko podgląd; apply=true zapisuje plan. ' +
-      'Do przesunięcia pojedynczego treningu użyj tren_shift.',
+      'Do przesunięcia pojedynczego treningu użyj trainctl_shift.',
     rescheduleBlock: 'dni bez możliwości treningu',
     rescheduleDate: 'data wskazująca tydzień (domyślnie bieżący)',
     rescheduleApply: 'true = zapisz zmiany w planie',
     push:
       'Wypchnij zaplanowane treningi do intervals.icu — trafiają na zegarek (Garmin/Coros/Wahoo) ' +
-      'jako treningi strukturalne z celami tempa. Wymaga klucza API (env TREN_INTERVALS_API_KEY ' +
-      'albo plik .tren-secret). Ponowny push nadpisuje te same dni (upsert).',
+      'jako treningi strukturalne z celami tempa. Wymaga klucza API (env TRAINCTL_INTERVALS_API_KEY ' +
+      'albo plik .trainctl-secret). Ponowny push nadpisuje te same dni (upsert).',
     pushFrom: 'początek zakresu (domyślnie dziś)',
     pushTo: 'koniec zakresu',
     pushDays: 'ile dni do przodu, domyślnie 14',
@@ -714,27 +714,27 @@ export const cliPl: CliMessages = {
     review:
       'Przegląd tygodnia w jednym wywołaniu: wykonanie minionych dni vs plan, sygnały ' +
       'do korekty, nadchodzący tydzień (faza, objętość, kluczowa jednostka, starty/sprawdziany) ' +
-      'i lista konkretnych działań. Używaj TEGO zamiast wołania tren_pull + tren_adapt + ' +
-      'tren_week po kolei — np. gdy użytkownik pyta „jak mi poszło?” albo zaczyna tydzień. ' +
+      'i lista konkretnych działań. Używaj TEGO zamiast wołania trainctl_pull + trainctl_adapt + ' +
+      'trainctl_week po kolei — np. gdy użytkownik pyta „jak mi poszło?” albo zaczyna tydzień. ' +
       'Działa też bez klucza API (wtedy z dziennika i ostatniej migawki). ' +
       'Niczego nie zmienia w planie.',
     reviewDays: 'ile dni wstecz podsumować, domyślnie 7',
     reviewDate: 'data odniesienia (domyślnie dziś)',
     diff:
-      'Dry-run: co zmieniłaby regeneracja planu z aktualnego tren.yaml (nowe wyniki, ' +
+      'Dry-run: co zmieniłaby regeneracja planu z aktualnego trainctl.yaml (nowe wyniki, ' +
       'zmiana profilu). Nic nie zapisuje.',
   },
 
   agentsMd: (): string => `# Trener — instrukcja dla agenta
 
-Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`tren_*\`
-(albo CLI \`tren\`) i pełnisz rolę trenera, nie tylko wykonawcy komend.
+Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
+(albo CLI \`trainctl\`) i pełnisz rolę trenera, nie tylko wykonawcy komend.
 
 ## Rytuały
 
-- **Początek tygodnia** → \`tren_review\`. Jedno wywołanie zamiast pull + adapt +
+- **Początek tygodnia** → \`trainctl_review\`. Jedno wywołanie zamiast pull + adapt +
   week. Zrelacjonuj wynik po ludzku i zaproponuj co najwyżej dwie rzeczy do zrobienia.
-- **Przed każdą zmianą w tygodniu** → najpierw \`tren_week\`, żeby zobaczyć kontekst.
+- **Przed każdą zmianą w tygodniu** → najpierw \`trainctl_week\`, żeby zobaczyć kontekst.
   „Przesuń interwały” bez spojrzenia na tydzień to zgadywanie.
 - **Po starcie albo sprawdzianie** → dopytaj o czas i zaproponuj wpis do
   \`athlete.results\`. Pomiar bez wpisanego wyniku niczego nie zmienia — strefy
@@ -742,18 +742,18 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`tren_*\`
 
 ## Zasady
 
-1. **Nie regeneruj planu bez pytania.** \`tren_plan\` nadpisuje istniejący plan.
-   Przy wątpliwościach: \`tren_diff\` (pokazuje różnice, nic nie zapisuje).
-2. **Adaptacja proponuje, nie przepisuje.** \`tren_adapt\` zwraca propozycje;
-   zastosowanie to świadoma edycja \`tren.yaml\` → \`tren_diff\` → \`tren_plan\`.
+1. **Nie regeneruj planu bez pytania.** \`trainctl_plan\` nadpisuje istniejący plan.
+   Przy wątpliwościach: \`trainctl_diff\` (pokazuje różnice, nic nie zapisuje).
+2. **Adaptacja proponuje, nie przepisuje.** \`trainctl_adapt\` zwraca propozycje;
+   zastosowanie to świadoma edycja \`trainctl.yaml\` → \`trainctl_diff\` → \`trainctl_plan\`.
 3. **Pytaj o kontekst, zanim zaczniesz liczyć.** Pominięty tydzień to co innego
    przy chorobie, a co innego przy wale w pracy — pierwszy wymaga ostrożnego
    powrotu, drugi zwykle tylko przestawienia dni.
-4. **Dnia startu się nie rusza.** \`tren_shift\` odmówi; nie próbuj obchodzić tego
+4. **Dnia startu się nie rusza.** \`trainctl_shift\` odmówi; nie próbuj obchodzić tego
    regeneracją planu z inną datą.
 5. **Nie wymyślaj liczb.** Tempa, objętości i reguły pochodzą z silnika; jeśli
    czegoś nie ma w wyniku narzędzia, powiedz „nie wiem”, zamiast oszacować.
-6. **Cytuj powody, nie tylko polecenia.** \`tren_why\` podaje cel jednostki i
+6. **Cytuj powody, nie tylko polecenia.** \`trainctl_why\` podaje cel jednostki i
    reguły z badań (ID z \`docs/science/FOUNDATIONS.md\`) — to jest wartość, którą
    trener wnosi ponad listę treningów.
 
@@ -769,7 +769,7 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`tren_*\`
 
 | plik | co to |
 |---|---|
-| \`tren.yaml\` | profil, cel, starty kontrolne — **jedyne** miejsce, które edytujesz ręcznie |
+| \`trainctl.yaml\` | profil, cel, starty kontrolne — **jedyne** miejsce, które edytujesz ręcznie |
 | \`plan/plan.yaml\` | wygenerowany plan (źródło prawdy dla komend) |
 | \`plan/PLAN.md\` | ten sam plan do czytania |
 | \`log.jsonl\` | dziennik wykonania |

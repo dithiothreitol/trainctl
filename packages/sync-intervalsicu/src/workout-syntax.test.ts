@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 
 setLocale('pl')
 import {
@@ -8,7 +8,7 @@ import {
   type AthleteProfile,
   type PlannedDay,
   type WeekSkeleton,
-} from '@tren/core'
+} from '@trainctl/core'
 import { distance, duration, paceTarget, toPushableWorkout, toWorkoutSyntax } from './workout-syntax.ts'
 
 describe('prymitywy składni', () => {
@@ -136,7 +136,7 @@ describe('toPushableWorkout', () => {
       .filter((w): w is NonNullable<typeof w> => w !== undefined)
     expect(workouts.length).toBeGreaterThanOrEqual(4)
     for (const w of workouts) {
-      expect(w.externalId).toMatch(/^tren-\d{4}-\d{2}-\d{2}$/)
+      expect(w.externalId).toMatch(/^trainctl-\d{4}-\d{2}-\d{2}$/)
       expect(w.sport).toBe('run')
       expect(w.description).not.toContain('undefined')
       expect(w.description).not.toContain('NaN')

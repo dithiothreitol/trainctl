@@ -17,8 +17,8 @@ import {
   type PlannedDay,
   type RaceGoal,
   type RacePrediction,
-} from '@tren/core'
-import type { StrengthConfig, TrenConfig } from './config.ts'
+} from '@trainctl/core'
+import type { StrengthConfig, TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
 
 export const PLAN_DIR = 'plan'
@@ -33,7 +33,7 @@ export interface PlanChange {
 
 export interface StoredPlan {
   generatedAt: string
-  /** Język, w którym zapisano opisy jednostek — `tren diff` mówi, gdy się rozjedzie. */
+  /** Język, w którym zapisano opisy jednostek — `trainctl diff` mówi, gdy się rozjedzie. */
   locale?: string
   vdot: number
   vdotSource: 'result' | 'goal-target'
@@ -46,7 +46,7 @@ export interface StoredPlan {
   weeks: Microcycle[]
 }
 
-export function computePlan(config: TrenConfig, today: string): StoredPlan {
+export function computePlan(config: TrainctlConfig, today: string): StoredPlan {
   const { athlete, goal } = config
   const usable = athlete.results.filter(
     (r) => r.date <= today && diffDays(r.date, today) <= 540,

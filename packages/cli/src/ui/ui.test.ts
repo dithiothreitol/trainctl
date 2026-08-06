@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 import { b, renderAnsi, renderPlain, wrap } from './blocks.ts'
 import { Theme, detectCapabilities, stripAnsi, visibleLength } from './theme.ts'
 import { parseDaysInput, parseDistanceInput, parseTimeInput, toYaml } from './wizard.ts'
@@ -17,7 +17,7 @@ const sample = [
     ['quality', 'easy'],
   ),
   b.warn('objętość poniżej rekomendacji'),
-  b.hint('tren why'),
+  b.hint('trainctl why'),
 ]
 
 describe('detekcja możliwości terminala', () => {
@@ -39,8 +39,8 @@ describe('detekcja możliwości terminala', () => {
     expect(detectCapabilities({ columns: 20 }, {}).width).toBeGreaterThanOrEqual(40)
   })
 
-  it('TREN_ASCII wymusza znaki ASCII', () => {
-    const ascii = new Theme(detectCapabilities({ isTTY: true }, { TREN_ASCII: '1' }))
+  it('TRAINCTL_ASCII wymusza znaki ASCII', () => {
+    const ascii = new Theme(detectCapabilities({ isTTY: true }, { TRAINCTL_ASCII: '1' }))
     expect(ascii.sym.ok).toBe('OK')
     expect(ascii.sym.bullet).toBe('-')
   })

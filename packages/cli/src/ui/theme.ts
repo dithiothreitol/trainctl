@@ -4,7 +4,7 @@
  * type-strippingiem Node i bez kroku budowania.
  *
  * Wykrywanie możliwości terminala (kolejność ma znaczenie):
- *  NO_COLOR / TREN_NO_COLOR   → wyłącz kolory (standard no-color.org)
+ *  NO_COLOR / TRAINCTL_NO_COLOR   → wyłącz kolory (standard no-color.org)
  *  FORCE_COLOR                → wymuś (CI, pipe do less -R)
  *  !isTTY                     → wyłącz (przekierowanie do pliku, |, agent)
  */
@@ -20,10 +20,10 @@ export function detectCapabilities(
   env: NodeJS.ProcessEnv = process.env,
 ): Capabilities {
   const forced = env['FORCE_COLOR']
-  const disabled = env['NO_COLOR'] !== undefined || env['TREN_NO_COLOR'] !== undefined
+  const disabled = env['NO_COLOR'] !== undefined || env['TRAINCTL_NO_COLOR'] !== undefined
   const color = disabled ? false : forced ? forced !== '0' : Boolean(stream.isTTY)
   const unicode =
-    env['TREN_ASCII'] === undefined &&
+    env['TRAINCTL_ASCII'] === undefined &&
     (process.platform !== 'win32' || Boolean(env['WT_SESSION'] || env['TERM_PROGRAM'] || env['TERM']))
   return {
     color,

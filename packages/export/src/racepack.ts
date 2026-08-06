@@ -22,7 +22,7 @@ export interface SplitRow {
 
 /**
  * Teksty na wydruku. Renderer nie zna katalogu tłumaczeń — dostaje gotowe
- * napisy, żeby `@tren/export` pozostał czystym generatorem HTML.
+ * napisy, żeby `@trainctl/export` pozostał czystym generatorem HTML.
  */
 export interface RacePackLabels {
   /** Kod języka do atrybutu `lang` — czytniki ekranu i dzielenie wyrazów. */

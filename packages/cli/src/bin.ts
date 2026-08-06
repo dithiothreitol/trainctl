@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * tren — coach treningowy w terminalu.
+ * trainctl — coach treningowy w terminalu.
  * Cienki adapter: handlery zwracają bloki, tu zamieniamy je na kolorowy tekst.
  * MCP używa tych samych handlerów i dostaje wersję bez ANSI (ui/blocks.ts).
  */
 import { Command } from 'commander'
-import { resolveLocale, setLocale } from '@tren/core'
+import { resolveLocale, setLocale } from '@trainctl/core'
 import { readConfigLanguage } from './config.ts'
 import { ui } from './i18n/index.ts'
 import {
@@ -40,7 +40,7 @@ const cwd = process.cwd()
 
 // Język ustalamy PRZED zbudowaniem drzewa komend: opisy w `--help` też są
 // tłumaczone, a commander czyta je w momencie definiowania komendy.
-// Kolejność źródeł: --lang > TREN_LANG > language w tren.yaml > angielski.
+// Kolejność źródeł: --lang > TRAINCTL_LANG > language w trainctl.yaml > angielski.
 const langFlagIndex = process.argv.findIndex((a) => a === '--lang' || a.startsWith('--lang='))
 const langFlag =
   langFlagIndex === -1
@@ -51,7 +51,7 @@ const langFlag =
 setLocale(
   resolveLocale({
     flag: langFlag,
-    env: process.env['TREN_LANG'],
+    env: process.env['TRAINCTL_LANG'],
     config: readConfigLanguage(cwd),
   }),
 )
@@ -66,11 +66,11 @@ function print(result: CmdResult): void {
 
 const s = theme.sym
 const banner =
-  theme.bold(theme.color('tren', 'brand')) +
+  theme.bold(theme.color('trainctl', 'brand')) +
   theme.dim(` ${s.dot} ${ui().cmd.banner}`)
 
 program
-  .name('tren')
+  .name('trainctl')
   .description(banner)
   .option('--lang <kod>', ui().cmd.lang)
   .configureHelp({
@@ -246,16 +246,16 @@ program.addHelpText(
   'after',
   '\n' +
     theme.dim(ui().cmd.firstSteps) +
-    theme.color('tren init', 'brand') +
+    theme.color('trainctl init', 'brand') +
     theme.dim(' → ') +
-    theme.color('tren plan', 'brand') +
+    theme.color('trainctl plan', 'brand') +
     theme.dim(' → ') +
-    theme.color('tren today', 'brand') +
+    theme.color('trainctl today', 'brand') +
     '\n' +
     theme.dim(ui().cmd.interactively) +
-    theme.color('tren shift', 'brand') +
+    theme.color('trainctl shift', 'brand') +
     theme.dim(ui().cmd.pickFromList) +
-    theme.color('tren week -i', 'brand') +
+    theme.color('trainctl week -i', 'brand') +
     theme.dim(ui().cmd.browseArrows) +
     '\n' +
     theme.dim(ui().cmd.colorsHint),

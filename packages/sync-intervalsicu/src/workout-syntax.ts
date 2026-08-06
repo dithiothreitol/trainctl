@@ -13,8 +13,8 @@
  * — trzymamy się formy pewnej, żeby nie wygenerować treningu, którego serwis
  * nie sparsuje.
  */
-import { messages } from '@tren/core'
-import type { PaceRange, PlannedDay, PlannedSegment, PushableWorkout } from '@tren/core'
+import { messages } from '@trainctl/core'
+import type { PaceRange, PlannedDay, PlannedSegment, PushableWorkout } from '@trainctl/core'
 
 /** s/km → `M:SS/km Pace`. */
 export function paceTarget(pace: PaceRange): string {
@@ -133,7 +133,7 @@ export function toPushableWorkout(day: PlannedDay, goalName: string): PushableWo
   const description = toWorkoutSyntax(w.segments)
   if (!description) return undefined
   return {
-    externalId: `tren-${day.date}`,
+    externalId: `trainctl-${day.date}`,
     date: day.date,
     name: `${kindName(w.kind)} — ${goalName}`,
     description,

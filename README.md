@@ -1,4 +1,4 @@
-# tren
+# trainctl
 
 Coach treningowy dla ludzi żyjących w terminalu: silnik planów biegowych
 (docelowo multi-sport) z interfejsem **CLI + MCP** — trener staje się narzędziem
@@ -19,37 +19,37 @@ fazy, decyzje).
 
 ```
 mkdir moj-trening && cd moj-trening && git init   # plan-as-code: katalog w gicie
-pnpm tren init        # interaktywny kreator profilu (--template = sam szablon)
-pnpm tren init --from-intervals   # profil z 16 tygodni historii intervals.icu
-pnpm tren plan        # generuje plan/plan.yaml + plan/PLAN.md (+ predykcja celu)
-pnpm tren today       # co dziś wybiegać (--date YYYY-MM-DD dla innego dnia)
-pnpm tren why         # dlaczego ten trening — cel jednostki + reguły z badań
-pnpm tren log --time 58:30 --note "dobre czucie"
-pnpm tren reschedule --block 2026-08-06   # „w czwartek release" → solver przestawia
-pnpm tren reschedule --block 2026-08-06 --apply   # i zapisuje
-pnpm tren shift       # wybór treningu i nowego dnia z listy (strzałki/cyfry)
-pnpm tren shift --from 2026-08-06 --to 2026-08-07   # albo wprost, bez pytań
-pnpm tren week -i     # przeglądanie tygodni: ←/→, t = dziś, s = przesuń, q = wyjście
-pnpm tren diff        # co zmieniłaby regeneracja z aktualnego tren.yaml
-pnpm tren export      # zapyta: rozpiska do druku / plan na zegarek / jeden trening / kalendarz
-pnpm tren export --what print     # albo wprost, bez pytań
-pnpm tren review      # rytuał tygodnia: co było, sygnały, co przed nami, co zrobić
-pnpm tren adapt       # analiza wykonania → propozycje korekt (nie zmienia planu)
-pnpm tren desk --heavy   # dzień przy biurku: okna, przerwy, reguła tempa po pracy
+pnpm trainctl init        # interaktywny kreator profilu (--template = sam szablon)
+pnpm trainctl init --from-intervals   # profil z 16 tygodni historii intervals.icu
+pnpm trainctl plan        # generuje plan/plan.yaml + plan/PLAN.md (+ predykcja celu)
+pnpm trainctl today       # co dziś wybiegać (--date YYYY-MM-DD dla innego dnia)
+pnpm trainctl why         # dlaczego ten trening — cel jednostki + reguły z badań
+pnpm trainctl log --time 58:30 --note "dobre czucie"
+pnpm trainctl reschedule --block 2026-08-06   # „w czwartek release" → solver przestawia
+pnpm trainctl reschedule --block 2026-08-06 --apply   # i zapisuje
+pnpm trainctl shift       # wybór treningu i nowego dnia z listy (strzałki/cyfry)
+pnpm trainctl shift --from 2026-08-06 --to 2026-08-07   # albo wprost, bez pytań
+pnpm trainctl week -i     # przeglądanie tygodni: ←/→, t = dziś, s = przesuń, q = wyjście
+pnpm trainctl diff        # co zmieniłaby regeneracja z aktualnego trainctl.yaml
+pnpm trainctl export      # zapyta: rozpiska do druku / plan na zegarek / jeden trening / kalendarz
+pnpm trainctl export --what print     # albo wprost, bez pytań
+pnpm trainctl review      # rytuał tygodnia: co było, sygnały, co przed nami, co zrobić
+pnpm trainctl adapt       # analiza wykonania → propozycje korekt (nie zmienia planu)
+pnpm trainctl desk --heavy   # dzień przy biurku: okna, przerwy, reguła tempa po pracy
 ```
 
-Starty kontrolne w sezonie wpisujesz w `tren.yaml` (`athlete.tuneUpRaces`) —
+Starty kontrolne w sezonie wpisujesz w `trainctl.yaml` (`athlete.tuneUpRaces`) —
 silnik robi z nich to samo, co trener z korpusu: mini-taper przed startem B,
 wolny dzień przed, długie wybieganie nazajutrz, żadnego dokładania akcentu do
 tygodnia startowego. Gdy kalendarz startów jest pusty, plan sam wstawia
 sprawdzian na czas, żeby było z czego przeliczyć strefy — ale prawdziwy start
 zawsze ma pierwszeństwo.
 
-Siłownia dwa razy w tygodniu (`strength: {enabled: true}` w `tren.yaml`) to
+Siłownia dwa razy w tygodniu (`strength: {enabled: true}` w `trainctl.yaml`) to
 osobny tor obok biegania: nie dokłada kilometrów, znika w taperze i nigdy nie
 ląduje dzień przed akcentem. Uzasadnienie jest jedno i mówimy je wprost —
 **ekonomia biegu**, nie „ochrona przed urazami": jedyna metaanaliza na samych
-biegaczach dała wynik nieistotny. `tren why` w dniu siłowni dopowiada resztę
+biegaczach dała wynik nieistotny. `trainctl why` w dniu siłowni dopowiada resztę
 prawdy: efekt jest mały, u biegaczy 34–45 lat statystycznie znika, a badania
 kończą się na 10 km w laboratorium.
 
@@ -63,17 +63,17 @@ Synchronizacja z zegarkiem (intervals.icu jako hub → Garmin/Coros/Wahoo):
 
 ```
 # klucz: intervals.icu → Settings → Developer Settings
-export TREN_INTERVALS_API_KEY=...        # albo plik .tren-secret (w .gitignore)
-pnpm tren push --days 14   # plan → kalendarz intervals.icu → zegarek
-pnpm tren pull --days 28   # wykonanie + wellness → sync.json, porównanie z planem
+export TRAINCTL_INTERVALS_API_KEY=...        # albo plik .trainctl-secret (w .gitignore)
+pnpm trainctl push --days 14   # plan → kalendarz intervals.icu → zegarek
+pnpm trainctl pull --days 28   # wykonanie + wellness → sync.json, porównanie z planem
 ```
 
-CLI działa na bieżącym katalogu i trzyma wszystko w plikach (`tren.yaml`,
+CLI działa na bieżącym katalogu i trzyma wszystko w plikach (`trainctl.yaml`,
 `plan/`, `log.jsonl`) — bez konta, bez bazy; historia zmian planu to git.
 Uruchamiane natywnym type-strippingiem Node ≥23.6 (bez kroku budowania).
 
 Wyjście jest kolorowe w terminalu i czyste wszędzie indziej: `NO_COLOR=1`
-wyłącza barwy, `TREN_ASCII=1` wymusza znaki ASCII, a przekierowanie do pliku
+wyłącza barwy, `TRAINCTL_ASCII=1` wymusza znaki ASCII, a przekierowanie do pliku
 lub potoku automatycznie zdejmuje formatowanie. Serwer MCP dostaje tę samą
 treść bez sekwencji ANSI — handlery opisują wyjście blokami
 (`src/ui/blocks.ts`), a kolory dokłada dopiero renderer CLI.
@@ -83,12 +83,12 @@ treść bez sekwencji ANSI — handlery opisują wyjście blokami
 Domyślnie angielski; polski jako drugi język:
 
 ```
-tren today --lang pl            # jednorazowo
-export TREN_LANG=pl             # na sesję
-echo 'language: pl' >> tren.yaml   # na stałe, razem z katalogiem treningowym
+trainctl today --lang pl            # jednorazowo
+export TRAINCTL_LANG=pl             # na sesję
+echo 'language: pl' >> trainctl.yaml   # na stałe, razem z katalogiem treningowym
 ```
 
-Kolejność: flaga bije zmienną, zmienna bije `tren.yaml`. Serwer MCP dziedziczy
+Kolejność: flaga bije zmienną, zmienna bije `trainctl.yaml`. Serwer MCP dziedziczy
 język katalogu, więc agent mówi tak samo jak `plan/PLAN.md`. Polski nie jest
 tłumaczeniem angielskiego — opisy jednostek to głos trenera z korpusu
 („6 kilometrów w tempie spokojnym", „przerwy 2 minutowe w marszu"), a angielski
@@ -97,11 +97,11 @@ Liczebniki są odmieniane (1 kilometr / 3 kilometry / 5 kilometrów, z pułapką
 12–14), a liczby dziesiętne mają przecinek.
 
 Dwujęzyczne jest wszystko, co widzi człowiek i agent: wyjście komend,
-`--help`, `plan/PLAN.md`, szablon `tren.yaml` z komentarzami, `AGENTS.md`,
+`--help`, `plan/PLAN.md`, szablon `trainctl.yaml` z komentarzami, `AGENTS.md`,
 objaśnienia reguł, opisy narzędzi MCP, kroki treningu w pliku FIT, rozpiska
 do druku, pakiet startowy i tytuły w kalendarzu intervals.icu.
 
-`tren init --lang pl` zostawia w `tren.yaml` odkomentowane `language: pl` —
+`trainctl init --lang pl` zostawia w `trainctl.yaml` odkomentowane `language: pl` —
 katalog treningowy pamięta wybór, więc kolejne komendy nie potrzebują flagi.
 
 ## Eksport
@@ -115,7 +115,7 @@ Trzy drogi „na zewnątrz", zależnie od tego, co masz pod ręką:
 | `--what print` | `.html` | rozpiska pod A4 — Ctrl+P, z kratką na odhaczanie |
 | `--what race` | `.html` | pakiet startowy: splity, papierowa opaska tempa na nadgarstek, tabela korekty na temperaturę |
 
-Bez kabla i bez plików: `tren push` wysyła treningi przez intervals.icu.
+Bez kabla i bez plików: `trainctl push` wysyła treningi przez intervals.icu.
 Pliki FIT są weryfikowane binarnie w testach, a format potwierdzono, wgrywając
 wygenerowany plik do niezależnego parsera intervals.icu (struktura kroków,
 pętle powtórzeń i cele tempa odczytane poprawnie).
@@ -125,19 +125,19 @@ pętle powtórzeń i cele tempa odczytane poprawnie).
 Ten sam silnik jako narzędzia dla Claude Code / innych klientów MCP:
 
 ```
-claude mcp add tren --env TREN_DIR="C:\sciezka\do\mojego-treningu" ^
-  -- node "C:\...\tren\packages\mcp\src\bin.ts"
+claude mcp add trainctl --env TRAINCTL_DIR="C:\sciezka\do\mojego-treningu" ^
+  -- node "C:\...\trainctl\packages\mcp\src\bin.ts"
 ```
 
-Narzędzia: `tren_plan`, `tren_today`, `tren_week`, `tren_log`, `tren_shift`,
-`tren_why`, `tren_diff`, `tren_init`, `tren_push`, `tren_pull`, `tren_adapt`,
-`tren_desk`, `tren_reschedule`, `tren_export`, `tren_review`. Rozmowa jest
+Narzędzia: `trainctl_plan`, `trainctl_today`, `trainctl_week`, `trainctl_log`, `trainctl_shift`,
+`trainctl_why`, `trainctl_diff`, `trainctl_init`, `trainctl_push`, `trainctl_pull`, `trainctl_adapt`,
+`trainctl_desk`, `trainctl_reschedule`, `trainctl_export`, `trainctl_review`. Rozmowa jest
 interfejsem: „co mam dziś wybiegać?", „w czwartek release — przesuń interwały",
-„jak mi poszło w tym tygodniu?". Agent widzi tydzień (`tren_week`), renegocjuje
-(`tren_shift` z ochroną dnia startu i ostrzeżeniem I-7) i tłumaczy plan cytując
-badania (`tren_why`).
+„jak mi poszło w tym tygodniu?". Agent widzi tydzień (`trainctl_week`), renegocjuje
+(`trainctl_shift` z ochroną dnia startu i ostrzeżeniem I-7) i tłumaczy plan cytując
+badania (`trainctl_why`).
 
-`tren init` zostawia w katalogu treningowym `AGENTS.md` — instrukcję, która
+`trainctl init` zostawia w katalogu treningowym `AGENTS.md` — instrukcję, która
 robi z agenta trenera, a nie wykonawcę komend: poniedziałkowy przegląd, pytanie
 o kontekst przy pominiętych sesjach, zakaz regenerowania planu bez pytania.
 Kto woli powiadomienie zamiast rozmowy, znajdzie przykład zadania cron/Actions

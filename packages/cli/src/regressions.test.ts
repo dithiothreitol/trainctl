@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { cmdExport, cmdPlan, cmdReschedule, cmdShift, cmdToday, cmdWeek } from './commands.ts'
 import { fmtTime, loadPlan } from './planfile.ts'
-import { setLocale } from '@tren/core'
+import { setLocale } from '@trainctl/core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
@@ -31,7 +31,7 @@ ${extra}strength:
 
 let dir: string
 const setup = (extra = '') => {
-  writeFileSync(join(dir, 'tren.yaml'), CONFIG(extra), 'utf-8')
+  writeFileSync(join(dir, 'trainctl.yaml'), CONFIG(extra), 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 }
 const strengthDays = () =>
@@ -40,7 +40,7 @@ const strengthDays = () =>
     .filter((d) => d.strength)
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'tren-reg-'))
+  dir = mkdtempSync(join(tmpdir(), 'trainctl-reg-'))
 })
 afterEach(() => rmSync(dir, { recursive: true, force: true }))
 

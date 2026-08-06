@@ -1,10 +1,10 @@
 /**
- * Interaktywny kreator `tren init` — zbiera profil w rozmowie zamiast kazać
+ * Interaktywny kreator `trainctl init` — zbiera profil w rozmowie zamiast kazać
  * edytować YAML na ślepo. Poza TTY (potok, agent, CI) kreator się nie włącza:
  * wtedy zapisujemy szablon jak dotąd.
  */
 import { createInterface, type Interface } from 'node:readline/promises'
-import type { InferenceOutcome, InferredProfile } from '@tren/core'
+import type { InferenceOutcome, InferredProfile } from '@trainctl/core'
 import { ui } from '../i18n/index.ts'
 import { sparkline, Theme } from './theme.ts'
 
@@ -38,12 +38,12 @@ const DISTANCES: Record<string, number> = {
   hm: 21.0975,
   m: 42.195,
 }
-/** Kanoniczne kody dni — tak zapisuje je tren.yaml, niezależnie od języka. */
+/** Kanoniczne kody dni — tak zapisuje je trainctl.yaml, niezależnie od języka. */
 const CANONICAL_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
 /**
  * Skróty dni w bieżącym języku (np. `pn wt sr…`). Kanoniczne kody angielskie
- * przyjmujemy ZAWSZE — kto przepisuje dni z tren.yaml, nie powinien dostać błędu.
+ * przyjmujemy ZAWSZE — kto przepisuje dni z trainctl.yaml, nie powinien dostać błędu.
  */
 function dayInputMap(): Record<string, string> {
   const map: Record<string, string> = {}

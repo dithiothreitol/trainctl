@@ -1,22 +1,22 @@
 /**
  * Angielski katalog tekstów interfejsu — ŹRÓDŁO TYPU dla `cli-pl.ts`.
- * Teksty domenowe (opisy jednostek, diagnozy) mieszkają w `@tren/core`;
+ * Teksty domenowe (opisy jednostek, diagnozy) mieszkają w `@trainctl/core`;
  * tutaj jest wyłącznie to, co należy do warstwy CLI/MCP: nazwy komend,
  * nagłówki, podpowiedzi, komunikaty błędów i opisy narzędzi agenta.
  */
-import { formatNumber } from '@tren/core'
+import { formatNumber } from '@trainctl/core'
 
 const n = (value: number) => formatNumber('en', value)
 
 export const cliEn = {
-  /** Opisy komend i flag — to, co widać w `tren --help`. */
+  /** Opisy komend i flag — to, co widać w `trainctl --help`. */
   cmd: {
     banner: 'plan as code, coach as your agent’s tool',
-    lang: 'interface language: en | pl (or TREN_LANG / language in tren.yaml)',
+    lang: 'interface language: en | pl (or TRAINCTL_LANG / language in trainctl.yaml)',
     init: 'create your profile (interactive in a terminal)',
     initTemplate: 'write the template without asking',
     initFromIntervals: 'propose a profile from intervals.icu history (needs an API key)',
-    plan: 'generate the plan from tren.yaml → plan/plan.yaml + plan/PLAN.md',
+    plan: 'generate the plan from trainctl.yaml → plan/plan.yaml + plan/PLAN.md',
     today: 'what to run today',
     week: 'week overview; -i browses with arrow keys',
     weekInteractive: 'browse weeks with keys (←/→, s, q)',
@@ -30,7 +30,7 @@ export const cliEn = {
     pull: 'pull completed activities and wellness; compare with the plan',
     export: 'watch file (FIT), calendar (ICS), printable sheet or race pack',
     reschedule: 'rearrange the week around busy days (solver: accents, 48 h, long run)',
-    diff: 'what would change if the plan were regenerated from tren.yaml',
+    diff: 'what would change if the plan were regenerated from trainctl.yaml',
     optDate: 'date (defaults to today)',
     optDateOther: 'a date other than today',
     optDateWeek: 'any date inside the week you care about',
@@ -55,7 +55,7 @@ export const cliEn = {
     interactively: 'Interactive: ',
     pickFromList: ' (pick from a list) · ',
     browseArrows: ' (browse with arrows)',
-    colorsHint: 'Colours: NO_COLOR=1 disables them, TREN_ASCII=1 forces ASCII glyphs.',
+    colorsHint: 'Colours: NO_COLOR=1 disables them, TRAINCTL_ASCII=1 forces ASCII glyphs.',
     spinnerPush: 'sending sessions to intervals.icu…',
     spinnerPull: 'fetching data from intervals.icu…',
     spinnerReview: 'preparing the weekly review…',
@@ -67,8 +67,8 @@ export const cliEn = {
     saved: (what: string) => `Saved ${what}`,
     outsidePlan: (date: string, from: string, to: string) =>
       `${date}: outside the plan range (${from} → ${to}).`,
-    noPlan: 'No plan yet — run: tren plan',
-    missingConfig: (file: string) => `No ${file} — run: tren init`,
+    noPlan: 'No plan yet — run: trainctl plan',
+    missingConfig: (file: string) => `No ${file} — run: trainctl init`,
     configErrors: (file: string, errors: string) => `Errors in ${file}:\n  - ${errors}`,
     cancelled: 'cancelled',
     interrupted: 'interrupted',
@@ -97,7 +97,7 @@ export const cliEn = {
     lastFourWeeks: 'Last four weeks',
     raceCandidates: 'Possible races for zone calibration (confirm before adding!)',
     noRaceCandidates: 'I found no race candidates — add a calibration result by hand.',
-    fillGoal: 'fill in the goal section in tren.yaml → tren plan',
+    fillGoal: 'fill in the goal section in trainctl.yaml → trainctl plan',
     unnamed: 'unnamed',
   },
 
@@ -126,7 +126,7 @@ export const cliEn = {
     restDayTitle: 'Rest day',
     restDayBody: 'Rest is part of the plan — adaptation happens in recovery.',
     logged: (status: string) => `Logged: ${status}`,
-    whyHint: (date: string) => `why this session: tren why --date ${date}`,
+    whyHint: (date: string) => `why this session: trainctl why --date ${date}`,
     strengthTitle: (minutes: number) => `Strength · ~${n(minutes)} min`,
     strengthAloneDay: 'No running today — a clean day for the gym (no clash with running).',
     strengthWithEasy:
@@ -161,9 +161,9 @@ export const cliEn = {
 
   shift: {
     swapped: (from: string, to: string) => `Swapped sessions ${from} ↔ ${to}`,
-    weekHint: (date: string) => `see the week: tren week --date ${date}`,
+    weekHint: (date: string) => `see the week: trainctl week --date ${date}`,
     bothDates: 'Give both dates (--from and --to) or neither — then you pick from a list.',
-    sameWeekOnly: 'shift works within a single week (full renegotiation — tren reschedule)',
+    sameWeekOnly: 'shift works within a single week (full renegotiation — trainctl reschedule)',
     notRaceDay: 'The race day stays put.',
     dayBeforeRaceLight: 'The day before the race stays easy — no accent goes there.',
     outsidePlan: (date: string) => `Date ${date} is outside the plan`,
@@ -171,7 +171,7 @@ export const cliEn = {
       `accents on ${a} and ${b} are back to back — rule I-7 asks for ≥48 h between quality sessions`,
     strengthSameDay: (date: string) =>
       `${date}: an accent landed on a strength day — S-5 advises against heavy lifting alongside ` +
-      'a quality session; move the gym or regenerate the plan (tren plan)',
+      'a quality session; move the gym or regenerate the plan (trainctl plan)',
     strengthDayBefore: (date: string, next: string) =>
       `${date}: the strength session falls the day before an accent (${next}) — ` +
       'S-5 asks for ≥24 h after heavy lifting',
@@ -217,7 +217,7 @@ export const cliEn = {
     mismatches: 'Plan ↔ execution mismatches',
     columns: { date: 'date', planned: 'planned', actual: 'actual', status: 'status' },
     allMatched: 'Execution matches the plan across the whole range.',
-    adaptHint: 'suggested corrections: tren adapt',
+    adaptHint: 'suggested corrections: trainctl adapt',
     noPlanSkipped: 'No plan — comparison skipped.',
   },
 
@@ -233,11 +233,11 @@ export const cliEn = {
     title: (days: number, today: string) => `Execution review · ${days} days to ${today}`,
     volumeDone: 'Volume completed',
     missedSessions: 'Sessions missed',
-    noSnapshot: 'No sync.json — analysis from the journal only. Full data: tren pull',
+    noSnapshot: 'No sync.json — analysis from the journal only. Full data: trainctl pull',
     diagnosis: 'Diagnosis',
     proposals: 'Proposals',
     applyHint: (weeklyKm: number) =>
-      `To apply: athlete.recentWeeklyKm: ${weeklyKm} in tren.yaml → tren diff → tren plan. ` +
+      `To apply: athlete.recentWeeklyKm: ${weeklyKm} in trainctl.yaml → trainctl diff → trainctl plan. ` +
       'The engine never rewrites the plan on its own.',
   },
 
@@ -246,7 +246,7 @@ export const cliEn = {
     subtitle: (from: string, to: string) => `work ${from}–${to}`,
     heavyDay: 'heavy cognitive day',
     missingSection:
-      'No desk section in tren.yaml. Add for example:\n' +
+      'No desk section in trainctl.yaml. Add for example:\n' +
       'desk:\n  workStart: "09:00"\n  workEnd: "17:00"\n  lunchMinutes: 45\n  prefer: evening',
     proposedWindow: (label: string, from: string, to: string) =>
       `Suggested window: ${label} (${from}–${to})`,
@@ -270,23 +270,23 @@ export const cliEn = {
     columns: { day: 'day', date: 'date', before: 'before', after: 'after' },
     whatChanges: 'What changes',
     applied: (files: string) => `Applied — saved ${files}`,
-    previewHint: 'this is a preview; apply with: tren reschedule --apply (same --block)',
+    previewHint: 'this is a preview; apply with: trainctl reschedule --apply (same --block)',
     none: '—',
   },
 
   diff: {
-    title: 'Differences: saved plan → plan from current tren.yaml',
-    upToDate: 'Plan is current — no differences against a regeneration from tren.yaml.',
+    title: 'Differences: saved plan → plan from current trainctl.yaml',
+    upToDate: 'Plan is current — no differences against a regeneration from trainctl.yaml.',
     manualShifts: 'the plan contains manual shifts — they will show up as differences',
     weekGone: (weekStart: string) => `- week ${weekStart}: disappears from the plan`,
     weekVolume: (weekStart: string, before: number, after: number) =>
       `~ week ${weekStart}: volume ${n(before)} → ${n(after)} km`,
     dayChanged: (date: string, before: string, after: string) => `~ ${date}: ${before} → ${after}`,
     weekNew: (weekStart: string, km: number) => `+ week ${weekStart}: new (${n(km)} km)`,
-    applyHint: 'to apply: tren plan (overwrites plan/ — you have it in git)',
+    applyHint: 'to apply: trainctl plan (overwrites plan/ — you have it in git)',
     localeChanged: (planLocale: string, current: string) =>
       `the plan was generated in "${planLocale}", you are running in "${current}" — ` +
-      'run tren plan to regenerate the descriptions',
+      'run trainctl plan to regenerate the descriptions',
   },
 
   exportCmd: {
@@ -304,7 +304,7 @@ export const cliEn = {
     calendarHint: 'Import the .ics into Google Calendar / Outlook — sessions become all-day events.',
     fitHint:
       'Copy the .fit files into GARMIN/Workouts on the watch (mass-storage mode) or import them ' +
-      'in Garmin Connect. Cable-free alternative: tren push.',
+      'in Garmin Connect. Cable-free alternative: trainctl push.',
     needDate: 'Give the session date (--date).',
     raceDayNotWorkout: 'That is race day — we do not export it as a workout.',
     restDayNothing: (date: string) => `${date} is a rest day — there is nothing to export.`,
@@ -312,15 +312,15 @@ export const cliEn = {
     needTargetOrPrediction:
       'The race pack needs a target time (goal.targetTimeSec) or a prediction ' +
       '(a race result in athlete.results) — there is nothing to compute splits from.',
-    pickWhat: 'Give the export kind: tren export --what plan|workout|calendar|print|race',
+    pickWhat: 'Give the export kind: trainctl export --what plan|workout|calendar|print|race',
     scenarioGoal: 'goal',
     scenarioBold: 'bold',
     scenarioSafe: 'safe',
     provenanceWithPrediction: (method: string, generatedAt: string) =>
-      `Range from the prediction (${method}, W-1) based on the results in tren.yaml; even pacing ` +
+      `Range from the prediction (${method}, W-1) based on the results in trainctl.yaml; even pacing ` +
       `is an assumption of this sheet (eng., W-10). Generated ${generatedAt}.`,
     provenanceGoalOnly: (generatedAt: string) =>
-      'Target time from tren.yaml only — no prediction from a race result (add one to ' +
+      'Target time from trainctl.yaml only — no prediction from a race result (add one to ' +
       `athlete.results). Even pacing is an assumption of this sheet (eng.). Generated ${generatedAt}.`,
     splitsAndBand: (scenarios: string) => `splits + pace band (${scenarios})`,
     /** Człon nazwy pliku — przechodzi przez `safeName`, więc bez znaków spoza ASCII. */
@@ -349,14 +349,14 @@ export const cliEn = {
       `${from} → ${today} · ${goalName} (${goalDate})`,
     refreshFailed: (error: string) =>
       `Could not refresh the data (${error}) — reviewing the last snapshot.`,
-    noKey: 'No API key — reviewing from the journal and the last snapshot (tren pull once you have one).',
+    noKey: 'No API key — reviewing from the journal and the last snapshot (trainctl pull once you have one).',
     doneSessions: 'Sessions done',
     volume: 'Volume',
     volumeValue: (actualKm: number, plannedKm: number) =>
       `${n(actualKm)} of ${n(plannedKm)} km planned`,
     signals: 'Signals',
     noSignals: 'No corrections needed — the plan matches reality.',
-    seeAdapt: 'there are suggested corrections — details: tren adapt',
+    seeAdapt: 'there are suggested corrections — details: trainctl adapt',
     ahead: (weekStart: string) => `Ahead of you · week of ${weekStart}`,
     todo: 'To do',
     phase: 'Phase',
@@ -366,19 +366,19 @@ export const cliEn = {
     raceThisWeek: (date: string) =>
       `Race this week: ${date} — the day before stays clear (T-10).`,
     timeTrialThisWeek: (date: string) =>
-      `Time trial: ${date} — write the result into tren.yaml afterwards, or the zones stall (W-11).`,
+      `Time trial: ${date} — write the result into trainctl.yaml afterwards, or the zones stall (W-11).`,
     keySession: 'Key session',
-    todoWriteResult: 'write the measured result into athlete.results → tren diff → tren plan',
-    todoSeeAdapt: 'review the proposals: tren adapt (you approve changes in tren.yaml)',
-    todoPush: 'send the coming week to your watch: tren push --days 7',
-    todoPrint: 'a sheet for the fridge: tren export --what print',
+    todoWriteResult: 'write the measured result into athlete.results → trainctl diff → trainctl plan',
+    todoSeeAdapt: 'review the proposals: trainctl adapt (you approve changes in trainctl.yaml)',
+    todoPush: 'send the coming week to your watch: trainctl push --days 7',
+    todoPrint: 'a sheet for the fridge: trainctl export --what print',
     todoReschedule:
-      'if sessions keep falling out because of work — move them (tren reschedule) instead of losing them',
+      'if sessions keep falling out because of work — move them (trainctl reschedule) instead of losing them',
     todoNextRace: (date: string, what: string) => `next tune-up race: ${date} (${what})`,
   },
 
   wizard: {
-    header: 'tren — profile setup',
+    header: 'trainctl — profile setup',
     enterSkips: 'Enter skips optional questions.',
     goal: 'Goal',
     goalName: 'Race name',
@@ -449,7 +449,7 @@ export const cliEn = {
     previewClosed: 'preview closed',
     shiftNeedsTerminal:
       'Interactive mode needs a terminal. Give the dates directly:\n' +
-      '  tren shift --from 2026-08-04 --to 2026-08-05',
+      '  trainctl shift --from 2026-08-04 --to 2026-08-05',
   },
 
   print: {
@@ -460,7 +460,7 @@ export const cliEn = {
     deload: 'deload',
     subtitle: (weeks: number, peakKm: number, vdot: number, generatedAt: string) =>
       `${weeks}-week plan · peak ${n(peakKm)} km/week · VDOT ${n(vdot)} · generated ${generatedAt}`,
-    footer: 'Generated by tren. Session rationale: tren why --date <date>.',
+    footer: 'Generated by trainctl. Session rationale: trainctl why --date <date>.',
     strengthTag: (minutes: number) => `[+ strength ~${n(minutes)} min]`,
     rest: '—',
   },
@@ -482,7 +482,7 @@ export const cliEn = {
 
   sync: {
     missingKey: (secretFile: string) =>
-      'No intervals.icu API key. Set the TREN_INTERVALS_API_KEY environment variable ' +
+      'No intervals.icu API key. Set the TRAINCTL_INTERVALS_API_KEY environment variable ' +
       `or save the key in ${secretFile} (add it to .gitignore!).\n` +
       'Key: intervals.icu → Settings → Developer Settings.',
   },
@@ -512,11 +512,11 @@ export const cliEn = {
       'zones calibrated from the time goal rather than a real result — add a race to athlete.results',
   },
 
-  /** tren.yaml — template and validation. Paths stay as they are; only the wording is translated. */
+  /** trainctl.yaml — template and validation. Paths stay as they are; only the wording is translated. */
   configFile: {
     templateHeader: [
-      '# tren — athlete profile and training goal.',
-      '# Fill this in and run: tren plan',
+      '# trainctl — athlete profile and training goal.',
+      '# Fill this in and run: trainctl plan',
     ],
     templateLanguage: 'interface and plan language: en | pl (default: en)',
     templateAthlete: {
@@ -530,9 +530,9 @@ export const cliEn = {
     },
     templateGoal: {
       name: 'Half marathon',
-      targetTime: 'optional time goal — tren plan will judge how realistic it is',
+      targetTime: 'optional time goal — trainctl plan will judge how realistic it is',
     },
-    templateDesk: 'desk mode (tren desk) — optional',
+    templateDesk: 'desk mode (trainctl desk) — optional',
     templateDeskPrefer: 'morning | lunch | evening',
     templateStrength: {
       section: 'strength 2×/week alongside running (opt-in; needs access to weights)',
@@ -540,7 +540,7 @@ export const cliEn = {
       days: 'optional: preferred days',
     },
     inferredHeader: (from: string, to: string) => [
-      '# tren — athlete profile and training goal.',
+      '# trainctl — athlete profile and training goal.',
       `# Profile proposed from your intervals.icu history (full weeks ${from} → ${to}).`,
       '# These are proposals — correct anything that does not match reality.',
     ],
@@ -549,11 +549,11 @@ export const cliEn = {
     inferredLongRun: 'dominant day of your longest runs',
     inferredResults: 'add a race result once you have confirmed the candidates printed by the command',
     inferredResultsWhy: '(zones come from race results, not from watch readings — Z-6)',
-    inferredGoal: 'FILL THIS IN — without a goal `tren plan` refuses (by design)',
+    inferredGoal: 'FILL THIS IN — without a goal `trainctl plan` refuses (by design)',
     inferredGoalName: 'Target race',
     inferredGoalDate: 'race date',
     inferredResultHint: 'add a race result — that is what calibrates the zones (not the watch)',
-    generatedByWizard: '# Written by `tren init`. Edit freely, then run `tren plan`.',
+    generatedByWizard: '# Written by `trainctl init`. Edit freely, then run `trainctl plan`.',
     validate: {
       missingSection: (path: string) => `${path}: section missing`,
       numberGtZero: (path: string) => `${path}: a number > 0 is required`,
@@ -626,21 +626,21 @@ export const cliEn = {
     dirLine: (dir: string, locale: string) => `training directory: ${dir} · language: ${locale}`,
     isoDate: 'date in YYYY-MM-DD format',
     init:
-      'Create a tren.yaml template (athlete profile and goal) in the training directory. ' +
+      'Create a trainctl.yaml template (athlete profile and goal) in the training directory. ' +
       'Never overwrites an existing file. With fromIntervals=true it proposes a profile from ' +
       '16 weeks of intervals.icu history (needs an API key): every value carries a provenance ' +
       'comment, and race candidates come back FOR CONFIRMATION with the user — add them to ' +
       'athlete.results only once they agree.',
     initFromIntervals: 'profile from intervals.icu history',
     plan:
-      'Generate the training plan from tren.yaml → plan/plan.yaml + plan/PLAN.md. ' +
+      'Generate the training plan from trainctl.yaml → plan/plan.yaml + plan/PLAN.md. ' +
       'Returns a summary: volume peak, predicted finish (a range) and how realistic the goal is. ' +
-      'OVERWRITES an existing plan — when in doubt run tren_diff first.',
+      'OVERWRITES an existing plan — when in doubt run trainctl_diff first.',
     planDate: '“today” (defaults to the current date)',
     today: 'The session for today (or a given date): description, distance, status from the journal.',
     week:
       'The whole training week (phase, target km, day by day, statuses from the journal). ' +
-      'Use it BEFORE renegotiating the week (tren_shift) so you can see the context.',
+      'Use it BEFORE renegotiating the week (trainctl_shift) so you can see the context.',
     weekDate: 'any date inside the week you care about',
     log: 'Record a completed session in the journal (log.jsonl).',
     logStatus: 'defaults to done',
@@ -659,32 +659,32 @@ export const cliEn = {
     adapt:
       'Compare execution (sync.json + journal) with the plan and propose corrections: a realistic ' +
       'volume, a restart after a break, a post-race protocol, zone recalibration. ' +
-      'RETURNS PROPOSALS — it does not change the plan. To apply: edit tren.yaml + tren_plan.',
+      'RETURNS PROPOSALS — it does not change the plan. To apply: edit trainctl.yaml + trainctl_plan.',
     adaptDate: 'reference date (defaults to today)',
     desk:
       'Desk day: training windows around working hours, sitting breaks, and the rule for running ' +
       'after demanding mental work (then go by pace, not by feel). Set heavy=true when the day was ' +
-      'cognitively heavy (long sessions with agents). Needs a desk section in tren.yaml.',
+      'cognitively heavy (long sessions with agents). Needs a desk section in trainctl.yaml.',
     deskHeavy: 'a cognitively heavy day',
     export:
       'Write the plan to a file: `plan` = the whole plan as .fit workouts for the watch, ' +
       '`workout` = a single .fit session (needs date), `calendar` = .ics for Google/Outlook, ' +
       '`print` = an HTML sheet laid out for A4, `race` = the race-day pack (splits + a paper pace ' +
       'band; needs a time goal or a prediction). Files land in the export/ directory. ' +
-      'When the user wants a session “on the watch” without a cable — consider tren_push first.',
+      'When the user wants a session “on the watch” without a cable — consider trainctl_push first.',
     exportDate: 'session to export when what=workout',
     reschedule:
       'Rearrange THE WHOLE week around days the user cannot train on (“release on Thursday”, ' +
       '“away Tue–Wed”). The solver keeps ≥48 h between accents, protects the long run and the ' +
       'accent count, and when days run out it says which session it sacrifices and why. ' +
-      'Preview only by default; apply=true saves the plan. To move a single session use tren_shift.',
+      'Preview only by default; apply=true saves the plan. To move a single session use trainctl_shift.',
     rescheduleBlock: 'days with no possibility of training',
     rescheduleDate: 'a date identifying the week (defaults to the current one)',
     rescheduleApply: 'true = save the changes to the plan',
     push:
       'Push planned sessions to intervals.icu — they reach the watch (Garmin/Coros/Wahoo) as ' +
-      'structured workouts with pace targets. Needs an API key (env TREN_INTERVALS_API_KEY or ' +
-      'a .tren-secret file). Pushing again overwrites the same days (upsert).',
+      'structured workouts with pace targets. Needs an API key (env TRAINCTL_INTERVALS_API_KEY or ' +
+      'a .trainctl-secret file). Pushing again overwrites the same days (upsert).',
     pushFrom: 'range start (defaults to today)',
     pushTo: 'range end',
     pushDays: 'how many days ahead, default 14',
@@ -695,27 +695,27 @@ export const cliEn = {
     review:
       'The whole weekly review in one call: the days behind vs the plan, signals worth acting on, ' +
       'the week ahead (phase, volume, key session, races/time trials) and a list of concrete ' +
-      'actions. Use THIS instead of calling tren_pull + tren_adapt + tren_week in sequence — ' +
+      'actions. Use THIS instead of calling trainctl_pull + trainctl_adapt + trainctl_week in sequence — ' +
       'e.g. when the user asks “how did I do?” or starts a new week. Works without an API key too ' +
       '(then from the journal and the last snapshot). Changes nothing in the plan.',
     reviewDays: 'how many days back to summarise, default 7',
     reviewDate: 'reference date (defaults to today)',
     diff:
-      'Dry run: what regenerating the plan from the current tren.yaml would change (new results, ' +
+      'Dry run: what regenerating the plan from the current trainctl.yaml would change (new results, ' +
       'a changed profile). Saves nothing.',
   },
 
-  /** AGENTS.md — the coach persona dropped into the training directory by `tren init`. */
+  /** AGENTS.md — the coach persona dropped into the training directory by `trainctl init`. */
   agentsMd: (): string => `# Coach — instructions for the agent
 
-This directory is a training plan as code. You have the \`tren_*\` MCP tools
-(or the \`tren\` CLI) and you act as a coach, not just a command runner.
+This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
+(or the \`trainctl\` CLI) and you act as a coach, not just a command runner.
 
 ## Rituals
 
-- **Start of the week** → \`tren_review\`. One call instead of pull + adapt +
+- **Start of the week** → \`trainctl_review\`. One call instead of pull + adapt +
   week. Relay the result in plain language and propose at most two things to do.
-- **Before any change to the week** → \`tren_week\` first, to see the context.
+- **Before any change to the week** → \`trainctl_week\` first, to see the context.
   “Move the intervals” without looking at the week is guesswork.
 - **After a race or a time trial** → ask for the time and propose an entry in
   \`athlete.results\`. A measurement with no result written down changes nothing —
@@ -723,18 +723,18 @@ This directory is a training plan as code. You have the \`tren_*\` MCP tools
 
 ## Rules
 
-1. **Do not regenerate the plan without asking.** \`tren_plan\` overwrites the
-   existing plan. When in doubt: \`tren_diff\` (shows the differences, saves nothing).
-2. **Adaptation proposes, it does not rewrite.** \`tren_adapt\` returns proposals;
-   applying them is a deliberate edit of \`tren.yaml\` → \`tren_diff\` → \`tren_plan\`.
+1. **Do not regenerate the plan without asking.** \`trainctl_plan\` overwrites the
+   existing plan. When in doubt: \`trainctl_diff\` (shows the differences, saves nothing).
+2. **Adaptation proposes, it does not rewrite.** \`trainctl_adapt\` returns proposals;
+   applying them is a deliberate edit of \`trainctl.yaml\` → \`trainctl_diff\` → \`trainctl_plan\`.
 3. **Ask for context before you start computing.** A missed week means one thing
    after illness and another after a crunch at work — the first needs a careful
    return, the second usually just a reshuffle of days.
-4. **Race day does not move.** \`tren_shift\` will refuse; do not work around it
+4. **Race day does not move.** \`trainctl_shift\` will refuse; do not work around it
    by regenerating the plan with a different date.
 5. **Do not invent numbers.** Paces, volumes and rules come from the engine; if
    something is not in a tool’s output, say “I don’t know” rather than estimate.
-6. **Cite reasons, not just commands.** \`tren_why\` gives the purpose of a session
+6. **Cite reasons, not just commands.** \`trainctl_why\` gives the purpose of a session
    and the rules behind it (IDs from \`docs/science/FOUNDATIONS.md\`) — that is the
    value a coach adds over a list of workouts.
 
@@ -750,7 +750,7 @@ This directory is a training plan as code. You have the \`tren_*\` MCP tools
 
 | file | what it is |
 |---|---|
-| \`tren.yaml\` | profile, goal, tune-up races — the **only** file you edit by hand |
+| \`trainctl.yaml\` | profile, goal, tune-up races — the **only** file you edit by hand |
 | \`plan/plan.yaml\` | the generated plan (source of truth for the commands) |
 | \`plan/PLAN.md\` | the same plan, for reading |
 | \`log.jsonl\` | the execution journal |
