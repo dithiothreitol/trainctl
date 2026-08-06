@@ -1,6 +1,7 @@
 /** Moduł siły: F-1…F-4, F-13 oraz ochrona jakości biegania (S-5). */
 import { describe, expect, it } from 'vitest'
 import type { AthleteProfile, MacroPhase, WeekSkeleton } from '../domain/types.ts'
+import { messages, withLocale } from '../i18n/index.ts'
 import { paceZones } from '../zones/daniels.ts'
 import { generateMicrocycle } from './microcycle.ts'
 import { planStrengthWeek, strengthSession } from './strength.ts'
@@ -40,11 +41,16 @@ describe('dawka (F-1/F-12)', () => {
     expect(dates(planStrengthWeek({ week: week('build', true), phase: 'build', deload: true }))).toHaveLength(1)
   })
 
-  it('sesja opisuje ciężką pracę wielostawową, nie „obwód na macie"', () => {
-    const s = strengthSession()
-    expect(s.description).toMatch(/80% 1RM/)
-    expect(s.description).toMatch(/przysiad|martwy/)
-    expect(s.ruleRefs).toContain('F-4')
+  it('sesja opisuje ciężką pracę wielostawową, nie „obwód na macie" — w obu językach', () => {
+    expect(strengthSession().ruleRefs).toContain('F-4')
+    for (const [locale, pattern] of [
+      ['en', /squat|deadlift/],
+      ['pl', /przysiad|martwy/],
+    ] as const) {
+      const s = withLocale(locale, strengthSession)
+      expect(s.description, locale).toMatch(/80% 1RM/)
+      expect(s.description, locale).toMatch(pattern)
+    }
   })
 
   it('każdy dzień dostaje WŁASNY obiekt sesji (plan-as-code: bez aliasów YAML)', () => {
@@ -154,7 +160,7 @@ describe('preferencje użytkownika i uczciwość', () => {
     }
     const a = planStrengthWeek({ week: dense, phase: 'build', deload: false })
     expect(a.byDate.size).toBe(0)
-    expect(a.notes.join(' ')).toContain('pierwszeństwo')
+    expect(a.notes).toEqual([messages().strength.shortfallByAccents(0, 2)])
   })
 
   it('nie zmienia ani jednego kilometra planu biegowego', () => {

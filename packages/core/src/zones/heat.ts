@@ -18,6 +18,8 @@
  * wiatru, korekty za aklimatyzację w s/km oraz krzywej dla półmaratonu.
  */
 
+import { messages } from '../i18n/index.ts'
+
 /** Zakres, w którym model ma pokrycie w danych (El Helou: 1,7–25,2 °C). */
 export const HEAT_MODEL_MIN_C = 2
 export const HEAT_MODEL_MAX_C = 25
@@ -33,18 +35,19 @@ interface HeatCurve {
   maxFinishSec: number
   tOptC: number
   k: number
-  label: string
+  /** Klucz etykiety w katalogu — nazwa krzywej jest tłumaczona przy odczycie. */
+  label: 'curveElite' | 'curveFastAmateur' | 'curveMedian' | 'curveBackHalf'
 }
 
 const CURVES: HeatCurve[] = [
   // P1 (1. percentyl) ≈ maraton 2:41
-  { maxFinishSec: 3 * 3600, tOptC: 3.8, k: 0.0145, label: 'czołówka' },
+  { maxFinishSec: 3 * 3600, tOptC: 3.8, k: 0.0145, label: 'curveElite' },
   // Q1 (25. percentyl) ≈ 3:32
-  { maxFinishSec: 3.75 * 3600, tOptC: 6.0, k: 0.034, label: 'szybki amator' },
+  { maxFinishSec: 3.75 * 3600, tOptC: 6.0, k: 0.034, label: 'curveFastAmateur' },
   // mediana ≈ 3:57
-  { maxFinishSec: 4.25 * 3600, tOptC: 6.2, k: 0.04, label: 'średnia stawki' },
+  { maxFinishSec: 4.25 * 3600, tOptC: 6.2, k: 0.04, label: 'curveMedian' },
   // Q3 (75. percentyl) ≈ 4:28 i wolniej
-  { maxFinishSec: Number.POSITIVE_INFINITY, tOptC: 7.4, k: 0.048, label: 'druga połowa stawki' },
+  { maxFinishSec: Number.POSITIVE_INFINITY, tOptC: 7.4, k: 0.048, label: 'curveBackHalf' },
 ]
 
 /**
@@ -90,24 +93,13 @@ export function adjustForHeat(
   targetSec: number,
   tempC: number,
 ): HeatOutcome {
-  if (!Number.isFinite(tempC)) return { ok: false, reason: 'Nieprawidłowa temperatura.' }
+  const m = messages()
+  if (!Number.isFinite(tempC)) return { ok: false, reason: m.heat.invalidTemp }
   if (tempC < HEAT_MODEL_MIN_C) {
-    return {
-      ok: false,
-      reason:
-        `${tempC} °C jest poniżej zakresu danych (od ${HEAT_MODEL_MIN_C} °C). Model opisuje ` +
-        'wyłącznie ciepłą stronę krzywej — mróz ma swój własny koszt (wiatr, nawierzchnia, ' +
-        'ubranie), którego tu nie liczymy, więc zwrócenie „zero straty" byłoby wprowadzaniem w błąd.',
-    }
+    return { ok: false, reason: m.heat.tooCold(tempC, HEAT_MODEL_MIN_C) }
   }
   if (tempC > HEAT_MODEL_MAX_C) {
-    return {
-      ok: false,
-      reason:
-        `${tempC} °C wykracza poza dane modelu (do ${HEAT_MODEL_MAX_C} °C) — powyżej tej granicy ` +
-        'biegi masowe bywają odwoływane (WBGT 21 °C to próg rekomendowany), a każda liczba ' +
-        'byłaby ekstrapolacją. Biegnij po odczuciu i pilnuj nawodnienia.',
-    }
+    return { ok: false, reason: m.heat.tooHot(tempC, HEAT_MODEL_MAX_C) }
   }
   const curve = curveFor(marathonEquivalentSec(distanceKm, targetSec))
   const delta = tempC - curve.tOptC
@@ -124,7 +116,7 @@ export function adjustForHeat(
       adjustedSec: Math.round(adjustedSec),
       adjustedPaceSecPerKm: Math.round(adjustedSec / distanceKm),
       paceDeltaSecPerKm: Math.round((adjustedSec - targetSec) / distanceKm),
-      curveLabel: curve.label,
+      curveLabel: m.heat[curve.label],
       tOptC: curve.tOptC,
     },
   }

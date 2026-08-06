@@ -15,6 +15,7 @@ import type {
   WeekSkeleton,
 } from '../domain/types.ts'
 import type { PaceZones } from '../zones/daniels.ts'
+import { messages } from '../i18n/index.ts'
 import { addDays, diffDays } from '../util/dates.ts'
 import { COACH_STYLE, type HouseStyle } from './house-style.ts'
 
@@ -30,23 +31,10 @@ const mid = (r: { loSecPerKm: number; hiSecPerKm: number }) =>
   Math.round((r.loSecPerKm + r.hiSecPerKm) / 2)
 
 /**
- * Polska odmiana rzeczownika przez liczebnik: 1 kilometr, 2–4 kilometry,
- * 5–21 kilometrów, 22–24 kilometry… Trener w korpusie pisze „23 kilometry",
- * więc generator też musi.
+ * Odmiana liczebnika przeniesiona do i18n (`pluralPl`/`pluralEn`) — tu zostaje
+ * tylko alias na bieżący katalog, bo generator wywołuje go w kilkunastu miejscach.
  */
-export function plural(n: number, one: string, few: string, many: string): string {
-  if (!Number.isInteger(n)) return many
-  const abs = Math.abs(n)
-  if (abs === 1) return one
-  const lastTwo = abs % 100
-  if (lastTwo >= 12 && lastTwo <= 14) return many
-  const last = abs % 10
-  return last >= 2 && last <= 4 ? few : many
-}
-
-/** „23 kilometry", „11 kilometrów", „1 kilometr". */
-export const kmText = (n: number): string =>
-  `${n} ${plural(n, 'kilometr', 'kilometry', 'kilometrów')}`
+export const kmText = (n: number): string => messages().units.km(n)
 
 // ------------------------------------------------------------ budowa jednostek
 
@@ -55,7 +43,7 @@ function segWarmup(km: number, z: PaceZones): PlannedSegment {
     type: 'warmup',
     distanceKm: km,
     pace: { loSecPerKm: z.easy.loSecPerKm, hiSecPerKm: z.easy.hiSecPerKm },
-    description: `${kmText(km)} (tempo rozgrzewkowe)`,
+    description: messages().workout.warmup(km),
   }
 }
 
@@ -63,7 +51,7 @@ function segCooldown(km: number): PlannedSegment {
   return {
     type: 'cooldown',
     distanceKm: km,
-    description: `Na koniec treningu ${km} kilometr truchtu.`,
+    description: messages().workout.cooldown(km),
   }
 }
 
@@ -76,7 +64,7 @@ function buildEasy(km: number, z: PaceZones): PlannedWorkout {
       type: 'easy',
       distanceKm: km,
       pace: z.easy,
-      description: `${kmText(km)} (w tempie spokojnym).`,
+      description: messages().workout.easy(km),
     }],
   }
 }
@@ -91,7 +79,7 @@ function buildLong(km: number, z: PaceZones): PlannedWorkout {
       type: 'easy',
       distanceKm: km,
       pace,
-      description: `${kmText(km)} (w tempie bardzo spokojnym).`,
+      description: messages().workout.veryEasy(km),
     }],
   }
 }
@@ -107,14 +95,14 @@ function buildHillsDay(easyKm: number, style: HouseStyle, z: PaceZones): Planned
         type: 'easy',
         distanceKm: easyKm,
         pace: z.easy,
-        description: `${kmText(easyKm)} (w tempie spokojnym)`,
+        description: messages().workout.easyBeforeHills(easyKm),
       },
       {
         type: 'hills',
         reps: style.hillsReps,
         repM: style.hillsRepM,
         distanceKm: repsKm,
-        description: `podbiegi: ${style.hillsReps}*${style.hillsRepM} metrów (spokojnie).`,
+        description: messages().workout.hills(style.hillsReps, style.hillsRepM),
       },
       segCooldown(style.cooldownKm),
     ],
@@ -139,9 +127,9 @@ function buildQualityIntervals(
       distanceKm: reps,
       pace: z.interval,
       recoverySec: 180,
-      description:
-        `${reps}*1 km (w tempie ${fmtPace(mid(z.interval))} na km), ` +
-        `przerwy 3 minutowe w truchcie, po ${Math.ceil(reps / 2)} odcinku przerwa 4 minutowa w marszu.`,
+      description: messages().workout.intervalsVo2(
+        reps, fmtPace(mid(z.interval)), 3, Math.ceil(reps / 2), 4,
+      ),
     }
   } else if (mainKm >= 9) {
     // base/build: cruise intervals @T (I-1)
@@ -153,8 +141,7 @@ function buildQualityIntervals(
       distanceKm: reps * 3,
       pace: z.threshold,
       recoverySec: 180,
-      description:
-        `${reps}*3 km (w tempie ${fmtPace(mid(z.threshold))} na km), przerwy 3 minutowe w marszu.`,
+      description: messages().workout.intervals3Km(reps, fmtPace(mid(z.threshold)), 3),
     }
   } else {
     const reps = Math.max(4, Math.round(mainKm))
@@ -165,8 +152,7 @@ function buildQualityIntervals(
       distanceKm: reps,
       pace: z.threshold,
       recoverySec: 120,
-      description:
-        `${reps}*1 km (w tempie ${fmtPace(mid(z.threshold))} na km), przerwy 2 minutowe w marszu.`,
+      description: messages().workout.intervalsKm(reps, fmtPace(mid(z.threshold)), 2),
     }
   }
   segments.push(main, segCooldown(style.cooldownKm))
@@ -193,9 +179,7 @@ function buildQualityContinuous(
       type: 'alternating',
       distanceKm: mainKm,
       pace: { loSecPerKm: fast, hiSecPerKm: slow },
-      description:
-        `${mainKm} km biegu zmiennego (na zmianę 1 km w tempie ${fmtPace(fast)} na km, ` +
-        `na 1 km w tempie ${fmtPace(slow)} na km).`,
+      description: messages().workout.alternating(mainKm, fmtPace(fast), fmtPace(slow)),
     }
   } else {
     const from = z.marathon.hiSecPerKm
@@ -204,8 +188,7 @@ function buildQualityContinuous(
       type: 'progression',
       distanceKm: mainKm,
       pace: { loSecPerKm: to, hiSecPerKm: from },
-      description:
-        `${mainKm} km w tempie narastającym (od ${fmtPace(from)} do ${fmtPace(to)} na km).`,
+      description: messages().workout.progression(mainKm, fmtPace(from), fmtPace(to)),
     }
   }
   segments.push(main, segCooldown(style.cooldownKm))
@@ -233,9 +216,7 @@ function buildSharpener(style: HouseStyle, z: PaceZones): PlannedWorkout {
         distanceKm: (reps * repM) / 1000,
         pace: z.interval,
         recoverySec: 60,
-        description:
-          `${reps}*${repM} metrów (w tempie ${fmtPace(mid(z.interval))} na km), ` +
-          'przerwy 1 minutowe w truchcie.',
+        description: messages().workout.intervalsShort(reps, repM, fmtPace(mid(z.interval)), 1),
       },
       segCooldown(style.cooldownKm),
     ],
@@ -247,7 +228,7 @@ function buildRace(goal: RaceGoal): PlannedWorkout {
     kind: 'race',
     distanceKm: 0, // dystans startu nie wlicza się do objętości treningowej tygodnia
     ruleRefs: [],
-    segments: [{ type: 'race', description: `START: ${goal.name.toUpperCase()}.` }],
+    segments: [{ type: 'race', description: messages().workout.raceGoal(goal.name) }],
   }
 }
 
@@ -258,7 +239,7 @@ function buildTuneUp(race: TuneUpRace): PlannedWorkout {
     kind: 'race',
     distanceKm: 0,
     ruleRefs: ['T-10', 'T-11', 'T-12'],
-    segments: [{ type: 'race', description: `START W ${what}.` }],
+    segments: [{ type: 'race', description: messages().workout.raceOther(what) }],
   }
 }
 
@@ -277,9 +258,7 @@ function buildTest(distanceKm: number, style: HouseStyle, z: PaceZones): Planned
       {
         type: 'race',
         distanceKm,
-        description:
-          `${kmText(distanceKm)} na czas (maksymalnie, na pełnym wypoczynku) — ` +
-          'wynik dopisz do tren.yaml (athlete.results), z niego kalibrujemy strefy.',
+        description: messages().workout.timeTrial(distanceKm),
       },
       segCooldown(style.cooldownKm),
     ],

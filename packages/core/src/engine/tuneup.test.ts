@@ -5,7 +5,12 @@
  */
 import { describe, expect, it } from 'vitest'
 import type { AthleteProfile, RaceGoal } from '../domain/types.ts'
+import { setLocale } from '../i18n/index.ts'
 import { paceZones } from '../zones/daniels.ts'
+
+// Opisy startów kontrolnych sprawdzamy w brzmieniu z korpusu („START W …").
+// Na poziomie modułu — patrz komentarz w microcycle.test.ts.
+setLocale('pl')
 import { planMacrocycle, testDistanceKm } from './macrocycle.ts'
 import { generateMicrocycle } from './microcycle.ts'
 

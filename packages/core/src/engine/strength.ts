@@ -12,6 +12,7 @@
  * kilometra planu biegowego — dokłada równoległą ścieżkę do istniejących dni.
  */
 import type { MacroPhase, Microcycle, PlannedDay, StrengthSession, Weekday } from '../domain/types.ts'
+import { messages } from '../i18n/index.ts'
 import { addDays, diffDays } from '../util/dates.ts'
 
 /** F-1/F-12: 2 sesje/tydz. w ładowaniu. */
@@ -37,10 +38,7 @@ export function strengthSession(): StrengthSession {
     kind: 'heavy',
     durationMin: 35,
     ruleRefs: ['F-1', 'F-2', 'F-3', 'F-4'],
-    description:
-      'Siła ciężka ~35 min: przysiad lub martwy ciąg + wykroki + wspięcia na palce, ' +
-      '3 serie × 4–6 powtórzeń CIĘŻKO (≥80% 1RM, ostatnie powtórzenie trudne, ale bez upadku ruchu), ' +
-      'przerwy 2–3 min. Wielostawowo, wolny ciężar. Nie do wyczerpania (S-7).',
+    description: messages().strength.session(),
   }
 }
 
@@ -83,7 +81,7 @@ export function planStrengthWeek(input: StrengthWeekInput): StrengthAssignment {
   const notes: string[] = []
 
   if (phase === 'taper' || phase === 'race') {
-    notes.push('Taper: siła odstawiona — 4 tyg. bez siłowni nie kasuje adaptacji (F-13).')
+    notes.push(messages().strength.taperNote)
     return { byDate: new Map(), notes }
   }
 
@@ -134,11 +132,11 @@ export function planStrengthWeek(input: StrengthWeekInput): StrengthAssignment {
     // ciasny tydzień biegowy. Zmyślanie powodu byłoby dokładnie tym, czego
     // ten moduł ma nie robić (ADR-022).
     const narrowed = (input.daysPreference?.length ?? 7) < 7
-    const reason = narrowed
-      ? `wybrane dni (${input.daysPreference!.join(', ')}) kolidują z akcentami albo z odstępem 48 h — ` +
-        'poszerz `strength.days` w tren.yaml albo zostaw puste, a silnik dobierze dni sam'
-      : 'akcenty i długie mają pierwszeństwo (S-5); nie upychamy siły kosztem jakości biegania'
-    notes.push(`W tym tygodniu zmieściła się ${byDate.size} z ${target} sesji siły — ${reason}.`)
+    notes.push(
+      narrowed
+        ? messages().strength.shortfallByDays(byDate.size, target, input.daysPreference!.join(', '))
+        : messages().strength.shortfallByAccents(byDate.size, target),
+    )
   }
   return { byDate, notes }
 }

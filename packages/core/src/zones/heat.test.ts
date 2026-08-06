@@ -1,5 +1,6 @@
-/** Korekta na temperaturę — H-1…H-6 (El Helou 2012, tab. S3). */
+﻿/** Korekta na temperaturę — H-1…H-6 (El Helou 2012, tab. S3). */
 import { describe, expect, it } from 'vitest'
+import { messages, withLocale } from '../i18n/index.ts'
 import { adjustForHeat, heatLadder, marathonEquivalentSec, HEAT_MODEL_MAX_C } from './heat.ts'
 
 const MARATHON = 42.195
@@ -76,24 +77,29 @@ describe('poziom biegacza (H-2/H-3)', () => {
     const slow = adjustForHeat(MARATHON, 4.5 * 3600, 10)
     if (!elite.ok || !slow.ok) return
     expect(elite.adjustment.tOptC).toBeLessThan(slow.adjustment.tOptC)
-    expect(elite.adjustment.curveLabel).toBe('czołówka')
+    expect(elite.adjustment.curveLabel).toBe(messages().heat.curveElite)
   })
 
   it('krzywą wybieramy po ekwiwalencie maratońskim, nie po czasie na dystansie', () => {
     // dycha w 40 min to poziom czołowy, mimo że 2400 s < 3 h
     expect(marathonEquivalentSec(10, 2400)).toBeGreaterThan(3 * 3600)
     const r = adjustForHeat(10, 2400, 20)
-    expect(r.ok && r.adjustment.curveLabel).toBe('szybki amator')
+    expect(r.ok && r.adjustment.curveLabel).toBe(messages().heat.curveFastAmateur)
   })
 })
 
 describe('granice modelu (H-5)', () => {
-  it('powyżej 25 °C odmawia liczby zamiast ekstrapolować', () => {
-    const r = adjustForHeat(MARATHON, SUB4, 28)
-    expect(r.ok).toBe(false)
-    if (r.ok) return
-    expect(r.reason).toContain('poza dane')
-    expect(r.reason).toContain('odczuciu')
+  it('powyżej 25 °C odmawia liczby zamiast ekstrapolować — w obu językach', () => {
+    for (const locale of ['en', 'pl'] as const) {
+      const r = withLocale(locale, () => adjustForHeat(MARATHON, SUB4, 28))
+      expect(r.ok, locale).toBe(false)
+      if (r.ok) continue
+      // odmowa musi tłumaczyć POWÓD i dawać alternatywę, nie tylko odmawiać
+      // odmowa musi podać POWÓD i alternatywę, w naturalnym brzmieniu języka
+      expect(r.reason, locale).toMatch(locale === 'pl' ? /poza dane/ : /beyond the model data/)
+      expect(r.reason, locale).toMatch(locale === 'pl' ? /odczuciu/ : /by feel/)
+      if (locale === 'en') expect(r.reason).not.toMatch(/[ąćęłńóśźż]/)
+    }
   })
 
   it('dokładnie na granicy jeszcze liczy', () => {
@@ -124,3 +130,4 @@ describe('sanity check wobec innych badań', () => {
     }
   })
 })
+

@@ -7,6 +7,7 @@
  */
 import type { Weekday } from '../domain/types.ts'
 import type { SyncedActivity } from '../ports/sync.ts'
+import { messages } from '../i18n/index.ts'
 import { addDays, diffDays, mondayOf, parseIso } from '../util/dates.ts'
 
 /** Okno analizy w pełnych tygodniach (wartość inżynierska — ~3 miesiące formy). */
@@ -86,10 +87,15 @@ function findRaceCandidates(runs: SyncedActivity[]): RaceCandidate[] {
     // ostro „<": bieg musi być szybszy od progu, nie równy typowemu tłu
     const topDecile = fastCut !== undefined && pace < fastCut
     if (!namedLikeRace && !topDecile) continue
+    const m = messages()
+    const label =
+      standard === 21.0975 ? m.infer.distanceHalf
+        : standard === 42.195 ? m.infer.distanceMarathon
+          : `${standard} km`
     const why = [
-      `dystans ~${standard === 21.0975 ? 'HM' : standard === 42.195 ? 'maraton' : `${standard} km`}`,
-      ...(namedLikeRace ? ['nazwa jak start'] : []),
-      ...(topDecile ? ['tempo w górnym decylu okna'] : []),
+      m.infer.raceReasonDistance(label),
+      ...(namedLikeRace ? [m.infer.raceReasonName] : []),
+      ...(topDecile ? [m.infer.raceReasonPace] : []),
     ]
     out.push({
       date: r.date,
@@ -110,9 +116,8 @@ export function inferProfile(activities: SyncedActivity[], today: string): Infer
   const runs = activities.filter(
     (a) => isRun(a) && a.date >= oldestMonday && a.date <= today && (a.distanceKm ?? 0) > 0,
   )
-  if (runs.length === 0) {
-    return { ok: false, reason: 'Brak aktywności biegowych w oknie 16 tygodni — profil uzupełnij ręcznie.' }
-  }
+  const m = messages()
+  if (runs.length === 0) return { ok: false, reason: m.infer.noRuns }
 
   // km per pełny tydzień (bieżący, niepełny tydzień nie zaniża mediany)
   const kmByWeek = new Map<string, number>()
@@ -130,12 +135,7 @@ export function inferProfile(activities: SyncedActivity[], today: string): Infer
 
   const activeWeeks = weeklyKm.filter((w) => w.km > 0)
   if (activeWeeks.length < RECENT_BLOCK_WEEKS) {
-    return {
-      ok: false,
-      reason:
-        `Tylko ${activeWeeks.length} aktywne tygodnie w ostatnich ${INFER_WINDOW_WEEKS} — ` +
-        'za mało na wiarygodną inferencję. Podaj objętość ręcznie.',
-    }
+    return { ok: false, reason: m.infer.tooFewWeeks(activeWeeks.length, INFER_WINDOW_WEEKS) }
   }
 
   const caveats: string[] = []
@@ -144,10 +144,7 @@ export function inferProfile(activities: SyncedActivity[], today: string): Infer
   const lastRunDate = runs.map((r) => r.date).sort().at(-1)!
   const tailGap = diffDays(lastRunDate, today)
   if (tailGap >= LAYOFF_DAYS) {
-    caveats.push(
-      `Ostatni bieg ${tailGap} dni temu (${lastRunDate}) — generator potraktuje to jako ` +
-        'restart po przerwie; objętość poniżej odnosi się do ostatniego aktywnego bloku.',
-    )
+    caveats.push(m.infer.layoffAtEnd(tailGap, lastRunDate))
   }
 
   // blok odniesienia: 4 tygodnie kończące się na ostatnim AKTYWNYM tygodniu
@@ -163,21 +160,15 @@ export function inferProfile(activities: SyncedActivity[], today: string): Infer
   const block = weeklyKm.slice(blockStart, lastActiveIdx + 1)
   const blockActive = block.filter((w) => w.km > 0)
   if (blockActive.length < 2) {
-    return {
-      ok: false,
-      reason: 'W ostatnim bloku treningowym mniej niż 2 aktywne tygodnie — podaj objętość ręcznie.',
-    }
+    return { ok: false, reason: m.infer.tooFewInBlock }
   }
   if (blockActive.length < block.length) {
-    caveats.push(
-      `W bloku odniesienia (${block[0]!.weekStart} → ${block.at(-1)!.weekStart}) są tygodnie ` +
-        'zerowe (urlop? choroba?) — mediana liczona z tygodni aktywnych.',
-    )
+    caveats.push(m.infer.zeroWeeksInBlock(block[0]!.weekStart, block.at(-1)!.weekStart))
   }
   const recentWeeklyKm = Math.round(median(blockActive.map((w) => w.km)))
-  const recentBasis =
-    `mediana ${blockActive.length} aktywnych tygodni ` +
-    `${block[0]!.weekStart} → ${block.at(-1)!.weekStart} (intervals.icu)`
+  const recentBasis = m.infer.recentBasis(
+    blockActive.length, block[0]!.weekStart, block.at(-1)!.weekStart,
+  )
 
   // szczyt okna: najwyższy pełny tydzień — sufit, który organizm już zniósł
   const peakWeeklyKm = Math.round(Math.max(...weeklyKm.map((w) => w.km)))
@@ -207,9 +198,7 @@ export function inferProfile(activities: SyncedActivity[], today: string): Infer
   }
   const longTop = [...longCount.entries()].sort((a, b) => b[1] - a[1])[0]
   const longRunDay = longTop && longTop[1] >= 3 ? longTop[0] : undefined
-  if (!longRunDay) {
-    caveats.push('Długie wybieganie nie ma stałego dnia w historii — wskaż go sam.')
-  }
+  if (!longRunDay) caveats.push(m.infer.noFixedLongRunDay)
 
   return {
     ok: true,

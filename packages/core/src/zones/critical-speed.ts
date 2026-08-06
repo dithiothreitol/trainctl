@@ -6,6 +6,7 @@
  * lub 3 min + 12 min); predykcja sensowna dla 1500–5000 m. Poza zakresem
  * zwracamy ostrzeżenia zamiast odmowy — decyzja należy do warstwy wyżej.
  */
+import { messages } from '../i18n/index.ts'
 
 export interface CriticalSpeedModel {
   /** m/s */
@@ -23,14 +24,14 @@ export interface TimeTrial {
 export function criticalSpeed(a: TimeTrial, b: TimeTrial): CriticalSpeedModel {
   const [t1, t2] = a.timeSec < b.timeSec ? [a, b] : [b, a]
   if (t2.timeSec === t1.timeSec) {
-    throw new Error('Próby muszą mieć różne czasy trwania')
+    throw new Error(messages().zones.sameDuration)
   }
   const cs = (t2.distanceM - t1.distanceM) / (t2.timeSec - t1.timeSec)
   const dPrime = t1.distanceM - cs * t1.timeSec
   const warnings: string[] = []
-  if (t1.timeSec < 120) warnings.push('krótsza próba <2 min — CS zawyżone (Z-7)')
-  if (t2.timeSec > 1200) warnings.push('dłuższa próba >20 min — poza zakresem modelu (Z-7)')
-  if (dPrime < 0) warnings.push("D' ujemne — próby niespójne, powtórz test")
+  if (t1.timeSec < 120) warnings.push(messages().zones.trialTooShort)
+  if (t2.timeSec > 1200) warnings.push(messages().zones.trialTooLong)
+  if (dPrime < 0) warnings.push(messages().zones.negativeDPrime)
   return { cs, dPrime, warnings }
 }
 

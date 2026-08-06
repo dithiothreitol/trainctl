@@ -5,6 +5,7 @@
 import type { RaceResult } from '../domain/types.ts'
 import { diffDays } from '../util/dates.ts'
 import { predictTimeSec, vdotFromRace } from './daniels.ts'
+import { messages } from '../i18n/index.ts'
 
 export interface RacePrediction {
   distanceKm: number
@@ -38,7 +39,7 @@ const isMarathon = (km: number) => km >= 42.0 && km <= 42.5
 
 function pickSource(results: RaceResult[], targetKm: number, today?: string): RaceResult {
   const valid = results.filter((r) => r.distanceKm > 0 && r.timeSec > 0)
-  if (valid.length === 0) throw new Error('Brak wyników do kalibracji (W-1)')
+  if (valid.length === 0) throw new Error(messages().predict.noResults)
   const scored = valid.map((r) => {
     const distScore = Math.abs(Math.log(r.distanceKm / targetKm))
     const ageDays = today ? Math.max(0, diffDays(r.date, today)) : 0
@@ -63,7 +64,7 @@ export function predictRace(
     const base = riegelTimeSec(source.timeSec, source.distanceKm, targetKm)
     ruleRefs.push('W-5', 'W-7', 'W-8')
     warnings.push(
-      'ultra: brak modelu predykcji o zweryfikowanej trafności — przedział szacunkowy',
+      messages().predict.ultraNoModel,
       'durability: rozrzut indywidualny spadku CS 1–31% po 120 min (Hunter 2025)',
     )
     if (opts.durabilityFactor !== undefined) {
@@ -99,7 +100,7 @@ export function predictRace(
     const source = pickSource(results, targetKm, opts.today)
     const mid = predictTimeSec(targetKm, vdotFromRace(source.distanceKm, source.timeSec))
     ruleRefs.push('W-3', 'W-4')
-    warnings.push('brak wyniku z półmaratonu — predykcja VDOT jest optymistyczna na maratonie (W-4)')
+    warnings.push(messages().predict.noHalfMarathon)
     const mae = mid > 4 * 3600 ? 0.1043 : 0.0596 // W-3: MAE wg kohorty tempa
     if (mid > 4 * 3600) warnings.push('maraton >4 h: MAE VDOT 10,43% — traktuj jako zgrubny szacunek (W-3)')
     return {
@@ -112,7 +113,7 @@ export function predictRace(
   // Dystanse ≤ HM: VDOT (W-3: tu model jest wiarygodny)
   const source = pickSource(results, targetKm, opts.today)
   if (source.timeSec < 3.5 * 60 || source.timeSec > 230 * 60) {
-    warnings.push('wynik źródłowy poza zakresem stosowalności ekstrapolacji 3,5–230 min (W-5)')
+    warnings.push(messages().predict.outOfRiegelRange)
   }
   const mid = predictTimeSec(targetKm, vdotFromRace(source.distanceKm, source.timeSec))
   const band = 0.03 // wartość inżynierska pasma dla ≤HM; do kalibracji backtestem

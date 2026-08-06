@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AthleteProfile, RaceGoal } from '../domain/types.ts'
+import { messages } from '../i18n/index.ts'
 import { planMacrocycle, recommendedPeakKm, taperWeeksFor } from './macrocycle.ts'
 
 const athlete: AthleteProfile = {
@@ -120,7 +121,10 @@ describe('planMacrocycle — przypadki brzegowe', () => {
       athlete,
     })
     expect(compressed.weeks).toHaveLength(3)
-    expect(compressed.feasibilityWarnings.some((w) => w.includes('skompresowany'))).toBe(true)
+    // treść ostrzeżenia zależy od języka — sprawdzamy przez katalog, nie przez literał
+    expect(
+      compressed.feasibilityWarnings.some((w) => w === messages().macro.compressedPlan(3)),
+    ).toBe(true)
     expect(compressed.weeks.at(-1)!.phase).toBe('race')
   })
 

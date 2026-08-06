@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { SyncedActivity } from '../ports/sync.ts'
 import { addDays, mondayOf } from '../util/dates.ts'
+import { setLocale } from '../i18n/index.ts'
 import { inferProfile } from './infer-profile.ts'
+
+// Ten plik weryfikuje LOGIKĘ inferencji; komunikaty czytamy po polsku dla
+// czytelności asercji. Kompletność tłumaczeń pilnuje i18n/i18n.test.ts.
+setLocale('pl')
 
 // „dziś" = środa; ostatni pełny tydzień kończy się w niedzielę 2026-08-02
 const TODAY = '2026-08-05'

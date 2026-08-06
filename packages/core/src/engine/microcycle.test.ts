@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { AthleteProfile, RaceGoal, WeekSkeleton } from '../domain/types.ts'
 import { paceZones } from '../zones/daniels.ts'
+import { setLocale } from '../i18n/index.ts'
 import { fmtPace, generateMicrocycle, kmText } from './microcycle.ts'
+
+// Ten plik weryfikuje HOUSE STYLE TRENERA, czyli polskie brzmienie opisów
+// (korpus 2020–2025). Angielski ma własny plik — microcycle-i18n.test.ts.
+//
+// Język ustawiamy na poziomie MODUŁU, nie w beforeAll: ciała `describe`
+// wykonują się w fazie zbierania testów, czyli zanim beforeAll zdąży wystartować,
+// a niektóre z nich budują mikrocykl od razu (`const mc = generateMicrocycle(...)`).
+setLocale('pl')
 
 const zones = paceZones(51)
 

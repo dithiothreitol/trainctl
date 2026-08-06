@@ -14,6 +14,7 @@ import type {
   WeekSkeleton,
 } from '../domain/types.ts'
 import { addDays, diffDays, mondayOf } from '../util/dates.ts'
+import { messages } from '../i18n/index.ts'
 
 /** P-2: tydzień odciążenia po 3 tygodniach ładowania. Współczynnik 0,7 — inż. */
 const DELOAD_EVERY = 4
@@ -31,7 +32,7 @@ const TAPER_MULTIPLIERS: Record<number, number[]> = {
 }
 
 export function taperWeeksFor(goal: RaceGoal): { weeks: number; flags: string[] } {
-  if (goal.distanceKm > 42.5) return { weeks: 3, flags: ['T-8: ultra — ekstrapolacja bez źródła'] }
+  if (goal.distanceKm > 42.5) return { weeks: 3, flags: [messages().macro.ultraTaperExtrapolated] }
   if (goal.distanceKm >= 42.0) return { weeks: 3, flags: [] } // maraton: 14–21 dni
   if (goal.distanceKm >= 20.9) return { weeks: 2, flags: [] } // HM: 10–14 dni
   return { weeks: 1, flags: [] } // 5–10 km: 7–10 dni
@@ -82,7 +83,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   const firstWeek = mondayOf(today)
   const raceWeek = mondayOf(goal.date)
   const totalWeeks = Math.floor(diffDays(firstWeek, raceWeek) / 7) + 1
-  if (totalWeeks < 1) throw new Error('Data startu w przeszłości')
+  if (totalWeeks < 1) throw new Error(messages().macro.raceDateInPast)
 
   const feasibilityWarnings: string[] = []
   const taper = taperWeeksFor(goal)
@@ -90,7 +91,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   const loadWeeks = totalWeeks - taperWeeks
   if (totalWeeks < 6) {
     feasibilityWarnings.push(
-      `tylko ${totalWeeks} tyg. do startu — plan skompresowany, bez pełnej progresji`,
+      messages().macro.compressedPlan(totalWeeks),
     )
   }
 
@@ -106,8 +107,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   const peakPlanned = Math.round(Math.min(targetPeak, cap, reachable))
   if (peakPlanned < recommended) {
     feasibilityWarnings.push(
-      `szczyt planu ${peakPlanned} km/tydz. poniżej rekomendacji ${recommended} km/tydz. ` +
-        `dla ${goal.distanceKm} km (P-7/P-8) — cel czasowy obarczony ryzykiem`,
+      messages().macro.peakBelowRecommended(peakPlanned, recommended, goal.distanceKm),
     )
   }
 
@@ -212,7 +212,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       weeksToGoal >= TEST_MIN_WEEKS_TO_GOAL
     if (wantsTest) {
       ruleRefs.push('W-11', 'W-12', 'W-13')
-      flags.push('sprawdzian: brak startów w kalendarzu — kalibracja stref')
+      flags.push(messages().macro.timeTrialForCalibration)
       weeksSinceCalibration = 0
     }
 
