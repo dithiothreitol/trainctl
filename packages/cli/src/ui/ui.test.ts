@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { setLocale } from '@tren/core'
 import { b, renderAnsi, renderPlain, wrap } from './blocks.ts'
 import { Theme, detectCapabilities, stripAnsi, visibleLength } from './theme.ts'
 import { parseDaysInput, parseDistanceInput, parseTimeInput, toYaml } from './wizard.ts'
+
+// Parsery kreatora przyjmują skróty dni w języku interfejsu — tu testujemy polskie.
+setLocale('pl')
 
 const sample = [
   b.title('Tydzień 3/17', 'baza · 62 km'),

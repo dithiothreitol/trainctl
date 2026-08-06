@@ -21,6 +21,10 @@ export const coreEn = {
     pace: formatPace,
   },
 
+  dates: {
+    invalidIso: (iso: string) => `Invalid ISO date: ${iso}`,
+  },
+
   weekday: {
     mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday',
     fri: 'Friday', sat: 'Saturday', sun: 'Sunday',
@@ -81,6 +85,45 @@ export const coreEn = {
     raceGoal: (name: string) => `RACE: ${name.toUpperCase()}.`,
     raceOther: (what: string) => `RACE: ${what}.`,
     restDay: 'rest day',
+  },
+
+  /**
+   * Nazwy kroków treningu w pliku FIT — czyta je zegarek w biegu.
+   * Limit 23 znaków (STEP_NAME_SIZE): krótko i jednoznacznie.
+   */
+  fitStep: {
+    warmup: 'Warm-up',
+    cooldown: 'Cool-down',
+    rep: 'Rep',
+    recovery: 'Recovery',
+    hillRep: 'Hill',
+    hillDown: 'Jog down',
+    repeat: (reps: number) => `Repeat ${reps}x`,
+    alternating: 'Alternating',
+    faster: 'Faster',
+    slower: 'Slower',
+    progression: 'Progression',
+    progressionPart: (index: number, total: number) => `Build ${index}/${total}`,
+    easy: 'Easy',
+    steady: 'Steady',
+    timed: 'All out',
+  },
+
+  /** Tytuły treningów wypychanych do intervals.icu (widoczne w kalendarzu i na zegarku). */
+  syncName: {
+    easy: 'Easy run',
+    long: 'Long run',
+    easy_hills: 'Hills',
+    quality_intervals: 'Intervals',
+    quality_continuous: 'Tempo',
+    sharpener: 'Pre-race sharpener',
+    test: 'Time trial',
+    race: 'RACE',
+  },
+
+  syncError: {
+    badKey: ' — check the API key (Settings → Developer Settings)',
+    rateLimit: ' — request limit (5000/day, 2500/15 min)',
   },
 
   strength: {

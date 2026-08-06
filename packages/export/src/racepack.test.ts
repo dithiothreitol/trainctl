@@ -57,6 +57,19 @@ describe('splity narastająco', () => {
   })
 })
 
+/** Etykiety jak w polskim katalogu CLI — renderer dostaje je z zewnątrz. */
+const LABELS = {
+  lang: 'pl',
+  title: (raceName: string) => `${raceName} — pakiet startowy`,
+  subtitle: (date: string, distanceKm: number) => `${date} · ${distanceKm} km`,
+  splits: 'Splity narastająco',
+  band: (scenario: string) => `Opaska — ${scenario}`,
+  finish: 'META',
+  km: 'km',
+  cutHint: '✂ wytnij wzdłuż przerywanej linii, owiń wokół nadgarstka, sklej taśmą',
+  conditions: 'Korekta na warunki',
+}
+
 describe('HTML pakietu', () => {
   const html = toRacePackHtml({
     raceName: 'Maraton <Testowy>',
@@ -69,6 +82,7 @@ describe('HTML pakietu', () => {
     ],
     bandScenario: 1,
     provenance: 'Przedział z predykcji (hm-x2.28, W-1).',
+    labels: LABELS,
   })
 
   it('A4, trzy kolumny scenariuszy, opaska z celem', () => {
@@ -101,6 +115,7 @@ describe('HTML pakietu', () => {
         scenarios: [{ label: 'cel', totalSec: 2400 }],
         bandScenario: 3,
         provenance: '',
+        labels: LABELS,
       }),
     ).toThrow(/bandScenario/)
   })

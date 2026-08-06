@@ -3,12 +3,18 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { setLocale } from '@tren/core'
 import { cmdPlan } from './commands.ts'
+import { ui } from './i18n/index.ts'
 import { dayChoices, runShiftPicker, runWeekBrowser } from './interactive.ts'
 import { loadPlan } from './planfile.ts'
 import { clampIndex, digitIndex, keyAction, moveIndex } from './ui/keys.ts'
 import { renderChoices } from './ui/select.ts'
 import { Theme } from './ui/theme.ts'
+
+// Plan powstaje w ciele `describe`, więc język musi być ustawiony na poziomie
+// modułu — `beforeAll` wykonuje się już po zbudowaniu list wyboru.
+setLocale('pl')
 
 const CONFIG = `athlete:
   recentWeeklyKm: 55

@@ -84,10 +84,16 @@ export const cliPl: CliMessages = {
     cancelled: 'anulowano',
     interrupted: 'przerwano',
     needsTerminal: (command: string) => `Tryb interaktywny wymaga terminala (użyj: ${command}).`,
+    labelOk: 'OK',
+    labelWarn: '!',
+    labelError: 'BŁĄD',
+    badTime: (text: string) => `Nieprawidłowy czas „${text}” — użyj MM:SS albo HH:MM:SS`,
   },
 
   init: {
     created: (file: string) => `Utworzono ${file}`,
+    createdAgents: (file: string) =>
+      `Utworzono ${file} — instrukcja trenerska dla Twojego agenta (Claude Code, Codex)`,
     fillProfile:
       'Uzupełnij profil — zwłaszcza results: strefy kalibrujemy z wyników startów, ' +
       'nie z odczytów zegarka.',
@@ -193,7 +199,7 @@ export const cliPl: CliMessages = {
     strengthPurposeTitle: 'Po co siła biegaczowi',
     strengthPurpose:
       'Cel: ekonomia biegu — mniejszy koszt tlenowy tej samej prędkości (F-8, efekt mały: ' +
-      '~2–8% w badaniach 10+ tygodni). To NIE jest „ochrona przed urazami" — jedyna ' +
+      '~2–8% w badaniach 10+ tygodni). To NIE jest „ochrona przed urazami” — jedyna ' +
       'metaanaliza na biegaczach dała wynik nieistotny (F-9). Uczciwie: u biegaczy 34–45 lat ' +
       'efekt na ekonomię też wychodzi nieistotny (F-15), a dowody na wynik kończą się na ' +
       '1,5–10 km w laboratorium (F-17). W taperze siła znika z planu (F-13).',
@@ -332,6 +338,8 @@ export const cliPl: CliMessages = {
       'Wyłącznie cel czasowy z tren.yaml — bez predykcji z wyniku startu (dodaj wynik do ' +
       `athlete.results). Równe tempo = założenie rozpiski (inż.). Wygenerowano ${generatedAt}.`,
     splitsAndBand: (scenarios: string) => `splity + opaska tempa (${scenarios})`,
+    fileRacePack: 'pakiet-startowy',
+    filePrintout: 'rozpiska',
     calendarEntries: (count: number) =>
       `${count} ${pluralPl(count, { one: 'trening', few: 'treningi', other: 'treningów' })} w kalendarzu`,
     printedWeeks: (weeks: number) => `rozpiska ${tygodnie(weeks)} do wydruku`,
@@ -418,6 +426,7 @@ export const cliPl: CliMessages = {
     hintHour: 'HH:MM',
     hintHourOptional: 'HH:MM, opcjonalnie',
     hintDays: 'np. wt sr cz sb nd',
+    yesNoHint: '(T/n)',
     enterAccepts: (value: string) => `Enter = ${value}`,
     errTime: 'Czas w formacie MM:SS albo HH:MM:SS',
     errDistance: 'Podaj dystans: 5, 10, hm, m albo liczbę kilometrów',
@@ -455,6 +464,13 @@ export const cliPl: CliMessages = {
     whatToMove: 'Który trening przesunąć?',
     keys: 'strzałki/cyfry · Enter zatwierdza · q anuluje',
     weekKeys: '←/→ tygodnie · t dziś · s przesuń trening · q wyjście',
+    selectKeys: '  ↑↓ wybór · 1–9 skok · Enter zatwierdź · Esc anuluj',
+    raceLocked: 'START — nie do przesunięcia',
+    noWeekForToday: 'Nie znalazłem tygodnia obejmującego dzisiejszą datę.',
+    previewClosed: 'zamknięto podgląd',
+    shiftNeedsTerminal:
+      'Tryb interaktywny wymaga terminala. Podaj daty wprost:\n' +
+      '  tren shift --from 2026-08-04 --to 2026-08-05',
   },
 
   print: {
@@ -492,4 +508,274 @@ export const cliPl: CliMessages = {
       `albo zapisz klucz w pliku ${secretFile} (dodaj go do .gitignore!).\n` +
       'Klucz: intervals.icu → Settings → Developer Settings.',
   },
+
+  planMd: {
+    heading: (goalName: string, date: string) => `Plan: ${goalName} — ${date}`,
+    goalTime: (time: string) => ` · cel: ${time}`,
+    meta: (generatedAt: string, vdot: number, source: string, peakKm: number) =>
+      `Wygenerowano ${generatedAt} · VDOT ${n(vdot)} (${source}) · szczyt ${n(peakKm)} km/tydz.`,
+    vdotFromResult: 'z wyniku startu',
+    vdotFromGoal: 'z celu — do rekalibracji!',
+    prediction: (distanceKm: number, lo: string, hi: string, method: string) =>
+      `Predykcja na ${n(distanceKm)} km: **${lo}–${hi}** (metoda: ${method}; W-1: zawsze przedział).`,
+    weekHeading: (index: number, weekStart: string, label: string) =>
+      `Tydzień ${index} — od ${weekStart} (${label})`,
+    columns: { day: 'Dzień', date: 'Data', workout: 'Trening' },
+    strengthTag: (minutes: number) => ` **+ SIŁA** ~${n(minutes)} min`,
+    deload: 'odciążenie',
+    rest: '—',
+    changes: 'Zmiany',
+    changeLine: (at: string, action: string, detail: string) => `${at}: ${action} — ${detail}`,
+    noCalibration:
+      'Brak wyniku startu z ostatnich 18 miesięcy i brak goal.targetTimeSec — ' +
+      'nie mam z czego skalibrować stref (Z-6: kalibrujemy z wyników, nie z zegarka).',
+    zonesFromGoal:
+      'strefy skalibrowane z celu czasowego, nie z realnego wyniku — dodaj start do athlete.results',
+  },
+
+  configFile: {
+    templateHeader: [
+      '# tren — profil atlety i cel treningowy.',
+      '# Uzupełnij i uruchom: tren plan',
+    ],
+    templateLanguage: 'język interfejsu i opisów planu: en | pl (domyślnie: en)',
+    templateAthlete: {
+      sex: 'male | female | unspecified',
+      recentWeeklyKm: 'średnia z ostatnich ~4 tygodni',
+      peakWeeklyKm: 'historycznie utrzymywalne maksimum (opcjonalne)',
+      results: 'wyniki startów do kalibracji stref (Z-6: nie z zegarka!)',
+      exampleResultName: 'przykładowa dycha',
+      tuneUpRaces: 'starty kontrolne w drodze do celu (B = mini-taper, C = wbiegany)',
+      tuneUpExampleName: 'Bieg jesienny',
+    },
+    templateGoal: {
+      name: 'Półmaraton',
+      targetTime: 'opcjonalny cel czasowy — tren plan oceni realność',
+    },
+    templateDesk: 'tryb biurkowy (tren desk) — opcjonalny',
+    templateDeskPrefer: 'morning | lunch | evening',
+    templateStrength: {
+      section: 'siła 2×/tydz. obok biegania (opt-in; wymaga ciężarów)',
+      enabled: 'cel: ekonomia biegu (F-8) — NIE „ochrona przed urazami” (F-9)',
+      days: 'opcjonalnie: preferowane dni',
+    },
+    inferredHeader: (from: string, to: string) => [
+      '# tren — profil atlety i cel treningowy.',
+      `# Profil zaproponowany z historii intervals.icu (pełne tygodnie ${from} → ${to}).`,
+      '# To propozycje — popraw wszystko, co nie zgadza się z rzeczywistością.',
+    ],
+    inferredPeak: 'najwyższy pełny tydzień okna',
+    inferredDays: 'dni z ≥10% biegów okna',
+    inferredLongRun: 'dominujący dzień najdłuższych biegów',
+    inferredResults: 'dopisz wynik startu po potwierdzeniu kandydatów z wyjścia komendy',
+    inferredResultsWhy: '(strefy kalibrujemy z wyników startów, nie z odczytów zegarka — Z-6)',
+    inferredGoal: 'UZUPEŁNIJ — bez celu `tren plan` odmówi (celowo)',
+    inferredGoalName: 'Bieg docelowy',
+    inferredGoalDate: 'data startu',
+    inferredResultHint: 'dopisz wynik startu — z niego kalibrujemy strefy (nie z zegarka)',
+    generatedByWizard: '# Wygenerowane przez `tren init`. Śmiało edytuj i uruchom `tren plan`.',
+    validate: {
+      missingSection: (path: string) => `${path}: brak sekcji`,
+      numberGtZero: (path: string) => `${path}: wymagana liczba > 0`,
+      nonEmptyDays: (path: string) => `${path}: wymagana niepusta lista dni`,
+      unknownDay: (path: string, day: string) => `${path}: nieznany dzień „${day}”`,
+      listOptional: (path: string) => `${path}: wymagana lista (może być pusta)`,
+      listRequired: (path: string) => `${path}: wymagana lista`,
+      isoDate: (path: string) => `${path}: format RRRR-MM-DD`,
+      seconds: (path: string) => `${path}: liczba sekund > 0`,
+      priorityBc: (path: string) => `${path}: B albo C (A to cel w sekcji goal)`,
+      required: (path: string) => `${path}: wymagane`,
+      boolean: (path: string) => `${path}: true albo false`,
+      hourFormat: (path: string) => `${path}: format HH:MM`,
+    },
+  },
+
+  rules: {
+    'I-1': 'faza bazy/budowania: rozkład piramidalny — dużo spokojnego biegania, akcenty okołoprogowe (Casado 2022; Knopp 2024)',
+    'I-2': 'okres przedstartowy: przejście na polaryzację — sekwencja piramida→polaryzacja wygrała w RCT (Filipas 2022)',
+    'I-5': '≥75% objętości tygodnia w strefie spokojnej, niezależnie od modelu (Haugen 2022; Knopp 2024)',
+    'I-7': '≥48 h między sesjami jakościowymi — zasada hard day / easy day (Casado 2022)',
+    'I-8': 'dwa akcenty tygodniowo przy ≥4 sesjach, jeden przy 3 (Casado 2022)',
+    'P-1': 'obciążenie faluje, nie rośnie liniowo — progresja falująca dała +22% VO₂max vs +11% liniowej (RCT Costa 2019)',
+    'P-2': 'co czwarty tydzień odciążeniowy (Costa 2019)',
+    'P-3': 'wzrost objętości ≤10%/tydz. jako narzędzie planowania — to NIE jest próg urazowy (Damsted 2018)',
+    'P-7': 'półmaraton: >32 km/tydz. i długie >21 km wiążą się z lepszym wynikiem (Fokkema 2020)',
+    'P-8': 'maraton: >65 km/tydz. wiąże się z wynikiem lepszym o ~14 min (Fokkema 2020)',
+    'T-1': 'taper: intensywność ZOSTAJE — jej utrzymanie ma niezależny efekt (Wang 2023, SMD −0,55)',
+    'T-2': 'taper: liczba sesji ZOSTAJE (Wang 2023, SMD −0,53)',
+    'T-3': 'taper: redukujemy wyłącznie objętość, o 41–60% (Wang 2023)',
+    'T-4': 'taper ściśle malejący tydzień do tygodnia — „strict” dał medianę −5:32 na maratonie (Smyth 2021, n=158 117)',
+    'T-5': 'długość taperu zależy od dystansu: 5–10 km ~tydzień, HM ~2 tyg., maraton 2–3 tyg. (Wang 2023; Knopp 2024)',
+    'T-9': 'start kontrolny B: mini-taper (objętość tygodnia −20%), ale makrocykl bez zmian — jeden bieg nie cofa progresji',
+    'T-10': 'dzień przed startem wolny — tak robił trener w 34 z 45 startów w korpusie',
+    'T-11': 'długie wybieganie ZOSTAJE dzień po starcie, spokojnie — wzorzec z korpusu (sobota start → niedziela długie)',
+    'T-12': 'start JEST akcentem tygodnia, nie dodatkiem do niego — nie dokładamy do niego drugiej sesji jakościowej',
+    'W-11': 'strefy kalibrujemy z biegu maksymalnego: sprawdzian na czas jest tu równoważny startowi (Daniels & Gilbert)',
+    'W-12': 'kalibracja co ~4 tygodnie — tyle wynosi mediana odstępu między startami w korpusie trenerskim',
+    'W-13': 'prawdziwy start jest lepszy niż sztuczny sprawdzian; sprawdzian pojawia się tylko przy pustym kalendarzu startów',
+    'F-1': 'siła 2–3×/tydz. jako dawka bazowa (Blagrove 2018 — opis praktyki badań, nie dose-response)',
+    'F-2': 'cel: ≥24 sesje siły łącznie w bloku — poniżej efekt nieistotny (Berryman 2018, SMD 0,63 vs 0,10)',
+    'F-3': 'blok siły 10–14 tygodni; 6–8 tyg. nie wystarcza (Eihara 2022)',
+    'F-4': 'ciężko: ≥80% 1RM, wielostawowo, wolny ciężar — im ciężej, tym większy efekt na ekonomię (Llanos-Lagos 2024)',
+    'F-13': 'taper: siła znika z planu — 4 tyg. detrainingu nie kasuje adaptacji (Berryman 2020, uwaga: n=8)',
+    'S-4': 'siła i bieg tego samego dnia: ≥3 h odstępu udokumentowane (Schumann 2022); 6 h to margines inżynierski',
+    'S-5': 'ciężka siła nie później niż 24 h przed sesją jakościową — deficyt siły trwa do 48 h (de Carvalho e Silva 2022)',
+  },
+
+  kindPurpose: {
+    easy: 'Objętość tlenowa w strefie spokojnej — fundament adaptacji bez kosztu regeneracyjnego.',
+    long: 'Długie wybieganie: wytrzymałość podstawowa, ekonomia biegu i odporność na zmęczenie (durability).',
+    easy_hills:
+      'Bieg spokojny + podbiegi: siła specyficzna i ekonomia przy minimalnym koszcie (house style trenera).',
+    quality_intervals:
+      'Sesja interwałowa — bodziec zależny od fazy: okołoprogowy (piramida) albo VO₂max (polaryzacja).',
+    quality_continuous:
+      'Akcent ciągły — tempo narastające lub bieg zmienny; kontrola tempa i praca okołoprogowa.',
+    sharpener:
+      'Krótki akcent przedstartowy: podtrzymuje intensywność w taperze (T-1) bez kosztu objętości.',
+    test:
+      'Sprawdzian na czas — pomiar, nie trening: z wyniku przeliczamy strefy na kolejne tygodnie (W-11). ' +
+      'Pojawia się, bo w kalendarzu nie ma startu, który zrobiłby to samo lepiej (W-13).',
+    race: 'Start — cel tego cyklu.',
+  },
+
+  mcp: {
+    dirLine: (dir: string, locale: string) => `katalog treningowy: ${dir} · język: ${locale}`,
+    isoDate: 'data w formacie RRRR-MM-DD',
+    init:
+      'Utwórz szablon tren.yaml (profil atlety i cel) w katalogu treningowym. ' +
+      'Nie nadpisuje istniejącego pliku. Z fromIntervals=true proponuje profil ' +
+      'z 16 tygodni historii intervals.icu (wymaga klucza API): wartości mają ' +
+      'komentarz proweniencji, a kandydatów na wyniki startów zwraca DO POTWIERDZENIA ' +
+      'z użytkownikiem — dopisz je do athlete.results dopiero po jego zgodzie.',
+    initFromIntervals: 'profil z historii intervals.icu',
+    plan:
+      'Wygeneruj plan treningowy z tren.yaml → plan/plan.yaml + plan/PLAN.md. ' +
+      'Zwraca podsumowanie: szczyt objętości, predykcję wyniku (przedział) i ocenę realności celu. ' +
+      'NADPISUJE istniejący plan — przy wątpliwościach najpierw tren_diff.',
+    planDate: 'data „dzisiaj” (domyślnie: bieżąca)',
+    today: 'Trening na dziś (albo wskazaną datę): opis jednostki, kilometraż, status z dziennika.',
+    week:
+      'Podgląd całego tygodnia treningowego (faza, cel km, dzień po dniu, statusy z dziennika). ' +
+      'Użyj PRZED renegocjacją tygodnia (tren_shift), żeby zobaczyć kontekst.',
+    weekDate: 'dowolna data w interesującym tygodniu',
+    log: 'Zapisz wykonanie treningu w dzienniku (log.jsonl).',
+    logStatus: 'domyślnie done',
+    logKm: 'przebiegnięte km',
+    logTime: 'czas MM:SS albo HH:MM:SS',
+    logNote: 'samopoczucie, warunki, uwagi',
+    shift:
+      'Renegocjacja tygodnia: zamień treningi między dwiema datami TEGO SAMEGO tygodnia ' +
+      '(np. „w czwartek release — przesuń interwały”). Chroni dzień startu i dzień przed nim; ' +
+      'ostrzega przy złamaniu zasady 48 h między akcentami (I-7).',
+    shiftFrom: 'data treningu do przesunięcia',
+    shiftTo: 'data docelowa (treningi zostają zamienione)',
+    why:
+      'Wyjaśnij trening: cel fizjologiczny jednostki + reguły z badań ' +
+      '(ID z docs/science/FOUNDATIONS.md).',
+    adapt:
+      'Porównaj wykonanie (sync.json + dziennik) z planem i zaproponuj korekty: urealnienie ' +
+      'objętości, restart po przerwie, protokół po starcie, rekalibrację stref. ' +
+      'ZWRACA PROPOZYCJE — nie zmienia planu. Zastosowanie: edycja tren.yaml + tren_plan.',
+    adaptDate: 'data odniesienia (domyślnie dziś)',
+    desk:
+      'Dzień przy biurku: okna treningowe wokół godzin pracy, przerwy w siedzeniu i reguła ' +
+      'prowadzenia sesji po dniu ciężkiej pracy umysłowej (wtedy tempo, nie odczucie). ' +
+      'Ustaw heavy=true, gdy dzień był kognitywnie ciężki (długie sesje z agentami). ' +
+      'Wymaga sekcji desk w tren.yaml.',
+    deskHeavy: 'ciężki dzień kognitywny',
+    export:
+      'Zapisz plan do pliku: `plan` = cały plan jako treningi .fit na zegarek, ' +
+      '`workout` = jeden trening .fit (wymaga date), `calendar` = .ics do Google/Outlooka, ' +
+      '`print` = rozpiska HTML pod wydruk A4, `race` = pakiet startowy (splity + papierowa ' +
+      'opaska tempa; wymaga celu czasowego albo predykcji). Pliki lądują w katalogu export/. ' +
+      'Gdy użytkownik chce trening „na zegarek” bez kabla — rozważ najpierw tren_push.',
+    exportDate: 'trening do eksportu przy what=workout',
+    reschedule:
+      'Przestaw CAŁY tydzień wokół dni, w których użytkownik nie może trenować ' +
+      '(„w czwartek mam release”, „wyjazd wt–śr”). Solver trzyma ≥48 h między akcentami, ' +
+      'chroni długie wybieganie i liczbę akcentów, a gdy brakuje dni — mówi, którą jednostkę ' +
+      'poświęca i dlaczego. Domyślnie tylko podgląd; apply=true zapisuje plan. ' +
+      'Do przesunięcia pojedynczego treningu użyj tren_shift.',
+    rescheduleBlock: 'dni bez możliwości treningu',
+    rescheduleDate: 'data wskazująca tydzień (domyślnie bieżący)',
+    rescheduleApply: 'true = zapisz zmiany w planie',
+    push:
+      'Wypchnij zaplanowane treningi do intervals.icu — trafiają na zegarek (Garmin/Coros/Wahoo) ' +
+      'jako treningi strukturalne z celami tempa. Wymaga klucza API (env TREN_INTERVALS_API_KEY ' +
+      'albo plik .tren-secret). Ponowny push nadpisuje te same dni (upsert).',
+    pushFrom: 'początek zakresu (domyślnie dziś)',
+    pushTo: 'koniec zakresu',
+    pushDays: 'ile dni do przodu, domyślnie 14',
+    pull:
+      'Pobierz wykonane aktywności i dane wellness z intervals.icu, zapisz migawkę (sync.json) ' +
+      'i porównaj wykonanie z planem (rozjazdy: krótsze/dłuższe/brak wykonania/nieplanowane).',
+    pullDays: 'ile dni wstecz, domyślnie 28',
+    review:
+      'Przegląd tygodnia w jednym wywołaniu: wykonanie minionych dni vs plan, sygnały ' +
+      'do korekty, nadchodzący tydzień (faza, objętość, kluczowa jednostka, starty/sprawdziany) ' +
+      'i lista konkretnych działań. Używaj TEGO zamiast wołania tren_pull + tren_adapt + ' +
+      'tren_week po kolei — np. gdy użytkownik pyta „jak mi poszło?” albo zaczyna tydzień. ' +
+      'Działa też bez klucza API (wtedy z dziennika i ostatniej migawki). ' +
+      'Niczego nie zmienia w planie.',
+    reviewDays: 'ile dni wstecz podsumować, domyślnie 7',
+    reviewDate: 'data odniesienia (domyślnie dziś)',
+    diff:
+      'Dry-run: co zmieniłaby regeneracja planu z aktualnego tren.yaml (nowe wyniki, ' +
+      'zmiana profilu). Nic nie zapisuje.',
+  },
+
+  agentsMd: (): string => `# Trener — instrukcja dla agenta
+
+Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`tren_*\`
+(albo CLI \`tren\`) i pełnisz rolę trenera, nie tylko wykonawcy komend.
+
+## Rytuały
+
+- **Początek tygodnia** → \`tren_review\`. Jedno wywołanie zamiast pull + adapt +
+  week. Zrelacjonuj wynik po ludzku i zaproponuj co najwyżej dwie rzeczy do zrobienia.
+- **Przed każdą zmianą w tygodniu** → najpierw \`tren_week\`, żeby zobaczyć kontekst.
+  „Przesuń interwały” bez spojrzenia na tydzień to zgadywanie.
+- **Po starcie albo sprawdzianie** → dopytaj o czas i zaproponuj wpis do
+  \`athlete.results\`. Pomiar bez wpisanego wyniku niczego nie zmienia — strefy
+  dalej liczą się ze starego biegu.
+
+## Zasady
+
+1. **Nie regeneruj planu bez pytania.** \`tren_plan\` nadpisuje istniejący plan.
+   Przy wątpliwościach: \`tren_diff\` (pokazuje różnice, nic nie zapisuje).
+2. **Adaptacja proponuje, nie przepisuje.** \`tren_adapt\` zwraca propozycje;
+   zastosowanie to świadoma edycja \`tren.yaml\` → \`tren_diff\` → \`tren_plan\`.
+3. **Pytaj o kontekst, zanim zaczniesz liczyć.** Pominięty tydzień to co innego
+   przy chorobie, a co innego przy wale w pracy — pierwszy wymaga ostrożnego
+   powrotu, drugi zwykle tylko przestawienia dni.
+4. **Dnia startu się nie rusza.** \`tren_shift\` odmówi; nie próbuj obchodzić tego
+   regeneracją planu z inną datą.
+5. **Nie wymyślaj liczb.** Tempa, objętości i reguły pochodzą z silnika; jeśli
+   czegoś nie ma w wyniku narzędzia, powiedz „nie wiem”, zamiast oszacować.
+6. **Cytuj powody, nie tylko polecenia.** \`tren_why\` podaje cel jednostki i
+   reguły z badań (ID z \`docs/science/FOUNDATIONS.md\`) — to jest wartość, którą
+   trener wnosi ponad listę treningów.
+
+## Czego nie robić
+
+- Nie doradzaj medycznie (ból, kontuzja, choroba → lekarz, nie agent).
+- Nie „nadrabiaj” opuszczonych kilometrów w kolejnych dniach — to działa
+  przeciw progresji.
+- Nie oceniaj formy po tętnie z zegarka ani po HRV; kalibracja idzie z wyników
+  startów i sprawdzianów.
+
+## Pliki
+
+| plik | co to |
+|---|---|
+| \`tren.yaml\` | profil, cel, starty kontrolne — **jedyne** miejsce, które edytujesz ręcznie |
+| \`plan/plan.yaml\` | wygenerowany plan (źródło prawdy dla komend) |
+| \`plan/PLAN.md\` | ten sam plan do czytania |
+| \`log.jsonl\` | dziennik wykonania |
+| \`sync.json\` | migawka danych z intervals.icu |
+
+Historia zmian to git — commituj po każdej zmianie planu, żeby było widać,
+co i dlaczego się zmieniło.
+`,
 }

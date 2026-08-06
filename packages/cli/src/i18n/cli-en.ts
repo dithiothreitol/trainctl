@@ -74,10 +74,16 @@ export const cliEn = {
     interrupted: 'interrupted',
     needsTerminal: (command: string) =>
       `Interactive mode needs a terminal (use: ${command}).`,
+    labelOk: 'OK',
+    labelWarn: '!',
+    labelError: 'ERROR',
+    badTime: (text: string) => `Invalid time "${text}" — use MM:SS or HH:MM:SS`,
   },
 
   init: {
     created: (file: string) => `Created ${file}`,
+    createdAgents: (file: string) =>
+      `Created ${file} — the coach instructions for your agent (Claude Code, Codex)`,
     fillProfile:
       'Fill in the profile — especially results: we calibrate zones from race results, ' +
       'not from watch readings.',
@@ -317,6 +323,9 @@ export const cliEn = {
       'Target time from tren.yaml only — no prediction from a race result (add one to ' +
       `athlete.results). Even pacing is an assumption of this sheet (eng.). Generated ${generatedAt}.`,
     splitsAndBand: (scenarios: string) => `splits + pace band (${scenarios})`,
+    /** Człon nazwy pliku — przechodzi przez `safeName`, więc bez znaków spoza ASCII. */
+    fileRacePack: 'race-pack',
+    filePrintout: 'schedule',
     calendarEntries: (count: number) => `${count} sessions in the calendar`,
     printedWeeks: (weeks: number) => `${weeks} weeks to print`,
     heat: {
@@ -397,6 +406,7 @@ export const cliEn = {
     hintHour: 'HH:MM',
     hintHourOptional: 'HH:MM, optional',
     hintDays: 'e.g. tue wed thu sat sun',
+    yesNoHint: '(Y/n)',
     enterAccepts: (value: string) => `Enter = ${value}`,
     errTime: 'Time as MM:SS or HH:MM:SS',
     errDistance: 'Give a distance: 5, 10, hm, m or a number of kilometres',
@@ -433,6 +443,13 @@ export const cliEn = {
     whatToMove: 'Which session should move?',
     keys: 'arrows/digits · Enter confirms · q cancels',
     weekKeys: '←/→ weeks · t today · s move a session · q quit',
+    selectKeys: '  ↑↓ pick · 1–9 jump · Enter confirms · Esc cancels',
+    raceLocked: 'RACE — cannot be moved',
+    noWeekForToday: 'I found no week covering today’s date.',
+    previewClosed: 'preview closed',
+    shiftNeedsTerminal:
+      'Interactive mode needs a terminal. Give the dates directly:\n' +
+      '  tren shift --from 2026-08-04 --to 2026-08-05',
   },
 
   print: {
@@ -469,6 +486,279 @@ export const cliEn = {
       `or save the key in ${secretFile} (add it to .gitignore!).\n` +
       'Key: intervals.icu → Settings → Developer Settings.',
   },
+
+  /** plan/PLAN.md — the document the athlete actually reads. */
+  planMd: {
+    heading: (goalName: string, date: string) => `Plan: ${goalName} — ${date}`,
+    goalTime: (time: string) => ` · target ${time}`,
+    meta: (generatedAt: string, vdot: number, source: string, peakKm: number) =>
+      `Generated ${generatedAt} · VDOT ${n(vdot)} (${source}) · peak ${n(peakKm)} km/week.`,
+    vdotFromResult: 'from a race result',
+    vdotFromGoal: 'from the goal — recalibrate!',
+    prediction: (distanceKm: number, lo: string, hi: string, method: string) =>
+      `Predicted over ${n(distanceKm)} km: **${lo}–${hi}** (method: ${method}; W-1: always a range).`,
+    weekHeading: (index: number, weekStart: string, label: string) =>
+      `Week ${index} — from ${weekStart} (${label})`,
+    columns: { day: 'Day', date: 'Date', workout: 'Session' },
+    strengthTag: (minutes: number) => ` **+ STRENGTH** ~${n(minutes)} min`,
+    deload: 'deload',
+    rest: '—',
+    changes: 'Changes',
+    changeLine: (at: string, action: string, detail: string) => `${at}: ${action} — ${detail}`,
+    noCalibration:
+      'No race result from the last 18 months and no goal.targetTimeSec — ' +
+      'there is nothing to calibrate the zones from (Z-6: we calibrate from results, not from a watch).',
+    zonesFromGoal:
+      'zones calibrated from the time goal rather than a real result — add a race to athlete.results',
+  },
+
+  /** tren.yaml — template and validation. Paths stay as they are; only the wording is translated. */
+  configFile: {
+    templateHeader: [
+      '# tren — athlete profile and training goal.',
+      '# Fill this in and run: tren plan',
+    ],
+    templateLanguage: 'interface and plan language: en | pl (default: en)',
+    templateAthlete: {
+      sex: 'male | female | unspecified',
+      recentWeeklyKm: 'average of the last ~4 weeks',
+      peakWeeklyKm: 'highest volume you have held (optional)',
+      results: 'race results for zone calibration (Z-6: not from a watch!)',
+      exampleResultName: 'example 10 km',
+      tuneUpRaces: 'tune-up races on the way (B = mini-taper, C = run through)',
+      tuneUpExampleName: 'Autumn 10K',
+    },
+    templateGoal: {
+      name: 'Half marathon',
+      targetTime: 'optional time goal — tren plan will judge how realistic it is',
+    },
+    templateDesk: 'desk mode (tren desk) — optional',
+    templateDeskPrefer: 'morning | lunch | evening',
+    templateStrength: {
+      section: 'strength 2×/week alongside running (opt-in; needs access to weights)',
+      enabled: 'the point is running economy (F-8) — NOT "injury protection" (F-9)',
+      days: 'optional: preferred days',
+    },
+    inferredHeader: (from: string, to: string) => [
+      '# tren — athlete profile and training goal.',
+      `# Profile proposed from your intervals.icu history (full weeks ${from} → ${to}).`,
+      '# These are proposals — correct anything that does not match reality.',
+    ],
+    inferredPeak: 'highest full week in the window',
+    inferredDays: 'days holding ≥10% of the window’s runs',
+    inferredLongRun: 'dominant day of your longest runs',
+    inferredResults: 'add a race result once you have confirmed the candidates printed by the command',
+    inferredResultsWhy: '(zones come from race results, not from watch readings — Z-6)',
+    inferredGoal: 'FILL THIS IN — without a goal `tren plan` refuses (by design)',
+    inferredGoalName: 'Target race',
+    inferredGoalDate: 'race date',
+    inferredResultHint: 'add a race result — that is what calibrates the zones (not the watch)',
+    generatedByWizard: '# Written by `tren init`. Edit freely, then run `tren plan`.',
+    validate: {
+      missingSection: (path: string) => `${path}: section missing`,
+      numberGtZero: (path: string) => `${path}: a number > 0 is required`,
+      nonEmptyDays: (path: string) => `${path}: a non-empty list of days is required`,
+      unknownDay: (path: string, day: string) => `${path}: unknown day "${day}"`,
+      listOptional: (path: string) => `${path}: a list is required (may be empty)`,
+      listRequired: (path: string) => `${path}: a list is required`,
+      isoDate: (path: string) => `${path}: format YYYY-MM-DD`,
+      seconds: (path: string) => `${path}: a number of seconds > 0`,
+      priorityBc: (path: string) => `${path}: B or C (A is the goal in the goal section)`,
+      required: (path: string) => `${path}: required`,
+      boolean: (path: string) => `${path}: true or false`,
+      hourFormat: (path: string) => `${path}: format HH:MM`,
+    },
+  },
+
+  /** Explanations of the rules from docs/science/FOUNDATIONS.md §10, in plain language. */
+  rules: {
+    'I-1': 'base/build: a pyramidal distribution — plenty of easy running, accents around threshold (Casado 2022; Knopp 2024)',
+    'I-2': 'pre-competition: switch to polarized — the pyramid→polarized sequence won the RCT (Filipas 2022)',
+    'I-5': '≥75% of weekly volume in the easy zone, whatever the model (Haugen 2022; Knopp 2024)',
+    'I-7': '≥48 h between quality sessions — the hard day / easy day principle (Casado 2022)',
+    'I-8': 'two accents a week at ≥4 sessions, one at 3 (Casado 2022)',
+    'P-1': 'load undulates rather than climbing in a line — undulating progression gave +22% VO₂max vs +11% linear (RCT Costa 2019)',
+    'P-2': 'every fourth week is a deload (Costa 2019)',
+    'P-3': 'volume growth ≤10%/week as a planning tool — this is NOT an injury threshold (Damsted 2018)',
+    'P-7': 'half marathon: >32 km/week and long runs >21 km go with a better result (Fokkema 2020)',
+    'P-8': 'marathon: >65 km/week goes with a result ~14 min better (Fokkema 2020)',
+    'T-1': 'taper: intensity STAYS — holding it has an independent effect (Wang 2023, SMD −0.55)',
+    'T-2': 'taper: the number of sessions STAYS (Wang 2023, SMD −0.53)',
+    'T-3': 'taper: volume alone comes down, by 41–60% (Wang 2023)',
+    'T-4': 'a strictly decreasing taper week over week — "strict" gave a median of −5:32 over the marathon (Smyth 2021, n=158,117)',
+    'T-5': 'taper length follows the distance: 5–10 km ~a week, HM ~2 weeks, marathon 2–3 weeks (Wang 2023; Knopp 2024)',
+    'T-9': 'B-priority race: a mini-taper (weekly volume −20%), macrocycle unchanged — one race does not undo the progression',
+    'T-10': 'the day before a race is off — that is what the coach did in 34 of 45 races in the corpus',
+    'T-11': 'the long run STAYS the day after a race, easy — the corpus pattern (Saturday race → Sunday long)',
+    'T-12': 'a race IS the accent of its week, not an addition to it — we do not add a second quality session',
+    'W-11': 'zones come from an all-out run: a time trial is equivalent to a race here (Daniels & Gilbert)',
+    'W-12': 'recalibrate roughly every 4 weeks — the median gap between races in the coaching corpus',
+    'W-13': 'a real race beats a manufactured time trial; the trial appears only when the race calendar is empty',
+    'F-1': 'strength 2–3×/week as the base dose (Blagrove 2018 — a description of study practice, not a dose-response)',
+    'F-2': 'aim for ≥24 strength sessions across the block — below that the effect is non-significant (Berryman 2018, SMD 0.63 vs 0.10)',
+    'F-3': 'a strength block runs 10–14 weeks; 6–8 weeks is not enough (Eihara 2022)',
+    'F-4': 'heavy: ≥80% 1RM, compound, free weights — the heavier the lift, the larger the effect on economy (Llanos-Lagos 2024)',
+    'F-13': 'taper: strength leaves the plan — 4 weeks of detraining does not undo the adaptation (Berryman 2020, note: n=8)',
+    'S-4': 'strength and running the same day: the ≥3 h gap is documented (Schumann 2022); 6 h is an engineering margin',
+    'S-5': 'heavy strength no later than 24 h before a quality session — the strength deficit lasts up to 48 h (de Carvalho e Silva 2022)',
+  },
+
+  /** What each session kind is for — the physiological purpose, one sentence. */
+  kindPurpose: {
+    easy: 'Aerobic volume in the easy zone — the foundation of adaptation, at no recovery cost.',
+    long: 'Long run: base endurance, running economy and resistance to fatigue (durability).',
+    easy_hills:
+      'Easy running plus hills: specific strength and economy at minimal cost (the coach’s house style).',
+    quality_intervals:
+      'Interval session — the stimulus follows the phase: around threshold (pyramidal) or VO₂max (polarized).',
+    quality_continuous:
+      'Continuous accent — a progression run or alternating pace; pace control and work around threshold.',
+    sharpener:
+      'A short pre-race accent: it holds intensity through the taper (T-1) without a volume cost.',
+    test:
+      'Time trial — a measurement, not a workout: the result recomputes your zones for the coming weeks (W-11). ' +
+      'It appears because the calendar holds no race that would do the same job better (W-13).',
+    race: 'Race — the goal of this cycle.',
+  },
+
+  /** MCP tool descriptions — the agent’s interface to the engine. */
+  mcp: {
+    dirLine: (dir: string, locale: string) => `training directory: ${dir} · language: ${locale}`,
+    isoDate: 'date in YYYY-MM-DD format',
+    init:
+      'Create a tren.yaml template (athlete profile and goal) in the training directory. ' +
+      'Never overwrites an existing file. With fromIntervals=true it proposes a profile from ' +
+      '16 weeks of intervals.icu history (needs an API key): every value carries a provenance ' +
+      'comment, and race candidates come back FOR CONFIRMATION with the user — add them to ' +
+      'athlete.results only once they agree.',
+    initFromIntervals: 'profile from intervals.icu history',
+    plan:
+      'Generate the training plan from tren.yaml → plan/plan.yaml + plan/PLAN.md. ' +
+      'Returns a summary: volume peak, predicted finish (a range) and how realistic the goal is. ' +
+      'OVERWRITES an existing plan — when in doubt run tren_diff first.',
+    planDate: '“today” (defaults to the current date)',
+    today: 'The session for today (or a given date): description, distance, status from the journal.',
+    week:
+      'The whole training week (phase, target km, day by day, statuses from the journal). ' +
+      'Use it BEFORE renegotiating the week (tren_shift) so you can see the context.',
+    weekDate: 'any date inside the week you care about',
+    log: 'Record a completed session in the journal (log.jsonl).',
+    logStatus: 'defaults to done',
+    logKm: 'kilometres covered',
+    logTime: 'time as MM:SS or HH:MM:SS',
+    logNote: 'how it felt, conditions, remarks',
+    shift:
+      'Week renegotiation: swap the sessions of two dates within THE SAME week ' +
+      '(e.g. “release on Thursday — move the intervals”). Protects race day and the day before it; ' +
+      'warns when the 48 h rule between accents (I-7) would break.',
+    shiftFrom: 'date of the session to move',
+    shiftTo: 'target date (the two sessions are swapped)',
+    why:
+      'Explain a session: its physiological purpose plus the rules behind it ' +
+      '(IDs from docs/science/FOUNDATIONS.md).',
+    adapt:
+      'Compare execution (sync.json + journal) with the plan and propose corrections: a realistic ' +
+      'volume, a restart after a break, a post-race protocol, zone recalibration. ' +
+      'RETURNS PROPOSALS — it does not change the plan. To apply: edit tren.yaml + tren_plan.',
+    adaptDate: 'reference date (defaults to today)',
+    desk:
+      'Desk day: training windows around working hours, sitting breaks, and the rule for running ' +
+      'after demanding mental work (then go by pace, not by feel). Set heavy=true when the day was ' +
+      'cognitively heavy (long sessions with agents). Needs a desk section in tren.yaml.',
+    deskHeavy: 'a cognitively heavy day',
+    export:
+      'Write the plan to a file: `plan` = the whole plan as .fit workouts for the watch, ' +
+      '`workout` = a single .fit session (needs date), `calendar` = .ics for Google/Outlook, ' +
+      '`print` = an HTML sheet laid out for A4, `race` = the race-day pack (splits + a paper pace ' +
+      'band; needs a time goal or a prediction). Files land in the export/ directory. ' +
+      'When the user wants a session “on the watch” without a cable — consider tren_push first.',
+    exportDate: 'session to export when what=workout',
+    reschedule:
+      'Rearrange THE WHOLE week around days the user cannot train on (“release on Thursday”, ' +
+      '“away Tue–Wed”). The solver keeps ≥48 h between accents, protects the long run and the ' +
+      'accent count, and when days run out it says which session it sacrifices and why. ' +
+      'Preview only by default; apply=true saves the plan. To move a single session use tren_shift.',
+    rescheduleBlock: 'days with no possibility of training',
+    rescheduleDate: 'a date identifying the week (defaults to the current one)',
+    rescheduleApply: 'true = save the changes to the plan',
+    push:
+      'Push planned sessions to intervals.icu — they reach the watch (Garmin/Coros/Wahoo) as ' +
+      'structured workouts with pace targets. Needs an API key (env TREN_INTERVALS_API_KEY or ' +
+      'a .tren-secret file). Pushing again overwrites the same days (upsert).',
+    pushFrom: 'range start (defaults to today)',
+    pushTo: 'range end',
+    pushDays: 'how many days ahead, default 14',
+    pull:
+      'Fetch completed activities and wellness data from intervals.icu, save a snapshot (sync.json) ' +
+      'and compare execution with the plan (mismatches: shorter/longer/not done/unplanned).',
+    pullDays: 'how many days back, default 28',
+    review:
+      'The whole weekly review in one call: the days behind vs the plan, signals worth acting on, ' +
+      'the week ahead (phase, volume, key session, races/time trials) and a list of concrete ' +
+      'actions. Use THIS instead of calling tren_pull + tren_adapt + tren_week in sequence — ' +
+      'e.g. when the user asks “how did I do?” or starts a new week. Works without an API key too ' +
+      '(then from the journal and the last snapshot). Changes nothing in the plan.',
+    reviewDays: 'how many days back to summarise, default 7',
+    reviewDate: 'reference date (defaults to today)',
+    diff:
+      'Dry run: what regenerating the plan from the current tren.yaml would change (new results, ' +
+      'a changed profile). Saves nothing.',
+  },
+
+  /** AGENTS.md — the coach persona dropped into the training directory by `tren init`. */
+  agentsMd: (): string => `# Coach — instructions for the agent
+
+This directory is a training plan as code. You have the \`tren_*\` MCP tools
+(or the \`tren\` CLI) and you act as a coach, not just a command runner.
+
+## Rituals
+
+- **Start of the week** → \`tren_review\`. One call instead of pull + adapt +
+  week. Relay the result in plain language and propose at most two things to do.
+- **Before any change to the week** → \`tren_week\` first, to see the context.
+  “Move the intervals” without looking at the week is guesswork.
+- **After a race or a time trial** → ask for the time and propose an entry in
+  \`athlete.results\`. A measurement with no result written down changes nothing —
+  the zones still come from the older run.
+
+## Rules
+
+1. **Do not regenerate the plan without asking.** \`tren_plan\` overwrites the
+   existing plan. When in doubt: \`tren_diff\` (shows the differences, saves nothing).
+2. **Adaptation proposes, it does not rewrite.** \`tren_adapt\` returns proposals;
+   applying them is a deliberate edit of \`tren.yaml\` → \`tren_diff\` → \`tren_plan\`.
+3. **Ask for context before you start computing.** A missed week means one thing
+   after illness and another after a crunch at work — the first needs a careful
+   return, the second usually just a reshuffle of days.
+4. **Race day does not move.** \`tren_shift\` will refuse; do not work around it
+   by regenerating the plan with a different date.
+5. **Do not invent numbers.** Paces, volumes and rules come from the engine; if
+   something is not in a tool’s output, say “I don’t know” rather than estimate.
+6. **Cite reasons, not just commands.** \`tren_why\` gives the purpose of a session
+   and the rules behind it (IDs from \`docs/science/FOUNDATIONS.md\`) — that is the
+   value a coach adds over a list of workouts.
+
+## What not to do
+
+- Do not give medical advice (pain, injury, illness → a doctor, not an agent).
+- Do not “make up” missed kilometres on the following days — it works against
+  the progression.
+- Do not judge fitness from watch heart rate or HRV; calibration comes from race
+  and time-trial results.
+
+## Files
+
+| file | what it is |
+|---|---|
+| \`tren.yaml\` | profile, goal, tune-up races — the **only** file you edit by hand |
+| \`plan/plan.yaml\` | the generated plan (source of truth for the commands) |
+| \`plan/PLAN.md\` | the same plan, for reading |
+| \`log.jsonl\` | the execution journal |
+| \`sync.json\` | snapshot of intervals.icu data |
+
+Git is the change history — commit after every change to the plan, so it is
+visible what changed and why.
+`,
 }
 
 export type CliMessages = typeof cliEn

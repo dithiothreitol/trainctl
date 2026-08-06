@@ -1,6 +1,7 @@
 /** Dziennik wykonania: log.jsonl — jedna linia JSON na wpis (append-only). */
 import { appendFileSync, existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { ui } from './i18n/index.ts'
 
 export const LOG_FILE = 'log.jsonl'
 
@@ -37,7 +38,7 @@ export function logFor(cwd: string, date: string): LogEntry | undefined {
 export function parseTime(text: string): number {
   const parts = text.split(':').map(Number)
   if (parts.some(Number.isNaN) || parts.length < 2 || parts.length > 3) {
-    throw new Error(`Nieprawidłowy czas "${text}" — użyj MM:SS albo HH:MM:SS`)
+    throw new Error(ui().common.badTime(text))
   }
   return parts.reduce((acc, p) => acc * 60 + p, 0)
 }

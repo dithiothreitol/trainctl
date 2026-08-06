@@ -111,7 +111,7 @@ describe('serwer MCP tren', () => {
   it('walidacja schematu: zła data odrzucona przed handlerem', async () => {
     const r = await call('tren_today', { date: 'jutro' })
     expect(r.isError).toBe(true)
-    expect(r.text).toContain('YYYY-MM-DD')
+    expect(r.text).toContain('RRRR-MM-DD')
   })
 
   it('agent loguje wykonanie i widzi status w week', async () => {

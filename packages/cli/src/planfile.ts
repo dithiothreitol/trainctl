@@ -5,6 +5,8 @@ import { parse, stringify } from 'yaml'
 import {
   diffDays,
   generateMicrocycle,
+  getLocale,
+  messages,
   paceZones,
   planMacrocycle,
   planStrengthWeek,
@@ -15,9 +17,9 @@ import {
   type PlannedDay,
   type RaceGoal,
   type RacePrediction,
-  type Weekday,
 } from '@tren/core'
 import type { StrengthConfig, TrenConfig } from './config.ts'
+import { ui } from './i18n/index.ts'
 
 export const PLAN_DIR = 'plan'
 export const PLAN_YAML = join(PLAN_DIR, 'plan.yaml')
@@ -31,6 +33,8 @@ export interface PlanChange {
 
 export interface StoredPlan {
   generatedAt: string
+  /** Język, w którym zapisano opisy jednostek — `tren diff` mówi, gdy się rozjedzie. */
+  locale?: string
   vdot: number
   vdotSource: 'result' | 'goal-target'
   goal: RaceGoal
@@ -56,10 +60,7 @@ export function computePlan(config: TrenConfig, today: string): StoredPlan {
     vdot = vdotFromRace(goal.distanceKm, goal.targetTimeSec)
     vdotSource = 'goal-target'
   } else {
-    throw new Error(
-      'Brak wyniku startu z ostatnich 18 miesięcy i brak goal.targetTimeSec — ' +
-        'nie mam z czego skalibrować stref (Z-6: kalibrujemy z wyników, nie z zegarka).',
-    )
+    throw new Error(ui().planMd.noCalibration)
   }
   const zones = paceZones(vdot)
   const macro = planMacrocycle({ today, goal, athlete })
@@ -69,6 +70,7 @@ export function computePlan(config: TrenConfig, today: string): StoredPlan {
   if (config.strength?.enabled) applyStrength(weeks, config.strength)
   const plan: StoredPlan = {
     generatedAt: today,
+    locale: getLocale(),
     vdot: Math.round(vdot * 10) / 10,
     vdotSource,
     goal,
@@ -82,9 +84,7 @@ export function computePlan(config: TrenConfig, today: string): StoredPlan {
     plan.prediction = predictRace(usable, goal.distanceKm, { today })
   }
   if (vdotSource === 'goal-target') {
-    plan.feasibilityWarnings.push(
-      'strefy skalibrowane z celu czasowego, nie z realnego wyniku — dodaj start do athlete.results',
-    )
+    plan.feasibilityWarnings.push(ui().planMd.zonesFromGoal)
   }
   return plan
 }
@@ -128,7 +128,7 @@ export function applyStrength(weeks: Microcycle[], strength: StrengthConfig): vo
 export function loadPlan(cwd: string): StoredPlan {
   const path = join(cwd, PLAN_YAML)
   if (!existsSync(path)) {
-    throw new Error('Brak planu — uruchom najpierw: tren plan')
+    throw new Error(ui().common.noPlan)
   }
   return parse(readFileSync(path, 'utf-8')) as StoredPlan
 }
@@ -156,60 +156,71 @@ export function fmtTime(sec: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`
 }
 
-const WEEKDAY_PL: Record<Weekday, string> = {
-  mon: 'PN', tue: 'WT', wed: 'ŚR', thu: 'CZ', fri: 'PT', sat: 'SB', sun: 'ND',
-}
-
 export function workoutText(day: PlannedDay): string {
-  if (!day.workout) return '—'
-  const parts = day.workout.segments.map((s) => s.description)
-  const cooldown = parts.findIndex((p) => p.startsWith('Na koniec treningu'))
+  if (!day.workout) return ui().planMd.rest
+  const segments = day.workout.segments
+  // Człon schłodzenia rozpoznajemy po TYPIE, nie po treści opisu: dopasowanie do
+  // tekstu („Na koniec treningu…") działało tylko po polsku i cicho przestawało
+  // po zmianie brzmienia opisu.
+  const cooldown = segments.findIndex((s) => s.type === 'cooldown')
+  const parts = segments.map((s) => s.description)
   if (cooldown === -1) return parts.join(' + ')
   const mains = parts.filter((_, i) => i !== cooldown).join(' + ')
   // człony bywają już zakończone kropką — nie dokładamy drugiej
   return `${mains.replace(/\.\s*$/, '')}. ${parts[cooldown]}`
 }
 
-const PHASE_PL: Record<string, string> = {
-  base: 'baza', build: 'budowanie', peak: 'szczyt', taper: 'taper', race: 'tydzień startowy',
-}
-
 export function renderMarkdown(plan: StoredPlan): string {
+  const m = ui().planMd
+  const core = messages()
   const lines: string[] = []
-  const target = plan.goal.targetTimeSec ? ` · cel: ${fmtTime(plan.goal.targetTimeSec)}` : ''
-  lines.push(`# Plan: ${plan.goal.name} — ${plan.goal.date}${target}`)
+  const target = plan.goal.targetTimeSec ? m.goalTime(fmtTime(plan.goal.targetTimeSec)) : ''
+  lines.push(`# ${m.heading(plan.goal.name, plan.goal.date)}${target}`)
   lines.push('')
   lines.push(
-    `Wygenerowano ${plan.generatedAt} · VDOT ${plan.vdot} (${plan.vdotSource === 'result' ? 'z wyniku startu' : 'z celu — do rekalibracji!'}) · ` +
-      `szczyt ${plan.peakKmPlanned} km/tydz.`,
+    m.meta(
+      plan.generatedAt,
+      plan.vdot,
+      plan.vdotSource === 'result' ? m.vdotFromResult : m.vdotFromGoal,
+      plan.peakKmPlanned,
+    ),
   )
   if (plan.prediction) {
     lines.push(
-      `Predykcja na ${plan.goal.distanceKm} km: **${fmtTime(plan.prediction.loSec)}–${fmtTime(plan.prediction.hiSec)}** ` +
-        `(metoda: ${plan.prediction.method}; W-1: zawsze przedział).`,
+      m.prediction(
+        plan.goal.distanceKm,
+        fmtTime(plan.prediction.loSec),
+        fmtTime(plan.prediction.hiSec),
+        plan.prediction.method,
+      ),
     )
   }
   for (const w of plan.feasibilityWarnings) lines.push(`> ⚠ ${w}`)
   for (const week of plan.weeks) {
     const sk = week.skeleton
     const label = [
-      PHASE_PL[sk.phase] ?? sk.phase,
-      sk.intensityModel === 'pyramidal' ? 'piramidalnie' : 'polaryzacja',
+      core.phase[sk.phase] ?? sk.phase,
+      core.intensityModel[sk.intensityModel],
       `${week.totalKm} km`,
-      ...(sk.deload ? ['odciążenie'] : []),
+      ...(sk.deload ? [m.deload] : []),
     ].join(' · ')
-    lines.push('', `## Tydzień ${sk.index + 1} — od ${week.weekStart} (${label})`, '')
-    lines.push('| Dzień | Data | Trening |', '|---|---|---|')
+    lines.push('', `## ${m.weekHeading(sk.index + 1, week.weekStart, label)}`, '')
+    lines.push(
+      `| ${m.columns.day} | ${m.columns.date} | ${m.columns.workout} |`,
+      '|---|---|---|',
+    )
     for (const day of week.days) {
-      const [, m, d] = day.date.split('-')
-      const strength = day.strength ? ` **+ SIŁA** ~${day.strength.durationMin} min` : ''
-      lines.push(`| ${WEEKDAY_PL[day.weekday]} | ${Number(d)}.${m} | ${workoutText(day)}${strength} |`)
+      const [, mo, d] = day.date.split('-')
+      const strength = day.strength ? m.strengthTag(day.strength.durationMin) : ''
+      lines.push(
+        `| ${core.weekdayShort[day.weekday]} | ${Number(d)}.${mo} | ${workoutText(day)}${strength} |`,
+      )
     }
     for (const note of week.strengthNotes ?? []) lines.push(`> ${note}`)
   }
   if (plan.changes.length) {
-    lines.push('', '## Zmiany', '')
-    for (const c of plan.changes) lines.push(`- ${c.at}: ${c.action} — ${c.detail}`)
+    lines.push('', `## ${m.changes}`, '')
+    for (const c of plan.changes) lines.push(`- ${m.changeLine(c.at, c.action, c.detail)}`)
   }
   lines.push('')
   return lines.join('\n')
@@ -223,20 +234,21 @@ export function shiftWorkout(
   fromDate: string,
   toDate: string,
 ): { warnings: string[] } {
+  const t = ui().shift
   const from = findDay(plan, fromDate)
   const to = findDay(plan, toDate)
-  if (!from) throw new Error(`Data ${fromDate} poza planem`)
-  if (!to) throw new Error(`Data ${toDate} poza planem`)
+  if (!from) throw new Error(t.outsidePlan(fromDate))
+  if (!to) throw new Error(t.outsidePlan(toDate))
   if (from.week.weekStart !== to.week.weekStart) {
-    throw new Error('shift działa w obrębie jednego tygodnia (pełna renegocjacja — Faza 3)')
+    throw new Error(t.sameWeekOnly)
   }
   const race = from.week.skeleton.raceDate
   if (race) {
-    if (fromDate === race || toDate === race) throw new Error('Dnia startu nie ruszamy.')
+    if (fromDate === race || toDate === race) throw new Error(t.notRaceDay)
     const dayBefore = diffDays(fromDate, race) === 1 ? fromDate : diffDays(toDate, race) === 1 ? toDate : null
     const moved = from.day.workout
     if (dayBefore === toDate && moved && QUALITY_KINDS.has(moved.kind)) {
-      throw new Error('Dzień przed startem zostaje lekki — nie wstawiam tam akcentu.')
+      throw new Error(t.dayBeforeRaceLight)
     }
   }
   const tmp = from.day.workout
@@ -252,10 +264,7 @@ export function shiftWorkout(
   for (let i = 1; i < qualityDays.length; i++) {
     const gap = Math.abs(diffDays(qualityDays[i - 1]!, qualityDays[i]!))
     if (gap < 2) {
-      warnings.push(
-        `akcenty ${qualityDays[i - 1]} i ${qualityDays[i]} są dzień po dniu — ` +
-          'reguła I-7 zaleca ≥48 h między sesjami jakościowymi',
-      )
+      warnings.push(t.accentsTooClose(qualityDays[i - 1]!, qualityDays[i]!))
     }
   }
 
@@ -268,15 +277,9 @@ export function shiftWorkout(
     const next = from.week.days.find((d) => diffDays(day.date, d.date) === 1)
     const dayBeforeQuality = next?.workout && QUALITY_KINDS.has(next.workout.kind)
     if (sameDay) {
-      warnings.push(
-        `${day.date}: akcent wylądował w dniu sesji siłowej — S-5 odradza ciężką siłę ` +
-          'przy jednostce jakościowej; przenieś siłownię albo wygeneruj plan ponownie (tren plan)',
-      )
+      warnings.push(t.strengthSameDay(day.date))
     } else if (dayBeforeQuality) {
-      warnings.push(
-        `${day.date}: sesja siłowa wypada dzień przed akcentem (${next!.date}) — ` +
-          'S-5 zaleca ≥24 h odstępu po ciężkiej sile',
-      )
+      warnings.push(t.strengthDayBefore(day.date, next!.date))
     }
   }
   return { warnings }

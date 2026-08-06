@@ -32,6 +32,10 @@ export const corePl: CoreMessages = {
     pace: formatPace,
   },
 
+  dates: {
+    invalidIso: (iso: string) => `Nieprawidłowa data ISO: ${iso}`,
+  },
+
   weekday: {
     mon: 'poniedziałek', tue: 'wtorek', wed: 'środa', thu: 'czwartek',
     fri: 'piątek', sat: 'sobota', sun: 'niedziela',
@@ -91,6 +95,40 @@ export const corePl: CoreMessages = {
     raceGoal: (name: string) => `START: ${name.toUpperCase()}.`,
     raceOther: (what: string) => `START W ${what}.`,
     restDay: 'dzień wolny',
+  },
+
+  fitStep: {
+    warmup: 'Rozgrzewka',
+    cooldown: 'Trucht',
+    rep: 'Odcinek',
+    recovery: 'Przerwa',
+    hillRep: 'Podbieg',
+    hillDown: 'Zbieg',
+    repeat: (reps: number) => `Powtórz ${reps}x`,
+    alternating: 'Bieg zmienny',
+    faster: 'Szybciej',
+    slower: 'Wolniej',
+    progression: 'Narastające',
+    progressionPart: (index: number, total: number) => `Narastanie ${index}/${total}`,
+    easy: 'Spokojnie',
+    steady: 'Tempo',
+    timed: 'Na czas',
+  },
+
+  syncName: {
+    easy: 'Spokojne',
+    long: 'Długie wybieganie',
+    easy_hills: 'Podbiegi',
+    quality_intervals: 'Interwały',
+    quality_continuous: 'Akcent ciągły',
+    sharpener: 'Rozruch przedstartowy',
+    test: 'Sprawdzian na czas',
+    race: 'START',
+  },
+
+  syncError: {
+    badKey: ' — sprawdź klucz API (Settings → Developer Settings)',
+    rateLimit: ' — limit zapytań (5000/dzień, 2500/15 min)',
   },
 
   strength: {

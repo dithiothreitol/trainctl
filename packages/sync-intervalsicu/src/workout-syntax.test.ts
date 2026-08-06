@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { setLocale } from '@tren/core'
+
+setLocale('pl')
 import {
   generateMicrocycle,
   paceZones,

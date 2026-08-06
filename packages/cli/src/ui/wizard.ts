@@ -5,6 +5,7 @@
  */
 import { createInterface, type Interface } from 'node:readline/promises'
 import type { InferenceOutcome, InferredProfile } from '@tren/core'
+import { ui } from '../i18n/index.ts'
 import { sparkline, Theme } from './theme.ts'
 
 export interface WizardAnswers {
@@ -37,18 +38,33 @@ const DISTANCES: Record<string, number> = {
   hm: 21.0975,
   m: 42.195,
 }
-const DAY_CODES = ['pn', 'wt', 'sr', 'cz', 'pt', 'sb', 'nd']
-const DAY_MAP: Record<string, string> = {
-  pn: 'mon', wt: 'tue', sr: 'wed', cz: 'thu', pt: 'fri', sb: 'sat', nd: 'sun',
+/** Kanoniczne kody dni — tak zapisuje je tren.yaml, niezależnie od języka. */
+const CANONICAL_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+
+/**
+ * Skróty dni w bieżącym języku (np. `pn wt sr…`). Kanoniczne kody angielskie
+ * przyjmujemy ZAWSZE — kto przepisuje dni z tren.yaml, nie powinien dostać błędu.
+ */
+function dayInputMap(): Record<string, string> {
+  const map: Record<string, string> = {}
+  CANONICAL_DAYS.forEach((canonical, i) => {
+    map[canonical] = canonical
+    const localized = ui().wizard.dayCodes[i]
+    if (localized) map[localized] = canonical
+  })
+  return map
 }
-const DAY_MAP_BACK: Record<string, string> = {
-  mon: 'pn', tue: 'wt', wed: 'sr', thu: 'cz', fri: 'pt', sat: 'sb', sun: 'nd',
+
+/** Kanoniczny kod → skrót w języku interfejsu (podpowiedź domyślnej wartości). */
+function toLocalDay(canonical: string): string {
+  const i = CANONICAL_DAYS.indexOf(canonical)
+  return i === -1 ? canonical : (ui().wizard.dayCodes[i] ?? canonical)
 }
 
 export function parseTimeInput(text: string): number {
   const parts = text.trim().split(':').map(Number)
   if (parts.some(Number.isNaN) || parts.length < 2 || parts.length > 3) {
-    throw new Error('Czas w formacie MM:SS albo HH:MM:SS')
+    throw new Error(ui().wizard.errTime)
   }
   return parts.reduce((acc, p) => acc * 60 + p, 0)
 }
@@ -58,34 +74,38 @@ export function parseDistanceInput(text: string): number {
   if (DISTANCES[key]) return DISTANCES[key]!
   const num = Number(key.replace(',', '.'))
   if (Number.isFinite(num) && num > 0) return num
-  throw new Error('Podaj dystans: 5, 10, hm, m albo liczbę kilometrów')
+  throw new Error(ui().wizard.errDistance)
 }
 
 export function parseDaysInput(text: string): string[] {
+  const map = dayInputMap()
+  const allowed = ui().wizard.dayCodes.join(' ')
   const tokens = text.toLowerCase().split(/[\s,]+/).filter(Boolean)
   const days = tokens.map((t) => {
-    const key = t.replace('ś', 's')
-    if (!DAY_CODES.includes(key)) throw new Error(`Nieznany dzień "${t}" — użyj: ${DAY_CODES.join(' ')}`)
-    return DAY_MAP[key]!
+    // „śr” wpisane z diakrytykiem to ta sama środa co „sr”
+    const key = t.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    const canonical = map[key]
+    if (!canonical) throw new Error(ui().wizard.errUnknownDay(t, allowed))
+    return canonical
   })
-  if (days.length === 0) throw new Error('Podaj co najmniej jeden dzień')
+  if (days.length === 0) throw new Error(ui().wizard.errNoDays)
   return [...new Set(days)]
 }
 
 export function parseDateInput(text: string): string {
   const t = text.trim()
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) throw new Error('Data w formacie RRRR-MM-DD')
-  if (Number.isNaN(Date.parse(t))) throw new Error('Nieprawidłowa data')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) throw new Error(ui().wizard.errDate)
+  if (Number.isNaN(Date.parse(t))) throw new Error(ui().wizard.errBadDate)
   return t
 }
 
 export function toYaml(a: WizardAnswers): string {
   const results = a.resultDate
     ? `    - { date: "${a.resultDate}", distanceKm: ${a.resultDistanceKm}, timeSec: ${a.resultTimeSec} }`
-    : '    []  # dopisz wynik startu — z niego kalibrujemy strefy (nie z zegarka)'
+    : `    []  # ${ui().configFile.inferredResultHint}`
   return [
-    '# tren — profil atlety i cel treningowy.',
-    '# Wygenerowane przez `tren init`. Śmiało edytuj i uruchom `tren plan`.',
+    ...ui().configFile.templateHeader.slice(0, 1),
+    ui().configFile.generatedByWizard,
     'athlete:',
     `  recentWeeklyKm: ${a.recentWeeklyKm}`,
     ...(a.peakWeeklyKm ? [`  peakWeeklyKm: ${a.peakWeeklyKm}`] : []),
@@ -122,7 +142,7 @@ async function ask<T>(
   for (;;) {
     const parts = [
       ...(opts.hint ? [opts.hint] : []),
-      ...(opts.default !== undefined ? [`Enter = ${opts.default}`] : []),
+      ...(opts.default !== undefined ? [ui().wizard.enterAccepts(opts.default)] : []),
     ]
     const hint = parts.length ? theme.dim(` (${parts.join(', ')})`) : ''
     const answer = (await rl.question(`${theme.color(theme.sym.arrow, 'brand')} ${question}${hint}: `)).trim()
@@ -138,7 +158,9 @@ async function ask<T>(
 
 async function askYesNo(rl: Interface, theme: Theme, question: string): Promise<boolean> {
   const answer = (
-    await rl.question(`${theme.color(theme.sym.arrow, 'brand')} ${question} ${theme.dim('(T/n)')}: `)
+    await rl.question(
+      `${theme.color(theme.sym.arrow, 'brand')} ${question} ${theme.dim(ui().wizard.yesNoHint)}: `,
+    )
   ).trim()
   return !/^n/i.test(answer)
 }
@@ -158,13 +180,10 @@ async function offerHistory(
   intervals: WizardIntervals,
 ): Promise<InferredProfile | undefined> {
   if (!intervals.force) {
-    const yes = await askYesNo(
-      rl, theme,
-      'Znalazłem klucz intervals.icu — pobrać historię i zaproponować profil?',
-    )
+    const yes = await askYesNo(rl, theme, ui().wizard.intervalsFound)
     if (!yes) return undefined
   }
-  console.log(theme.dim('  pobieram ostatnie 16 tygodni…'))
+  console.log(theme.dim(`  ${ui().wizard.intervalsFetching}`))
   let outcome: InferenceOutcome
   try {
     outcome = await intervals.fetch()
@@ -179,10 +198,10 @@ async function offerHistory(
   const kms = p.weeklyKm.map((w) => w.km)
   console.log(
     `  ${theme.color(sparkline(kms, theme.caps.unicode), 'brand')} ` +
-      theme.dim(`${p.window.oldest} → ${p.window.newest}, max ${Math.max(...kms)} km`),
+      theme.dim(ui().wizard.intervalsRange(p.window.oldest, p.window.newest, Math.max(...kms))),
   )
   console.log(
-    `  ${theme.color(theme.sym.ok, 'success')} propozycje z historii — Enter przy pytaniu przyjmuje wartość`,
+    `  ${theme.color(theme.sym.ok, 'success')} ${ui().wizard.intervalsProposed}`,
   )
   for (const c of p.caveats) console.log(`  ${theme.color(theme.sym.warn, 'warn')} ${c}`)
   console.log('')
@@ -194,86 +213,88 @@ export async function runWizard(
   intervals?: WizardIntervals,
 ): Promise<WizardAnswers> {
   const rl = createInterface({ input: process.stdin, output: process.stdout })
+  const w = ui().wizard
   try {
-    console.log(theme.bold(theme.color('\ntren — konfiguracja profilu', 'brand')))
-    console.log(theme.dim('Enter pomija pytania opcjonalne.\n'))
+    console.log(theme.bold(theme.color(`\n${w.header}`, 'brand')))
+    console.log(theme.dim(`${w.enterSkips}\n`))
 
     const inferred =
       intervals && (intervals.available || intervals.force)
         ? await offerHistory(rl, theme, intervals)
         : undefined
 
-    console.log(theme.bold('Cel'))
-    const goalName = (await ask(rl, theme, 'Nazwa zawodów', (t) => t.trim() || 'Bieg docelowy'))!
-    const goalDate = (await ask(rl, theme, 'Data startu', parseDateInput, { hint: 'RRRR-MM-DD' }))!
-    const goalDistanceKm = (await ask(rl, theme, 'Dystans', parseDistanceInput, {
-      hint: '5 · 10 · hm · m · km',
+    console.log(theme.bold(w.goal))
+    const goalName = (await ask(rl, theme, w.goalName, (t) => t.trim() || w.defaultGoalName))!
+    const goalDate = (await ask(rl, theme, w.goalDate, parseDateInput, { hint: w.hintDate }))!
+    const goalDistanceKm = (await ask(rl, theme, w.goalDistance, parseDistanceInput, {
+      hint: w.hintDistance,
     }))!
-    const targetTimeSec = await ask(rl, theme, 'Cel czasowy', parseTimeInput, {
-      hint: 'HH:MM:SS, opcjonalnie',
+    const targetTimeSec = await ask(rl, theme, w.goalTarget, parseTimeInput, {
+      hint: w.hintTimeOptional,
       optional: true,
     })
 
-    console.log(theme.bold('\nTwoje bieganie'))
+    console.log(theme.bold(`\n${w.yourRunning}`))
     const parseKm = (t: string) => {
       const n = Number(t.replace(',', '.'))
-      if (!Number.isFinite(n) || n <= 0) throw new Error('Podaj liczbę kilometrów')
+      if (!Number.isFinite(n) || n <= 0) throw new Error(w.errKm)
       return n
     }
-    const recentWeeklyKm = (await ask(rl, theme, 'Objętość z ostatnich tygodni [km]', parseKm, {
+    const recentWeeklyKm = (await ask(rl, theme, w.recentVolume, parseKm, {
       ...(inferred ? { default: String(inferred.recentWeeklyKm) } : {}),
     }))!
-    const peakWeeklyKm = await ask(rl, theme, 'Historyczne maksimum tygodniowe [km]', parseKm, {
-      hint: 'opcjonalnie',
+    const peakWeeklyKm = await ask(rl, theme, w.peakVolume, parseKm, {
+      hint: w.hintOptional,
       optional: true,
       ...(inferred?.peakWeeklyKm !== undefined ? { default: String(inferred.peakWeeklyKm) } : {}),
     })
-    const daysAvailable = (await ask(rl, theme, 'Dni treningowe', parseDaysInput, {
-      hint: 'np. wt sr cz sb nd',
+    const daysAvailable = (await ask(rl, theme, w.trainingDays, parseDaysInput, {
+      hint: w.hintDays,
       ...(inferred
-        ? { default: inferred.daysAvailable.map((d) => DAY_MAP_BACK[d] ?? d).join(' ') }
+        ? { default: inferred.daysAvailable.map(toLocalDay).join(' ') }
         : {}),
     }))!
 
-    console.log(theme.bold('\nWynik startu do kalibracji stref'))
-    console.log(theme.dim('  Strefy liczymy z wyniku zawodów — odczyty progów z zegarka zawyżają tempo.'))
+    console.log(theme.bold(`\n${w.resultHeader}`))
+    console.log(theme.dim(`  ${w.resultWhy}`))
     let resultDate: string | undefined
     let resultDistanceKm: number | undefined
     let resultTimeSec: number | undefined
     const candidate = inferred?.raceCandidates[0]
     if (candidate) {
       const label =
-        `${candidate.date} · ${candidate.name ?? 'bez nazwy'} · ` +
-        `${candidate.distanceKm} km w ${fmtClock(candidate.timeSec)}`
-      console.log(theme.dim(`  W historii wygląda na start: ${label} (${candidate.reason})`))
-      if (await askYesNo(rl, theme, 'Użyć tego wyniku do kalibracji?')) {
+        `${candidate.date} · ${candidate.name ?? ui().init.unnamed} · ` +
+        `${candidate.distanceKm} km — ${fmtClock(candidate.timeSec)}`
+      console.log(theme.dim(`  ${w.raceLooksLike(label, candidate.reason)}`))
+      if (await askYesNo(rl, theme, w.useThisResult)) {
         resultDate = candidate.date
         resultDistanceKm = candidate.distanceKm
         resultTimeSec = candidate.timeSec
       }
     }
     if (!resultDate) {
-      resultDistanceKm = await ask(rl, theme, 'Dystans ostatniego startu', parseDistanceInput, {
-        hint: 'opcjonalnie',
+      resultDistanceKm = await ask(rl, theme, w.resultDistance, parseDistanceInput, {
+        hint: w.hintOptional,
         optional: true,
       })
       if (resultDistanceKm) {
-        resultTimeSec = await ask(rl, theme, 'Czas', parseTimeInput, { hint: 'HH:MM:SS' })
-        resultDate = await ask(rl, theme, 'Data startu', parseDateInput, { hint: 'RRRR-MM-DD' })
+        resultTimeSec = await ask(rl, theme, w.resultTime, parseTimeInput, { hint: w.hintTime })
+        resultDate = await ask(rl, theme, w.resultDate, parseDateInput, { hint: w.hintDate })
       }
     }
 
-    console.log(theme.bold('\nTryb biurkowy'))
-    const workStart = await ask(rl, theme, 'Początek pracy', (t) => {
-      if (!/^\d{1,2}:\d{2}$/.test(t.trim())) throw new Error('Godzina w formacie HH:MM')
+    console.log(theme.bold(`\n${w.deskHeader}`))
+    const parseHour = (t: string) => {
+      if (!/^\d{1,2}:\d{2}$/.test(t.trim())) throw new Error(w.errHour)
       return t.trim()
-    }, { hint: 'HH:MM, opcjonalnie', optional: true })
+    }
+    const workStart = await ask(rl, theme, w.workStart, parseHour, {
+      hint: w.hintHourOptional,
+      optional: true,
+    })
     let desk: WizardAnswers['desk']
     if (workStart) {
-      const workEnd = await ask(rl, theme, 'Koniec pracy', (t) => {
-        if (!/^\d{1,2}:\d{2}$/.test(t.trim())) throw new Error('Godzina w formacie HH:MM')
-        return t.trim()
-      }, { hint: 'HH:MM' })
+      const workEnd = await ask(rl, theme, w.workEnd, parseHour, { hint: w.hintHour })
       if (workEnd) desk = { workStart, workEnd }
     }
 

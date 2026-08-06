@@ -4,6 +4,7 @@
  * użytkownika (docs/integrations/intervalsicu.md §1.1). Model BYO-key (ADR-006).
  * `fetch` jest wstrzykiwany — testy jadą na nagranych odpowiedziach, bez sieci.
  */
+import { messages } from '@tren/core'
 
 export const BASE_URL = 'https://intervals.icu/api/v1'
 
@@ -65,9 +66,9 @@ export class IntervalsIcuClient {
       const body = await res.text().catch(() => '')
       const hint =
         res.status === 401 || res.status === 403
-          ? ' — sprawdź klucz API (Settings → Developer Settings)'
+          ? messages().syncError.badKey
           : res.status === 429
-            ? ' — limit zapytań (5000/dzień, 2500/15 min)'
+            ? messages().syncError.rateLimit
             : ''
       throw new IntervalsIcuError(
         `intervals.icu ${res.status} ${res.statusText}${hint}`,

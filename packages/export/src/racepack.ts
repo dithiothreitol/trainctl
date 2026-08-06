@@ -20,6 +20,23 @@ export interface SplitRow {
   cumulative: string[]
 }
 
+/**
+ * Teksty na wydruku. Renderer nie zna katalogu tłumaczeń — dostaje gotowe
+ * napisy, żeby `@tren/export` pozostał czystym generatorem HTML.
+ */
+export interface RacePackLabels {
+  /** Kod języka do atrybutu `lang` — czytniki ekranu i dzielenie wyrazów. */
+  lang: string
+  title: (raceName: string) => string
+  subtitle: (date: string, distanceKm: number) => string
+  splits: string
+  band: (scenario: string) => string
+  finish: string
+  km: string
+  cutHint: string
+  conditions: string
+}
+
 export interface RacePackInput {
   raceName: string
   raceDate: string
@@ -31,6 +48,7 @@ export interface RacePackInput {
   provenance: string
   /** Opcjonalne wiersze korekty pogodowej (dokładane, gdy reguły W-14+ mają źródła). */
   heatTable?: { header: string[]; rows: string[][]; note: string }
+  labels: RacePackLabels
 }
 
 /** Sekundy → „H:MM:SS" / „MM:SS" — na opasce liczy się zwięzłość. */
@@ -93,13 +111,14 @@ const escapeHtml = (text: string): string =>
   )
 
 export function toRacePackHtml(input: RacePackInput): string {
+  const L = input.labels
   const splits = buildSplits(input.distanceKm, input.scenarios)
   const band = input.scenarios[input.bandScenario]
   if (!band) throw new Error('bandScenario poza zakresem scenariuszy')
   const bandRows = bandPoints(input.distanceKm)
     .map((km) => {
       const isFinish = km === input.distanceKm
-      const label = isFinish ? 'META' : `${km}`
+      const label = isFinish ? L.finish : `${km}`
       return `      <tr${isFinish ? ' class="finish"' : ''}>
         <td class="bkm">${label}</td>
         <td class="btime">${fmtClock((band.totalSec * km) / input.distanceKm)}</td>
@@ -117,7 +136,7 @@ export function toRacePackHtml(input: RacePackInput): string {
       // dokładnie JEDEN wiersz „połówka": najbliższy pełny kilometr połowy dystansu
       const half = r.km === halfMarkKm
       return `      <tr${isFinish ? ' class="finish"' : half ? ' class="half"' : ''}>
-        <td class="km">${isFinish ? 'META' : r.km}</td>
+        <td class="km">${isFinish ? escapeHtml(L.finish) : r.km}</td>
         ${r.cumulative.map((c) => `<td>${c}</td>`).join('')}
       </tr>`
     })
@@ -125,7 +144,7 @@ export function toRacePackHtml(input: RacePackInput): string {
 
   const heat = input.heatTable
     ? `  <section class="heat">
-    <h2>Korekta na warunki</h2>
+    <h2>${escapeHtml(L.conditions)}</h2>
     <table>
       <thead><tr>${input.heatTable.header.map((h) => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
       <tbody>
@@ -137,10 +156,10 @@ ${input.heatTable.rows.map((r) => `      <tr>${r.map((c) => `<td>${escapeHtml(c)
     : ''
 
   return `<!doctype html>
-<html lang="pl">
+<html lang="${escapeHtml(L.lang)}">
 <head>
 <meta charset="utf-8">
-<title>${escapeHtml(input.raceName)} — pakiet startowy</title>
+<title>${escapeHtml(L.title(input.raceName))}</title>
 <style>
   @page { size: A4 portrait; margin: 12mm; }
   * { box-sizing: border-box; }
@@ -159,7 +178,7 @@ ${input.heatTable.rows.map((r) => `      <tr>${r.map((c) => `<td>${escapeHtml(c)
   .km, .bkm { font-weight: 600; }
   tr.half td { border-top: 1.5px solid #111; }
   tr.finish td { font-weight: 700; border-top: 2px solid #111; }
-  /* opaska: wąski pasek do wycięcia i owinięcia wokół nadgarstka */
+  /* wrist band: a narrow strip to cut out and wrap around the wrist */
   .band { border: 1.2px dashed #444; padding: 2mm 3mm; width: 46mm; }
   .band h2 { border: 0; font-size: 9pt; margin-bottom: 0; }
   .band .goal { font-size: 13pt; font-weight: 700; margin: 0 0 1mm; }
@@ -172,27 +191,27 @@ ${input.heatTable.rows.map((r) => `      <tr>${r.map((c) => `<td>${escapeHtml(c)
 </style>
 </head>
 <body>
-<h1>${escapeHtml(input.raceName)} — pakiet startowy</h1>
-<p class="sub">${escapeHtml(input.raceDate)} · ${input.distanceKm} km</p>
+<h1>${escapeHtml(L.title(input.raceName))}</h1>
+<p class="sub">${escapeHtml(L.subtitle(input.raceDate, input.distanceKm))}</p>
 <div class="cols">
   <section class="splits">
-    <h2>Splity narastająco</h2>
+    <h2>${escapeHtml(L.splits)}</h2>
     <table>
-      <thead><tr><th>km</th>${headCols}</tr></thead>
+      <thead><tr><th>${escapeHtml(L.km)}</th>${headCols}</tr></thead>
       <tbody>
 ${splitRows}
       </tbody>
     </table>
   </section>
   <section class="band">
-    <h2>Opaska — ${escapeHtml(band.label)}</h2>
+    <h2>${escapeHtml(L.band(band.label))}</h2>
     <p class="goal">${fmtClock(band.totalSec)} · ${fmtPace(band.totalSec / input.distanceKm)}</p>
     <table>
       <tbody>
 ${bandRows}
       </tbody>
     </table>
-    <p class="cut">✂ wytnij wzdłuż przerywanej linii, owiń wokół nadgarstka, sklej taśmą</p>
+    <p class="cut">${escapeHtml(L.cutHint)}</p>
   </section>
 </div>
 ${heat}

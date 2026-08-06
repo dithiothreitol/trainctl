@@ -96,9 +96,13 @@ brzmi jak zapis anglojęzycznego planu („6 km easy", „2 min walk recovery").
 Liczebniki są odmieniane (1 kilometr / 3 kilometry / 5 kilometrów, z pułapką
 12–14), a liczby dziesiętne mają przecinek.
 
-**Stan:** silnik, wszystkie komendy i `--help` są dwujęzyczne; kilka
-powierzchni (PLAN.md, kreator, pickery, opisy narzędzi MCP, objaśnienia reguł)
-czeka jeszcze na przepięcie — patrz tabela w [SPEC.md](SPEC.md) §8.
+Dwujęzyczne jest wszystko, co widzi człowiek i agent: wyjście komend,
+`--help`, `plan/PLAN.md`, szablon `tren.yaml` z komentarzami, `AGENTS.md`,
+objaśnienia reguł, opisy narzędzi MCP, kroki treningu w pliku FIT, rozpiska
+do druku, pakiet startowy i tytuły w kalendarzu intervals.icu.
+
+`tren init --lang pl` zostawia w `tren.yaml` odkomentowane `language: pl` —
+katalog treningowy pamięta wybór, więc kolejne komendy nie potrzebują flagi.
 
 ## Eksport
 

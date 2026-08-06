@@ -18,7 +18,7 @@ import {
   type SyncedActivity,
   type Weekday,
 } from '@tren/core'
-import { AGENTS_FILE, AGENTS_TEMPLATE } from './agents-md.ts'
+import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
 import { ui } from './i18n/index.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, logFor, parseTime, readLog, type LogEntry } from './logfile.ts'
@@ -35,7 +35,7 @@ import {
   PLAN_YAML,
   type StoredPlan,
 } from './planfile.ts'
-import { KIND_PURPOSE, RULE_EXPLAIN } from './rules-explain.ts'
+import { kindPurpose, ruleExplain } from './rules-explain.ts'
 import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
@@ -75,6 +75,8 @@ import {
 // dla MCP (importuje wyłącznie z @tren/cli = commands.ts)
 export { defaultProviderFactory, hasApiKey, type ProviderFactory } from './sync.ts'
 export { readConfigLanguage } from './config.ts'
+// serwer MCP opisuje narzędzia tym samym katalogiem, co CLI
+export { ui, type CliMessages } from './i18n/index.ts'
 
 /** Wykonanie = plan × (aktywności z sync ∪ wpisy z dziennika). */
 export function buildExecution(
@@ -207,7 +209,8 @@ export async function cmdInitFromIntervals(
         b.bullets(
           p.raceCandidates.slice(0, 5).map(
             (c) =>
-              `${c.date} · ${c.name ?? ui().init.unnamed} · ${c.distanceKm} km w ${fmtClock(c.timeSec)} (${c.reason})` +
+              `${c.date} · ${c.name ?? ui().init.unnamed} · ${c.distanceKm} km — ` +
+              `${fmtClock(c.timeSec)} (${c.reason})` +
               ` → results: { date: "${c.date}", distanceKm: ${c.distanceKm}, timeSec: ${c.timeSec} }`,
           ),
         ),
@@ -229,7 +232,7 @@ export async function cmdInitFromIntervals(
 function writeAgentsFile(cwd: string): boolean {
   const path = join(cwd, AGENTS_FILE)
   if (existsSync(path)) return false
-  writeFileSync(path, AGENTS_TEMPLATE, 'utf-8')
+  writeFileSync(path, agentsTemplate(), 'utf-8')
   return true
 }
 
@@ -239,7 +242,7 @@ export function cmdInit(cwd: string, content?: string): CmdResult {
     const agents = writeAgentsFile(cwd)
     return okDoc([
       b.success(ui().init.created(CONFIG_FILE)),
-      ...(agents ? [b.success(`Utworzono ${AGENTS_FILE} — instrukcja dla agenta (Claude Code, Codex)`)] : []),
+      ...(agents ? [b.success(ui().init.createdAgents(AGENTS_FILE))] : []),
       ...(content
         ? []
         : [
@@ -263,7 +266,7 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
     const blocks: Block[] = [
       b.title(
         `${plan.goal.name} · ${plan.goal.distanceKm} km`,
-        `${plan.goal.date} · ${weeksToRace} tygodni planu`,
+        `${plan.goal.date} · ${ui().plan.weeksOfPlan(weeksToRace)}`,
       ),
       b.kv([
         [ui().plan.volumePeak, messages().units.kmPerWeek(plan.peakKmPlanned)],
@@ -277,10 +280,17 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
 
     if (plan.prediction) {
       const range = `${fmtTime(plan.prediction.loSec)} – ${fmtTime(plan.prediction.hiSec)}`
-      blocks.push(b.blank(), b.panel('Predykcja wyniku', [
-        `${range}   (metoda: ${plan.prediction.method})`,
-        ui().plan.predictionAlwaysRange,
-      ], 'brand'))
+      blocks.push(
+        b.blank(),
+        b.panel(
+          ui().plan.prediction,
+          [
+            `${range}   ${ui().plan.predictionMethod(plan.prediction.method)}`,
+            ui().plan.predictionAlwaysRange,
+          ],
+          'brand',
+        ),
+      )
       const target = plan.goal.targetTimeSec
       if (target) {
         if (target < plan.prediction.loSec) {
@@ -304,13 +314,13 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
     plan.weeks.forEach((w, i) => {
       const label = phaseLabel(w.skeleton.phase)
       if (label !== current) {
-        if (current) phases.push(`${current}: tyg. ${from + 1}–${i}`)
+        if (current) phases.push(ui().plan.phaseSpan(current, from + 1, i))
         current = label
         from = i
       }
     })
-    if (current) phases.push(`${current}: tyg. ${from + 1}–${plan.weeks.length}`)
-    blocks.push(b.section('Struktura'), b.bullets(phases))
+    if (current) phases.push(ui().plan.phaseSpan(current, from + 1, plan.weeks.length))
+    blocks.push(b.section(ui().plan.structure), b.bullets(phases))
 
     if (plan.feasibilityWarnings.length) {
       blocks.push(b.blank())
@@ -318,7 +328,7 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
     }
     blocks.push(
       b.blank(),
-      b.success(`Zapisano ${PLAN_YAML} i ${PLAN_MD}`),
+      b.success(ui().common.saved(`${PLAN_YAML} + ${PLAN_MD}`)),
       b.hint('tren today · tren week · tren why'),
     )
     return okDoc(blocks)
@@ -448,10 +458,10 @@ export function cmdLog(
   try {
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
-    if (!findDay(plan, date)) return fail(new Error(`Data ${date} poza zakresem planu.`))
+    if (!findDay(plan, date)) return fail(new Error(ui().log.outsidePlan(date)))
     const status = (opts.status ?? 'done') as 'done' | 'skipped' | 'modified'
     if (!['done', 'skipped', 'modified'].includes(status)) {
-      return fail(new Error(`Nieznany status "${opts.status}" — done|skipped|modified.`))
+      return fail(new Error(ui().log.unknownStatus(String(opts.status))))
     }
     appendLog(cwd, {
       date,
@@ -461,7 +471,7 @@ export function cmdLog(
       ...(opts.note ? { note: opts.note } : {}),
       loggedAt: new Date().toISOString(),
     })
-    return ok(`Zalogowano ${date}: ${status}.`)
+    return ok(ui().log.saved(date, status))
   } catch (e) {
     return fail(e)
   }
@@ -511,7 +521,7 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
         b.section(ui().why.strengthPurposeTitle),
         b.text(ui().why.strengthPurpose),
       )
-      const refs = day.strength.ruleRefs.filter((r) => RULE_EXPLAIN[r]).map((r) => `${r} — ${RULE_EXPLAIN[r]}`)
+      const refs = day.strength.ruleRefs.filter(ruleExplain).map((r) => `${r} — ${ruleExplain(r)}`)
       if (refs.length) blocks.push(b.section(ui().why.strengthRules), b.bullets(refs))
       if (!day.workout) {
         blocks.push(b.blank(), b.hint(ui().why.sourcesHint('§10.8')))
@@ -522,11 +532,11 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
     const workout = day.workout
     if (!workout) return okDoc(blocks)
     blocks.push(
-      b.panel(kindLabel(workout.kind), [KIND_PURPOSE[workout.kind]],
+      b.panel(kindLabel(workout.kind), [kindPurpose(workout.kind)],
         KIND_COLOR[workout.kind] ?? 'accent'),
     )
     const refs = [...new Set([...workout.ruleRefs, ...sk.ruleRefs])].sort()
-    const explained = refs.filter((r) => RULE_EXPLAIN[r]).map((r) => `${r} — ${RULE_EXPLAIN[r]}`)
+    const explained = refs.filter(ruleExplain).map((r) => `${r} — ${ruleExplain(r)}`)
     if (explained.length) blocks.push(b.section(ui().why.rules), b.bullets(explained))
     blocks.push(b.blank(), b.hint(ui().why.sourcesHint('§10')))
     return okDoc(blocks)
@@ -709,7 +719,7 @@ export function cmdAdapt(cwd: string, opts: { date?: string | undefined } = {}):
 
     const compliance = Math.round(proposal.complianceKm * 100)
     const blocks: Block[] = [
-      b.title(`Analiza wykonania · ${proposal.windowDays} dni do ${today}`),
+      b.title(ui().adapt.title(proposal.windowDays, today)),
       b.kv([
         [ui().adapt.volumeDone, `${compliance}%`],
         [ui().adapt.missedSessions, String(proposal.missedSessions)],
@@ -820,7 +830,7 @@ export function cmdReschedule(
     const plan = loadPlan(cwd)
     const config = loadConfig(cwd)
     const hit = findDay(plan, date)
-    if (!hit) return fail(new Error(`Data ${date} poza zakresem planu.`))
+    if (!hit) return fail(new Error(ui().log.outsidePlan(date)))
     const weekIndex = plan.weeks.findIndex((w) => w.weekStart === hit.week.weekStart)
     const week = plan.weeks[weekIndex]!
 
@@ -1053,7 +1063,7 @@ export async function cmdReview(
         blocks.push(
           b.panel(
             `${ui().review.keySession} · ${key.date}`,
-            [workoutText(key), KIND_PURPOSE[key.workout!.kind]],
+            [workoutText(key), kindPurpose(key.workout!.kind)],
             KIND_COLOR[key.workout!.kind] ?? 'accent',
           ),
         )

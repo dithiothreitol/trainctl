@@ -3,6 +3,9 @@
  * Kształt odpowiedzi wzorowany na przykładach z docs/integrations/intervalsicu.md §2.
  */
 import { describe, expect, it } from 'vitest'
+import { setLocale } from '@tren/core'
+
+setLocale('pl')
 import { IntervalsIcuClient, IntervalsIcuError } from './client.ts'
 import { IntervalsIcuProvider } from './provider.ts'
 

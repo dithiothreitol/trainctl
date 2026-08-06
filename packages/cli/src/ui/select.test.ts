@@ -5,6 +5,7 @@
  */
 import { EventEmitter } from 'node:events'
 import { describe, expect, it } from 'vitest'
+import { ui } from '../i18n/index.ts'
 import { select, type Choice } from './select.ts'
 import { Theme } from './theme.ts'
 
@@ -131,7 +132,8 @@ describe('select — pętla interaktywna', () => {
     expect(stdout.text).toContain('Który trening przesunąć?')
     expect(stdout.text).toContain('WT 08-04')
     expect(stdout.text).toContain('ND 08-09')
-    expect(stdout.text).toContain('Esc anuluj')
+    // stopka pochodzi z katalogu — test sprawdza, że w ogóle jest, nie jej brzmienie
+    expect(stdout.text).toContain(ui().picker.selectKeys.trim())
   })
 
   it('lista bez dostępnych pozycji kończy się od razu', async () => {

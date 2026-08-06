@@ -5,6 +5,7 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import { ui } from '@tren/cli'
 import {
   cmdAdapt,
   cmdDesk,
@@ -27,9 +28,7 @@ import {
   type ProviderFactory,
 } from '@tren/cli'
 
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'data w formacie YYYY-MM-DD')
+const isoDate = () => z.string().regex(/^\d{4}-\d{2}-\d{2}$/, ui().mcp.isoDate)
 
 function toTool(r: CmdResult) {
   return {
@@ -42,19 +41,15 @@ export function createTrenServer(
   dir: string,
   factory: ProviderFactory = defaultProviderFactory,
 ): McpServer {
+  const t = ui().mcp
   const server = new McpServer({ name: 'tren', version: '0.1.0' })
 
   server.registerTool(
     'tren_init',
     {
-      description:
-        'Utwórz szablon tren.yaml (profil atlety i cel) w katalogu treningowym. ' +
-        'Nie nadpisuje istniejącego pliku. Z fromIntervals=true proponuje profil ' +
-        'z 16 tygodni historii intervals.icu (wymaga klucza API): wartości mają ' +
-        'komentarz proweniencji, a kandydatów na wyniki startów zwraca DO POTWIERDZENIA ' +
-        'z użytkownikiem — dopisz je do athlete.results dopiero po jego zgodzie.',
+      description: t.init,
       inputSchema: {
-        fromIntervals: z.boolean().optional().describe('profil z historii intervals.icu'),
+        fromIntervals: z.boolean().optional().describe(t.initFromIntervals),
       },
     },
     async (args) =>
@@ -64,11 +59,8 @@ export function createTrenServer(
   server.registerTool(
     'tren_plan',
     {
-      description:
-        'Wygeneruj plan treningowy z tren.yaml → plan/plan.yaml + plan/PLAN.md. ' +
-        'Zwraca podsumowanie: szczyt objętości, predykcję wyniku (przedział) i ocenę realności celu. ' +
-        'NADPISUJE istniejący plan — przy wątpliwościach najpierw tren_diff.',
-      inputSchema: { date: isoDate.optional().describe('data „dzisiaj" (domyślnie: bieżąca)') },
+      description: t.plan,
+      inputSchema: { date: isoDate().optional().describe(t.planDate) },
     },
     async (args) => toTool(cmdPlan(dir, args)),
   )
@@ -76,8 +68,8 @@ export function createTrenServer(
   server.registerTool(
     'tren_today',
     {
-      description: 'Trening na dziś (albo wskazaną datę): opis jednostki, kilometraż, status z dziennika.',
-      inputSchema: { date: isoDate.optional() },
+      description: t.today,
+      inputSchema: { date: isoDate().optional() },
     },
     async (args) => toTool(cmdToday(dir, args)),
   )
@@ -85,10 +77,8 @@ export function createTrenServer(
   server.registerTool(
     'tren_week',
     {
-      description:
-        'Podgląd całego tygodnia treningowego (faza, cel km, dzień po dniu, statusy z dziennika). ' +
-        'Użyj PRZED renegocjacją tygodnia (tren_shift), żeby zobaczyć kontekst.',
-      inputSchema: { date: isoDate.optional().describe('dowolna data w interesującym tygodniu') },
+      description: t.week,
+      inputSchema: { date: isoDate().optional().describe(t.weekDate) },
     },
     async (args) => toTool(cmdWeek(dir, args)),
   )
@@ -96,13 +86,13 @@ export function createTrenServer(
   server.registerTool(
     'tren_log',
     {
-      description: 'Zapisz wykonanie treningu w dzienniku (log.jsonl).',
+      description: t.log,
       inputSchema: {
-        date: isoDate.optional(),
-        status: z.enum(['done', 'skipped', 'modified']).optional().describe('domyślnie done'),
-        km: z.string().optional().describe('przebiegnięte km'),
-        time: z.string().optional().describe('czas MM:SS albo HH:MM:SS'),
-        note: z.string().optional().describe('samopoczucie, warunki, uwagi'),
+        date: isoDate().optional(),
+        status: z.enum(['done', 'skipped', 'modified']).optional().describe(t.logStatus),
+        km: z.string().optional().describe(t.logKm),
+        time: z.string().optional().describe(t.logTime),
+        note: z.string().optional().describe(t.logNote),
       },
     },
     async (args) => toTool(cmdLog(dir, args)),
@@ -111,13 +101,10 @@ export function createTrenServer(
   server.registerTool(
     'tren_shift',
     {
-      description:
-        'Renegocjacja tygodnia: zamień treningi między dwiema datami TEGO SAMEGO tygodnia ' +
-        '(np. „w czwartek release — przesuń interwały"). Chroni dzień startu i dzień przed nim; ' +
-        'ostrzega przy złamaniu zasady 48 h między akcentami (I-7).',
+      description: t.shift,
       inputSchema: {
-        from: isoDate.describe('data treningu do przesunięcia'),
-        to: isoDate.describe('data docelowa (treningi zostają zamienione)'),
+        from: isoDate().describe(t.shiftFrom),
+        to: isoDate().describe(t.shiftTo),
       },
     },
     async (args) => toTool(cmdShift(dir, args)),
@@ -126,9 +113,8 @@ export function createTrenServer(
   server.registerTool(
     'tren_why',
     {
-      description:
-        'Wyjaśnij trening: cel fizjologiczny jednostki + reguły z badań (ID z docs/science/FOUNDATIONS.md).',
-      inputSchema: { date: isoDate.optional() },
+      description: t.why,
+      inputSchema: { date: isoDate().optional() },
     },
     async (args) => toTool(cmdWhy(dir, args)),
   )
@@ -136,11 +122,8 @@ export function createTrenServer(
   server.registerTool(
     'tren_adapt',
     {
-      description:
-        'Porównaj wykonanie (sync.json + dziennik) z planem i zaproponuj korekty: urealnienie ' +
-        'objętości, restart po przerwie, protokół po starcie, rekalibrację stref. ' +
-        'ZWRACA PROPOZYCJE — nie zmienia planu. Zastosowanie: edycja tren.yaml + tren_plan.',
-      inputSchema: { date: isoDate.optional().describe('data odniesienia (domyślnie dziś)') },
+      description: t.adapt,
+      inputSchema: { date: isoDate().optional().describe(t.adaptDate) },
     },
     async (args) => toTool(cmdAdapt(dir, args)),
   )
@@ -148,14 +131,10 @@ export function createTrenServer(
   server.registerTool(
     'tren_desk',
     {
-      description:
-        'Dzień przy biurku: okna treningowe wokół godzin pracy, przerwy w siedzeniu i reguła ' +
-        'prowadzenia sesji po dniu ciężkiej pracy umysłowej (wtedy tempo, nie odczucie). ' +
-        'Ustaw heavy=true, gdy dzień był kognitywnie ciężki (długie sesje z agentami). ' +
-        'Wymaga sekcji desk w tren.yaml.',
+      description: t.desk,
       inputSchema: {
-        date: isoDate.optional(),
-        heavy: z.boolean().optional().describe('ciężki dzień kognitywny'),
+        date: isoDate().optional(),
+        heavy: z.boolean().optional().describe(t.deskHeavy),
       },
     },
     async (args) => toTool(cmdDesk(dir, args)),
@@ -164,15 +143,10 @@ export function createTrenServer(
   server.registerTool(
     'tren_export',
     {
-      description:
-        'Zapisz plan do pliku: `plan` = cały plan jako treningi .fit na zegarek, ' +
-        '`workout` = jeden trening .fit (wymaga date), `calendar` = .ics do Google/Outlooka, ' +
-        '`print` = rozpiska HTML pod wydruk A4, `race` = pakiet startowy (splity + papierowa ' +
-        'opaska tempa; wymaga celu czasowego albo predykcji). Pliki lądują w katalogu export/. ' +
-        'Gdy użytkownik chce trening „na zegarek" bez kabla — rozważ najpierw tren_push.',
+      description: t.export,
       inputSchema: {
         what: z.enum(['plan', 'workout', 'calendar', 'print', 'race']),
-        date: isoDate.optional().describe('trening do eksportu przy what=workout'),
+        date: isoDate().optional().describe(t.exportDate),
       },
     },
     async (args) => toTool(cmdExport(dir, args)),
@@ -181,16 +155,11 @@ export function createTrenServer(
   server.registerTool(
     'tren_reschedule',
     {
-      description:
-        'Przestaw CAŁY tydzień wokół dni, w których użytkownik nie może trenować ' +
-        '(„w czwartek mam release", „wyjazd wt–śr"). Solver trzyma ≥48 h między akcentami, ' +
-        'chroni długie wybieganie i liczbę akcentów, a gdy brakuje dni — mówi, którą jednostkę ' +
-        'poświęca i dlaczego. Domyślnie tylko podgląd; apply=true zapisuje plan. ' +
-        'Do przesunięcia pojedynczego treningu użyj tren_shift.',
+      description: t.reschedule,
       inputSchema: {
-        block: z.array(isoDate).optional().describe('dni bez możliwości treningu'),
-        date: isoDate.optional().describe('data wskazująca tydzień (domyślnie bieżący)'),
-        apply: z.boolean().optional().describe('true = zapisz zmiany w planie'),
+        block: z.array(isoDate()).optional().describe(t.rescheduleBlock),
+        date: isoDate().optional().describe(t.rescheduleDate),
+        apply: z.boolean().optional().describe(t.rescheduleApply),
       },
     },
     async (args) => toTool(cmdReschedule(dir, args)),
@@ -199,14 +168,11 @@ export function createTrenServer(
   server.registerTool(
     'tren_push',
     {
-      description:
-        'Wypchnij zaplanowane treningi do intervals.icu — trafiają na zegarek (Garmin/Coros/Wahoo) ' +
-        'jako treningi strukturalne z celami tempa. Wymaga klucza API (env TREN_INTERVALS_API_KEY ' +
-        'albo plik .tren-secret). Ponowny push nadpisuje te same dni (upsert).',
+      description: t.push,
       inputSchema: {
-        from: isoDate.optional().describe('początek zakresu (domyślnie dziś)'),
-        to: isoDate.optional().describe('koniec zakresu'),
-        days: z.string().optional().describe('ile dni do przodu, domyślnie 14'),
+        from: isoDate().optional().describe(t.pushFrom),
+        to: isoDate().optional().describe(t.pushTo),
+        days: z.string().optional().describe(t.pushDays),
       },
     },
     async (args) => toTool(await cmdPush(dir, args, factory)),
@@ -215,10 +181,8 @@ export function createTrenServer(
   server.registerTool(
     'tren_pull',
     {
-      description:
-        'Pobierz wykonane aktywności i dane wellness z intervals.icu, zapisz migawkę (sync.json) ' +
-        'i porównaj wykonanie z planem (rozjazdy: krótsze/dłuższe/brak wykonania/nieplanowane).',
-      inputSchema: { days: z.string().optional().describe('ile dni wstecz, domyślnie 28') },
+      description: t.pull,
+      inputSchema: { days: z.string().optional().describe(t.pullDays) },
     },
     async (args) => toTool(await cmdPull(dir, args, factory)),
   )
@@ -226,16 +190,10 @@ export function createTrenServer(
   server.registerTool(
     'tren_review',
     {
-      description:
-        'Przegląd tygodnia w jednym wywołaniu: wykonanie minionych dni vs plan, sygnały ' +
-        'do korekty, nadchodzący tydzień (faza, objętość, kluczowa jednostka, starty/sprawdziany) ' +
-        'i lista konkretnych działań. Używaj TEGO zamiast wołania tren_pull + tren_adapt + ' +
-        'tren_week po kolei — np. gdy użytkownik pyta „jak mi poszło?" albo zaczyna tydzień. ' +
-        'Działa też bez klucza API (wtedy z dziennika i ostatniej migawki). ' +
-        'Niczego nie zmienia w planie.',
+      description: t.review,
       inputSchema: {
-        days: z.string().optional().describe('ile dni wstecz podsumować, domyślnie 7'),
-        date: isoDate.optional().describe('data odniesienia (domyślnie dziś)'),
+        days: z.string().optional().describe(t.reviewDays),
+        date: isoDate().optional().describe(t.reviewDate),
       },
     },
     async (args) => toTool(await cmdReview(dir, args, factory)),
@@ -244,9 +202,7 @@ export function createTrenServer(
   server.registerTool(
     'tren_diff',
     {
-      description:
-        'Dry-run: co zmieniłaby regeneracja planu z aktualnego tren.yaml (nowe wyniki, zmiana profilu). ' +
-        'Nic nie zapisuje.',
+      description: t.diff,
       inputSchema: {},
     },
     async () => toTool(cmdDiff(dir)),

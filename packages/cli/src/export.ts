@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { heatLadder, type PlannedDay, type Weekday } from '@tren/core'
+import { getLocale, heatLadder, messages, type PlannedDay } from '@tren/core'
 import {
   encodeWorkoutFit,
   fmtClock,
@@ -17,6 +17,7 @@ import {
   type RacePackInput,
   type RaceScenario,
 } from '@tren/export'
+import { ui } from './i18n/index.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 
 /**
@@ -31,45 +32,31 @@ function heatTableFor(
   const ladder = heatLadder(distanceKm, totalSec).filter((a) => a.timePenaltyPct > 0.05)
   if (ladder.length === 0) return undefined
   const first = ladder[0]!
+  const t = ui().exportCmd.heat
   return {
     // etykieta mówi wprost, KTÓRY scenariusz korygujemy — tabela dotyczy tylko opaski
-    header: ['temperatura', `scenariusz „${scenarioLabel}”`, 'tempo', 'strata'],
+    header: [
+      t.columns.temperature,
+      t.scenarioColumn(scenarioLabel),
+      t.columns.pace,
+      t.columns.loss,
+    ],
     rows: ladder.map((a) => [
       `${a.tempC} °C`,
       fmtClock(a.adjustedSec),
       fmtPace(a.adjustedPaceSecPerKm),
-      `+${a.paceDeltaSecPerKm} s/km`,
+      t.lossValue(a.paceDeltaSecPerKm),
     ]),
-    note:
-      `Korekta dotyczy scenariusza „${scenarioLabel}” (tego z opaski) — pozostałe kolumny ` +
-      `tabeli splitów są dla warunków optymalnych. Model: El Helou 2012 ` +
-      `(n=1,79 mln finiszerów maratonu), krzywa „${first.curveLabel}", ` +
-      `optimum ${first.tOptC} °C. To przesunięcie ŚREDNIEJ populacyjnej, nie prognoza dla Ciebie ` +
-      '(pogoda tłumaczy ~10–33% wariancji tempa). Powyżej 25 °C model milczy — brak danych. ' +
-      'Wilgotności, wiatru i słońca świadomie nie liczymy: w danych obserwacyjnych ich efekt ' +
-      'okazał się artefaktem korelacji z temperaturą.',
+    note: t.note(scenarioLabel, first.curveLabel, first.tOptC),
   }
 }
 
 export const EXPORT_DIR = 'export'
 
-const WEEKDAY_SHORT: Record<Weekday, string> = {
-  mon: 'PN', tue: 'WT', wed: 'ŚR', thu: 'CZ', fri: 'PT', sat: 'SB', sun: 'ND',
-}
-
-const KIND_LABEL: Record<string, string> = {
-  easy: 'Spokojne',
-  long: 'Długie wybieganie',
-  easy_hills: 'Podbiegi',
-  quality_intervals: 'Interwały',
-  quality_continuous: 'Akcent ciągły',
-  sharpener: 'Rozruch',
-  test: 'Sprawdzian',
-  race: 'START',
-}
-
-const PHASE_LABEL: Record<string, string> = {
-  base: 'baza', build: 'budowanie', peak: 'szczyt', taper: 'taper', race: 'tydzień startowy',
+/** Etykieta jednostki na plik/kalendarz — z katalogu domenowego, wielką literą. */
+const kindLabel = (kind: string): string => {
+  const label = (messages().kind as Record<string, string>)[kind] ?? kind
+  return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
 export type ExportWhat = 'plan' | 'workout' | 'print' | 'calendar' | 'race'
@@ -98,7 +85,7 @@ const safeName = (text: string): string =>
 
 function fitFor(plan: StoredPlan, day: PlannedDay, dir: string): ExportedFile | undefined {
   if (!day.workout || day.workout.kind === 'race') return undefined
-  const label = KIND_LABEL[day.workout.kind] ?? day.workout.kind
+  const label = kindLabel(day.workout.kind)
   const name = `${day.date} ${label}`
   const bytes = encodeWorkoutFit(day.workout, name, {
     createdAtSec: Math.floor(Date.parse(`${day.date}T06:00:00Z`) / 1000),
@@ -113,22 +100,19 @@ function fitFor(plan: StoredPlan, day: PlannedDay, dir: string): ExportedFile | 
 }
 
 export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
+  const t = ui().exportCmd
   const plan = loadPlan(cwd)
   const dir = req.outDir ?? join(cwd, EXPORT_DIR)
   mkdirSync(dir, { recursive: true })
   const files: ExportedFile[] = []
 
   if (req.what === 'workout') {
-    if (!req.date) throw new Error('Podaj datę treningu (--date).')
+    if (!req.date) throw new Error(t.needDate)
     const hit = findDay(plan, req.date)
-    if (!hit) throw new Error(`Data ${req.date} poza zakresem planu.`)
+    if (!hit) throw new Error(ui().log.outsidePlan(req.date))
     const file = fitFor(plan, hit.day, dir)
     if (!file) {
-      throw new Error(
-        hit.day.workout
-          ? 'To dzień startu — nie eksportujemy go jako treningu.'
-          : `${req.date} to dzień wolny — nie ma czego eksportować.`,
-      )
+      throw new Error(hit.day.workout ? t.raceDayNotWorkout : t.restDayNothing(req.date))
     }
     files.push(file)
     return files
@@ -141,7 +125,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
         if (file) files.push(file)
       }
     }
-    if (files.length === 0) throw new Error('Plan nie zawiera treningów do eksportu.')
+    if (files.length === 0) throw new Error(t.noWorkouts)
     return files
   }
 
@@ -153,11 +137,13 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
       .filter((d) => d.workout || d.strength)
       .map((day) => {
         const runLabel = day.workout
-          ? `${KIND_LABEL[day.workout.kind] ?? day.workout.kind}${
+          ? `${kindLabel(day.workout.kind)}${
               day.workout.distanceKm ? ` ${day.workout.distanceKm} km` : ''
             }`
           : undefined
-        const strengthLabel = day.strength ? `siła ~${day.strength.durationMin} min` : undefined
+        const strengthLabel = day.strength
+          ? ui().calendar.strengthSummary(day.strength.durationMin)
+          : undefined
         return {
           day,
           summary: [runLabel, strengthLabel].filter(Boolean).join(' + '),
@@ -179,39 +165,39 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
     files.push({
       path: file,
       bytes: Buffer.byteLength(ics),
-      description: `${entries.length} treningów w kalendarzu`,
+      description: t.calendarEntries(entries.length),
     })
     return files
   }
 
   if (req.what === 'race') {
-    const scenarios: RaceScenario[] = []
-    if (plan.goal.targetTimeSec) scenarios.push({ label: 'cel', totalSec: plan.goal.targetTimeSec })
+    // `key` jest stabilny między językami — po nim wybieramy scenariusz na opaskę;
+    // `label` idzie na wydruk i zmienia się z językiem.
+    const scenarios: (RaceScenario & { key: string })[] = []
+    if (plan.goal.targetTimeSec) {
+      scenarios.push({ key: 'goal', label: t.scenarioGoal, totalSec: plan.goal.targetTimeSec })
+    }
     if (plan.prediction) {
       scenarios.push(
-        { label: 'śmiało', totalSec: plan.prediction.loSec },
-        { label: 'ostrożnie', totalSec: plan.prediction.hiSec },
+        { key: 'bold', label: t.scenarioBold, totalSec: plan.prediction.loSec },
+        { key: 'safe', label: t.scenarioSafe, totalSec: plan.prediction.hiSec },
       )
     }
     if (scenarios.length === 0) {
-      throw new Error(
-        'Pakiet startowy potrzebuje celu czasowego (goal.targetTimeSec) albo predykcji ' +
-          '(wynik startu w athlete.results) — nie mam z czego policzyć splitów.',
-      )
+      throw new Error(t.needTargetOrPrediction)
     }
     scenarios.sort((a, b) => a.totalSec - b.totalSec)
     // Na opaskę: cel, jeśli jest; bez celu — wariant ostrożny. Pęknięcie w drugiej
     // połowie kosztuje więcej, niż zbyt zachowawcze otwarcie (W-1: przedział, nie punkt).
     const bandScenario = plan.goal.targetTimeSec
-      ? scenarios.findIndex((s) => s.label === 'cel')
+      ? scenarios.findIndex((s) => s.key === 'goal')
       : scenarios.length - 1
     const provenance = plan.prediction
-      ? `Przedział z predykcji (${plan.prediction.method}, W-1) z wyników w tren.yaml; ` +
-        `równe tempo = założenie rozpiski (inż., W-10). Wygenerowano ${plan.generatedAt}.`
-      : `Wyłącznie cel czasowy z tren.yaml — bez predykcji z wyniku startu (dodaj wynik ` +
-        `do athlete.results). Równe tempo = założenie rozpiski (inż.). Wygenerowano ${plan.generatedAt}.`
+      ? t.provenanceWithPrediction(plan.prediction.method, plan.generatedAt)
+      : t.provenanceGoalOnly(plan.generatedAt)
     const bandLabel = scenarios[bandScenario]!.label
     const heatTable = heatTableFor(plan.goal.distanceKm, scenarios[bandScenario]!.totalSec, bandLabel)
+    const rp = ui().racePack
     const html = toRacePackHtml({
       raceName: plan.goal.name,
       raceDate: plan.goal.date,
@@ -220,48 +206,51 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
       bandScenario,
       provenance,
       ...(heatTable ? { heatTable } : {}),
+      labels: { lang: getLocale(), ...rp },
     })
-    const file = join(dir, `${safeName(plan.goal.name)}-pakiet-startowy.html`)
+    const file = join(dir, `${safeName(plan.goal.name)}-${safeName(t.fileRacePack)}.html`)
     writeFileSync(file, html, 'utf-8')
     files.push({
       path: file,
       bytes: Buffer.byteLength(html),
-      description: `splity + opaska tempa (${scenarios.map((s) => s.label).join('/')})`,
+      description: t.splitsAndBand(scenarios.map((s) => s.label).join('/')),
     })
     return files
   }
 
   // rozpiska do wydruku
+  const core = messages()
+  const p = ui().print
   const weeks: PrintWeek[] = plan.weeks.map((w) => ({
     index: w.skeleton.index,
     weekStart: w.weekStart,
-    phase: PHASE_LABEL[w.skeleton.phase] ?? w.skeleton.phase,
+    phase: core.phase[w.skeleton.phase] ?? w.skeleton.phase,
     targetKm: w.skeleton.targetKm,
     totalKm: w.totalKm,
     deload: w.skeleton.deload,
     days: w.days.map((d) => ({
-      weekday: WEEKDAY_SHORT[d.weekday],
+      weekday: core.weekdayShort[d.weekday],
       date: d.date.slice(5).replace('-', '.'),
       km: d.workout?.distanceKm ? `${d.workout.distanceKm} km` : '',
+      rest: !d.workout,
       text:
-        (d.workout ? workoutText(d) : '—') +
-        (d.strength ? ` [+ siła ~${d.strength.durationMin} min]` : ''),
+        (d.workout ? workoutText(d) : p.rest) +
+        (d.strength ? ` ${p.strengthTag(d.strength.durationMin)}` : ''),
     })),
   }))
   const html = toPrintableHtml({
     title: `${plan.goal.name} — ${plan.goal.date}`,
-    subtitle:
-      `Plan ${plan.weeks.length}-tygodniowy · szczyt ${plan.peakKmPlanned} km/tydz. · ` +
-      `VDOT ${plan.vdot} · wygenerowano ${plan.generatedAt}`,
+    subtitle: p.subtitle(plan.weeks.length, plan.peakKmPlanned, plan.vdot, plan.generatedAt),
     weeks,
-    footer: 'Wygenerowane przez tren. Uzasadnienia jednostek: tren why --date <data>.',
+    footer: p.footer,
+    labels: { lang: getLocale(), ...p },
   })
-  const file = join(dir, `${safeName(plan.goal.name)}-rozpiska.html`)
+  const file = join(dir, `${safeName(plan.goal.name)}-${safeName(t.filePrintout)}.html`)
   writeFileSync(file, html, 'utf-8')
   files.push({
     path: file,
     bytes: Buffer.byteLength(html),
-    description: `rozpiska ${plan.weeks.length} tygodni do wydruku`,
+    description: t.printedWeeks(plan.weeks.length),
   })
   return files
 }

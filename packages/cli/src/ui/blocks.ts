@@ -4,6 +4,7 @@
  * czysty tekst (MCP/pipe). Dzięki temu agent nigdy nie dostaje kodów ANSI,
  * a wygląd CLI można zmieniać bez dotykania logiki.
  */
+import { ui } from '../i18n/index.ts'
 import { Theme, padVisible, visibleLength, type ColorName } from './theme.ts'
 
 export type Block =
@@ -191,7 +192,10 @@ export function renderPlain(blocks: Block[]): string {
         for (const row of block.rows) out.push(row.filter(Boolean).join(' | '))
         break
       case 'note': {
-        const prefix = { warn: '!', success: 'OK', error: 'BŁĄD', info: '' }[block.kind]
+        const c = ui().common
+        const prefix = { warn: c.labelWarn, success: c.labelOk, error: c.labelError, info: '' }[
+          block.kind
+        ]
         out.push(prefix ? `${prefix} ${block.text}` : block.text)
         break
       }

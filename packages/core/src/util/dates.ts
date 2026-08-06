@@ -1,8 +1,9 @@
 /** Daty ISO 'YYYY-MM-DD' liczone w UTC — plan żyje w kalendarzu, nie w strefach. */
+import { messages } from '../i18n/index.ts'
 
 export function parseIso(iso: string): Date {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  if (!m) throw new Error(`Nieprawidłowa data ISO: ${iso}`)
+  if (!m) throw new Error(messages().dates.invalidIso(iso))
   return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
 }
 

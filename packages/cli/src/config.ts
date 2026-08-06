@@ -2,7 +2,9 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse } from 'yaml'
+import { DEFAULT_LOCALE, getLocale } from '@tren/core'
 import type { AthleteProfile, InferredProfile, RaceGoal, Weekday } from '@tren/core'
+import { ui } from './i18n/index.ts'
 
 export const CONFIG_FILE = 'tren.yaml'
 
@@ -47,105 +49,130 @@ export function readConfigLanguage(cwd: string): string | undefined {
   }
 }
 
-export const CONFIG_TEMPLATE = `# tren — profil atlety i cel treningowy.
-# Uzupełnij i uruchom: tren plan
-# language: pl             # język interfejsu i opisów planu (domyślnie: en)
-athlete:
-  sex: unspecified          # male | female | unspecified
-  recentWeeklyKm: 45        # średnia z ostatnich ~4 tygodni
-  peakWeeklyKm: 65          # historycznie utrzymywalne maksimum (opcjonalne)
-  daysAvailable: [tue, wed, thu, sat, sun]
-  longRunDay: sat
-  results:                  # wyniki startów do kalibracji stref (Z-6: nie z zegarka!)
-    - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "przykładowa dycha" }
-  tuneUpRaces:              # starty kontrolne w drodze do celu (B = mini-taper, C = wbiegany)
-    []                      # - { date: "2026-09-19", distanceKm: 10, name: "Bieg jesienny", priority: B }
-goal:
-  name: "Półmaraton"
-  date: "2026-11-29"
-  distanceKm: 21.0975
-  priority: A
-  # targetTimeSec: 5700     # opcjonalny cel czasowy — tren plan oceni realność
-desk:                       # tryb biurkowy (tren desk) — opcjonalny
-  workStart: "09:00"
-  workEnd: "17:00"
-  lunchMinutes: 45
-  prefer: evening           # morning | lunch | evening
-# strength:                 # siła 2×/tydz. obok biegania (opt-in; wymaga ciężarów)
-#   enabled: true           # cel: ekonomia biegu (F-8) — NIE "ochrona przed urazami" (F-9)
-#   days: [mon, fri]        # opcjonalnie: preferowane dni
-`
+/**
+ * Komentarz YAML dorównany do kolumny — szablon ma się czytać jak tabela.
+ * Spacja przed `#` jest DOKLEJONA, nie wyrównana: dłuższa linia kodu zjadłaby
+ * dopełnienie i dała `[tue, thu]# …`, czego parser YAML nie przyjmuje.
+ */
+const pad = (code: string, comment: string): string =>
+  comment ? `${code.padEnd(25)} # ${comment}` : code
+
+/**
+ * Szablon tren.yaml w bieżącym języku. Wiersz `language:` jest ODKOMENTOWANY,
+ * gdy pracujemy w języku innym niż domyślny — dzięki temu `tren init --lang pl`
+ * zostawia katalog, który przy następnym uruchomieniu nadal mówi po polsku.
+ */
+export function configTemplate(): string {
+  const t = ui().configFile
+  const locale = getLocale()
+  const languageLine =
+    locale === DEFAULT_LOCALE
+      ? pad(`# language: pl`, t.templateLanguage)
+      : pad(`language: ${locale}`, t.templateLanguage)
+  return [
+    ...t.templateHeader,
+    languageLine,
+    'athlete:',
+    pad('  sex: unspecified', t.templateAthlete.sex),
+    pad('  recentWeeklyKm: 45', t.templateAthlete.recentWeeklyKm),
+    pad('  peakWeeklyKm: 65', t.templateAthlete.peakWeeklyKm),
+    '  daysAvailable: [tue, wed, thu, sat, sun]',
+    '  longRunDay: sat',
+    pad('  results:', t.templateAthlete.results),
+    `    - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "${t.templateAthlete.exampleResultName}" }`,
+    pad('  tuneUpRaces:', t.templateAthlete.tuneUpRaces),
+    `    []                    # - { date: "2026-09-19", distanceKm: 10, name: "${t.templateAthlete.tuneUpExampleName}", priority: B }`,
+    'goal:',
+    `  name: "${t.templateGoal.name}"`,
+    '  date: "2026-11-29"',
+    '  distanceKm: 21.0975',
+    '  priority: A',
+    pad('  # targetTimeSec: 5700', t.templateGoal.targetTime),
+    pad('desk:', t.templateDesk),
+    '  workStart: "09:00"',
+    '  workEnd: "17:00"',
+    '  lunchMinutes: 45',
+    pad('  prefer: evening', t.templateDeskPrefer),
+    pad('# strength:', t.templateStrength.section),
+    pad('#   enabled: true', t.templateStrength.enabled),
+    pad('#   days: [mon, fri]', t.templateStrength.days),
+    '',
+  ].join('\n')
+}
 
 const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
 
 export function loadConfig(cwd: string): TrenConfig {
   const path = join(cwd, CONFIG_FILE)
+  const t = ui()
+  const v = t.configFile.validate
+  const fail = (errs: string[]): never => {
+    throw new Error(t.common.configErrors(CONFIG_FILE, errs.join('\n  - ')))
+  }
   if (!existsSync(path)) {
-    throw new Error(`Brak ${CONFIG_FILE} — uruchom najpierw: tren init`)
+    throw new Error(t.common.missingConfig(CONFIG_FILE))
   }
   const raw = parse(readFileSync(path, 'utf-8')) as Partial<TrenConfig> | null
   const errors: string[] = []
   const a = raw?.athlete
   const g = raw?.goal
 
-  if (!a) errors.push('athlete: brak sekcji')
+  if (!a) errors.push(v.missingSection('athlete'))
   else {
     if (typeof a.recentWeeklyKm !== 'number' || a.recentWeeklyKm <= 0)
-      errors.push('athlete.recentWeeklyKm: wymagana liczba > 0')
+      errors.push(v.numberGtZero('athlete.recentWeeklyKm'))
     if (!Array.isArray(a.daysAvailable) || a.daysAvailable.length === 0)
-      errors.push('athlete.daysAvailable: wymagana niepusta lista dni')
+      errors.push(v.nonEmptyDays('athlete.daysAvailable'))
     else
       for (const d of a.daysAvailable)
-        if (!WEEKDAYS.includes(d)) errors.push(`athlete.daysAvailable: nieznany dzień "${d}"`)
-    if (!Array.isArray(a.results)) errors.push('athlete.results: wymagana lista (może być pusta)')
+        if (!WEEKDAYS.includes(d)) errors.push(v.unknownDay('athlete.daysAvailable', String(d)))
+    if (!Array.isArray(a.results)) errors.push(v.listOptional('athlete.results'))
     else
       a.results.forEach((r, i) => {
-        if (!ISO_RE.test(String(r?.date))) errors.push(`athlete.results[${i}].date: format YYYY-MM-DD`)
+        if (!ISO_RE.test(String(r?.date))) errors.push(v.isoDate(`athlete.results[${i}].date`))
         if (typeof r?.distanceKm !== 'number' || r.distanceKm <= 0)
-          errors.push(`athlete.results[${i}].distanceKm: liczba > 0`)
+          errors.push(v.numberGtZero(`athlete.results[${i}].distanceKm`))
         if (typeof r?.timeSec !== 'number' || r.timeSec <= 0)
-          errors.push(`athlete.results[${i}].timeSec: liczba sekund > 0`)
+          errors.push(v.seconds(`athlete.results[${i}].timeSec`))
       })
     if (a.tuneUpRaces !== undefined) {
-      if (!Array.isArray(a.tuneUpRaces)) errors.push('athlete.tuneUpRaces: wymagana lista')
+      if (!Array.isArray(a.tuneUpRaces)) errors.push(v.listRequired('athlete.tuneUpRaces'))
       else
         a.tuneUpRaces.forEach((r, i) => {
           if (!ISO_RE.test(String(r?.date)))
-            errors.push(`athlete.tuneUpRaces[${i}].date: format YYYY-MM-DD`)
+            errors.push(v.isoDate(`athlete.tuneUpRaces[${i}].date`))
           if (typeof r?.distanceKm !== 'number' || r.distanceKm <= 0)
-            errors.push(`athlete.tuneUpRaces[${i}].distanceKm: liczba > 0`)
+            errors.push(v.numberGtZero(`athlete.tuneUpRaces[${i}].distanceKm`))
           if (r?.priority !== undefined && !['B', 'C'].includes(String(r.priority)))
-            errors.push(`athlete.tuneUpRaces[${i}].priority: B albo C (A to cel w sekcji goal)`)
+            errors.push(v.priorityBc(`athlete.tuneUpRaces[${i}].priority`))
         })
     }
   }
-  if (!g) errors.push('goal: brak sekcji')
+  if (!g) errors.push(v.missingSection('goal'))
   else {
-    if (!g.name) errors.push('goal.name: wymagane')
-    if (!ISO_RE.test(String(g.date))) errors.push('goal.date: format YYYY-MM-DD')
+    if (!g.name) errors.push(v.required('goal.name'))
+    if (!ISO_RE.test(String(g.date))) errors.push(v.isoDate('goal.date'))
     if (typeof g.distanceKm !== 'number' || g.distanceKm <= 0)
-      errors.push('goal.distanceKm: liczba > 0')
+      errors.push(v.numberGtZero('goal.distanceKm'))
   }
-  if (errors.length) {
-    throw new Error(`Błędy w ${CONFIG_FILE}:\n  - ${errors.join('\n  - ')}`)
-  }
+  if (errors.length) fail(errors)
   const goal = g as RaceGoal
   const desk = raw?.desk
   if (desk && !(/^\d{1,2}:\d{2}$/.test(String(desk.workStart)) && /^\d{1,2}:\d{2}$/.test(String(desk.workEnd)))) {
-    throw new Error(`Błędy w ${CONFIG_FILE}:\n  - desk.workStart/workEnd: format HH:MM`)
+    fail([v.hourFormat('desk.workStart/workEnd')])
   }
   const strength = raw?.strength
   if (strength) {
     const errs: string[] = []
-    if (typeof strength.enabled !== 'boolean') errs.push('strength.enabled: true albo false')
+    if (typeof strength.enabled !== 'boolean') errs.push(v.boolean('strength.enabled'))
     if (strength.days !== undefined) {
-      if (!Array.isArray(strength.days)) errs.push('strength.days: lista dni')
+      if (!Array.isArray(strength.days)) errs.push(v.listRequired('strength.days'))
       else
         for (const d of strength.days)
-          if (!WEEKDAYS.includes(d)) errs.push(`strength.days: nieznany dzień "${d}"`)
+          if (!WEEKDAYS.includes(d)) errs.push(v.unknownDay('strength.days', String(d)))
     }
-    if (errs.length) throw new Error(`Błędy w ${CONFIG_FILE}:\n  - ${errs.join('\n  - ')}`)
+    if (errs.length) fail(errs)
   }
   const athlete = a as AthleteProfile
   return {
@@ -168,23 +195,25 @@ export function loadConfig(cwd: string): TrenConfig {
  * nie przepuści pliku, dopóki użytkownik nie wpisze prawdziwego celu.
  */
 export function inferredConfigYaml(p: InferredProfile): string {
+  const t = ui().configFile
+  const locale = getLocale()
+  const datePlaceholder = ui().wizard.hintDate
   return [
-    '# tren — profil atlety i cel treningowy.',
-    `# Profil zaproponowany z historii intervals.icu (pełne tygodnie ${p.window.oldest} → ${p.window.newest}).`,
-    '# To propozycje — popraw wszystko, co nie zgadza się z rzeczywistością.',
+    ...t.inferredHeader(p.window.oldest, p.window.newest),
+    ...(locale === DEFAULT_LOCALE ? [] : [`language: ${locale}`]),
     'athlete:',
-    `  recentWeeklyKm: ${p.recentWeeklyKm}  # ${p.recentBasis}`,
+    pad(`  recentWeeklyKm: ${p.recentWeeklyKm}`, p.recentBasis),
     ...(p.peakWeeklyKm !== undefined
-      ? [`  peakWeeklyKm: ${p.peakWeeklyKm}    # najwyższy pełny tydzień okna`]
+      ? [pad(`  peakWeeklyKm: ${p.peakWeeklyKm}`, t.inferredPeak)]
       : []),
-    `  daysAvailable: [${p.daysAvailable.join(', ')}]  # dni z ≥10% biegów okna`,
-    ...(p.longRunDay ? [`  longRunDay: ${p.longRunDay}       # dominujący dzień najdłuższych biegów`] : []),
-    '  results:            # dopisz wynik startu po potwierdzeniu kandydatów z wyjścia komendy',
-    '    []                # (strefy kalibrujemy z wyników startów, nie z odczytów zegarka — Z-6)',
-    'goal:                 # UZUPEŁNIJ — bez celu `tren plan` odmówi (celowo)',
-    '  name: "Bieg docelowy"',
-    '  date: "RRRR-MM-DD"  # data startu',
-    '  distanceKm: 0       # 5 / 10 / 21.0975 / 42.195',
+    pad(`  daysAvailable: [${p.daysAvailable.join(', ')}]`, t.inferredDays),
+    ...(p.longRunDay ? [pad(`  longRunDay: ${p.longRunDay}`, t.inferredLongRun)] : []),
+    pad('  results:', t.inferredResults),
+    pad('    []', t.inferredResultsWhy),
+    pad('goal:', t.inferredGoal),
+    `  name: "${t.inferredGoalName}"`,
+    pad(`  date: "${datePlaceholder}"`, t.inferredGoalDate),
+    pad('  distanceKm: 0', '5 / 10 / 21.0975 / 42.195'),
     '  priority: A',
     '',
   ].join('\n')
@@ -193,7 +222,7 @@ export function inferredConfigYaml(p: InferredProfile): string {
 export function writeConfigTemplate(cwd: string, content?: string): void {
   const path = join(cwd, CONFIG_FILE)
   if (existsSync(path)) {
-    throw new Error(`${CONFIG_FILE} już istnieje — edytuj go albo usuń przed ponownym init.`)
+    throw new Error(ui().init.exists(CONFIG_FILE))
   }
-  writeFileSync(path, content ?? CONFIG_TEMPLATE, 'utf-8')
+  writeFileSync(path, content ?? configTemplate(), 'utf-8')
 }

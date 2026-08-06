@@ -13,6 +13,7 @@
  * — trzymamy się formy pewnej, żeby nie wygenerować treningu, którego serwis
  * nie sparsuje.
  */
+import { messages } from '@tren/core'
 import type { PaceRange, PlannedDay, PlannedSegment, PushableWorkout } from '@tren/core'
 
 /** s/km → `M:SS/km Pace`. */
@@ -121,16 +122,9 @@ export function toWorkoutSyntax(segments: PlannedSegment[]): string {
   return out.join('\n')
 }
 
-const KIND_NAME: Record<string, string> = {
-  easy: 'Spokojne',
-  long: 'Długie wybieganie',
-  easy_hills: 'Podbiegi',
-  quality_intervals: 'Interwały',
-  quality_continuous: 'Akcent ciągły',
-  sharpener: 'Rozruch przedstartowy',
-  test: 'Sprawdzian na czas',
-  race: 'START',
-}
+/** Tytuł treningu w kalendarzu intervals.icu — w języku katalogu treningowego. */
+const kindName = (kind: string): string =>
+  (messages().syncName as Record<string, string>)[kind] ?? kind
 
 /** Dzień planu → event do wypchnięcia. Dni wolne i starty pomijamy (undefined). */
 export function toPushableWorkout(day: PlannedDay, goalName: string): PushableWorkout | undefined {
@@ -141,7 +135,7 @@ export function toPushableWorkout(day: PlannedDay, goalName: string): PushableWo
   return {
     externalId: `tren-${day.date}`,
     date: day.date,
-    name: `${KIND_NAME[w.kind] ?? w.kind} — ${goalName}`,
+    name: `${kindName(w.kind)} — ${goalName}`,
     description,
     sport: 'run',
     distanceKm: w.distanceKm,

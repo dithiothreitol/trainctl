@@ -11,7 +11,18 @@ export interface PrintWeek {
   targetKm: number
   totalKm: number
   deload: boolean
-  days: { weekday: string; date: string; km: string; text: string }[]
+  /** `rest` przychodzi z planu, nie z porównania tekstu — inaczej wyszarzenie
+   *  dnia wolnego działałoby tylko w języku, w którym napisano myślnik. */
+  days: { weekday: string; date: string; km: string; text: string; rest: boolean }[]
+}
+
+/** Napisy wydruku — renderer nie zna katalogu, dostaje je gotowe (jak w racepack.ts). */
+export interface PrintLabels {
+  lang: string
+  columns: { day: string; date: string; km: string; workout: string; done: string }
+  weekTitle: (index: number) => string
+  weekMeta: (weekStart: string, phase: string, km: number) => string
+  deload: string
 }
 
 export interface PrintOptions {
@@ -19,6 +30,7 @@ export interface PrintOptions {
   subtitle: string
   weeks: PrintWeek[]
   footer?: string
+  labels: PrintLabels
 }
 
 const escapeHtml = (text: string): string =>
@@ -27,10 +39,11 @@ const escapeHtml = (text: string): string =>
   )
 
 export function toPrintableHtml(opts: PrintOptions): string {
+  const L = opts.labels
   const rows = (week: PrintWeek) =>
     week.days
       .map(
-        (d) => `      <tr${d.text === '—' ? ' class="rest"' : ''}>
+        (d) => `      <tr${d.rest ? ' class="rest"' : ''}>
         <td class="day">${escapeHtml(d.weekday)}</td>
         <td class="date">${escapeHtml(d.date)}</td>
         <td class="km">${escapeHtml(d.km)}</td>
@@ -43,12 +56,14 @@ export function toPrintableHtml(opts: PrintOptions): string {
   const weeks = opts.weeks
     .map(
       (w) => `  <section class="week">
-    <h2>Tydzień ${w.index + 1} <span class="meta">od ${escapeHtml(w.weekStart)} · ${escapeHtml(w.phase)}${
-      w.deload ? ' · odciążenie' : ''
-    } · ${w.totalKm} km</span></h2>
+    <h2>${escapeHtml(L.weekTitle(w.index + 1))} <span class="meta">${escapeHtml(
+      L.weekMeta(w.weekStart, w.phase, w.totalKm),
+    )}${w.deload ? ` · ${escapeHtml(L.deload)}` : ''}</span></h2>
     <table>
       <thead>
-        <tr><th>Dzień</th><th>Data</th><th>Km</th><th>Trening</th><th>✓</th></tr>
+        <tr><th>${escapeHtml(L.columns.day)}</th><th>${escapeHtml(L.columns.date)}</th><th>${escapeHtml(
+          L.columns.km,
+        )}</th><th>${escapeHtml(L.columns.workout)}</th><th>${escapeHtml(L.columns.done)}</th></tr>
       </thead>
       <tbody>
 ${rows(w)}
@@ -59,7 +74,7 @@ ${rows(w)}
     .join('\n')
 
   return `<!doctype html>
-<html lang="pl">
+<html lang="${escapeHtml(L.lang)}">
 <head>
 <meta charset="utf-8">
 <title>${escapeHtml(opts.title)}</title>

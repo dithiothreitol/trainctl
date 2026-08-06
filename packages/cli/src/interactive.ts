@@ -4,17 +4,14 @@
  * w funkcjach `*Choices` — pętla wejścia jest cienka i wymaga TTY.
  */
 import { emitKeypressEvents } from 'node:readline'
-import type { Microcycle, PlannedDay, Weekday } from '@tren/core'
+import { messages, type Microcycle, type PlannedDay } from '@tren/core'
 import { cmdShift, cmdWeek } from './commands.ts'
+import { ui } from './i18n/index.ts'
 import { loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 import { renderAnsi } from './ui/blocks.ts'
 import { clampIndex, keyAction, type KeyEvent } from './ui/keys.ts'
 import { canPrompt, select, type Choice } from './ui/select.ts'
 import { Theme } from './ui/theme.ts'
-
-const WEEKDAY_SHORT: Record<Weekday, string> = {
-  mon: 'PN', tue: 'WT', wed: 'ŚR', thu: 'CZ', fri: 'PT', sat: 'SB', sun: 'ND',
-}
 
 /** Pozycje listy dla dni tygodnia; dzień startu jest zablokowany (nie ruszamy go). */
 export function dayChoices(week: Microcycle, exclude?: string): Choice<string>[] {
@@ -22,12 +19,14 @@ export function dayChoices(week: Microcycle, exclude?: string): Choice<string>[]
     .filter((d) => d.date !== exclude)
     .map((day: PlannedDay) => {
       const isRace = day.workout?.kind === 'race'
-      const label = `${WEEKDAY_SHORT[day.weekday]} ${day.date.slice(5)}`
-      const what = day.workout ? `${day.workout.distanceKm} km · ${workoutText(day)}` : 'wolne'
+      const label = `${messages().weekdayShort[day.weekday]} ${day.date.slice(5)}`
+      const what = day.workout
+        ? `${day.workout.distanceKm} km · ${workoutText(day)}`
+        : ui().week.rest
       return {
         label,
         value: day.date,
-        hint: isRace ? 'START — nie do przesunięcia' : truncate(what, 60),
+        hint: isRace ? ui().picker.raceLocked : truncate(what, 60),
         ...(isRace ? { disabled: true } : {}),
       }
     })
@@ -54,12 +53,7 @@ export async function runShiftPicker(
   theme = new Theme(),
 ): Promise<InteractiveResult> {
   if (!canPrompt()) {
-    return {
-      code: 1,
-      output:
-        'Tryb interaktywny wymaga terminala. Podaj daty wprost:\n' +
-        '  tren shift --from 2026-08-04 --to 2026-08-05',
-    }
+    return { code: 1, output: ui().picker.shiftNeedsTerminal }
   }
   let plan: StoredPlan
   try {
@@ -68,16 +62,16 @@ export async function runShiftPicker(
     return { code: 1, output: e instanceof Error ? e.message : String(e) }
   }
   const week = plan.weeks[weekOf(plan, today)]
-  if (!week) return { code: 1, output: 'Nie znalazłem tygodnia dla dzisiejszej daty.' }
+  if (!week) return { code: 1, output: ui().picker.noWeekForToday }
 
   console.log(renderAnsi(cmdWeek(cwd, { date: week.weekStart }).blocks ?? [], theme))
   console.log()
 
-  const from = await select('Który trening przesunąć?', dayChoices(week), theme)
-  if (!from) return { code: 0, output: theme.dim('anulowano') }
+  const from = await select(ui().picker.whatToMove, dayChoices(week), theme)
+  if (!from) return { code: 0, output: theme.dim(ui().common.cancelled) }
 
-  const to = await select('Na który dzień?', dayChoices(week, from), theme)
-  if (!to) return { code: 0, output: theme.dim('anulowano') }
+  const to = await select(ui().picker.whichDay, dayChoices(week, from), theme)
+  if (!to) return { code: 0, output: theme.dim(ui().common.cancelled) }
 
   const result = cmdShift(cwd, { from, to })
   return {
@@ -95,14 +89,15 @@ export async function runExportPicker(
   today: string,
   theme = new Theme(),
 ): Promise<{ what: string; date?: string } | undefined> {
+  const p = ui().picker
   const what = await select<string>(
-    'Co wyeksportować?',
+    p.exportWhat,
     [
-      { label: 'Rozpiska do wydruku', value: 'print', hint: 'HTML pod A4 — Ctrl+P' },
-      { label: 'Pakiet startowy', value: 'race', hint: 'splity + opaska tempa do wycięcia' },
-      { label: 'Cały plan na zegarek', value: 'plan', hint: 'pliki .fit dla każdego treningu' },
-      { label: 'Jeden trening na zegarek', value: 'workout', hint: 'pojedynczy .fit' },
-      { label: 'Kalendarz', value: 'calendar', hint: '.ics do Google/Outlooka' },
+      { label: p.exportPrint, value: 'print', hint: p.exportPrintHint },
+      { label: p.exportRace, value: 'race', hint: p.exportRaceHint },
+      { label: p.exportPlan, value: 'plan', hint: p.exportPlanHint },
+      { label: p.exportWorkout, value: 'workout', hint: p.exportWorkoutHint },
+      { label: p.exportCalendar, value: 'calendar', hint: p.exportCalendarHint },
     ],
     theme,
   )
@@ -117,8 +112,11 @@ export async function runExportPicker(
   }
   const week = plan.weeks[weekOf(plan, today)]
   if (!week) return { what }
-  const choices = dayChoices(week).filter((c) => c.hint !== 'wolne')
-  const date = await select('Który trening?', choices, theme)
+  // filtrujemy po PLANIE, nie po treści podpowiedzi — porównanie z napisem
+  // „wolne" działało tylko po polsku
+  const withWorkout = new Set(week.days.filter((d) => d.workout).map((d) => d.date))
+  const choices = dayChoices(week).filter((c) => withWorkout.has(c.value))
+  const date = await select(p.whichWorkout, choices, theme)
   return date ? { what, date } : undefined
 }
 
@@ -128,7 +126,7 @@ export async function runWeekBrowser(
   today: string,
   theme = new Theme(),
 ): Promise<InteractiveResult> {
-  if (!canPrompt()) return { code: 1, output: 'Tryb interaktywny wymaga terminala (użyj: tren week).' }
+  if (!canPrompt()) return { code: 1, output: ui().common.needsTerminal('tren week') }
   let plan: StoredPlan
   try {
     plan = loadPlan(cwd)
@@ -146,10 +144,7 @@ export async function runWeekBrowser(
   stdin.resume()
 
   const footer = () =>
-    theme.dim(
-      `  ←/→ tydzień · t dziś · s przesuń trening · q wyjście` +
-        `   [${index + 1}/${plan.weeks.length}]`,
-    )
+    theme.dim(`  ${ui().picker.weekKeys}   [${index + 1}/${plan.weeks.length}]`)
 
   const draw = () => {
     stdout.write('[2J[H') // czyść ekran i wróć na górę
@@ -190,9 +185,9 @@ export async function runWeekBrowser(
           if (stdin.isTTY) stdin.setRawMode(wasRaw)
           const week = plan.weeks[index]!
           stdout.write('[2J[H')
-          const from = await select('Który trening przesunąć?', dayChoices(week), theme)
+          const from = await select(ui().picker.whatToMove, dayChoices(week), theme)
           const to = from
-            ? await select('Na który dzień?', dayChoices(week, from), theme)
+            ? await select(ui().picker.whichDay, dayChoices(week, from), theme)
             : undefined
           if (from && to) {
             const res = cmdShift(cwd, { from, to })
@@ -208,7 +203,7 @@ export async function runWeekBrowser(
           break
         }
         case 'cancel':
-          finish(theme.dim('zamknięto podgląd'))
+          finish(theme.dim(ui().picker.previewClosed))
           break
       }
     }

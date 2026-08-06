@@ -186,10 +186,10 @@ czystym zamknięciem sesji.
 | **9** | Pakiet startowy: splity, papierowa opaska tempa, korekta na temperaturę | ✅ KOMPLET (2026-08-06): `export/racepack.ts` (splity dla 2–3 scenariuszy z predykcji W-1 + opaska do wycięcia na nadgarstek) i `core/zones/heat.ts` — model kwadratowy El Helou 2012 (**n=1,79 mln**) z krzywymi per poziom biegacza (H-1…H-8). Odmowa liczby powyżej 25 °C zamiast ekstrapolacji; rozróżnienie straty prędkości od kary czasowej (H-4); świadomy brak członów wilgotności/wiatru/słońca (N-27, N-28). `tren export --what race` |
 | **10** | Siła 2×/tydz. obok biegania | ✅ KOMPLET (2026-08-06): `core/engine/strength.ts` — **opt-in** (`strength:` w tren.yaml), osobny tor obok `PlannedDay.workout` (siła nie wnosi km, nie idzie na zegarek, nie podlega solverowi biegowemu). Reguły F-1…F-4, F-13 (taper = zero siły), S-5 (nie <24 h przed akcentem; dzień przed **długim** wolno — bieg submaksymalny 24 h po sile nie cierpi). **Uczciwość w `why`**: uzasadnienie to ekonomia biegu (F-8), NIE prewencja urazów (F-9), z przyznaniem, że u 34–45 lat efekt jest nieistotny (F-15), a dowody kończą się na 1,5–10 km w laboratorium (F-17) |
 | **11** | Przygotowanie do publikacji (bez publikowania) | ✅ KOMPLET (2026-08-06): LICENSE (MIT), `license`/`description` we wszystkich pakietach, `engines: >=22.18` (próg natywnego type-strippingu), [docs/PUBLISHING.md](docs/PUBLISHING.md) z decyzjami dla właściciela. Historia gita zweryfikowana: **zero plików korpusu w jakimkolwiek commicie**. Nazwa `tren` na npm **zajęta**; wolne: `tren-cli`, `trencoach` |
-| **12** | Wielojęzyczność: angielski domyślny, polski jako dodatkowy | **W TOKU** — patrz niżej |
+| **12** | Wielojęzyczność: angielski domyślny, polski jako dodatkowy | ✅ KOMPLET (2026-08-06) — patrz niżej |
 | dalej | **Sezon na sobie** (weryfikacja w boju), zegarek fizyczny, REST API, kolejne sporty | bez decyzji użytkownika nie zaczynać |
 
-### Faza 12 — stan wielojęzyczności (2026-08-06)
+### Faza 12 — wielojęzyczność (2026-08-06)
 
 **Mechanizm gotowy i przetestowany.** `core/src/i18n/`: `resolveLocale`
 (flaga `--lang` > `TREN_LANG` > `language:` w tren.yaml > `en`), `pluralPl`
@@ -202,19 +202,46 @@ trenera z korpusu („przerwy 2 minutowe w marszu"), angielski idiom biegowy
 
 | Warstwa | Stan |
 |---|---|
-| `@tren/core` — cały silnik, diagnozy, reguły | ✅ przepięte |
-| `cli/commands.ts` — wszystkie handlery komend | ✅ przepięte |
-| `cli/bin.ts` — komendy, flagi, `--help` | ✅ przepięte |
-| wybór języka + dziedziczenie przez MCP | ✅ działa (test na prawdziwej binarce) |
-| `cli/export.ts`, `planfile.ts` (PLAN.md), `interactive.ts`, `config.ts`, `agents-md.ts`, `ui/wizard.ts` | ⏳ zostały polskie literały (~130) |
-| `rules-explain.ts` — objaśnienia reguł | ⏳ 35 wpisów merytorycznych do przetłumaczenia |
-| `mcp/server.ts` — opisy narzędzi dla agenta | ⏳ 51 stringów |
+| `@tren/core` — silnik, diagnozy, reguły, opisy jednostek | ✅ |
+| `cli/commands.ts`, `bin.ts` — handlery, komendy, flagi, `--help` | ✅ |
+| `planfile.ts` — **plan/PLAN.md**, dokument, który czyta biegacz | ✅ |
+| `config.ts` — szablon `tren.yaml` i komunikaty walidacji | ✅ |
+| `agents-md.ts` — **AGENTS.md**, persona trenera dla agenta | ✅ |
+| `rules-explain.ts` — 29 objaśnień reguł + 8 celów jednostek | ✅ |
+| `mcp/server.ts` — opisy narzędzi i parametrów dla agenta | ✅ |
+| `interactive.ts`, `ui/wizard.ts`, `ui/select.ts`, `ui/blocks.ts` | ✅ |
+| `@tren/export` — nazwy kroków FIT, rozpiska HTML, pakiet startowy, ICS | ✅ |
+| `@tren/sync-intervalsicu` — tytuły treningów w kalendarzu, błędy API | ✅ |
+| wybór języka + dziedziczenie przez MCP | ✅ (sprawdzone na prawdziwej binarce) |
 
-**Uwaga projektowa:** przy okazji wyszły trzy miejsca, w których **logika
-porównywała się z tekstem interfejsu** — `Comparison.status` (`'zgodne'`),
-`TrainingWindow.label` (`'wieczór'`) i wykrywanie niedomkniętej kalibracji po
-polskim zdaniu w `review`. Wszystkie zamienione na klucze semantyczne; to jest
-typowa klasa błędów, którą i18n obnaża.
+Renderery w `@tren/export` **nie znają katalogu** — dostają napisy przez
+`PrintLabels` / `RacePackLabels`, więc pakiet zostaje czystym generatorem HTML.
+
+`tren init --lang pl` zapisuje `language: pl` w `tren.yaml` odkomentowane:
+katalog treningowy pamięta wybór i mówi tak samo przy następnym uruchomieniu.
+
+**Kontrola jakości** (`cli/src/i18n/cli-i18n.test.ts`, `no-leaks.test.ts`,
+`core/src/i18n/i18n.test.ts` — 69 testów):
+
+- komplet kluczy i **zgodna arność funkcji** wymuszone typem, reszta testem;
+- **antykalka**: identyczne napisy dopuszczone tylko z jawnej listy (19 pozycji
+  — symbole, formaty, wartości enum);
+- diakrytyki obecne i nieokaleczone, cudzysłowy drukarskie w polskiej prozie;
+- przetłumaczone **komentarze YAML nie psują składni** — szablon parsuje się
+  w obu językach do tej samej struktury;
+- **strażnik przecieków**: wszystkie komendy uruchomione po angielsku, a ich
+  wyjście, `PLAN.md`, `AGENTS.md`, eksporty HTML/ICS i nazwy plików sprawdzone
+  pod kątem polskich znaków **oraz polskich słów bez diakrytyków** — bo
+  „Predykcja wyniku" nie ma ani jednego polskiego znaku i przeszłoby.
+
+**Uwaga projektowa:** i18n obnażyła sześć miejsc, w których **logika
+porównywała się z tekstem interfejsu**: `Comparison.status` (`'zgodne'`),
+`TrainingWindow.label` (`'wieczór'`), wykrywanie niedomkniętej kalibracji po
+polskim zdaniu w `review`, rozpoznawanie członu schłodzenia po `'Na koniec
+treningu…'`, wybór scenariusza na opaskę po `label === 'cel'` i filtrowanie
+dni wolnych po podpowiedzi `'wolne'` w pickerze. Wszystkie zamienione na
+klucze semantyczne albo na dane z planu; to typowa klasa błędów, którą
+tłumaczenie wyciąga na wierzch.
 
 **Znane uproszczenia silnika v1** (świadome, do zdjęcia w kolejnych iteracjach):
 ~~jeden cel A bez startów B/C~~ (zdjęte w fazie 7: `tuneUpRaces` + T-9…T-12);

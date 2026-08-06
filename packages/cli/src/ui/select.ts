@@ -4,6 +4,7 @@
  * Wymaga TTY — wywołujący sprawdza `canPrompt()` i podaje ścieżkę nieinteraktywną.
  */
 import { emitKeypressEvents } from 'node:readline'
+import { ui } from '../i18n/index.ts'
 import { Theme } from './theme.ts'
 import { digitIndex, keyAction, moveIndex, type KeyEvent } from './keys.ts'
 
@@ -47,7 +48,7 @@ export async function select<T>(
   if (usable.length === 0) return undefined
 
   let active = choices.findIndex((c) => !c.disabled)
-  const footer = theme.dim('  ↑↓ wybór · 1–9 skok · Enter zatwierdź · Esc anuluj')
+  const footer = theme.dim(ui().picker.selectKeys)
 
   emitKeypressEvents(stdin)
   const wasRaw = stdin.isRaw === true

@@ -3,6 +3,10 @@
  * binarną, a nie tylko to, że funkcja czegoś nie wyrzuciła.
  */
 import { describe, expect, it } from 'vitest'
+import { setLocale } from '@tren/core'
+
+// Nazwy kroków to treść po polsku — testujemy je w tym języku.
+setLocale('pl')
 import type { PlannedWorkout } from '@tren/core'
 import { encodeWorkoutFit, fitCrc, paceToSpeedRange, toFitSteps } from './fit.ts'
 

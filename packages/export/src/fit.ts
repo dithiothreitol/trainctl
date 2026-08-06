@@ -10,6 +10,7 @@
  * w mm/s (m/s × 1000), zamieniając s/km na m/s. Szybsze tempo = wyższa prędkość,
  * więc granice zakresu zamieniają się miejscami.
  */
+import { messages } from '@tren/core'
 import type { PlannedWorkout, PaceRange } from '@tren/core'
 
 // ---------------------------------------------------------------- prymitywy
@@ -175,13 +176,14 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
     }
   }
 
+  const f = messages().fitStep
   for (const seg of workout.segments) {
     switch (seg.type) {
       case 'warmup':
-        steps.push(distanceStep('Rozgrzewka', seg.distanceKm ?? 2, seg.pace, 2))
+        steps.push(distanceStep(f.warmup, seg.distanceKm ?? 2, seg.pace, 2))
         break
       case 'cooldown':
-        steps.push(distanceStep('Trucht', seg.distanceKm ?? 1, RECOVERY_PACE, 3))
+        steps.push(distanceStep(f.cooldown, seg.distanceKm ?? 1, RECOVERY_PACE, 3))
         break
       case 'intervals':
       case 'hills': {
@@ -190,19 +192,19 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
         const isHills = seg.type === 'hills'
         if (seg.repM) {
           steps.push(
-            distanceStep(isHills ? 'Podbieg' : 'Odcinek', seg.repM / 1000, isHills ? undefined : seg.pace, 0),
+            distanceStep(isHills ? f.hillRep : f.rep, seg.repM / 1000, isHills ? undefined : seg.pace, 0),
           )
         } else {
-          steps.push(timeStep('Odcinek', 180, seg.pace, 0))
+          steps.push(timeStep(f.rep, 180, seg.pace, 0))
         }
         if (seg.recoverySec) {
-          steps.push(timeStep('Przerwa', seg.recoverySec, RECOVERY_PACE, 1))
+          steps.push(timeStep(f.recovery, seg.recoverySec, RECOVERY_PACE, 1))
         } else if (isHills) {
-          steps.push(distanceStep('Zbieg', (seg.repM ?? 200) / 1000, undefined, 1))
+          steps.push(distanceStep(f.hillDown, (seg.repM ?? 200) / 1000, undefined, 1))
         }
         if (reps > 1) {
           steps.push({
-            name: `Powtórz ${reps}x`,
+            name: f.repeat(reps),
             durationType: 6,
             durationValue: loopStart,
             targetType: 2,
@@ -218,16 +220,16 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
         const total = Math.round(seg.distanceKm ?? 0)
         const pairs = Math.floor(total / 2)
         if (pairs < 1 || !seg.pace) {
-          steps.push(distanceStep('Bieg zmienny', total, seg.pace, 0))
+          steps.push(distanceStep(f.alternating, total, seg.pace, 0))
           break
         }
         const loopStart = steps.length
         const fast: PaceRange = { loSecPerKm: seg.pace.loSecPerKm, hiSecPerKm: seg.pace.loSecPerKm }
         const slow: PaceRange = { loSecPerKm: seg.pace.hiSecPerKm, hiSecPerKm: seg.pace.hiSecPerKm }
-        steps.push(distanceStep('Szybciej', 1, fast, 0))
-        steps.push(distanceStep('Wolniej', 1, slow, 1))
+        steps.push(distanceStep(f.faster, 1, fast, 0))
+        steps.push(distanceStep(f.slower, 1, slow, 1))
         steps.push({
-          name: `Powtórz ${pairs}x`,
+          name: f.repeat(pairs),
           durationType: 6,
           durationValue: loopStart,
           targetType: 2,
@@ -241,7 +243,7 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
       case 'progression': {
         const total = seg.distanceKm ?? 0
         if (!seg.pace || total < 3) {
-          steps.push(distanceStep('Tempo narastające', total, seg.pace, 0))
+          steps.push(distanceStep(f.progression, total, seg.pace, 0))
           break
         }
         const third = Math.round((total / 3) * 10) / 10
@@ -249,18 +251,22 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
         const to = seg.pace.loSecPerKm
         for (let i = 0; i < 3; i++) {
           const v = Math.round(from + ((to - from) * i) / 2)
-          steps.push(distanceStep(`Narastająco ${i + 1}/3`, third, { loSecPerKm: v, hiSecPerKm: v }, 0))
+          steps.push(
+            distanceStep(f.progressionPart(i + 1, 3), third, { loSecPerKm: v, hiSecPerKm: v }, 0),
+          )
         }
         break
       }
       case 'easy':
       case 'steady':
-        steps.push(distanceStep(seg.type === 'easy' ? 'Spokojnie' : 'Tempo', seg.distanceKm ?? 0, seg.pace, 0))
+        steps.push(
+          distanceStep(seg.type === 'easy' ? f.easy : f.steady, seg.distanceKm ?? 0, seg.pace, 0),
+        )
         break
       case 'race':
         // Sprawdzian: krok na dystans BEZ celu tempa (ADR-020) — zegarek ma mierzyć,
         // nie pilnować tempa. Sam start nie ma dystansu w planie i nie daje kroku.
-        if (seg.distanceKm) steps.push(distanceStep('Na czas', seg.distanceKm, undefined, 0))
+        if (seg.distanceKm) steps.push(distanceStep(f.timed, seg.distanceKm, undefined, 0))
         break
     }
   }

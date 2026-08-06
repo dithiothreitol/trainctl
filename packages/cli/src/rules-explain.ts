@@ -1,45 +1,14 @@
-/** Wyjaśnienia „why" — reguły z docs/science/FOUNDATIONS.md §10, po ludzku. */
+/**
+ * Wyjaśnienia „why" — reguły z docs/science/FOUNDATIONS.md §10, po ludzku.
+ * Same teksty siedzą w katalogu tłumaczeń; tutaj zostaje wyłącznie dostęp
+ * po ID reguły i po rodzaju jednostki.
+ */
 import type { WorkoutKind } from '@tren/core'
+import { ui } from './i18n/index.ts'
 
-export const RULE_EXPLAIN: Record<string, string> = {
-  'I-1': 'faza bazy/budowania: rozkład piramidalny — dużo spokojnego biegania, akcenty okołoprogowe (Casado 2022; Knopp 2024)',
-  'I-2': 'okres przedstartowy: przejście na polaryzację — sekwencja piramida→polaryzacja wygrała w RCT (Filipas 2022)',
-  'I-5': '≥75% objętości tygodnia w strefie spokojnej, niezależnie od modelu (Haugen 2022; Knopp 2024)',
-  'I-7': '≥48 h między sesjami jakościowymi — zasada hard day / easy day (Casado 2022)',
-  'I-8': 'dwa akcenty tygodniowo przy ≥4 sesjach, jeden przy 3 (Casado 2022)',
-  'P-1': 'obciążenie faluje, nie rośnie liniowo — progresja falująca dała +22% VO₂max vs +11% liniowej (RCT Costa 2019)',
-  'P-2': 'co czwarty tydzień odciążeniowy (Costa 2019)',
-  'P-3': 'wzrost objętości ≤10%/tydz. jako narzędzie planowania — to NIE jest próg urazowy (Damsted 2018)',
-  'P-7': 'półmaraton: >32 km/tydz. i długie >21 km wiążą się z lepszym wynikiem (Fokkema 2020)',
-  'P-8': 'maraton: >65 km/tydz. wiąże się z wynikiem lepszym o ~14 min (Fokkema 2020)',
-  'T-1': 'taper: intensywność ZOSTAJE — jej utrzymanie ma niezależny efekt (Wang 2023, SMD −0,55)',
-  'T-2': 'taper: liczba sesji ZOSTAJE (Wang 2023, SMD −0,53)',
-  'T-3': 'taper: redukujemy wyłącznie objętość, o 41–60% (Wang 2023)',
-  'T-4': 'taper ściśle malejący tydzień do tygodnia — „strict" dał medianę −5:32 na maratonie (Smyth 2021, n=158 117)',
-  'T-5': 'długość taperu zależy od dystansu: 5–10 km ~tydzień, HM ~2 tyg., maraton 2–3 tyg. (Wang 2023; Knopp 2024)',
-  'T-9': 'start kontrolny B: mini-taper (objętość tygodnia −20%), ale makrocykl bez zmian — jeden bieg nie cofa progresji',
-  'T-10': 'dzień przed startem wolny — tak robił trener w 34 z 45 startów w korpusie',
-  'T-11': 'długie wybieganie ZOSTAJE dzień po starcie, spokojnie — wzorzec z korpusu (sobota start → niedziela długie)',
-  'T-12': 'start JEST akcentem tygodnia, nie dodatkiem do niego — nie dokładamy do niego drugiej sesji jakościowej',
-  'W-11': 'strefy kalibrujemy z biegu maksymalnego: sprawdzian na czas jest tu równoważny startowi (Daniels & Gilbert)',
-  'W-12': 'kalibracja co ~4 tygodnie — tyle wynosi mediana odstępu między startami w korpusie trenerskim',
-  'W-13': 'prawdziwy start jest lepszy niż sztuczny sprawdzian; sprawdzian pojawia się tylko przy pustym kalendarzu startów',
-  'F-1': 'siła 2–3×/tydz. jako dawka bazowa (Blagrove 2018 — opis praktyki badań, nie dose-response)',
-  'F-2': 'cel: ≥24 sesje siły łącznie w bloku — poniżej efekt nieistotny (Berryman 2018, SMD 0,63 vs 0,10)',
-  'F-3': 'blok siły 10–14 tygodni; 6–8 tyg. nie wystarcza (Eihara 2022)',
-  'F-4': 'ciężko: ≥80% 1RM, wielostawowo, wolny ciężar — im ciężej, tym większy efekt na ekonomię (Llanos-Lagos 2024)',
-  'F-13': 'taper: siła znika z planu — 4 tyg. detrainingu nie kasuje adaptacji (Berryman 2020, uwaga: n=8)',
-  'S-4': 'siła i bieg tego samego dnia: ≥3 h odstępu udokumentowane (Schumann 2022); 6 h to margines inżynierski',
-  'S-5': 'ciężka siła nie później niż 24 h przed sesją jakościową — deficyt siły trwa do 48 h (de Carvalho e Silva 2022)',
-}
+/** Objaśnienie reguły po jej ID (np. `I-7`); undefined, gdy reguły nie opisano. */
+export const ruleExplain = (id: string): string | undefined =>
+  (ui().rules as Record<string, string>)[id]
 
-export const KIND_PURPOSE: Record<WorkoutKind, string> = {
-  easy: 'Objętość tlenowa w strefie spokojnej — fundament adaptacji bez kosztu regeneracyjnego.',
-  long: 'Długie wybieganie: wytrzymałość podstawowa, ekonomia biegu i odporność na zmęczenie (durability).',
-  easy_hills: 'Bieg spokojny + podbiegi: siła specyficzna i ekonomia przy minimalnym koszcie (house style trenera).',
-  quality_intervals: 'Sesja interwałowa — bodziec zależny od fazy: okołoprogowy (piramida) albo VO₂max (polaryzacja).',
-  quality_continuous: 'Akcent ciągły — tempo narastające lub bieg zmienny; kontrola tempa i praca okołoprogowa.',
-  sharpener: 'Krótki akcent przedstartowy: podtrzymuje intensywność w taperze (T-1) bez kosztu objętości.',
-  test: 'Sprawdzian na czas — pomiar, nie trening: z wyniku przeliczamy strefy na kolejne tygodnie (W-11). Pojawia się, bo w kalendarzu nie ma startu, który zrobiłby to samo lepiej (W-13).',
-  race: 'Start — cel tego cyklu.',
-}
+/** Po co jest ta jednostka — jedno zdanie o celu fizjologicznym. */
+export const kindPurpose = (kind: WorkoutKind): string => ui().kindPurpose[kind]
