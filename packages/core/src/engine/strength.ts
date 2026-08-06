@@ -26,14 +26,22 @@ const WEEKDAY_ORDER: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun
 /** Jednostki biegowe, których nie wolno osłabić siłą dzień wcześniej (S-5). */
 const QUALITY_KINDS = new Set(['quality_intervals', 'quality_continuous', 'test', 'race'])
 
-export const STRENGTH_SESSION: StrengthSession = {
-  kind: 'heavy',
-  durationMin: 35,
-  ruleRefs: ['F-1', 'F-2', 'F-3', 'F-4'],
-  description:
-    'Siła ciężka ~35 min: przysiad lub martwy ciąg + wykroki + wspięcia na palce, ' +
-    '3 serie × 4–6 powtórzeń CIĘŻKO (≥80% 1RM, ostatnie powtórzenie trudne, ale bez upadku ruchu), ' +
-    'przerwy 2–3 min. Wielostawowo, wolny ciężar. Nie do wyczerpania (S-7).',
+/**
+ * Nowy obiekt na każdy dzień — nigdy współdzielona instancja. Plan jest
+ * serializowany do YAML-a, który użytkownik czyta i edytuje (plan-as-code):
+ * współdzielona referencja zamieniłaby 22 z 23 sesji w aliasy `*a2`, a edycja
+ * jednego dnia zmieniłaby wszystkie.
+ */
+export function strengthSession(): StrengthSession {
+  return {
+    kind: 'heavy',
+    durationMin: 35,
+    ruleRefs: ['F-1', 'F-2', 'F-3', 'F-4'],
+    description:
+      'Siła ciężka ~35 min: przysiad lub martwy ciąg + wykroki + wspięcia na palce, ' +
+      '3 serie × 4–6 powtórzeń CIĘŻKO (≥80% 1RM, ostatnie powtórzenie trudne, ale bez upadku ruchu), ' +
+      'przerwy 2–3 min. Wielostawowo, wolny ciężar. Nie do wyczerpania (S-7).',
+  }
 }
 
 export interface StrengthWeekInput {
@@ -42,6 +50,12 @@ export interface StrengthWeekInput {
   deload: boolean
   /** Preferowane dni z konfiguracji — puste = wybór automatyczny. */
   daysPreference?: Weekday[]
+  /**
+   * Data ostatniej sesji siłowej z POPRZEDNIEGO tygodnia. Bez tego odstęp
+   * ≥48 h obowiązywałby tylko wewnątrz tygodnia i łamałby się na styku
+   * niedziela→poniedziałek.
+   */
+  lastSessionDate?: string
 }
 
 export interface StrengthAssignment {
@@ -83,8 +97,12 @@ export function planStrengthWeek(input: StrengthWeekInput): StrengthAssignment {
     if (QUALITY_KINDS.has(kind)) {
       blocked.add(day.date)
       blocked.add(addDays(day.date, -1)) // S-5: ciężka siła nie <24 h przed jakością
-    } else if (kind === 'long') {
-      blocked.add(day.date) // samego długiego nie obciążamy siłą tego samego dnia
+    } else if (kind === 'long' || kind === 'easy_hills') {
+      // Długiego nie dokładamy sobie tego samego dnia; podbiegi to praca
+      // ekscentryczna tych samych mięśni co przysiad — łączenie ich w jednym
+      // dniu byłoby podwójnym obciążeniem, przed którym CLI i tak ostrzega.
+      // Dzień PRZED nimi wolno: to nie są sesje jakościowe w rozumieniu S-5.
+      blocked.add(day.date)
     }
   }
 
@@ -100,19 +118,27 @@ export function planStrengthWeek(input: StrengthWeekInput): StrengthAssignment {
   })
 
   const byDate = new Map<string, StrengthSession>()
+  // odstęp liczymy także wstecz, do ostatniej sesji z poprzedniego tygodnia
+  const placed: string[] = input.lastSessionDate ? [input.lastSessionDate] : []
   for (const day of candidates) {
     if (byDate.size >= target) break
     if (blocked.has(day.date)) continue
-    const tooClose = [...byDate.keys()].some((d) => Math.abs(diffDays(d, day.date)) < MIN_GAP_DAYS)
+    const tooClose = placed.some((d) => Math.abs(diffDays(d, day.date)) < MIN_GAP_DAYS)
     if (tooClose) continue
-    byDate.set(day.date, STRENGTH_SESSION)
+    byDate.set(day.date, strengthSession())
+    placed.push(day.date)
   }
 
   if (byDate.size < target) {
-    notes.push(
-      `W tym tygodniu zmieściła się ${byDate.size} z ${target} sesji siły — akcenty i długie ` +
-        'mają pierwszeństwo (S-5); nie upychamy siły kosztem jakości biegania.',
-    )
+    // Uczciwie o przyczynie: zawężenie dni przez użytkownika to co innego niż
+    // ciasny tydzień biegowy. Zmyślanie powodu byłoby dokładnie tym, czego
+    // ten moduł ma nie robić (ADR-022).
+    const narrowed = (input.daysPreference?.length ?? 7) < 7
+    const reason = narrowed
+      ? `wybrane dni (${input.daysPreference!.join(', ')}) kolidują z akcentami albo z odstępem 48 h — ` +
+        'poszerz `strength.days` w tren.yaml albo zostaw puste, a silnik dobierze dni sam'
+      : 'akcenty i długie mają pierwszeństwo (S-5); nie upychamy siły kosztem jakości biegania'
+    notes.push(`W tym tygodniu zmieściła się ${byDate.size} z ${target} sesji siły — ${reason}.`)
   }
   return { byDate, notes }
 }

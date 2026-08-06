@@ -23,12 +23,17 @@ import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
  * Tabela korekty na temperaturę (H-1…H-5). Model milczy powyżej 25 °C i poniżej
  * optimum — wtedy wierszy po prostu nie ma, zamiast zmyślonych liczb.
  */
-function heatTableFor(distanceKm: number, totalSec: number): RacePackInput['heatTable'] | undefined {
+function heatTableFor(
+  distanceKm: number,
+  totalSec: number,
+  scenarioLabel: string,
+): RacePackInput['heatTable'] | undefined {
   const ladder = heatLadder(distanceKm, totalSec).filter((a) => a.timePenaltyPct > 0.05)
   if (ladder.length === 0) return undefined
   const first = ladder[0]!
   return {
-    header: ['temperatura', 'realny cel', 'tempo', 'strata'],
+    // etykieta mówi wprost, KTÓRY scenariusz korygujemy — tabela dotyczy tylko opaski
+    header: ['temperatura', `scenariusz „${scenarioLabel}”`, 'tempo', 'strata'],
     rows: ladder.map((a) => [
       `${a.tempC} °C`,
       fmtClock(a.adjustedSec),
@@ -36,7 +41,9 @@ function heatTableFor(distanceKm: number, totalSec: number): RacePackInput['heat
       `+${a.paceDeltaSecPerKm} s/km`,
     ]),
     note:
-      `Model: El Helou 2012 (n=1,79 mln finiszerów maratonu), krzywa „${first.curveLabel}", ` +
+      `Korekta dotyczy scenariusza „${scenarioLabel}” (tego z opaski) — pozostałe kolumny ` +
+      `tabeli splitów są dla warunków optymalnych. Model: El Helou 2012 ` +
+      `(n=1,79 mln finiszerów maratonu), krzywa „${first.curveLabel}", ` +
       `optimum ${first.tOptC} °C. To przesunięcie ŚREDNIEJ populacyjnej, nie prognoza dla Ciebie ` +
       '(pogoda tłumaczy ~10–33% wariancji tempa). Powyżej 25 °C model milczy — brak danych. ' +
       'Wilgotności, wiatru i słońca świadomie nie liczymy: w danych obserwacyjnych ich efekt ' +
@@ -139,16 +146,29 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   }
 
   if (req.what === 'calendar') {
+    // Siła też trafia do kalendarza — inaczej dni siłowe wypadające na dniach
+    // wolnych od biegania nie miałyby ŻADNEGO wpisu, mimo że są w planie.
     const entries = plan.weeks
       .flatMap((w) => w.days)
-      .filter((d) => d.workout)
-      .map((day) => ({
-        day,
-        summary: `${KIND_LABEL[day.workout!.kind] ?? day.workout!.kind}${
-          day.workout!.distanceKm ? ` ${day.workout!.distanceKm} km` : ''
-        }`,
-        description: workoutText(day),
-      }))
+      .filter((d) => d.workout || d.strength)
+      .map((day) => {
+        const runLabel = day.workout
+          ? `${KIND_LABEL[day.workout.kind] ?? day.workout.kind}${
+              day.workout.distanceKm ? ` ${day.workout.distanceKm} km` : ''
+            }`
+          : undefined
+        const strengthLabel = day.strength ? `siła ~${day.strength.durationMin} min` : undefined
+        return {
+          day,
+          summary: [runLabel, strengthLabel].filter(Boolean).join(' + '),
+          description: [
+            day.workout ? workoutText(day) : undefined,
+            day.strength?.description,
+          ]
+            .filter(Boolean)
+            .join('\n\n'),
+        }
+      })
     const ics = toIcs(entries, {
       planName: `${plan.goal.name} (tren)`,
       uidPrefix: `tren-${safeName(plan.goal.name)}`,
@@ -190,6 +210,8 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
         `równe tempo = założenie rozpiski (inż., W-10). Wygenerowano ${plan.generatedAt}.`
       : `Wyłącznie cel czasowy z tren.yaml — bez predykcji z wyniku startu (dodaj wynik ` +
         `do athlete.results). Równe tempo = założenie rozpiski (inż.). Wygenerowano ${plan.generatedAt}.`
+    const bandLabel = scenarios[bandScenario]!.label
+    const heatTable = heatTableFor(plan.goal.distanceKm, scenarios[bandScenario]!.totalSec, bandLabel)
     const html = toRacePackHtml({
       raceName: plan.goal.name,
       raceDate: plan.goal.date,
@@ -197,9 +219,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
       scenarios,
       bandScenario,
       provenance,
-      ...(heatTableFor(plan.goal.distanceKm, scenarios[bandScenario]!.totalSec)
-        ? { heatTable: heatTableFor(plan.goal.distanceKm, scenarios[bandScenario]!.totalSec)! }
-        : {}),
+      ...(heatTable ? { heatTable } : {}),
     })
     const file = join(dir, `${safeName(plan.goal.name)}-pakiet-startowy.html`)
     writeFileSync(file, html, 'utf-8')

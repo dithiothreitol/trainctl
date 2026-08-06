@@ -21,6 +21,7 @@ import { AGENTS_FILE, AGENTS_TEMPLATE } from './agents-md.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, logFor, parseTime, readLog, type LogEntry } from './logfile.ts'
 import {
+  applyStrength,
   computePlan,
   findDay,
   fmtTime,
@@ -377,14 +378,20 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
     }
 
     if (day.strength) {
+      const kind = day.workout?.kind
+      const advice = !kind
+        ? 'Dzień bez biegania — idealny na siłę (zero konfliktu z sesjami biegowymi).'
+        : kind === 'easy'
+          ? 'Osobno od biegania: ≥3 h odstępu (S-4). Bieg spokojny obok siły jest OK — ' +
+            'wysiłek submaksymalny 24 h po sile nie wykazuje pogorszenia (S-5).'
+          : kind === 'long'
+            ? 'Osobno od długiego: ≥3 h odstępu (S-4). Jeśli masz wybór — siłownia PO wybieganiu, ' +
+              'nie przed; długie jest dziś ważniejszą jednostką.'
+            : `UWAGA: dziś jest też ${KIND_LABEL[kind] ?? kind} — S-5 odradza łączenie ciężkiej siły ` +
+              'z jednostką jakościową. Przenieś siłownię na inny dzień (albo odpuść ją w tym tygodniu).'
       blocks.push(
         b.panel(`Siła · ~${day.strength.durationMin} min`, [day.strength.description], 'accent'),
-        b.text(
-          day.workout
-            ? 'Osobno od biegania: ≥3 h odstępu (S-4); bieg spokojny obok siły jest OK (S-5).'
-            : 'Dzień bez biegania — idealny na siłę (zero konfliktu z sesjami biegowymi).',
-          'muted',
-        ),
+        kind && !['easy', 'long'].includes(kind) ? b.warn(advice) : b.text(advice, 'muted'),
       )
     }
     const entry = logFor(cwd, date)
@@ -420,12 +427,12 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
       // status słowem, nie symbolem: to samo wyjście czyta agent przez MCP
       const mark = entry ? ` [${entry.status}]` : ''
       const kind = day.workout?.kind
-      const strength = day.strength ? ' + SIŁA' : ''
+      const strength = day.strength ? ` + SIŁA ~${day.strength.durationMin} min` : ''
       rows.push([
         WEEKDAY_SHORT[day.weekday],
         day.date.slice(5),
         day.workout ? `${day.workout.distanceKm} km` : '—',
-        day.workout ? `${workoutText(day)}${strength}${mark}` : `wolne${strength ? ' + SIŁA ~35 min' : ''}`,
+        day.workout ? `${workoutText(day)}${strength}${mark}` : `wolne${strength}`,
       ])
       accents.push(kind ? KIND_COLOR[kind] : 'muted')
     }
@@ -535,7 +542,7 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
         ),
       )
       const refs = day.strength.ruleRefs.filter((r) => RULE_EXPLAIN[r]).map((r) => `${r} — ${RULE_EXPLAIN[r]}`)
-      if (refs.length) blocks.push(b.section('Reguły'), b.bullets(refs))
+      if (refs.length) blocks.push(b.section('Reguły siły'), b.bullets(refs))
       if (!day.workout) {
         blocks.push(b.blank(), b.hint('źródła i parametry: docs/science/FOUNDATIONS.md §10.8'))
         return okDoc(blocks)
@@ -896,6 +903,13 @@ export function cmdReschedule(
 
     if (opts.apply === true) {
       week.days = result.days
+      // Bieganie się przesunęło, więc sesje siłowe mogły trafić obok akcentu.
+      // Solver zachował je na miejscu (to nie jego domena) — tu je przeliczamy,
+      // bo dopiero ta warstwa zna konfigurację siły.
+      if (config.strength?.enabled) {
+        applyStrength([week], config.strength)
+        for (const note of week.strengthNotes ?? []) blocks.push(b.info(note))
+      }
       plan.changes.push({
         at: localToday(),
         action: 'reschedule',

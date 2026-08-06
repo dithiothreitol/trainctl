@@ -57,7 +57,7 @@ describe('binarka CLI pod natywnym Node', () => {
   it('pełna ścieżka plan → today (ładuje core, sync, yaml)', () => {
     expect(run(['plan', '--date', '2026-08-05'])).toContain('Zapisano')
     expect(run(['today', '--date', '2026-08-04'])).toMatch(/tydzień \d+\/\d+/)
-  })
+  }, 20_000) // dwa starty realnej binarki — domyślne 5 s bywa ciasne na obciążonej maszynie
 
   it('init --from-intervals bez klucza — instrukcja, nie stack trace', () => {
     const empty = mkdtempSync(join(tmpdir(), 'tren-bin-icu-'))

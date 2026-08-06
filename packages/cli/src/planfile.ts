@@ -17,7 +17,7 @@ import {
   type RacePrediction,
   type Weekday,
 } from '@tren/core'
-import type { TrenConfig } from './config.ts'
+import type { StrengthConfig, TrenConfig } from './config.ts'
 
 export const PLAN_DIR = 'plan'
 export const PLAN_YAML = join(PLAN_DIR, 'plan.yaml')
@@ -66,21 +66,7 @@ export function computePlan(config: TrenConfig, today: string): StoredPlan {
   const weeks = macro.weeks.map((skeleton) =>
     generateMicrocycle({ skeleton, athlete, zones, goal, testDistanceKm: testDistanceKm(goal) }),
   )
-  if (config.strength?.enabled) {
-    for (const week of weeks) {
-      const { byDate, notes } = planStrengthWeek({
-        week,
-        phase: week.skeleton.phase,
-        deload: week.skeleton.deload,
-        ...(config.strength.days?.length ? { daysPreference: config.strength.days } : {}),
-      })
-      for (const day of week.days) {
-        const session = byDate.get(day.date)
-        if (session) day.strength = session
-      }
-      if (notes.length) week.strengthNotes = notes
-    }
-  }
+  if (config.strength?.enabled) applyStrength(weeks, config.strength)
   const plan: StoredPlan = {
     generatedAt: today,
     vdot: Math.round(vdot * 10) / 10,
@@ -105,8 +91,38 @@ export function computePlan(config: TrenConfig, today: string): StoredPlan {
 
 export function writePlan(cwd: string, plan: StoredPlan): void {
   mkdirSync(join(cwd, PLAN_DIR), { recursive: true })
-  writeFileSync(join(cwd, PLAN_YAML), stringify(plan), 'utf-8')
+  // Bez aliasów YAML (`pace: *a1`): plan jest dokumentem, który użytkownik czyta
+  // i edytuje (plan-as-code), a alias zmusza go do skakania po pliku — i sprawia,
+  // że edycja jednego miejsca po cichu zmienia inne.
+  writeFileSync(join(cwd, PLAN_YAML), stringify(plan, { aliasDuplicateObjects: false }), 'utf-8')
   writeFileSync(join(cwd, PLAN_MD), renderMarkdown(plan), 'utf-8')
+}
+
+/**
+ * Rozstawienie siły na ciągu tygodni. Ciąg, a nie tydzień po tygodniu osobno:
+ * odstęp ≥48 h musi obowiązywać także na styku niedziela→poniedziałek.
+ * Używane przy generacji planu i ponownie po renegocjacji tygodnia.
+ */
+export function applyStrength(weeks: Microcycle[], strength: StrengthConfig): void {
+  let lastSessionDate: string | undefined
+  for (const week of weeks) {
+    const { byDate, notes } = planStrengthWeek({
+      week,
+      phase: week.skeleton.phase,
+      deload: week.skeleton.deload,
+      ...(strength.days?.length ? { daysPreference: strength.days } : {}),
+      ...(lastSessionDate ? { lastSessionDate } : {}),
+    })
+    for (const day of week.days) {
+      const session = byDate.get(day.date)
+      if (session) day.strength = session
+      else delete day.strength
+    }
+    const dates = [...byDate.keys()].sort()
+    if (dates.length) lastSessionDate = dates[dates.length - 1]
+    if (notes.length) week.strengthNotes = notes
+    else delete week.strengthNotes
+  }
 }
 
 export function loadPlan(cwd: string): StoredPlan {
@@ -129,10 +145,12 @@ export function findDay(
   return undefined
 }
 
+/** Sekundy → „H:MM:SS"/„M:SS". Zaokrąglamy CAŁOŚĆ, inaczej 3599,7 s dałoby „59:60". */
 export function fmtTime(sec: number): string {
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  const s = Math.round(sec % 60)
+  const total = Math.round(sec)
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
   const mm = String(m).padStart(2, '0')
   const ss = String(s).padStart(2, '0')
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`
@@ -237,6 +255,27 @@ export function shiftWorkout(
       warnings.push(
         `akcenty ${qualityDays[i - 1]} i ${qualityDays[i]} są dzień po dniu — ` +
           'reguła I-7 zaleca ≥48 h między sesjami jakościowymi',
+      )
+    }
+  }
+
+  // Siła zostaje na swoim dniu (przesuwamy bieganie, nie siłownię), ale
+  // przesunięcie akcentu mogło ją postawić obok jednostki jakościowej albo
+  // dzień przed nią — S-5 tego zabrania, więc musimy o tym powiedzieć.
+  for (const day of from.week.days) {
+    if (!day.strength) continue
+    const sameDay = day.workout && QUALITY_KINDS.has(day.workout.kind)
+    const next = from.week.days.find((d) => diffDays(day.date, d.date) === 1)
+    const dayBeforeQuality = next?.workout && QUALITY_KINDS.has(next.workout.kind)
+    if (sameDay) {
+      warnings.push(
+        `${day.date}: akcent wylądował w dniu sesji siłowej — S-5 odradza ciężką siłę ` +
+          'przy jednostce jakościowej; przenieś siłownię albo wygeneruj plan ponownie (tren plan)',
+      )
+    } else if (dayBeforeQuality) {
+      warnings.push(
+        `${day.date}: sesja siłowa wypada dzień przed akcentem (${next!.date}) — ` +
+          'S-5 zaleca ≥24 h odstępu po ciężkiej sile',
       )
     }
   }

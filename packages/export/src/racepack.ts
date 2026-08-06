@@ -43,10 +43,11 @@ export function fmtClock(sec: number): string {
   return h > 0 ? `${h}:${p(m)}:${p(rest)}` : `${m}:${p(rest)}`
 }
 
-/** Tempo w s/km → „M:SS/km". */
+/** Tempo w s/km → „M:SS/km". Zaokrąglamy CAŁOŚĆ, inaczej 299,7 s dałoby „4:60". */
 export function fmtPace(secPerKm: number): string {
-  const m = Math.floor(secPerKm / 60)
-  const s = Math.round(secPerKm % 60)
+  const total = Math.round(secPerKm)
+  const m = Math.floor(total / 60)
+  const s = total % 60
   return `${m}:${String(s).padStart(2, '0')}/km`
 }
 
@@ -83,6 +84,9 @@ export function bandPoints(distanceKm: number): number[] {
   return points
 }
 
+/** Najbliższy pełny kilometr połowy dystansu — wyróżniany w tabeli splitów. */
+export const halfMark = (distanceKm: number): number => Math.round(distanceKm / 2)
+
 const escapeHtml = (text: string): string =>
   text.replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
@@ -103,13 +107,15 @@ export function toRacePackHtml(input: RacePackInput): string {
     })
     .join('\n')
 
+  const halfMarkKm = halfMark(input.distanceKm)
   const headCols = input.scenarios
     .map((s) => `<th>${escapeHtml(s.label)}<br><span class="pace">${fmtPace(s.totalSec / input.distanceKm)}</span></th>`)
     .join('')
   const splitRows = splits
     .map((r) => {
       const isFinish = r.km === input.distanceKm
-      const half = Math.abs(r.km - input.distanceKm / 2) < 0.51
+      // dokładnie JEDEN wiersz „połówka": najbliższy pełny kilometr połowy dystansu
+      const half = r.km === halfMarkKm
       return `      <tr${isFinish ? ' class="finish"' : half ? ' class="half"' : ''}>
         <td class="km">${isFinish ? 'META' : r.km}</td>
         ${r.cumulative.map((c) => `<td>${c}</td>`).join('')}

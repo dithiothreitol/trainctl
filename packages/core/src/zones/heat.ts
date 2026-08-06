@@ -91,6 +91,15 @@ export function adjustForHeat(
   tempC: number,
 ): HeatOutcome {
   if (!Number.isFinite(tempC)) return { ok: false, reason: 'Nieprawidłowa temperatura.' }
+  if (tempC < HEAT_MODEL_MIN_C) {
+    return {
+      ok: false,
+      reason:
+        `${tempC} °C jest poniżej zakresu danych (od ${HEAT_MODEL_MIN_C} °C). Model opisuje ` +
+        'wyłącznie ciepłą stronę krzywej — mróz ma swój własny koszt (wiatr, nawierzchnia, ' +
+        'ubranie), którego tu nie liczymy, więc zwrócenie „zero straty" byłoby wprowadzaniem w błąd.',
+    }
+  }
   if (tempC > HEAT_MODEL_MAX_C) {
     return {
       ok: false,
@@ -121,10 +130,18 @@ export function adjustForHeat(
   }
 }
 
-/** Siatka temperatur do tabeli w pakiecie startowym — od optimum w górę. */
+/**
+ * Siatka temperatur do tabeli w pakiecie startowym: od optimum WYBRANEJ krzywej
+ * w górę, co 2 °C. Gęsty krok jest celowy — krzywa jest kwadratowa, więc
+ * interpolacja liniowa między odległymi wierszami to dokładnie ten błąd,
+ * którego zakazuje N-26.
+ */
 export function heatLadder(distanceKm: number, targetSec: number): HeatAdjustment[] {
+  const probe = adjustForHeat(distanceKm, targetSec, HEAT_MODEL_MAX_C)
+  if (!probe.ok) return []
+  const start = Math.ceil(probe.adjustment.tOptC)
   const out: HeatAdjustment[] = []
-  for (let t = 10; t <= HEAT_MODEL_MAX_C; t += 5) {
+  for (let t = start; t <= HEAT_MODEL_MAX_C; t += 2) {
     const r = adjustForHeat(distanceKm, targetSec, t)
     if (r.ok) out.push(r.adjustment)
   }

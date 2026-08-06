@@ -229,6 +229,11 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
   const days: PlannedDay[] = week.days.map((d) => {
     const base: PlannedDay = { date: d.date, weekday: d.weekday }
     if (raceDay && d.date === raceDay.date && d.workout) base.workout = d.workout
+    // Siła nie bierze udziału w tasowaniu (to nie jest jednostka biegowa), ale
+    // MUSI przetrwać: solver buduje dni od zera, więc bez tego wiersza
+    // `reschedule --apply` po cichu kasowałby sesje siłowe z całego tygodnia.
+    // Walidacja nowego sąsiedztwa (S-5) należy do warstwy, która zna konfigurację.
+    if (d.strength) base.strength = d.strength
     return base
   })
   const moved: RescheduleResult['moved'] = []
