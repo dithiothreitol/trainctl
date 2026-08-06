@@ -27,10 +27,29 @@ export interface TrenConfig {
   goal: RaceGoal
   desk?: DeskConfig
   strength?: StrengthConfig
+  /** Język interfejsu i opisów planu: 'en' (domyślny) albo 'pl'. */
+  language?: string
+}
+
+/**
+ * Język z pliku konfiguracyjnego, czytany BEZ pełnej walidacji profilu:
+ * `tren init` i komunikaty błędów muszą znać język, zanim ktokolwiek sprawdzi,
+ * czy `athlete.recentWeeklyKm` jest liczbą.
+ */
+export function readConfigLanguage(cwd: string): string | undefined {
+  const path = join(cwd, CONFIG_FILE)
+  if (!existsSync(path)) return undefined
+  try {
+    const raw = parse(readFileSync(path, 'utf-8')) as { language?: unknown } | null
+    return typeof raw?.language === 'string' ? raw.language : undefined
+  } catch {
+    return undefined // uszkodzony YAML zgłosi loadConfig, tu tylko nie przeszkadzamy
+  }
 }
 
 export const CONFIG_TEMPLATE = `# tren — profil atlety i cel treningowy.
 # Uzupełnij i uruchom: tren plan
+# language: pl             # język interfejsu i opisów planu (domyślnie: en)
 athlete:
   sex: unspecified          # male | female | unspecified
   recentWeeklyKm: 45        # średnia z ostatnich ~4 tygodni

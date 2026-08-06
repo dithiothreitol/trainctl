@@ -7,6 +7,12 @@ import type { SyncProvider, SyncedActivity } from '@tren/core'
 import { cmdInit, cmdLog, cmdPlan, cmdReview } from './commands.ts'
 import { AGENTS_FILE } from './agents-md.ts'
 import { SECRET_FILE } from './sync.ts'
+import { setLocale } from '@tren/core'
+
+// Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
+// po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
+setLocale('pl')
+
 
 const CONFIG = `athlete:
   recentWeeklyKm: 55

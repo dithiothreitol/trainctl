@@ -8,6 +8,12 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from '@tren/core'
 import { localToday } from '@tren/cli'
 import { createTrenServer } from './server.ts'
+import { setLocale } from '@tren/core'
+
+// Scenariusze agentowe czytamy po polsku — tak brzmią też opisy w planie
+// użytkownika, gdy ma language: pl. Wybór języka testuje i18n.test.ts.
+setLocale('pl')
+
 
 const CONFIG = `athlete:
   recentWeeklyKm: 55

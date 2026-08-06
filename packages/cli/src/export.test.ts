@@ -4,6 +4,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { cmdExport, cmdPlan } from './commands.ts'
+import { setLocale } from '@tren/core'
+
+// Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
+// po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
+setLocale('pl')
+
 
 const CONFIG = `athlete:
   recentWeeklyKm: 55

@@ -300,6 +300,7 @@ export const cliPl: CliMessages = {
 
   review: {
     title: 'Przegląd tygodnia',
+    pastWeek: 'Za nami',
     subtitle: (from: string, today: string, goalName: string, goalDate: string) =>
       `${from} → ${today} · ${goalName} (${goalDate})`,
     refreshFailed: (error: string) =>

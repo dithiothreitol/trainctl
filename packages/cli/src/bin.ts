@@ -5,6 +5,9 @@
  * MCP używa tych samych handlerów i dostaje wersję bez ANSI (ui/blocks.ts).
  */
 import { Command } from 'commander'
+import { resolveLocale, setLocale } from '@tren/core'
+import { readConfigLanguage } from './config.ts'
+import { ui } from './i18n/index.ts'
 import {
   cmdAdapt,
   cmdDesk,
@@ -33,8 +36,27 @@ import { Theme } from './ui/theme.ts'
 import { withSpinner } from './ui/spinner.ts'
 import { runWizard, toYaml } from './ui/wizard.ts'
 
-const theme = new Theme()
 const cwd = process.cwd()
+
+// Język ustalamy PRZED zbudowaniem drzewa komend: opisy w `--help` też są
+// tłumaczone, a commander czyta je w momencie definiowania komendy.
+// Kolejność źródeł: --lang > TREN_LANG > language w tren.yaml > angielski.
+const langFlagIndex = process.argv.findIndex((a) => a === '--lang' || a.startsWith('--lang='))
+const langFlag =
+  langFlagIndex === -1
+    ? undefined
+    : process.argv[langFlagIndex]!.includes('=')
+      ? process.argv[langFlagIndex]!.split('=')[1]
+      : process.argv[langFlagIndex + 1]
+setLocale(
+  resolveLocale({
+    flag: langFlag,
+    env: process.env['TREN_LANG'],
+    config: readConfigLanguage(cwd),
+  }),
+)
+
+const theme = new Theme()
 const program = new Command()
 
 function print(result: CmdResult): void {
@@ -50,6 +72,7 @@ const banner =
 program
   .name('tren')
   .description(banner)
+  .option('--lang <kod>', 'język interfejsu: en | pl (albo TREN_LANG / language w tren.yaml)')
   .configureHelp({
     styleTitle: (str) => theme.bold(theme.color(str, 'accent')),
     styleCommandText: (str) => theme.color(str, 'brand'),

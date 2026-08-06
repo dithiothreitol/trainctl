@@ -7,6 +7,12 @@ import type { PushableWorkout, SyncProvider, SyncedActivity } from '@tren/core'
 import { cmdPlan, cmdPull, cmdPush } from './commands.ts'
 import { loadPlan } from './planfile.ts'
 import { compare, readApiKey, workoutsToPush, SECRET_FILE } from './sync.ts'
+import { setLocale } from '@tren/core'
+
+// Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
+// po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
+setLocale('pl')
+
 
 const CONFIG = `athlete:
   recentWeeklyKm: 55
@@ -141,10 +147,10 @@ describe('porównanie plan ↔ wykonanie', () => {
   it('klasyfikuje status dnia', () => {
     const rows = compare(plan(), activities, '2026-08-03', '2026-08-09')
     const byDate = new Map(rows.map((r) => [r.date, r]))
-    expect(byDate.get('2026-08-03')!.status).toBe('nieplanowane') // wolne, a biegał
+    expect(byDate.get('2026-08-03')!.status).toBe('unplanned') // wolne, a biegał
     const tue = byDate.get('2026-08-04')!
-    expect(['zgodne', 'krótsze', 'dłuższe']).toContain(tue.status)
-    expect(byDate.get('2026-08-06')?.status).toBe('brak wykonania')
+    expect(['matched', 'shorter', 'longer']).toContain(tue.status)
+    expect(byDate.get('2026-08-06')?.status).toBe('missed')
   })
 
   it('dni bez planu i bez wykonania są pomijane', () => {

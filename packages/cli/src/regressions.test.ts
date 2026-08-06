@@ -8,6 +8,12 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { cmdExport, cmdPlan, cmdReschedule, cmdShift, cmdToday, cmdWeek } from './commands.ts'
 import { fmtTime, loadPlan } from './planfile.ts'
+import { setLocale } from '@tren/core'
+
+// Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
+// po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
+setLocale('pl')
+
 
 const CONFIG = (extra = '') => `athlete:
   recentWeeklyKm: 55

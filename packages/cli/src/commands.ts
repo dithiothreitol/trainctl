@@ -74,6 +74,7 @@ import {
 
 // dla MCP (importuje wyłącznie z @tren/cli = commands.ts)
 export { defaultProviderFactory, hasApiKey, type ProviderFactory } from './sync.ts'
+export { readConfigLanguage } from './config.ts'
 
 /** Wykonanie = plan × (aktywności z sync ∪ wpisy z dziennika). */
 export function buildExecution(
@@ -993,7 +994,7 @@ export async function cmdReview(
     const done = rows.filter((r) => r.status === 'matched' || r.status === 'longer').length
     const missed = rows.filter((r) => r.status === 'missed')
     blocks.push(
-      b.section(ui().review.title),
+      b.section(ui().review.pastWeek),
       b.kv([
         [ui().review.volume, ui().review.volumeValue(Math.round(actualKm), Math.round(plannedKm))],
         [ui().review.doneSessions, `${done}/${rows.filter((r) => r.plannedKm > 0).length}`],

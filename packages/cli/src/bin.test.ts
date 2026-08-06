@@ -30,8 +30,13 @@ goal:
 `
 
 let dir: string
-const run = (args: string[]) =>
-  execFileSync(process.execPath, [CLI_BIN, ...args], { cwd: dir, encoding: 'utf-8' })
+/** Domyślnie po polsku — asercje w tym pliku czytają się wtedy najłatwiej. */
+const run = (args: string[], env: NodeJS.ProcessEnv = {}) =>
+  execFileSync(process.execPath, [CLI_BIN, ...args], {
+    cwd: dir,
+    encoding: 'utf-8',
+    env: { ...process.env, TREN_LANG: 'pl', ...env },
+  })
 
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), 'tren-bin-'))
@@ -58,6 +63,33 @@ describe('binarka CLI pod natywnym Node', () => {
     expect(run(['plan', '--date', '2026-08-05'])).toContain('Zapisano')
     expect(run(['today', '--date', '2026-08-04'])).toMatch(/tydzień \d+\/\d+/)
   }, 20_000) // dwa starty realnej binarki — domyślne 5 s bywa ciasne na obciążonej maszynie
+
+  it('wybór języka działa na prawdziwej binarce: --lang, TREN_LANG, domyślny angielski', () => {
+    // domyślnie angielski (czyścimy TREN_LANG, żeby nie dziedziczyć ustawienia z `run`)
+    const en = run(['today', '--date', '2026-08-04'], { TREN_LANG: '' })
+    expect(en).toMatch(/week \d+\/\d+/)
+    expect(en).not.toMatch(/[ąćęłńóśźż]/)
+
+    // zmienna środowiskowa
+    expect(run(['today', '--date', '2026-08-04'])).toMatch(/tydzień \d+\/\d+/)
+
+    // flaga bije zmienną — i to w obie strony
+    expect(run(['today', '--date', '2026-08-04', '--lang', 'en'])).toMatch(/week \d+\/\d+/)
+    expect(
+      run(['today', '--date', '2026-08-04', '--lang', 'pl'], { TREN_LANG: 'en' }),
+    ).toMatch(/tydzień \d+\/\d+/)
+
+    // nieznany język nie wywraca komendy — wraca do angielskiego
+    expect(run(['today', '--date', '2026-08-04', '--lang', 'klingon'], { TREN_LANG: '' }))
+      .toMatch(/week \d+\/\d+/)
+  }, 40_000)
+
+  it('polskie znaki przechodzą przez potok bez okaleczenia', () => {
+    const out = run(['today', '--date', '2026-08-04'])
+    expect(out).toMatch(/[ąćęłńóśźż]/)
+    // typowe objawy złego kodowania wyjścia na Windows
+    expect(out).not.toMatch(/Ã|Ĺ|â€|\?\?\?/)
+  })
 
   it('init --from-intervals bez klucza — instrukcja, nie stack trace', () => {
     const empty = mkdtempSync(join(tmpdir(), 'tren-bin-icu-'))

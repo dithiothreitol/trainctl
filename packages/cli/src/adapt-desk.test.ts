@@ -6,6 +6,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildExecution, cmdAdapt, cmdDesk, cmdLog, cmdPlan, cmdReschedule } from './commands.ts'
 import { loadPlan } from './planfile.ts'
 import { readLog } from './logfile.ts'
+import { setLocale } from '@tren/core'
+
+// Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
+// po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
+setLocale('pl')
+
 
 const BASE = `athlete:
   recentWeeklyKm: 55

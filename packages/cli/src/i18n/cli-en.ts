@@ -282,6 +282,7 @@ export const cliEn = {
 
   review: {
     title: 'Week in review',
+    pastWeek: 'Behind you',
     subtitle: (from: string, today: string, goalName: string, goalDate: string) =>
       `${from} → ${today} · ${goalName} (${goalDate})`,
     refreshFailed: (error: string) =>

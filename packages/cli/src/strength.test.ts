@@ -5,6 +5,12 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { cmdExport, cmdPlan, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { loadPlan } from './planfile.ts'
+import { setLocale } from '@tren/core'
+
+// Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
+// po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
+setLocale('pl')
+
 
 const BASE = `athlete:
   recentWeeklyKm: 55

@@ -4,7 +4,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from '@tren/core'
+import { setLocale } from '@tren/core'
 import { cmdInitFromIntervals } from './commands.ts'
+
+// Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
+// po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
+setLocale('pl')
+
 
 const TODAY = '2026-08-05'
 const CURRENT_MONDAY = mondayOf(TODAY)
