@@ -5,6 +5,7 @@ import {
   addDays,
   analyzeExecution,
   diffDays,
+  getLocale,
   inferProfile,
   messages,
   mondayOf,
@@ -1102,6 +1103,11 @@ export function cmdDiff(cwd: string): CmdResult {
     if (stored.changes.length) {
       lines.push(ui().diff.manualShifts)
     }
+    // Sam `diff` porównuje rodzaje jednostek (klucze), więc zmiana języka go nie
+    // ruszy — ale opisy w plan/PLAN.md zostają w starym. Mówimy o tym wprost,
+    // bo inaczej „plan aktualny" byłoby nieprawdą wobec tego, co widzi biegacz.
+    const current = getLocale()
+    const staleLocale = stored.locale !== undefined && stored.locale !== current
     const freshByStart = new Map(fresh.weeks.map((w) => [w.weekStart, w]))
     for (const week of stored.weeks) {
       const f = freshByStart.get(week.weekStart)
@@ -1127,12 +1133,16 @@ export function cmdDiff(cwd: string): CmdResult {
         lines.push(ui().diff.weekNew(w.weekStart, w.skeleton.targetKm))
       }
     }
+    const localeNote = staleLocale
+      ? [b.warn(ui().diff.localeChanged(stored.locale!, current))]
+      : []
     if (lines.length === 0) {
-      return okDoc([b.success(ui().diff.upToDate)])
+      return okDoc([b.success(ui().diff.upToDate), ...localeNote])
     }
     return okDoc([
       b.title(ui().diff.title),
       b.bullets(lines),
+      ...localeNote,
       b.blank(),
       b.hint(ui().diff.applyHint),
     ])

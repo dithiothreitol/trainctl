@@ -7,9 +7,13 @@
  * złapie: czy polski nie jest kalką, czy diakrytyki przeżyły, czy przetłumaczone
  * KOMENTARZE nie zepsuły składni YAML i czy nazwy narzędzi przetrwały tłumaczenie.
  */
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 import { setLocale, withLocale, type Locale } from '@tren/core'
+import { cmdDiff, cmdPlan } from '../commands.ts'
 import { configTemplate, inferredConfigYaml } from '../config.ts'
 import { cliEn, type CliMessages } from './cli-en.ts'
 import { cliPl } from './cli-pl.ts'
@@ -268,6 +272,42 @@ describe('ui() podąża za językiem', () => {
       expect(ui().common.cancelled).toBe(cliPl.common.cancelled)
     } finally {
       setLocale(previous)
+    }
+  })
+})
+
+describe('plan pamięta język, w którym powstał', () => {
+  it('tren diff mówi, że opisy w PLAN.md są w innym języku niż bieżący', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'tren-locale-'))
+    try {
+      writeFileSync(
+        join(dir, 'tren.yaml'),
+        `athlete:
+  recentWeeklyKm: 45
+  daysAvailable: [tue, thu, sat]
+  results:
+    - { date: "2026-03-29", distanceKm: 10, timeSec: 2580 }
+goal:
+  name: "Autumn Half"
+  date: "2026-11-29"
+  distanceKm: 21.0975
+  priority: A
+`,
+        'utf-8',
+      )
+      withLocale('pl', () => cmdPlan(dir, { date: '2026-08-06' }))
+
+      // ten sam plan czytany po angielsku: rodzaje jednostek się zgadzają,
+      // ale opisy w plan/PLAN.md zostały polskie — i to musi być powiedziane
+      const enDiff = withLocale('en', () => cmdDiff(dir))
+      expect(enDiff.output).toContain('"pl"')
+      expect(enDiff.output).toContain('tren plan')
+
+      // bez zmiany języka żadnej uwagi nie ma
+      const plDiff = withLocale('pl', () => cmdDiff(dir))
+      expect(plDiff.output).not.toContain('„pl”')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
     }
   })
 })
