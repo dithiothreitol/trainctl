@@ -6,6 +6,7 @@ import {
   analyzeExecution,
   diffDays,
   inferProfile,
+  messages,
   mondayOf,
   planDeskDay,
   reschedule,
@@ -18,6 +19,7 @@ import {
   type Weekday,
 } from '@tren/core'
 import { AGENTS_FILE, AGENTS_TEMPLATE } from './agents-md.ts'
+import { ui } from './i18n/index.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, logFor, parseTime, readLog, type LogEntry } from './logfile.ts'
 import {
@@ -53,24 +55,11 @@ export const KIND_COLOR: Record<string, ColorName> = {
   race: 'race',
 }
 
-const KIND_LABEL: Record<string, string> = {
-  easy: 'spokojne',
-  long: 'długie',
-  easy_hills: 'podbiegi',
-  quality_intervals: 'interwały',
-  quality_continuous: 'akcent ciągły',
-  sharpener: 'rozruch',
-  test: 'SPRAWDZIAN',
-  race: 'START',
-}
-
-const PHASE_LABEL: Record<string, string> = {
-  base: 'baza',
-  build: 'budowanie',
-  peak: 'szczyt',
-  taper: 'taper',
-  race: 'tydzień startowy',
-}
+/** Etykiety jednostek i faz pochodzą z katalogu — zmieniają się razem z językiem. */
+export const kindLabel = (kind: string): string =>
+  (messages().kind as Record<string, string>)[kind] ?? kind
+export const phaseLabel = (phase: string): string =>
+  (messages().phase as Record<string, string>)[phase] ?? phase
 import {
   compare,
   defaultProviderFactory,
@@ -153,15 +142,9 @@ export function localToday(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
-const WEEKDAY_PL: Record<Weekday, string> = {
-  mon: 'poniedziałek', tue: 'wtorek', wed: 'środa', thu: 'czwartek',
-  fri: 'piątek', sat: 'sobota', sun: 'niedziela',
-}
-
-/** Skróty jak w planach trenera (korpus). */
-const WEEKDAY_SHORT: Record<Weekday, string> = {
-  mon: 'PN', tue: 'WT', wed: 'ŚR', thu: 'CZ', fri: 'PT', sat: 'SB', sun: 'ND',
-}
+const weekdayName = (day: Weekday): string => messages().weekday[day]
+/** Skróty jak w planach trenera (korpus) — po angielsku Mon/Tue/… */
+const weekdayShort = (day: Weekday): string => messages().weekdayShort[day]
 
 /** Sekundy → H:MM:SS albo MM:SS — do pokazywania czasów kandydatów. */
 export function fmtClock(sec: number): string {
@@ -206,32 +189,32 @@ export async function cmdInitFromIntervals(
     const blocks: Block[] = [
       b.success(`Utworzono ${CONFIG_FILE} z profilu intervals.icu`),
       b.kv([
-        ['Okno danych', `${p.window.oldest} → ${p.window.newest} (${INFER_WINDOW_WEEKS} pełnych tygodni)`],
-        ['Objętość bieżąca', `${p.recentWeeklyKm} km/tydz. (${p.recentBasis})`],
+        [ui().init.window, `${p.window.oldest} → ${p.window.newest} (${INFER_WINDOW_WEEKS} pełnych tygodni)`],
+        [ui().init.currentVolume, `${p.recentWeeklyKm} km/tydz. (${p.recentBasis})`],
         ...(p.peakWeeklyKm !== undefined
-          ? ([['Szczyt okna', `${p.peakWeeklyKm} km/tydz.`]] as [string, string][])
+          ? ([[ui().init.windowPeak, `${p.peakWeeklyKm} km/tydz.`]] as [string, string][])
           : []),
-        ['Dni treningowe', p.daysAvailable.join(', ')],
-        ...(p.longRunDay ? ([['Długie wybieganie', p.longRunDay]] as [string, string][]) : []),
-        ['Ostatnie 4 tygodnie', recent4.map((km) => `${km} km`).join(' · ')],
+        [ui().init.trainingDays, p.daysAvailable.join(', ')],
+        ...(p.longRunDay ? ([[ui().init.longRunDay, p.longRunDay]] as [string, string][]) : []),
+        [ui().init.lastFourWeeks, recent4.map((km) => `${km} km`).join(' · ')],
       ]),
     ]
     for (const c of p.caveats) blocks.push(b.warn(c))
     if (p.raceCandidates.length) {
       blocks.push(
-        b.section('Możliwe starty do kalibracji stref (potwierdź zanim dopiszesz!)'),
+        b.section(ui().init.raceCandidates),
         b.bullets(
           p.raceCandidates.slice(0, 5).map(
             (c) =>
-              `${c.date} · ${c.name ?? 'bez nazwy'} · ${c.distanceKm} km w ${fmtClock(c.timeSec)} (${c.reason})` +
+              `${c.date} · ${c.name ?? ui().init.unnamed} · ${c.distanceKm} km w ${fmtClock(c.timeSec)} (${c.reason})` +
               ` → results: { date: "${c.date}", distanceKm: ${c.distanceKm}, timeSec: ${c.timeSec} }`,
           ),
         ),
       )
     } else {
-      blocks.push(b.info('Nie znalazłem kandydatów na starty — wynik do kalibracji dopisz ręcznie.'))
+      blocks.push(b.info(ui().init.noRaceCandidates))
     }
-    blocks.push(b.blank(), b.hint('uzupełnij sekcję goal w tren.yaml → tren plan'))
+    blocks.push(b.blank(), b.hint(ui().init.fillGoal))
     return okDoc(blocks)
   } catch (e) {
     return fail(e)
@@ -259,12 +242,9 @@ export function cmdInit(cwd: string, content?: string): CmdResult {
       ...(content
         ? []
         : [
-            b.text(
-              'Uzupełnij profil — zwłaszcza results: strefy kalibrujemy z wyników startów, ' +
-                'nie z odczytów zegarka.',
-            ),
+            b.text(ui().init.fillProfile),
           ]),
-      b.hint('następny krok: tren plan'),
+      b.hint(ui().common.nextStep('tren plan')),
     ])
   } catch (e) {
     return fail(e)
@@ -285,9 +265,12 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
         `${plan.goal.date} · ${weeksToRace} tygodni planu`,
       ),
       b.kv([
-        ['Szczyt objętości', `${plan.peakKmPlanned} km/tydz.`],
-        ['Rekomendacja dla dystansu', `${plan.peakKmRecommended} km/tydz.`],
-        ['VDOT', `${plan.vdot} (${plan.vdotSource === 'result' ? 'z wyniku startu' : 'z celu — do rekalibracji'})`],
+        [ui().plan.volumePeak, messages().units.kmPerWeek(plan.peakKmPlanned)],
+        [ui().plan.recommendedForDistance, messages().units.kmPerWeek(plan.peakKmRecommended)],
+        [
+          ui().plan.vdot,
+          `${plan.vdot} (${plan.vdotSource === 'result' ? ui().plan.vdotFromResult : ui().plan.vdotFromGoal})`,
+        ],
       ]),
     ]
 
@@ -295,20 +278,20 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
       const range = `${fmtTime(plan.prediction.loSec)} – ${fmtTime(plan.prediction.hiSec)}`
       blocks.push(b.blank(), b.panel('Predykcja wyniku', [
         `${range}   (metoda: ${plan.prediction.method})`,
-        'Zawsze przedział, nigdy pojedyncza liczba (W-1).',
+        ui().plan.predictionAlwaysRange,
       ], 'brand'))
       const target = plan.goal.targetTimeSec
       if (target) {
         if (target < plan.prediction.loSec) {
           blocks.push(
             b.warn(
-              `Cel ${fmtTime(target)} jest ambitniejszy niż przedział — realny przy idealnym cyklu albo wart korekty.`,
+              ui().plan.goalAmbitious(fmtTime(target)),
             ),
           )
         } else if (target > plan.prediction.hiSec) {
-          blocks.push(b.info(`Cel ${fmtTime(target)} jest zachowawczy względem predykcji.`))
+          blocks.push(b.info(ui().plan.goalConservative(fmtTime(target))))
         } else {
-          blocks.push(b.success(`Cel ${fmtTime(target)} mieści się w przedziale predykcji.`))
+          blocks.push(b.success(ui().plan.goalInRange(fmtTime(target))))
         }
       }
     }
@@ -318,7 +301,7 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
     let current = ''
     let from = 0
     plan.weeks.forEach((w, i) => {
-      const label = PHASE_LABEL[w.skeleton.phase] ?? w.skeleton.phase
+      const label = phaseLabel(w.skeleton.phase)
       if (label !== current) {
         if (current) phases.push(`${current}: tyg. ${from + 1}–${i}`)
         current = label
@@ -350,7 +333,7 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
     const hit = findDay(plan, date)
     if (!hit) {
       return okDoc([
-        b.warn(`${date}: poza zakresem planu (${plan.weeks[0]?.weekStart} ${plan.goal.date}).`),
+        b.warn(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', plan.goal.date)),
       ])
     }
     const { week, day } = hit
@@ -358,19 +341,19 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
     const toRace = diffDays(date, plan.goal.date)
     const blocks: Block[] = [
       b.title(
-        `${date} · ${WEEKDAY_PL[day.weekday]}`,
-        `tydzień ${sk.index + 1}/${plan.weeks.length} · ${PHASE_LABEL[sk.phase] ?? sk.phase}` +
-          `${sk.deload ? ' · odciążenie' : ''} · do startu: ${toRace} dni`,
+        `${date} · ${weekdayName(day.weekday)}`,
+        `${ui().today.weekOf(sk.index + 1, plan.weeks.length)} · ${phaseLabel(sk.phase)}` +
+          `${sk.deload ? ` · ${ui().today.deload}` : ''} · ${ui().today.daysToRace(toRace)}`,
       ),
     ]
 
     if (!day.workout) {
-      blocks.push(b.panel('Dzień wolny', ['Odpoczynek jest częścią planu — adaptacja zachodzi w regeneracji.'], 'muted'))
+      blocks.push(b.panel(ui().today.restDayTitle, [ui().today.restDayBody], 'muted'))
     } else {
       const w = day.workout
       blocks.push(
         b.panel(
-          `${KIND_LABEL[w.kind] ?? w.kind} · ${w.distanceKm} km`,
+          `${kindLabel(w.kind)} · ${w.distanceKm} km`,
           [workoutText(day)],
           KIND_COLOR[w.kind] ?? 'accent',
         ),
@@ -380,17 +363,14 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
     if (day.strength) {
       const kind = day.workout?.kind
       const advice = !kind
-        ? 'Dzień bez biegania — idealny na siłę (zero konfliktu z sesjami biegowymi).'
+        ? ui().today.strengthAloneDay
         : kind === 'easy'
-          ? 'Osobno od biegania: ≥3 h odstępu (S-4). Bieg spokojny obok siły jest OK — ' +
-            'wysiłek submaksymalny 24 h po sile nie wykazuje pogorszenia (S-5).'
+          ? ui().today.strengthWithEasy
           : kind === 'long'
-            ? 'Osobno od długiego: ≥3 h odstępu (S-4). Jeśli masz wybór — siłownia PO wybieganiu, ' +
-              'nie przed; długie jest dziś ważniejszą jednostką.'
-            : `UWAGA: dziś jest też ${KIND_LABEL[kind] ?? kind} — S-5 odradza łączenie ciężkiej siły ` +
-              'z jednostką jakościową. Przenieś siłownię na inny dzień (albo odpuść ją w tym tygodniu).'
+            ? ui().today.strengthWithLong
+            : ui().today.strengthWithQuality(kindLabel(kind))
       blocks.push(
-        b.panel(`Siła · ~${day.strength.durationMin} min`, [day.strength.description], 'accent'),
+        b.panel(ui().today.strengthTitle(day.strength.durationMin), [day.strength.description], 'accent'),
         kind && !['easy', 'long'].includes(kind) ? b.warn(advice) : b.text(advice, 'muted'),
       )
     }
@@ -398,13 +378,13 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
     if (entry) {
       blocks.push(
         b.success(
-          `Zalogowano: ${entry.status}` +
+          ui().today.logged(entry.status) +
             (entry.km ? `, ${entry.km} km` : '') +
             (entry.note ? ` — ${entry.note}` : ''),
         ),
       )
     }
-    if (day.workout) blocks.push(b.hint(`dlaczego ten trening: tren why --date ${date}`))
+    if (day.workout) blocks.push(b.hint(ui().today.whyHint(date)))
     return okDoc(blocks)
   } catch (e) {
     return fail(e)
@@ -416,7 +396,7 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
     const hit = findDay(plan, date)
-    if (!hit) return ok(`${date}: poza zakresem planu (${plan.weeks[0]?.weekStart} → ${plan.goal.date}).`)
+    if (!hit) return ok(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', plan.goal.date))
     const { week } = hit
     const sk = week.skeleton
     const model = sk.intensityModel === 'pyramidal' ? 'piramidalnie' : 'polaryzacja'
@@ -429,24 +409,24 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
       const kind = day.workout?.kind
       const strength = day.strength ? ` + SIŁA ~${day.strength.durationMin} min` : ''
       rows.push([
-        WEEKDAY_SHORT[day.weekday],
+        weekdayShort(day.weekday),
         day.date.slice(5),
         day.workout ? `${day.workout.distanceKm} km` : '—',
-        day.workout ? `${workoutText(day)}${strength}${mark}` : `wolne${strength}`,
+        day.workout ? `${workoutText(day)}${strength}${mark}` : `${ui().week.rest}${strength}`,
       ])
       accents.push(kind ? KIND_COLOR[kind] : 'muted')
     }
     const blocks: Block[] = [
       b.title(
-        `Tydzień ${sk.index + 1}/${plan.weeks.length} · od ${week.weekStart}`,
-        `${PHASE_LABEL[sk.phase] ?? sk.phase} (${model}) · cel ${sk.targetKm} km · zaplanowano ${week.totalKm} km` +
-          `${sk.deload ? ' · ODCIĄŻENIE' : ''}`,
+        ui().week.title(sk.index + 1, plan.weeks.length, week.weekStart),
+        ui().week.subtitle(phaseLabel(sk.phase), model, sk.targetKm, week.totalKm) +
+          (sk.deload ? ` · ${ui().week.deloadUpper}` : ''),
       ),
-      b.table(['dzień', 'data', 'km', 'trening'], rows, accents),
+      b.table([ui().week.columns.day, ui().week.columns.date, ui().week.columns.km, ui().week.columns.workout], rows, accents),
     ]
-    if (sk.raceDate) blocks.push(b.info(`Start w tym tygodniu: ${sk.raceDate}`))
+    if (sk.raceDate) blocks.push(b.info(ui().week.raceThisWeek(sk.raceDate)))
     if (sk.keepIntensity) {
-      blocks.push(b.info('Taper: objętość w dół, ale intensywność i liczba sesji zostają (T-1/T-2).'))
+      blocks.push(b.info(ui().week.taperNote))
     }
     return okDoc(blocks)
   } catch (e) {
@@ -496,9 +476,9 @@ export function cmdShift(cwd: string, opts: { from: string; to: string }): CmdRe
       detail: `${opts.from} ↔ ${opts.to}`,
     })
     writePlan(cwd, plan)
-    const blocks: Block[] = [b.success(`Zamieniono treningi ${opts.from} ↔ ${opts.to}`)]
+    const blocks: Block[] = [b.success(ui().shift.swapped(opts.from, opts.to))]
     for (const w of warnings) blocks.push(b.warn(w))
-    blocks.push(b.hint(`podgląd tygodnia: tren week --date ${opts.to}`))
+    blocks.push(b.hint(ui().shift.weekHint(opts.to)))
     return okDoc(blocks)
   } catch (e) {
     return fail(e)
@@ -510,41 +490,30 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
     const hit = findDay(plan, date)
-    if (!hit) return ok(`${date}: poza zakresem planu.`)
+    if (!hit) return ok(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', plan.goal.date))
     const { week, day } = hit
     const sk = week.skeleton
     const blocks: Block[] = [
       b.title(
-        `Dlaczego ten trening · ${date}`,
-        `faza: ${PHASE_LABEL[sk.phase] ?? sk.phase} (${sk.intensityModel === 'pyramidal' ? 'piramidalnie' : 'polaryzacja'})` +
-          `${sk.deload ? ' · tydzień odciążeniowy' : ''}`,
+        ui().why.title(date),
+        ui().why.phaseLine(phaseLabel(sk.phase), messages().intensityModel[sk.intensityModel]) +
+          (sk.deload ? ` · ${ui().why.deloadWeek}` : ''),
       ),
     ]
     if (!day.workout && !day.strength) {
-      blocks.push(
-        b.text(
-          'Dzień wolny. Adaptacja zachodzi w regeneracji — plan trenera zakładał ' +
-            '2–3 dni wolne tygodniowo (korpus: PN 94%, PT 92%).',
-        ),
-      )
+      blocks.push(b.text(ui().why.restDay))
       return okDoc(blocks)
     }
     if (day.strength) {
       blocks.push(
-        b.panel('Siła', [day.strength.description], 'accent'),
-        b.section('Po co siła biegaczowi'),
-        b.text(
-          'Cel: ekonomia biegu — mniejszy koszt tlenowy tej samej prędkości (F-8, efekt mały: ' +
-            '~2–8% RE w badaniach 10+ tygodni). To NIE jest „ochrona przed urazami" — jedyna ' +
-            'metaanaliza na biegaczach dała wynik nieistotny (F-9). Uczciwie: u biegaczy 34–45 lat ' +
-            'efekt na ekonomię też wychodzi nieistotny (F-15), a dowody na wynik kończą się na ' +
-            '1,5–10 km w laboratorium (F-17). W taperze siła znika z planu (F-13).',
-        ),
+        b.panel(ui().today.strengthTitle(day.strength.durationMin), [day.strength.description], 'accent'),
+        b.section(ui().why.strengthPurposeTitle),
+        b.text(ui().why.strengthPurpose),
       )
       const refs = day.strength.ruleRefs.filter((r) => RULE_EXPLAIN[r]).map((r) => `${r} — ${RULE_EXPLAIN[r]}`)
-      if (refs.length) blocks.push(b.section('Reguły siły'), b.bullets(refs))
+      if (refs.length) blocks.push(b.section(ui().why.strengthRules), b.bullets(refs))
       if (!day.workout) {
-        blocks.push(b.blank(), b.hint('źródła i parametry: docs/science/FOUNDATIONS.md §10.8'))
+        blocks.push(b.blank(), b.hint(ui().why.sourcesHint('§10.8')))
         return okDoc(blocks)
       }
       blocks.push(b.blank())
@@ -552,13 +521,13 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
     const workout = day.workout
     if (!workout) return okDoc(blocks)
     blocks.push(
-      b.panel(KIND_LABEL[workout.kind] ?? workout.kind, [KIND_PURPOSE[workout.kind]],
+      b.panel(kindLabel(workout.kind), [KIND_PURPOSE[workout.kind]],
         KIND_COLOR[workout.kind] ?? 'accent'),
     )
     const refs = [...new Set([...workout.ruleRefs, ...sk.ruleRefs])].sort()
     const explained = refs.filter((r) => RULE_EXPLAIN[r]).map((r) => `${r} — ${RULE_EXPLAIN[r]}`)
-    if (explained.length) blocks.push(b.section('Reguły'), b.bullets(explained))
-    blocks.push(b.blank(), b.hint('źródła i parametry: docs/science/FOUNDATIONS.md §10'))
+    if (explained.length) blocks.push(b.section(ui().why.rules), b.bullets(explained))
+    blocks.push(b.blank(), b.hint(ui().why.sourcesHint('§10')))
     return okDoc(blocks)
   } catch (e) {
     return fail(e)
@@ -579,7 +548,7 @@ export async function cmdPush(
     const plan = loadPlan(cwd)
     const workouts = workoutsToPush(plan, from, to)
     if (workouts.length === 0) {
-      return ok(`Brak treningów do wypchnięcia w zakresie ${from} → ${to}.`)
+      return ok(ui().push.nothingToPush(from, to))
     }
     const provider = factory(cwd)
     const res = await provider.pushWorkouts(workouts)
@@ -606,17 +575,17 @@ export async function cmdPush(
     }
 
     return okDoc([
-      b.success(`Wypchnięto ${res.pushed} treningów do ${provider.name} (${from} → ${to})`),
+      b.success(ui().push.pushed(res.pushed, provider.name, from, to)),
       ...(stale.length
-        ? [b.info(`Usunięto ${stale.length} nieaktualnych wpisów: ${stale.join(', ')}`)]
+        ? [b.info(ui().push.removedStale(stale.length, stale.join(', ')))]
         : []),
       b.table(
-        ['data', 'trening'],
+        [ui().push.columns.date, ui().push.columns.workout],
         workouts.map((w) => [w.date, w.name]),
       ),
       b.blank(),
-      b.info('Trafią na zegarek przy najbliższej synchronizacji urządzenia.'),
-      b.hint('ponowny push tych samych dni nadpisuje wpisy (upsert po external_id)'),
+      b.info(ui().push.willSync),
+      b.hint(ui().push.upsertHint),
     ])
   } catch (e) {
     return fail(e)
@@ -641,37 +610,37 @@ export async function cmdPull(
     const runs = activities.filter((a) => /run/i.test(a.type))
     const km = Math.round(runs.reduce((s, a) => s + (a.distanceKm ?? 0), 0))
     const blocks: Block[] = [
-      b.title(`Pobrano z ${provider.name}`, `${from} → ${to}`),
+      b.title(ui().pull.title(provider.name), `${from} → ${to}`),
       b.kv([
-        ['Aktywności', `${activities.length} (biegowych: ${runs.length}, ${km} km)`],
-        ['Wpisy wellness', String(wellness.length)],
-        ['Zapisano', SYNC_FILE],
+        [ui().pull.activities, ui().pull.activitiesValue(activities.length, runs.length, km)],
+        [ui().pull.wellnessEntries, String(wellness.length)],
+        [ui().pull.savedTo, SYNC_FILE],
       ]),
     ]
     try {
       const plan = loadPlan(cwd)
-      const rows = compare(plan, activities, from, to).filter((r) => r.status !== 'zgodne')
+      const rows = compare(plan, activities, from, to).filter((r) => r.status !== 'matched')
       if (rows.length) {
         blocks.push(
-          b.section('Rozjazdy plan ↔ wykonanie'),
+          b.section(ui().pull.mismatches),
           b.table(
-            ['data', 'plan', 'wykonano', 'status'],
+            [ui().pull.columns.date, ui().pull.columns.planned, ui().pull.columns.actual, ui().pull.columns.status],
             rows.slice(-10).map((r) => [
               r.date,
               `${r.plannedKm} km`,
               r.actualKm === undefined ? '—' : `${r.actualKm} km`,
-              r.status,
+              ui().compare[r.status],
             ]),
-            rows.slice(-10).map((r) => (r.status === 'brak wykonania' ? 'warn' : 'muted')),
+            rows.slice(-10).map((r) => (r.status === 'missed' ? 'warn' : 'muted')),
           ),
           b.blank(),
-          b.hint('propozycje korekt: tren adapt'),
+          b.hint(ui().pull.adaptHint),
         )
       } else {
-        blocks.push(b.success('Wykonanie zgodne z planem w całym zakresie.'))
+        blocks.push(b.success(ui().pull.allMatched))
       }
     } catch {
-      blocks.push(b.info('Brak planu — pominięto porównanie.'))
+      blocks.push(b.info(ui().pull.noPlanSkipped))
     }
     return okDoc(blocks)
   } catch (e) {
@@ -809,7 +778,7 @@ export function cmdDesk(
     if (workout) {
       blocks.push(
         b.panel(
-          `${KIND_LABEL[workout.kind] ?? workout.kind} · ${workout.distanceKm} km`,
+          `${kindLabel(workout.kind)} · ${workout.distanceKm} km`,
           day.recommended
             ? [`Proponowane okno: ${day.recommended.label} (${day.recommended.from}–${day.recommended.to})`]
             : ['Żadne okno dnia pracy nie mieści tej jednostki.'],
@@ -880,9 +849,9 @@ export function cmdReschedule(
         ['dzień', 'data', 'było', 'będzie'],
         week.days.map((before, i) => {
           const after = result.days[i]!
-          const label = (k?: string) => (k ? (KIND_LABEL[k] ?? k) : '—')
+          const label = (k?: string) => (k ? (kindLabel(k)) : '—')
           return [
-            WEEKDAY_SHORT[before.weekday],
+            weekdayShort(before.weekday),
             before.date.slice(5),
             label(before.workout?.kind),
             label(after.workout?.kind),
@@ -1001,19 +970,19 @@ export async function cmdReview(
         ])
         writeSnapshot(cwd, { pulledAt: today, activities, wellness })
       } catch (e) {
-        notes.push(
-          `Nie udało się odświeżyć danych (${e instanceof Error ? e.message : e}) — ` +
-            'przegląd na ostatniej migawce.',
-        )
+        notes.push(ui().review.refreshFailed(e instanceof Error ? e.message : String(e)))
       }
     } else {
-      notes.push('Bez klucza API — przegląd z dziennika i ostatniej migawki (tren pull po klucz).')
+      notes.push(ui().review.noKey)
     }
 
     const snapshot = readSnapshot(cwd)
     const logs = readLog(cwd)
     const blocks: Block[] = [
-      b.title('Przegląd tygodnia', `${from} → ${today} · ${plan.goal.name} (${plan.goal.date})`),
+      b.title(
+        ui().review.title,
+        ui().review.subtitle(from, today, plan.goal.name, plan.goal.date),
+      ),
     ]
     for (const n of notes) blocks.push(b.info(n))
 
@@ -1021,15 +990,15 @@ export async function cmdReview(
     const rows = compare(plan, snapshot?.activities ?? [], from, today)
     const plannedKm = rows.reduce((s, r) => s + r.plannedKm, 0)
     const actualKm = rows.reduce((s, r) => s + (r.actualKm ?? 0), 0)
-    const done = rows.filter((r) => r.status === 'zgodne' || r.status === 'dłuższe').length
-    const missed = rows.filter((r) => r.status === 'brak wykonania')
+    const done = rows.filter((r) => r.status === 'matched' || r.status === 'longer').length
+    const missed = rows.filter((r) => r.status === 'missed')
     blocks.push(
-      b.section('Za nami'),
+      b.section(ui().review.title),
       b.kv([
-        ['Objętość', `${Math.round(actualKm)} z ${Math.round(plannedKm)} km planu`],
-        ['Sesje zgodne z planem', `${done} z ${rows.filter((r) => r.plannedKm > 0).length}`],
+        [ui().review.volume, ui().review.volumeValue(Math.round(actualKm), Math.round(plannedKm))],
+        [ui().review.doneSessions, `${done}/${rows.filter((r) => r.plannedKm > 0).length}`],
         ...(missed.length
-          ? ([['Bez wykonania', missed.map((r) => r.date.slice(5)).join(', ')]] as [string, string][])
+          ? ([[ui().compare.missed, missed.map((r) => r.date.slice(5)).join(', ')]] as [string, string][])
           : []),
       ]),
     )
@@ -1064,7 +1033,7 @@ export async function cmdReview(
       blocks.push(
         b.section(`Przed nami · tydzień od ${week.weekStart}`),
         b.kv([
-          ['Faza', `${PHASE_LABEL[sk.phase] ?? sk.phase}${sk.deload ? ' · odciążenie' : ''}`],
+          ['Faza', `${phaseLabel(sk.phase)}${sk.deload ? ' · odciążenie' : ''}`],
           ['Objętość', `${week.totalKm} km w ${upcoming.length} sesjach`],
           ['Do startu', `${diffDays(today, plan.goal.date)} dni`],
         ]),

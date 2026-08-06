@@ -7,6 +7,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { addDays, type SyncProvider, type SyncedActivity, type SyncedWellness } from '@tren/core'
 import { IntervalsIcuProvider, toPushableWorkout } from '@tren/sync-intervalsicu'
+import { ui } from './i18n/index.ts'
 import { loadPlan, type StoredPlan } from './planfile.ts'
 
 export const SECRET_FILE = '.tren-secret'
@@ -26,11 +27,7 @@ export function readApiKey(cwd: string): string {
     const key = readFileSync(path, 'utf-8').trim()
     if (key) return key
   }
-  throw new Error(
-    'Brak klucza API intervals.icu. Ustaw zmienną TREN_INTERVALS_API_KEY ' +
-      `albo zapisz klucz w pliku ${SECRET_FILE} (dodaj go do .gitignore!).\n` +
-      'Klucz: intervals.icu → Settings → Developer Settings.',
-  )
+  throw new Error(ui().sync.missingKey(SECRET_FILE))
 }
 
 /** Czy klucz jest osiągalny — bez rzucania (kreator pyta o pobranie historii tylko wtedy). */
@@ -72,7 +69,8 @@ export interface Comparison {
   date: string
   plannedKm: number
   actualKm?: number
-  status: 'zgodne' | 'krótsze' | 'dłuższe' | 'brak wykonania' | 'nieplanowane'
+  /** Klucz statusu — niezależny od języka; etykietę dokłada warstwa prezentacji. */
+  status: 'matched' | 'shorter' | 'longer' | 'missed' | 'unplanned'
 }
 
 export function compare(plan: StoredPlan, activities: SyncedActivity[], from: string, to: string): Comparison[] {
@@ -92,11 +90,11 @@ export function compare(plan: StoredPlan, activities: SyncedActivity[], from: st
       seen.add(day.date)
       if (!day.workout && acts.length === 0) continue
       let status: Comparison['status']
-      if (!day.workout) status = 'nieplanowane'
-      else if (acts.length === 0) status = 'brak wykonania'
-      else if (actualKm < plannedKm * 0.85) status = 'krótsze'
-      else if (actualKm > plannedKm * 1.15) status = 'dłuższe'
-      else status = 'zgodne'
+      if (!day.workout) status = 'unplanned'
+      else if (acts.length === 0) status = 'missed'
+      else if (actualKm < plannedKm * 0.85) status = 'shorter'
+      else if (actualKm > plannedKm * 1.15) status = 'longer'
+      else status = 'matched'
       out.push({
         date: day.date,
         plannedKm,
@@ -111,7 +109,7 @@ export function compare(plan: StoredPlan, activities: SyncedActivity[], from: st
       date,
       plannedKm: 0,
       actualKm: Math.round(acts.reduce((s, a) => s + (a.distanceKm ?? 0), 0) * 10) / 10,
-      status: 'nieplanowane',
+      status: 'unplanned',
     })
   }
   return out.sort((a, b) => a.date.localeCompare(b.date))
