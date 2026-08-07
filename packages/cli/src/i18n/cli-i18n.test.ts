@@ -307,7 +307,7 @@ goal:
       const plDiff = withLocale('pl', () => cmdDiff(dir))
       expect(plDiff.output).not.toContain('„pl”')
     } finally {
-      rmSync(dir, { recursive: true, force: true })
+      rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
     }
   })
 })

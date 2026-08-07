@@ -52,7 +52,7 @@ const setup = (yaml: string) => {
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'trainctl-tu-'))
 })
-afterEach(() => rmSync(dir, { recursive: true, force: true }))
+afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('konfiguracja startów kontrolnych', () => {
   it('wczytuje tuneUpRaces i domyśla priority B', () => {

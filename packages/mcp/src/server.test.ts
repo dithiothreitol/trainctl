@@ -49,7 +49,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close()
-  rmSync(dir, { recursive: true, force: true })
+  rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
 })
 
 describe('serwer MCP trainctl', () => {
@@ -198,7 +198,7 @@ describe('trainctl_init fromIntervals — profil z historii przez agenta', () =>
 
   afterAll(async () => {
     await icuClient.close()
-    rmSync(icuDir, { recursive: true, force: true })
+    rmSync(icuDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 
   it('tworzy trainctl.yaml z proweniencją; agent dostaje instrukcję potwierdzania', async () => {

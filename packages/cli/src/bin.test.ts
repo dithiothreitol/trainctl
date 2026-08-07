@@ -42,7 +42,7 @@ beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), 'trainctl-bin-'))
   writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
 })
-afterAll(() => rmSync(dir, { recursive: true, force: true }))
+afterAll(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('binarka CLI pod natywnym Node', () => {
   it('--help działa (parsowanie całego drzewa komend)', () => {
@@ -105,7 +105,7 @@ describe('binarka CLI pod natywnym Node', () => {
     }
     expect(output).toContain('Developer Settings')
     expect(output).not.toContain('ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX')
-    rmSync(empty, { recursive: true, force: true })
+    rmSync(empty, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 
   it('push bez klucza API ładuje adapter sync i zwraca instrukcję', () => {

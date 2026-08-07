@@ -56,7 +56,7 @@ let dir: string
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'trainctl-initicu-'))
 })
-afterEach(() => rmSync(dir, { recursive: true, force: true }))
+afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('cmdInitFromIntervals', () => {
   it('zapisuje trainctl.yaml z wartościami i komentarzami proweniencji', async () => {

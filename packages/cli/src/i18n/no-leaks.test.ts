@@ -101,7 +101,7 @@ beforeAll(() => {
   writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
   cmdPlan(dir, { date: TODAY })
 })
-afterAll(() => rmSync(dir, { recursive: true, force: true }))
+afterAll(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('komendy po angielsku nie przeciekają polskim', () => {
   const cases: [string, () => { output: string }][] = [

@@ -56,7 +56,7 @@ beforeEach(() => {
   writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 })
-afterEach(() => rmSync(dir, { recursive: true, force: true }))
+afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('trainctl review — z kluczem API', () => {
   it('odświeża dane i pokazuje wszystkie cztery sekcje', async () => {
@@ -135,7 +135,7 @@ describe('trainctl review — treść merytoryczna', () => {
     const empty = mkdtempSync(join(tmpdir(), 'trainctl-rev-none-'))
     const r = await cmdReview(empty, { date: TODAY }, factory)
     expect(r.code).toBe(1)
-    rmSync(empty, { recursive: true, force: true })
+    rmSync(empty, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 })
 
@@ -149,7 +149,7 @@ describe('pakiet onboardingowy agenta', () => {
     expect(text).toContain('trainctl_review')
     expect(text).toContain('Nie regeneruj planu bez pytania')
     expect(text).toContain('athlete.results')
-    rmSync(fresh, { recursive: true, force: true })
+    rmSync(fresh, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 
   it('istniejącego AGENTS.md nie nadpisuje (użytkownik mógł go zmienić)', () => {
@@ -157,6 +157,6 @@ describe('pakiet onboardingowy agenta', () => {
     writeFileSync(join(fresh, AGENTS_FILE), 'moje zasady', 'utf-8')
     cmdInit(fresh)
     expect(readFileSync(join(fresh, AGENTS_FILE), 'utf-8')).toBe('moje zasady')
-    rmSync(fresh, { recursive: true, force: true })
+    rmSync(fresh, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 })

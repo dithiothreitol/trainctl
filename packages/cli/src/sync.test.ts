@@ -60,7 +60,7 @@ beforeAll(() => {
   writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 })
-afterAll(() => rmSync(dir, { recursive: true, force: true }))
+afterAll(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('klucz API', () => {
   it('czyta z pliku .trainctl-secret', () => {
@@ -71,7 +71,7 @@ describe('klucz API', () => {
   it('bez klucza — instrukcja, nie stack trace', () => {
     const empty = mkdtempSync(join(tmpdir(), 'trainctl-nokey-'))
     expect(() => readApiKey(empty)).toThrow(/Developer Settings/)
-    rmSync(empty, { recursive: true, force: true })
+    rmSync(empty, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 })
 

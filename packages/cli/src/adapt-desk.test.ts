@@ -38,7 +38,7 @@ beforeAll(() => {
   writeFileSync(join(dir, 'trainctl.yaml'), WITH_DESK, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 })
-afterAll(() => rmSync(dir, { recursive: true, force: true }))
+afterAll(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('buildExecution', () => {
   it('scala plan z sync i dziennikiem; klasyfikuje statusy', () => {
@@ -133,7 +133,7 @@ describe('trainctl desk', () => {
     const r = cmdDesk(bare, { date: '2026-08-04' })
     expect(r.code).toBe(1)
     expect(r.output).toContain('workStart')
-    rmSync(bare, { recursive: true, force: true })
+    rmSync(bare, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 
   it('działa bez wygenerowanego planu (same przerwy)', () => {
@@ -142,7 +142,7 @@ describe('trainctl desk', () => {
     const r = cmdDesk(bare, { date: '2026-08-04' })
     expect(r.code).toBe(0)
     expect(r.output).toContain('Dziś bez biegania')
-    rmSync(bare, { recursive: true, force: true })
+    rmSync(bare, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 })
 

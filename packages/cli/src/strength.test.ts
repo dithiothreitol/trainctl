@@ -36,7 +36,7 @@ const setup = (yaml: string) => {
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'trainctl-str-'))
 })
-afterEach(() => rmSync(dir, { recursive: true, force: true }))
+afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 const strengthDays = () =>
   loadPlan(dir)
@@ -57,7 +57,7 @@ describe('opt-in', () => {
   it('siła nie zmienia kilometrażu planu', () => {
     setup(BASE)
     const kmWithout = loadPlan(dir).weeks.map((w) => w.totalKm)
-    rmSync(join(dir, 'plan'), { recursive: true, force: true })
+    rmSync(join(dir, 'plan'), { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
     setup(WITH_STRENGTH)
     expect(loadPlan(dir).weeks.map((w) => w.totalKm)).toEqual(kmWithout)
   })

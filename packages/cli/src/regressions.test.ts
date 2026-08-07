@@ -42,7 +42,7 @@ const strengthDays = () =>
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'trainctl-reg-'))
 })
-afterEach(() => rmSync(dir, { recursive: true, force: true }))
+afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('reschedule nie kasuje sesji siłowych', () => {
   it('po --apply siła nadal jest w planie, a zmiany są zaraportowane', () => {

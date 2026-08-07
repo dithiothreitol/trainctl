@@ -36,7 +36,7 @@ beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), 'trainctl-e2e-'))
 })
 afterAll(() => {
-  rmSync(dir, { recursive: true, force: true })
+  rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
 })
 
 describe('trainctl init', () => {

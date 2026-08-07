@@ -34,7 +34,7 @@ beforeAll(() => {
   writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 })
-afterAll(() => rmSync(dir, { recursive: true, force: true }))
+afterAll(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('mapowanie klawiszy', () => {
   it('strzałki i vim dają te same akcje', () => {
@@ -167,6 +167,6 @@ describe('poza terminalem', () => {
     const empty = mkdtempSync(join(tmpdir(), 'trainctl-noplan-'))
     const r = await runShiftPicker(empty, '2026-08-05')
     expect(r.code).toBe(1)
-    rmSync(empty, { recursive: true, force: true })
+    rmSync(empty, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 })

@@ -31,7 +31,7 @@ beforeAll(() => {
   writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
   cmdPlan(dir, { date: '2026-08-05' })
 })
-afterAll(() => rmSync(dir, { recursive: true, force: true }))
+afterAll(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('eksport jednego treningu (.fit)', () => {
   it('zapisuje plik z poprawnym nagłówkiem FIT', () => {
@@ -143,7 +143,7 @@ describe('pakiet startowy (--what race)', () => {
     const html = readFileSync(join(withTarget, 'export', file), 'utf-8')
     expect(html).toContain('Opaska — cel')
     expect(html).toContain('3:30:00')
-    rmSync(withTarget, { recursive: true, force: true })
+    rmSync(withTarget, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 
   it('bez celu i bez predykcji — czytelna odmowa', () => {
@@ -163,7 +163,7 @@ describe('pakiet startowy (--what race)', () => {
     const r = cmdExport(bare, { what: 'race' })
     expect(r.code).toBe(1)
     expect(r.output).toContain('nie mam z czego')
-    rmSync(bare, { recursive: true, force: true })
+    rmSync(bare, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 })
 
@@ -179,6 +179,6 @@ describe('walidacja', () => {
     const r = cmdExport(empty, { what: 'print' })
     expect(r.code).toBe(1)
     expect(existsSync(join(empty, 'export'))).toBe(false)
-    rmSync(empty, { recursive: true, force: true })
+    rmSync(empty, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 })
