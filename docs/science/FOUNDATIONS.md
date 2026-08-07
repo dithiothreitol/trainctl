@@ -1698,6 +1698,7 @@ jako fakt).
 | S-7 | Nie planować sesji do wyczerpania przed blokiem wymagającej pracy umysłowej | miękkie, preferencja | Yao 2025 (P3 ↓, p=0,020) | B |
 | S-8 | Po dniu intensywnej pracy kognitywnej preferować preskrypcję **po tempie**, nie po RPE | miękkie | Marcora 2009 (RPE ↑ przy identycznej fizjologii); Habay 2023 (g=−0,32) | **A** |
 | S-9 | Monotonia: różnicować obciążenie dzienne w tygodniu | miękkie, funkcja celu | Costa 2019 (P-1); Haddad 2017 | B |
+| S-9a | **Długie wybieganie WOLNO stawiać nazajutrz po akcencie** — S-9 mówi o różnicowaniu obciążenia, nie o sąsiedztwie; spokojne długie po akcencie JEST różnicowaniem | brak kary w solverze | korpus: 52/73 długich z rozpoznanym dniem poprzednim wypada po akcencie, 16 po starcie (93%), z czego 73% czysto spokojne (`tools/corpus/long_run_profile.py`) | **A** (pomiar na 50 planach) |
 
 ### 10.8 `engine/` — trening siłowy
 

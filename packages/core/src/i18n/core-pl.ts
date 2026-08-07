@@ -269,8 +269,6 @@ export const corePl: CoreMessages = {
   solver: {
     longRunOffPreferredDay: (weekday: string) =>
       `długie wybieganie poza preferowanym dniem (${weekday})`,
-    longRunNextToAccent: (date: string) =>
-      `długie wybieganie sąsiaduje z akcentem ${date} — dwa ciężkie dni z rzędu (S-9)`,
     dateOutsideWeek: (date: string) => `data ${date} jest poza tym tygodniem — pominięta`,
     cannotBlockRaceDay: 'dnia startu nie da się zablokować — solver go nie rusza',
     droppedEasy: 'zabrakło dnia — spokojna jednostka kosztuje najmniej (objętość, nie bodziec)',

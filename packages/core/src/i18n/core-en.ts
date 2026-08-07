@@ -257,8 +257,6 @@ export const coreEn = {
 
   solver: {
     longRunOffPreferredDay: (weekday: string) => `long run outside its preferred day (${weekday})`,
-    longRunNextToAccent: (date: string) =>
-      `long run sits next to the accent on ${date} — two hard days back to back (S-9)`,
     dateOutsideWeek: (date: string) => `${date} is outside this week — ignored`,
     cannotBlockRaceDay: 'the race day cannot be blocked — the solver does not move it',
     droppedEasy: 'ran out of days — an easy session costs least (volume, not stimulus)',

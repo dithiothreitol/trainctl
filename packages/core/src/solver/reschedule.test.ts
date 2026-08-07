@@ -224,3 +224,51 @@ describe('preferencje i walidacja', () => {
     expect(r.dropped.length).toBeGreaterThan(0)
   })
 })
+
+describe('długie obok akcentu — wzorzec trenera, nie usterka', () => {
+  // `tools/corpus/long_run_profile.py` na 50 planach: ze 138 długich wybiegań
+  // (≥16 km, najdłuższe w tygodniu, bez pracy odcinkowej) dla 73 znamy dzień
+  // poprzedni — 52 wypadają nazajutrz po akcencie, 16 po starcie. To 93%.
+  // Solver miał na to karę −60 „S-9", choć S-9 mówi o różnicowaniu obciążenia
+  // dziennego, a nie o sąsiedztwie; nasze długie jest zawsze spokojne.
+  const adjacent = (days: Microcycle['days']) => {
+    const long = days.find((d) => d.workout?.kind === 'long')
+    if (!long) return false
+    return days.some(
+      (d) =>
+        d.workout &&
+        ['quality_intervals', 'quality_continuous', 'sharpener'].includes(d.workout.kind) &&
+        Math.abs(
+          new Date(d.date).getTime() - new Date(long.date).getTime(),
+        ) === 86_400_000,
+    )
+  }
+
+  it('nie przestawia tygodnia tylko dlatego, że długie sąsiaduje z akcentem', () => {
+    const w = week()
+    const r = reschedule({ week: w, blockedDates: [], ...base })
+    // gdyby kara wróciła, solver zacząłby tasować poprawny plan
+    expect(r.changed).toBe(false)
+    expect(r.moved).toHaveLength(0)
+  })
+
+  it('sąsiedztwo długiego z akcentem nie generuje kompromisu do zaraportowania', () => {
+    const w = week()
+    const r = reschedule({ week: w, blockedDates: [], ...base })
+    for (const note of r.tradeoffs) {
+      expect(note).not.toMatch(/dzień po akcencie|obok akcentu|dwa ciężkie dni/i)
+    }
+  })
+
+  it('układ akcent → długie przechodzi renegocjację nietknięty', () => {
+    // blokujemy dzień, który nie należy ani do długiego, ani do akcentu obok niego
+    const w = week()
+    const before = kindsByDate(w.days)
+    const longDate = w.days.find((d) => d.workout?.kind === 'long')?.date
+    expect(longDate).toBeDefined()
+    const r = reschedule({ week: w, blockedDates: [], ...base })
+    const after = kindsByDate(r.days)
+    expect(after.get(longDate!)).toBe(before.get(longDate!))
+    if (adjacent(w.days)) expect(adjacent(r.days)).toBe(true)
+  })
+})

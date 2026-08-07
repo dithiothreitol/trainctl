@@ -245,10 +245,13 @@ tłumaczenie wyciąga na wierzch.
 
 **Znane uproszczenia silnika v1** (świadome, do zdjęcia w kolejnych iteracjach):
 ~~jeden cel A bez startów B/C~~ (zdjęte w fazie 7: `tuneUpRaces` + T-9…T-12);
-długie wybieganie zawsze czysto
-spokojne (trener wplata wstawki tempowe); brak wariantu „długie w niedzielę po
-sobotnim akcencie"; kalibracja VDOT w backteście inżynierska (51), docelowo
-z wyników startów użytkownika.
+~~brak wariantu „długie w niedzielę po sobotnim akcencie"~~ (2026-08-07: to
+nie był brak, tylko **kara w solverze wbrew korpusowi** — zdjęta, patrz S-9a);
+długie wybieganie zawsze czysto spokojne — **pomiar korpusu potwierdza ten
+wybór w 71%** (`tools/corpus/long_run_profile.py`), pozostałe 29% to osobny,
+KRÓTSZY wzorzec (mediana 19 km wobec 25 km), nie „długie z dodatkiem tempa";
+kalibracja VDOT w backteście inżynierska (51), docelowo z wyników startów
+użytkownika.
 
 ## 9. Ryzyka (szczerze)
 

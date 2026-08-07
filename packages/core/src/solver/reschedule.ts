@@ -128,16 +128,15 @@ function scoreArrangement(
     if (slot.date === item.originalDate) score += 120
   }
 
-  // S-9: nie wrzucaj długiego tuż po akcencie (monotonia obciążenia)
-  const longSlot = placed.find((p) => p.item.workout.kind === 'long')
-  if (longSlot) {
-    for (const date of qualityDates) {
-      if (Math.abs(diffDays(date, longSlot.slot.date)) === 1) {
-        score -= 60
-        notes.push(messages().solver.longRunNextToAccent(date))
-      }
-    }
-  }
+  // Nie ma tu kary za długie obok akcentu — patrz `tools/corpus/long_run_profile.py`
+  // i FOUNDATIONS S-9a. Wcześniej solver odejmował 60 punktów, powołując się na
+  // S-9, ale S-9 mówi o RÓŻNICOWANIU obciążenia dziennego, nie o sąsiedztwie.
+  // Nasze długie jest zawsze spokojne, więc para akcent → długie to właśnie
+  // różnicowanie, nie dwa ciężkie dni. Korpus: ze 73 długich, dla których znamy
+  // dzień poprzedni, 52 wypadają nazajutrz po akcencie i 16 po starcie (93%),
+  // a 73% z nich jest czysto spokojne. Kara odpychała plan od wzorca trenera
+  // przy każdej renegocjacji — i przeczyła własnemu T-11 („długie ZOSTAJE
+  // dzień po starcie"), który ten sam układ uznaje za poprawny.
 
   return { score, notes }
 }
