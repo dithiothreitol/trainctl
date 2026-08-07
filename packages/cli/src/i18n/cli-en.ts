@@ -219,6 +219,10 @@ export const cliEn = {
     allMatched: 'Execution matches the plan across the whole range.',
     adaptHint: 'suggested corrections: trainctl adapt',
     noPlanSkipped: 'No plan — comparison skipped.',
+    dataWithheld: (count: number, sources: string) =>
+      `${count} of these activities come from ${sources}, and intervals.icu does not pass their ` +
+      'data through the API (Strava forbids re-export). They have no distance and no type, so ' +
+      'they cannot be compared with the plan. Connect your watch to intervals.icu directly.',
   },
 
   compare: {

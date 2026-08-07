@@ -170,3 +170,41 @@ describe('inferProfile — kandydaci na starty', () => {
     expect(r.profile.raceCandidates.some((c) => c.date === raceDate && c.reason.includes('decyl'))).toBe(true)
   })
 })
+
+describe('hub zna aktywności, ale ich nie oddaje', () => {
+  const withheld = (date: string): SyncedActivity => ({
+    externalId: `w${date}`,
+    date,
+    type: 'Unknown',
+    source: 'STRAVA',
+    dataWithheld: true,
+  })
+
+  it('odmawia z powodem integracji, nie „nie biegałeś"', () => {
+    const out = inferProfile([withheld('2026-07-01'), withheld('2026-07-08')], TODAY)
+    expect(out.ok).toBe(false)
+    if (out.ok) return
+    expect(out.reason).toContain('STRAVA')
+    expect(out.reason).toMatch(/Garmin/)
+    // NIE ta odmowa: sugerowałaby, że problem jest w treningu, nie w integracji
+    expect(out.reason).not.toContain('Brak aktywności biegowych')
+  })
+
+  it('pusty kalendarz nadal daje zwykłą odmowę', () => {
+    const out = inferProfile([], TODAY)
+    expect(out.ok).toBe(false)
+    if (out.ok) return
+    expect(out.reason).toContain('Brak aktywności biegowych')
+    expect(out.reason).not.toContain('STRAVA')
+  })
+
+  it('prawdziwe biegi obok wydmuszek wygrywają — profil powstaje', () => {
+    const weeks: SyncedActivity[] = []
+    for (let i = 1; i <= 12; i++) {
+      const monday = addDays(CURRENT_MONDAY, -i * 7)
+      for (const d of [0, 2, 5]) weeks.push(run(addDays(monday, d), 12))
+    }
+    const out = inferProfile([...weeks, withheld('2026-07-01')], TODAY)
+    expect(out.ok).toBe(true)
+  })
+})

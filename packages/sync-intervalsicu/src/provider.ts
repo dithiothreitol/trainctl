@@ -34,6 +34,7 @@ interface RawActivity {
   average_heartrate?: number
   average_speed?: number
   icu_rpe?: number
+  source?: string
 }
 
 interface RawWellness {
@@ -76,11 +77,17 @@ export class IntervalsIcuProvider implements SyncProvider {
     return (raw ?? []).map((a) => {
       const distanceKm = typeof a.distance === 'number' ? a.distance / 1000 : undefined
       const movingTimeSec = a.moving_time
+      // Wykrycie strukturalne, nie po treści pola `_note`: hub zwraca wtedy sam
+      // identyfikator i datę. Dopasowanie do angielskiego zdania z API zepsułoby
+      // się przy pierwszej zmianie jego brzmienia.
+      const dataWithheld = a.type === undefined && a.distance === undefined
       const activity: SyncedActivity = {
         externalId: a.id ?? '',
         date: (a.start_date_local ?? '').slice(0, 10),
         type: a.type ?? 'Unknown',
       }
+      if (a.source) activity.source = a.source
+      if (dataWithheld) activity.dataWithheld = true
       if (a.name) activity.name = a.name
       if (distanceKm !== undefined) activity.distanceKm = Math.round(distanceKm * 100) / 100
       if (movingTimeSec !== undefined) activity.movingTimeSec = movingTimeSec

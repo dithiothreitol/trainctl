@@ -18,6 +18,14 @@ export interface SyncedActivity {
   avgPaceSecPerKm?: number
   /** Odczuwana ciężkość sesji (RPE) — jeśli użytkownik ją wprowadził. */
   rpe?: number
+  /** Skąd aktywność trafiła do huba (np. 'STRAVA', 'GARMIN'). */
+  source?: string
+  /**
+   * Hub wie o aktywności, ale NIE udostępnia jej danych przez API.
+   * Dotyczy Stravy od XII 2024 (warunki Stravy zakazują re-eksportu).
+   * Taka aktywność nie ma dystansu ani typu — nie da się jej porównać z planem.
+   */
+  dataWithheld?: boolean
 }
 
 /** Dzienny wpis wellness (HRV, tętno spoczynkowe, sen, masa). */

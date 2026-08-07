@@ -298,6 +298,11 @@ export const corePl: CoreMessages = {
 
   infer: {
     noRuns: 'Brak aktywności biegowych w oknie 16 tygodni — profil uzupełnij ręcznie.',
+    allWithheld: (count: number, sources: string) =>
+      `W oknie jest ${count} ${pluralPl(count, { one: 'aktywność', few: 'aktywności', other: 'aktywności' })}, ` +
+      `ale ${sources} nie udostępnia ich danych przez API intervals.icu — nie ma z czego ` +
+      'wywnioskować profilu. Podepnij zegarek (Garmin, Coros, Wahoo) do intervals.icu ' +
+      'bezpośrednio, nie przez Stravę.',
     tooFewWeeks: (active: number, window: number) =>
       `Tylko ${active} ${pluralPl(active, { one: 'aktywny tydzień', few: 'aktywne tygodnie', other: 'aktywnych tygodni' })} ` +
       `w ostatnich ${window} — za mało na wiarygodną inferencję. Podaj objętość ręcznie.`,

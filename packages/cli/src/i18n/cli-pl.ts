@@ -231,6 +231,10 @@ export const cliPl: CliMessages = {
     allMatched: 'Wykonanie zgodne z planem w całym zakresie.',
     adaptHint: 'propozycje korekt: trainctl adapt',
     noPlanSkipped: 'Brak planu — pominięto porównanie.',
+    dataWithheld: (count: number, sources: string) =>
+      `${count} z tych aktywności pochodzi z ${sources}, a intervals.icu nie przepuszcza ich ` +
+      'danych przez API (Strava zabrania re-eksportu). Nie mają dystansu ani typu, więc nie da ' +
+      'się ich porównać z planem. Podepnij zegarek do intervals.icu bezpośrednio.',
   },
 
   compare: {

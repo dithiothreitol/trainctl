@@ -119,6 +119,45 @@ describe('pull aktywności', () => {
   })
 })
 
+describe('aktywności, których hub nie oddaje', () => {
+  // Odpowiedź z prawdziwego konta (2026-08-07): intervals.icu zwraca sam
+  // identyfikator, datę i źródło, gdy aktywność przyszła ze Stravy — warunki
+  // Stravy zakazują re-eksportu przez API huba.
+  const STUB = [
+    {
+      id: '19572987988',
+      start_date_local: '2026-08-02T12:45:43',
+      source: 'STRAVA',
+    },
+  ]
+
+  it('oznacza je jako dataWithheld i zapamiętuje źródło', async () => {
+    const { provider: p } = provider(() => ({ body: STUB }))
+    const [a] = await p.listActivities('2026-08-01', '2026-08-07')
+    expect(a!.dataWithheld).toBe(true)
+    expect(a!.source).toBe('STRAVA')
+    expect(a!.distanceKm).toBeUndefined()
+  })
+
+  it('wykrywa je po BRAKU pól, nie po treści komunikatu z API', async () => {
+    // gdyby intervals.icu zmieniło brzmienie swojej adnotacji, detekcja ma dalej działać
+    const { provider: p } = provider(() => ({
+      body: [{ id: 'x', start_date_local: '2026-08-02T10:00:00', source: 'INNY_HUB' }],
+    }))
+    const [a] = await p.listActivities('2026-08-01', '2026-08-07')
+    expect(a!.dataWithheld).toBe(true)
+    expect(a!.source).toBe('INNY_HUB')
+  })
+
+  it('normalna aktywność NIE jest oznaczana', async () => {
+    const { provider: p } = provider(() => ({
+      body: [{ id: 'y', start_date_local: '2026-08-02T10:00:00', type: 'Run', distance: 10000 }],
+    }))
+    const [a] = await p.listActivities('2026-08-01', '2026-08-07')
+    expect(a!.dataWithheld).toBeUndefined()
+  })
+})
+
 describe('pull wellness', () => {
   it('czyta oba warianty casingu pól (§1.2 — niespójność w dokumentacji)', async () => {
     const { provider: p } = provider(() => ({

@@ -286,6 +286,10 @@ export const coreEn = {
 
   infer: {
     noRuns: 'No runs in the 16-week window — fill in the profile by hand.',
+    allWithheld: (count: number, sources: string) =>
+      `The window holds ${count} activities, but ${sources} does not expose their data through ` +
+      'the intervals.icu API — there is nothing to infer a profile from. Connect your watch ' +
+      '(Garmin, Coros, Wahoo) to intervals.icu directly, not through Strava.',
     tooFewWeeks: (active: number, window: number) =>
       `Only ${active} active weeks out of the last ${window} — not enough for a reliable ` +
       'inference. Enter your volume by hand.',

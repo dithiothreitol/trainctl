@@ -117,7 +117,18 @@ export function inferProfile(activities: SyncedActivity[], today: string): Infer
     (a) => isRun(a) && a.date >= oldestMonday && a.date <= today && (a.distanceKm ?? 0) > 0,
   )
   const m = messages()
-  if (runs.length === 0) return { ok: false, reason: m.infer.noRuns }
+  if (runs.length === 0) {
+    // Rozróżniamy „nie biegałeś" od „hub nie oddaje danych" — to zupełnie inne
+    // problemy i tylko drugi da się naprawić po stronie integracji.
+    const withheld = activities.filter(
+      (a) => a.dataWithheld && a.date >= oldestMonday && a.date <= today,
+    )
+    if (withheld.length > 0) {
+      const sources = [...new Set(withheld.map((a) => a.source ?? '?'))].sort().join(', ')
+      return { ok: false, reason: m.infer.allWithheld(withheld.length, sources) }
+    }
+    return { ok: false, reason: m.infer.noRuns }
+  }
 
   // km per pełny tydzień (bieżący, niepełny tydzień nie zaniża mediany)
   const kmByWeek = new Map<string, number>()

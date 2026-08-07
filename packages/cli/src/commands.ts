@@ -629,6 +629,14 @@ export async function cmdPull(
         [ui().pull.savedTo, SYNC_FILE],
       ]),
     ]
+    // „19 aktywności, 0 biegowych" jest prawdą, która wprowadza w błąd: hub zna
+    // te treningi, tylko nie oddaje ich danych. Bez tego zdania użytkownik
+    // wnioskuje, że nie synchronizuje mu się zegarek, i nie ma jak trafić w powód.
+    const withheld = activities.filter((a) => a.dataWithheld)
+    if (withheld.length > 0) {
+      const sources = [...new Set(withheld.map((a) => a.source ?? '?'))].sort().join(', ')
+      blocks.push(b.warn(ui().pull.dataWithheld(withheld.length, sources)))
+    }
     try {
       const plan = loadPlan(cwd)
       const rows = compare(plan, activities, from, to).filter((r) => r.status !== 'matched')
