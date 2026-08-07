@@ -36,6 +36,7 @@ git history.
 | `export` | `.fit` for the watch, `.ics` calendar, A4 printout, race-day pack |
 | `desk` | training windows around office hours; the pace-over-feel rule |
 | `diff` | what a regeneration would change — before it changes it |
+| `check` | lint your plan: engine invariants + file integrity, with FOUNDATIONS rule IDs |
 
 ## Requirements
 
@@ -84,7 +85,7 @@ claude mcp add trainctl --env TRAINCTL_DIR="/path/to/my-training" ^
   -- npx -y trainctl-mcp
 ```
 
-Fifteen tools (`trainctl_plan`, `trainctl_today`, `trainctl_week`,
+Sixteen tools (`trainctl_plan`, `trainctl_today`, `trainctl_week`,
 `trainctl_shift`, `trainctl_why`, `trainctl_review`, …). `trainctl init` leaves
 an `AGENTS.md` in your training directory that turns the agent into a coach
 rather than a command runner: ask before regenerating a plan, ask for context

@@ -11,10 +11,13 @@ import {
   mondayOf,
   planDeskDay,
   reschedule,
+  validatePlan,
+  weekTotals,
   COACH_STYLE,
   INFER_WINDOW_WEEKS,
   type ExecutionRecord,
   type InferenceOutcome,
+  type PlanIssue,
   type PlannedWorkout,
   type SyncedActivity,
   type Weekday,
@@ -925,6 +928,9 @@ export function cmdReschedule(
 
     if (opts.apply === true) {
       week.days = result.days
+      // Solver mógł odpuścić sesję (dropped) — bez przeliczenia totalKm/easyShare
+      // zapisany plan kłamałby w sumach i `trainctl check` miałby rację, czerwieniejąc.
+      Object.assign(week, weekTotals(week.days))
       // Bieganie się przesunęło, więc sesje siłowe mogły trafić obok akcentu.
       // Solver zachował je na miejscu (to nie jego domena) — tu je przeliczamy,
       // bo dopiero ta warstwa zna konfigurację siły.
@@ -1124,6 +1130,133 @@ export async function cmdReview(
     }
     blocks.push(b.section(ui().review.todo), b.bullets(todo))
     return okDoc(blocks)
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+/**
+ * Jedno ustalenie walidatora → zdanie w języku interfejsu. Etykiety jednostek
+ * i dni tygodnia idą przez katalog (kindLabel/weekday), ID reguł zostają surowe —
+ * to odnośniki do FOUNDATIONS §10, nie tekst do tłumaczenia.
+ */
+function describeIssue(issue: PlanIssue): string {
+  const t = ui().check
+  const label = (kind?: string) => (kind ? kindLabel(kind) : '')
+  const weekdayLabel = (wd?: string) =>
+    wd && wd in messages().weekday ? messages().weekday[wd as Weekday] : (wd ?? '')
+  let text: string
+  switch (issue.code) {
+    case 'malformed':
+      text = t.malformed(issue.date)
+      break
+    case 'weekLength':
+      text = t.weekLength(issue.date, issue.actual ?? 0)
+      break
+    case 'weekStartNotMonday':
+      text = t.weekStartNotMonday(issue.date)
+      break
+    case 'weeksNotContiguous':
+      text = t.weeksNotContiguous(issue.date, issue.otherDate ?? '')
+      break
+    case 'dayOutOfPlace':
+      text = t.dayOutOfPlace(issue.date, issue.otherDate ?? '')
+      break
+    case 'weekdayMismatch':
+      text = t.weekdayMismatch(issue.date, weekdayLabel(issue.kind), weekdayLabel(issue.otherKind))
+      break
+    case 'totalKmDesync':
+      text = t.totalKmDesync(issue.date, issue.expected ?? 0, issue.actual ?? 0)
+      break
+    case 'easyShareDesync':
+      text = t.easyShareDesync(
+        issue.date,
+        Math.round((issue.expected ?? 0) * 100),
+        Math.round((issue.actual ?? 0) * 100),
+      )
+      break
+    case 'workoutKmDesync':
+      text = t.workoutKmDesync(issue.date, label(issue.kind), issue.expected ?? 0, issue.actual ?? 0)
+      break
+    case 'raceDayMissing':
+      text = t.raceDayMissing(issue.date)
+      break
+    case 'accentGap':
+      text = t.accentGap(issue.date, issue.otherDate ?? '', label(issue.kind), label(issue.otherKind))
+      break
+    case 'workoutBeforeRace':
+      text = t.workoutBeforeRace(issue.date, label(issue.kind), issue.otherDate ?? '')
+      break
+    case 'longInTaper':
+      text = t.longInTaper(issue.date)
+      break
+    case 'hillsInTaper':
+      text = t.hillsInTaper(issue.date)
+      break
+    case 'strengthInTaper':
+      text = t.strengthInTaper(issue.date)
+      break
+    case 'strengthOnQualityDay':
+      text = t.strengthOnQualityDay(issue.date, label(issue.kind))
+      break
+    case 'strengthDayBeforeQuality':
+      text = t.strengthDayBeforeQuality(issue.date, label(issue.otherKind), issue.otherDate ?? '')
+      break
+    case 'strengthOnLongDay':
+      text = t.strengthOnLongDay(issue.date, label(issue.kind))
+      break
+    case 'strengthGap':
+      text = t.strengthGap(issue.date, issue.otherDate ?? '')
+      break
+    case 'easyShareLow':
+      text = t.easyShareLow(issue.date, Math.round((issue.actual ?? 0) * 100))
+      break
+    case 'longOverCap':
+      text = t.longOverCap(issue.date, issue.actual ?? 0, issue.expected ?? 0)
+      break
+    case 'qualityWithoutFrame':
+      text = t.qualityWithoutFrame(issue.date, label(issue.kind))
+      break
+    case 'taperNotMonotonic':
+      text = t.taperNotMonotonic(issue.date, issue.actual ?? 0, issue.expected ?? 0)
+      break
+  }
+  return issue.ruleRefs.length ? `${text} [${issue.ruleRefs.join(', ')}]` : text
+}
+
+export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {}): CmdResult {
+  try {
+    const plan = loadPlan(cwd)
+    const issues = validatePlan({ weeks: plan.weeks, goal: plan.goal })
+    const errors = issues.filter((i) => i.severity === 'error')
+    const warns = issues.filter((i) => i.severity === 'warn')
+    const t = ui().check
+
+    if (issues.length === 0) {
+      const sessions = plan.weeks.reduce(
+        (sum, w) => sum + w.days.filter((d) => d.workout).length,
+        0,
+      )
+      return okDoc([b.success(t.passed(plan.weeks.length, sessions))])
+    }
+
+    const blocks: Block[] = [b.title(t.title, t.subtitle(PLAN_YAML))]
+    if (errors.length) {
+      blocks.push(b.section(t.errorsSection))
+      for (const issue of errors) blocks.push(b.error(describeIssue(issue)))
+    }
+    if (warns.length) {
+      blocks.push(b.section(t.warnsSection))
+      for (const issue of warns) blocks.push(b.warn(describeIssue(issue)))
+    }
+    blocks.push(b.blank(), b.text(t.summary(errors.length, warns.length)))
+    const failed = errors.length > 0 || (opts.strict === true && warns.length > 0)
+    if (opts.strict === true && errors.length === 0 && warns.length > 0) {
+      blocks.push(b.text(t.strictNote, 'muted'))
+    } else if (!failed && warns.length > 0) {
+      blocks.push(b.hint(t.strictHint))
+    }
+    return { output: renderPlain(blocks), code: failed ? 1 : 0, blocks }
   } catch (e) {
     return fail(e)
   }

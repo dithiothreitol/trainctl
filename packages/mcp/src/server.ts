@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { ui } from '@trainctl/cli'
 import {
   cmdAdapt,
+  cmdCheck,
   cmdDesk,
   cmdDiff,
   cmdExport,
@@ -206,6 +207,17 @@ export function createTrainctlServer(
       inputSchema: {},
     },
     async () => toTool(cmdDiff(dir)),
+  )
+
+  server.registerTool(
+    'trainctl_check',
+    {
+      description: t.check,
+      inputSchema: {
+        strict: z.boolean().optional().describe(t.checkStrict),
+      },
+    },
+    async (args) => toTool(cmdCheck(dir, args)),
   )
 
   return server

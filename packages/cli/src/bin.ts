@@ -11,6 +11,7 @@ import { loadEnvFile, ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import {
   cmdAdapt,
+  cmdCheck,
   cmdDesk,
   cmdDiff,
   cmdExport,
@@ -255,6 +256,12 @@ program
   .command('diff')
   .description(ui().cmd.diff)
   .action(() => print(cmdDiff(cwd)))
+
+program
+  .command('check')
+  .description(ui().cmd.check)
+  .option('--strict', ui().cmd.optStrict)
+  .action((opts) => print(cmdCheck(cwd, opts)))
 
 program.addHelpText(
   'after',

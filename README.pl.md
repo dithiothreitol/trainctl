@@ -34,6 +34,7 @@ pnpm trainctl shift       # wybór treningu i nowego dnia z listy (strzałki/cyf
 pnpm trainctl shift --from 2026-08-06 --to 2026-08-07   # albo wprost, bez pytań
 pnpm trainctl week -i     # przeglądanie tygodni: ←/→, t = dziś, s = przesuń, q = wyjście
 pnpm trainctl diff        # co zmieniłaby regeneracja z aktualnego trainctl.yaml
+pnpm trainctl check       # lint planu: inwarianty silnika + integralność pliku (--strict do CI)
 pnpm trainctl export      # zapyta: rozpiska do druku / plan na zegarek / jeden trening / kalendarz
 pnpm trainctl export --what print     # albo wprost, bez pytań
 pnpm trainctl review      # rytuał tygodnia: co było, sygnały, co przed nami, co zrobić
@@ -144,8 +145,8 @@ claude mcp add trainctl --env TRAINCTL_DIR="C:\sciezka\do\mojego-treningu" ^
 ```
 
 Narzędzia: `trainctl_plan`, `trainctl_today`, `trainctl_week`, `trainctl_log`, `trainctl_shift`,
-`trainctl_why`, `trainctl_diff`, `trainctl_init`, `trainctl_push`, `trainctl_pull`, `trainctl_adapt`,
-`trainctl_desk`, `trainctl_reschedule`, `trainctl_export`, `trainctl_review`. Rozmowa jest
+`trainctl_why`, `trainctl_diff`, `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
+`trainctl_adapt`, `trainctl_desk`, `trainctl_reschedule`, `trainctl_export`, `trainctl_review`. Rozmowa jest
 interfejsem: „co mam dziś wybiegać?", „w czwartek release — przesuń interwały",
 „jak mi poszło w tym tygodniu?". Agent widzi tydzień (`trainctl_week`), renegocjuje
 (`trainctl_shift` z ochroną dnia startu i ostrzeżeniem I-7) i tłumaczy plan cytując

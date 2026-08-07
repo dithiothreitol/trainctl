@@ -16,6 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { setLocale } from '@trainctl/core'
 import {
   cmdAdapt,
+  cmdCheck,
   cmdDesk,
   cmdDiff,
   cmdExport,
@@ -118,6 +119,14 @@ describe('komendy po angielsku nie przeciekają polskim', () => {
     ['desk', () => cmdDesk(dir, { date: TODAY })],
     ['desk (ciężki dzień)', () => cmdDesk(dir, { date: TODAY, heavy: true })],
     ['diff', () => cmdDiff(dir)],
+    ['check', () => cmdCheck(dir)],
+    ['check (po przesunięciu — ostrzeżenia)', () => {
+      // przesunięcie łamiące I-7 → wyjście z ostrzeżeniami też musi być angielskie
+      cmdShift(dir, { from: '2026-08-09', to: '2026-08-05' })
+      const r = cmdCheck(dir, { strict: true })
+      cmdShift(dir, { from: '2026-08-05', to: '2026-08-09' })
+      return r
+    }],
     ['reschedule', () => cmdReschedule(dir, { date: TODAY, block: ['2026-08-06'] })],
     ['shift', () => cmdShift(dir, { from: '2026-08-06', to: '2026-08-07' })],
     ['shift (błąd)', () => cmdShift(dir, { from: '2030-01-01', to: '2030-01-02' })],

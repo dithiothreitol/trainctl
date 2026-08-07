@@ -300,6 +300,20 @@ export function generateMicrocycle(input: MicrocycleInput): Microcycle {
     }
   })
 
+  return {
+    weekStart: skeleton.weekStart,
+    skeleton,
+    days,
+    ...weekTotals(days),
+  }
+}
+
+/**
+ * Sumy tygodnia liczone z dni — jedno źródło dla generatora, walidatora
+ * (`trainctl check`) i `reschedule --apply`, który po przestawieniu tygodnia
+ * musi je przeliczyć, inaczej zapisany plan kłamie w totalKm po odpuszczonej sesji.
+ */
+export function weekTotals(days: PlannedDay[]): { totalKm: number; easyShare: number } {
   const totalKm = days.reduce((sum, d) => sum + (d.workout?.distanceKm ?? 0), 0)
   const z1 = days.reduce((sum, d) => {
     if (!d.workout) return sum
@@ -310,14 +324,7 @@ export function generateMicrocycle(input: MicrocycleInput): Microcycle {
         .reduce((a, s) => a + (s.distanceKm ?? 0), 0)
     )
   }, 0)
-
-  return {
-    weekStart: skeleton.weekStart,
-    skeleton,
-    days,
-    totalKm,
-    easyShare: totalKm > 0 ? z1 / totalKm : 1,
-  }
+  return { totalKm, easyShare: totalKm > 0 ? z1 / totalKm : 1 }
 }
 
 function planRaceWeek(

@@ -4,7 +4,7 @@
  * tutaj jest wyłącznie to, co należy do warstwy CLI/MCP: nazwy komend,
  * nagłówki, podpowiedzi, komunikaty błędów i opisy narzędzi agenta.
  */
-import { formatNumber } from '@trainctl/core'
+import { formatNumber, pluralEn } from '@trainctl/core'
 
 const n = (value: number) => formatNumber('en', value)
 
@@ -31,6 +31,8 @@ export const cliEn = {
     export: 'watch file (FIT), calendar (ICS), printable sheet or race pack',
     reschedule: 'rearrange the week around busy days (solver: accents, 48 h, long run)',
     diff: 'what would change if the plan were regenerated from trainctl.yaml',
+    check: 'lint the plan: engine invariants + file integrity; errors fail the exit code (CI)',
+    optStrict: 'warnings also fail the exit code (for CI)',
     optDate: 'date (defaults to today)',
     optDateOther: 'a date other than today',
     optDateWeek: 'any date inside the week you care about',
@@ -294,6 +296,64 @@ export const cliEn = {
     localeChanged: (planLocale: string, current: string) =>
       `the plan was generated in "${planLocale}", you are running in "${current}" — ` +
       'run trainctl plan to regenerate the descriptions',
+  },
+
+  check: {
+    title: 'Plan lint',
+    subtitle: (file: string) => `invariants and file integrity, checked against ${file}`,
+    passed: (weeks: number, sessions: number) =>
+      `No issues: ${weeks} ${pluralEn(weeks, { one: 'week', other: 'weeks' })} and ` +
+      `${sessions} ${pluralEn(sessions, { one: 'session', other: 'sessions' })} hold every invariant.`,
+    errorsSection: 'File integrity',
+    warnsSection: 'Rule deviations',
+    summary: (errors: number, warns: number) =>
+      `${errors} ${pluralEn(errors, { one: 'error', other: 'errors' })}, ` +
+      `${warns} ${pluralEn(warns, { one: 'warning', other: 'warnings' })}`,
+    strictHint: 'warnings do not change the exit code — add --strict to make them fail (CI)',
+    strictNote: 'strict mode: warnings count as failures',
+    malformed: (where: string) =>
+      `entry ${where}: missing required fields (weekStart/days or date) — fix the YAML or regenerate the plan`,
+    weekLength: (weekStart: string, days: number) =>
+      `week ${weekStart}: has ${days} ${pluralEn(days, { one: 'day', other: 'days' })} instead of 7`,
+    weekStartNotMonday: (weekStart: string) => `week ${weekStart}: weekStart is not a Monday`,
+    weeksNotContiguous: (weekStart: string, prev: string) =>
+      `week ${weekStart}: does not start exactly 7 days after the previous week (${prev})`,
+    dayOutOfPlace: (date: string, shouldBe: string) =>
+      `${date}: out of place — this position in the week belongs to ${shouldBe}`,
+    weekdayMismatch: (date: string, stored: string, real: string) =>
+      `${date}: the "weekday" field says ${stored}, the calendar says ${real}`,
+    totalKmDesync: (weekStart: string, fromDays: number, stored: number) =>
+      `week ${weekStart}: totalKm says ${n(stored)} km, the days sum to ${n(fromDays)} km`,
+    easyShareDesync: (weekStart: string, fromDaysPct: number, storedPct: number) =>
+      `week ${weekStart}: easyShare says ${storedPct}%, recomputed from the days it is ${fromDaysPct}%`,
+    workoutKmDesync: (date: string, kind: string, fromSegments: number, stored: number) =>
+      `${date} (${kind}): distanceKm says ${n(stored)} km, the segments sum to ${n(fromSegments)} km`,
+    raceDayMissing: (date: string) => `${date}: no race on the goal date — the plan lost its target`,
+    accentGap: (a: string, b: string, ka: string, kb: string) =>
+      `${a} → ${b}: ${ka} and ${kb} less than 48 h apart`,
+    workoutBeforeRace: (date: string, kind: string, raceDate: string) =>
+      `${date}: ${kind} on the day before the race/test (${raceDate}) — that day stays free`,
+    longInTaper: (date: string) =>
+      `${date}: long run inside the taper — the taper cuts volume, and the long run is its biggest block`,
+    hillsInTaper: (date: string) =>
+      `${date}: hill session inside the taper — the engine never schedules hills there`,
+    strengthInTaper: (date: string) =>
+      `${date}: strength in the taper/race week — strength stops entirely for the taper`,
+    strengthOnQualityDay: (date: string, kind: string) =>
+      `${date}: strength on the same day as an accent (${kind})`,
+    strengthDayBeforeQuality: (date: string, kind: string, next: string) =>
+      `${date}: heavy strength the day before an accent (${next}: ${kind}) — the strength deficit lasts up to 48 h`,
+    strengthOnLongDay: (date: string, kind: string) =>
+      `${date}: strength on the same day as ${kind} — double eccentric load on the same muscles`,
+    strengthGap: (a: string, b: string) => `${a} → ${b}: strength sessions less than 48 h apart`,
+    easyShareLow: (weekStart: string, pct: number) =>
+      `week ${weekStart}: ${pct}% of the volume is easy — the target is ≥75%`,
+    longOverCap: (date: string, km: number, cap: number) =>
+      `${date}: long run of ${n(km)} km is over the ${n(cap)} km cap — no evidence of benefit beyond it`,
+    qualityWithoutFrame: (date: string, kind: string) =>
+      `${date} (${kind}): missing a warm-up or a cool-down — an accent carries both`,
+    taperNotMonotonic: (weekStart: string, km: number, prevKm: number) =>
+      `week ${weekStart}: ${n(km)} km is more than the week before (${n(prevKm)} km) — taper volume falls monotonically`,
   },
 
   exportCmd: {
@@ -717,6 +777,13 @@ export const cliEn = {
     diff:
       'Dry run: what regenerating the plan from the current trainctl.yaml would change (new results, ' +
       'a changed profile). Saves nothing.',
+    check:
+      'Lint the plan file against the engine invariants: ≥48 h between accents (I-7), the day before ' +
+      'a race stays free (T-10), taper shape (T-4/T-5, F-13), strength adjacency (S-5), ≥75% easy ' +
+      'volume (I-5) and file-internal consistency (sums, dates, the goal race present). ERRORS mean ' +
+      'plan/plan.yaml is internally inconsistent (usually a manual edit); WARNINGS mean a rule ' +
+      'deviation someone may have chosen. Run it after hand-editing the plan file. Changes nothing.',
+    checkStrict: 'true = warnings also count as failures',
   },
 
   /** AGENTS.md — the coach persona dropped into the training directory by `trainctl init`. */

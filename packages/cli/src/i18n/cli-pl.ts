@@ -19,6 +19,8 @@ const tygodnie = (count: number) =>
   `${count} ${pluralPl(count, { one: 'tydzień', few: 'tygodnie', other: 'tygodni' })}`
 const przerwy = (count: number) =>
   `${count} ${pluralPl(count, { one: 'przerwa', few: 'przerwy', other: 'przerw' })}`
+const sesje = (count: number) =>
+  `${count} ${pluralPl(count, { one: 'sesja', few: 'sesje', other: 'sesji' })}`
 
 export const cliPl: CliMessages = {
   cmd: {
@@ -42,6 +44,8 @@ export const cliPl: CliMessages = {
     export: 'plik na zegarek (FIT), kalendarz (ICS), rozpiska albo pakiet startowy',
     reschedule: 'przestaw tydzień wokół zajętych dni (solver: akcenty, 48 h, długie)',
     diff: 'co by się zmieniło po regeneracji planu z aktualnego trainctl.yaml',
+    check: 'sprawdź plan: inwarianty silnika + integralność pliku; błędy psują kod wyjścia (CI)',
+    optStrict: 'ostrzeżenia też psują kod wyjścia (do CI)',
     optDate: 'data (domyślnie: dziś)',
     optDateOther: 'inna data niż dziś',
     optDateWeek: 'data w interesującym tygodniu',
@@ -306,6 +310,64 @@ export const cliPl: CliMessages = {
     localeChanged: (planLocale: string, current: string) =>
       `plan wygenerowano w języku „${planLocale}”, a pracujesz w „${current}” — ` +
       'uruchom trainctl plan, żeby przegenerować opisy',
+  },
+
+  check: {
+    title: 'Lint planu',
+    subtitle: (file: string) => `inwarianty i integralność pliku — sprawdzane na ${file}`,
+    passed: (weeks: number, sessions: number) =>
+      `Bez zastrzeżeń: ${tygodnie(weeks)} i ${sesje(sessions)} trzymają wszystkie inwarianty.`,
+    errorsSection: 'Integralność pliku',
+    warnsSection: 'Odstępstwa od reguł',
+    summary: (errors: number, warns: number) =>
+      `${errors} ${pluralPl(errors, { one: 'błąd', few: 'błędy', other: 'błędów' })}, ` +
+      `${warns} ${pluralPl(warns, { one: 'ostrzeżenie', few: 'ostrzeżenia', other: 'ostrzeżeń' })}`,
+    strictHint: 'ostrzeżenia nie zmieniają kodu wyjścia — w CI dodaj --strict, żeby zawodziły',
+    strictNote: 'tryb ścisły: ostrzeżenia liczą się jak błędy',
+    malformed: (where: string) =>
+      `wpis ${where}: brak wymaganych pól (weekStart/days albo date) — popraw YAML albo przegeneruj plan`,
+    weekLength: (weekStart: string, days: number) =>
+      `tydzień ${weekStart}: ma ${dni(days)} zamiast 7`,
+    weekStartNotMonday: (weekStart: string) =>
+      `tydzień ${weekStart}: weekStart nie jest poniedziałkiem`,
+    weeksNotContiguous: (weekStart: string, prev: string) =>
+      `tydzień ${weekStart}: nie zaczyna się równo 7 dni po poprzednim (${prev})`,
+    dayOutOfPlace: (date: string, shouldBe: string) =>
+      `${date}: nie na swoim miejscu — ta pozycja w tygodniu należy do ${shouldBe}`,
+    weekdayMismatch: (date: string, stored: string, real: string) =>
+      `${date}: pole „weekday” mówi ${stored}, a kalendarz — ${real}`,
+    totalKmDesync: (weekStart: string, fromDays: number, stored: number) =>
+      `tydzień ${weekStart}: totalKm mówi ${n(stored)} km, a dni sumują się do ${n(fromDays)} km`,
+    easyShareDesync: (weekStart: string, fromDaysPct: number, storedPct: number) =>
+      `tydzień ${weekStart}: easyShare mówi ${storedPct}%, a z dni wychodzi ${fromDaysPct}%`,
+    workoutKmDesync: (date: string, kind: string, fromSegments: number, stored: number) =>
+      `${date} (${kind}): distanceKm mówi ${n(stored)} km, a segmenty sumują się do ${n(fromSegments)} km`,
+    raceDayMissing: (date: string) => `${date}: w dniu celu nie ma startu — plan zgubił swój cel`,
+    accentGap: (a: string, b: string, ka: string, kb: string) =>
+      `${a} → ${b}: ${ka} i ${kb} bez 48 godzin przerwy`,
+    workoutBeforeRace: (date: string, kind: string, raceDate: string) =>
+      `${date}: ${kind} w przeddzień startu lub sprawdzianu (${raceDate}) — ten dzień zostaje wolny`,
+    longInTaper: (date: string) =>
+      `${date}: długie wybieganie w taperze — taper tnie objętość, a długie to jej największy blok`,
+    hillsInTaper: (date: string) =>
+      `${date}: podbiegi w taperze — silnik nigdy ich tam nie stawia`,
+    strengthInTaper: (date: string) =>
+      `${date}: siła w taperze albo tygodniu startowym — na taper siłę odstawia się całkiem`,
+    strengthOnQualityDay: (date: string, kind: string) =>
+      `${date}: siła tego samego dnia co akcent (${kind})`,
+    strengthDayBeforeQuality: (date: string, kind: string, next: string) =>
+      `${date}: ciężka siła w przeddzień akcentu (${next}: ${kind}) — deficyt siły utrzymuje się do 48 godzin`,
+    strengthOnLongDay: (date: string, kind: string) =>
+      `${date}: siła tego samego dnia co ${kind} — podwójne obciążenie ekscentryczne tych samych mięśni`,
+    strengthGap: (a: string, b: string) => `${a} → ${b}: sesje siłowe bez 48 godzin przerwy`,
+    easyShareLow: (weekStart: string, pct: number) =>
+      `tydzień ${weekStart}: ${pct}% objętości spokojnie — cel to ≥75%`,
+    longOverCap: (date: string, km: number, cap: number) =>
+      `${date}: długie ${n(km)} km przekracza sufit ${n(cap)} km — powyżej niego nie ma dowodów na korzyść`,
+    qualityWithoutFrame: (date: string, kind: string) =>
+      `${date} (${kind}): brak rozgrzewki albo truchtu na koniec — akcent ma jedno i drugie`,
+    taperNotMonotonic: (weekStart: string, km: number, prevKm: number) =>
+      `tydzień ${weekStart}: ${n(km)} km to więcej niż tydzień wcześniej (${n(prevKm)} km) — objętość taperu spada monotonicznie`,
   },
 
   exportCmd: {
@@ -737,6 +799,14 @@ export const cliPl: CliMessages = {
     diff:
       'Dry-run: co zmieniłaby regeneracja planu z aktualnego trainctl.yaml (nowe wyniki, ' +
       'zmiana profilu). Nic nie zapisuje.',
+    check:
+      'Lint pliku planu względem inwariantów silnika: ≥48 h między akcentami (I-7), wolny dzień ' +
+      'przed startem (T-10), kształt taperu (T-4/T-5, F-13), sąsiedztwo siły (S-5), ≥75% objętości ' +
+      'spokojnie (I-5) oraz spójność wewnętrzna pliku (sumy, daty, obecność dnia startu). BŁĘDY ' +
+      'znaczą, że plan/plan.yaml jest wewnętrznie niespójny (zwykle po ręcznej edycji); OSTRZEŻENIA ' +
+      'to odstępstwa od reguł, które ktoś mógł wybrać świadomie. Uruchamiaj po ręcznej edycji ' +
+      'pliku planu. Nic nie zmienia.',
+    checkStrict: 'true = ostrzeżenia też liczą się jak błędy',
   },
 
   agentsMd: (): string => `# Trener — instrukcja dla agenta

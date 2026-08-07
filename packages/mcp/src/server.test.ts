@@ -53,13 +53,13 @@ afterAll(async () => {
 })
 
 describe('serwer MCP trainctl', () => {
-  it('wystawia komplet 15 narzędzi', async () => {
+  it('wystawia komplet 16 narzędzi', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual([
-      'trainctl_adapt', 'trainctl_desk', 'trainctl_diff', 'trainctl_export', 'trainctl_init', 'trainctl_log', 'trainctl_plan',
-      'trainctl_pull', 'trainctl_push', 'trainctl_reschedule', 'trainctl_review', 'trainctl_shift', 'trainctl_today',
-      'trainctl_week', 'trainctl_why',
+      'trainctl_adapt', 'trainctl_check', 'trainctl_desk', 'trainctl_diff', 'trainctl_export', 'trainctl_init', 'trainctl_log',
+      'trainctl_plan', 'trainctl_pull', 'trainctl_push', 'trainctl_reschedule', 'trainctl_review', 'trainctl_shift',
+      'trainctl_today', 'trainctl_week', 'trainctl_why',
     ])
   })
 

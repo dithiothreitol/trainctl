@@ -30,10 +30,15 @@ Feature-complete for a first release; packaging and metadata prepared.
 
 ### Interfaces
 
-- CLI: 15 commands, colour output, interactive pickers, ASCII and `NO_COLOR`
+- CLI: 16 commands, colour output, interactive pickers, ASCII and `NO_COLOR`
   fallbacks.
-- MCP server: 15 tools over the same handlers, so the agent and the CLI can
+- MCP server: 16 tools over the same handlers, so the agent and the CLI can
   never disagree.
+- `check`: lint for the plan file — engine invariants (48 h between accents,
+  taper shape, strength adjacency, ≥75% easy volume) and file-internal
+  consistency, each finding with its FOUNDATIONS rule ID. Warnings keep exit
+  code 0; errors (and warnings under `--strict`) return 1, so a training
+  repo can run it in CI.
 - Export: `.fit` workouts (own encoder, verified against an independent parser),
   `.ics` calendar, A4 printout, race-day pack with splits and a paper pace band.
 - intervals.icu sync: push planned sessions to the watch, pull execution and
