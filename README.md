@@ -1,177 +1,146 @@
 # trainctl
 
-Coach treningowy dla ludzi żyjących w terminalu: silnik planów biegowych
-(docelowo multi-sport) z interfejsem **CLI + MCP** — trener staje się narzędziem
-Twojego agenta (Claude Code, Codex), a plan jest kodem w repo.
+A running coach that lives in your terminal: a plan-generating engine with a
+**CLI + MCP** interface. Your plan is code in a git repo, and your agent
+(Claude Code, Codex, any MCP client) gets the coach as a tool.
 
-**Status:** Faza 0 — fundament. Zobacz [SPEC.md](SPEC.md) (wizja, architektura,
-fazy, decyzje).
+*Polska wersja tego dokumentu: [README.pl.md](README.pl.md).*
 
-## Struktura
+> **Status: personal tool, published early.** The engine has not yet guided a
+> full training cycle from start to race. Numbers come from published research
+> and from a corpus of 50 real coaching plans, but nobody has raced off a plan
+> it produced. Treat it accordingly. There is no support promise — see
+> [Expectations](#expectations).
 
-- `packages/` — monorepo TypeScript (core, sport-running, cli, mcp, sync, storage)
-- `tools/corpus/` — jednorazowe ETL korpusu planów trenerskich (Python)
-- `corpus/` — dane źródłowe (gitignore — PII)
-- `docs/science/` — fundament naukowy z cytowaniami
-- `docs/adr/` — decyzje architektoniczne
-
-## Użycie (CLI)
+## What it actually does
 
 ```
-mkdir moj-trening && cd moj-trening && git init   # plan-as-code: katalog w gicie
-pnpm trainctl init        # interaktywny kreator profilu (--template = sam szablon)
-pnpm trainctl init --from-intervals   # profil z 16 tygodni historii intervals.icu
-pnpm trainctl plan        # generuje plan/plan.yaml + plan/PLAN.md (+ predykcja celu)
-pnpm trainctl today       # co dziś wybiegać (--date YYYY-MM-DD dla innego dnia)
-pnpm trainctl why         # dlaczego ten trening — cel jednostki + reguły z badań
-pnpm trainctl log --time 58:30 --note "dobre czucie"
-pnpm trainctl reschedule --block 2026-08-06   # „w czwartek release" → solver przestawia
-pnpm trainctl reschedule --block 2026-08-06 --apply   # i zapisuje
-pnpm trainctl shift       # wybór treningu i nowego dnia z listy (strzałki/cyfry)
-pnpm trainctl shift --from 2026-08-06 --to 2026-08-07   # albo wprost, bez pytań
-pnpm trainctl week -i     # przeglądanie tygodni: ←/→, t = dziś, s = przesuń, q = wyjście
-pnpm trainctl diff        # co zmieniłaby regeneracja z aktualnego trainctl.yaml
-pnpm trainctl export      # zapyta: rozpiska do druku / plan na zegarek / jeden trening / kalendarz
-pnpm trainctl export --what print     # albo wprost, bez pytań
-pnpm trainctl review      # rytuał tygodnia: co było, sygnały, co przed nami, co zrobić
-pnpm trainctl adapt       # analiza wykonania → propozycje korekt (nie zmienia planu)
-pnpm trainctl desk --heavy   # dzień przy biurku: okna, przerwy, reguła tempa po pracy
+mkdir my-training && cd my-training && git init   # plan-as-code: a git repo
+npx trainctl init          # profile wizard (--template writes the file only)
+npx trainctl plan          # → plan/plan.yaml + plan/PLAN.md + a finish prediction
+npx trainctl today         # what to run today
+npx trainctl why           # why this session: its purpose and the rules behind it
+npx trainctl reschedule --block 2026-08-06 --apply   # "release on Thursday"
+npx trainctl review        # the Monday ritual: what happened, what is ahead
 ```
 
-Starty kontrolne w sezonie wpisujesz w `trainctl.yaml` (`athlete.tuneUpRaces`) —
-silnik robi z nich to samo, co trener z korpusu: mini-taper przed startem B,
-wolny dzień przed, długie wybieganie nazajutrz, żadnego dokładania akcentu do
-tygodnia startowego. Gdy kalendarz startów jest pusty, plan sam wstawia
-sprawdzian na czas, żeby było z czego przeliczyć strefy — ale prawdziwy start
-zawsze ma pierwszeństwo.
+Everything lives in files in the current directory — `trainctl.yaml`, `plan/`,
+`log.jsonl`. No account, no database, no backend. Your plan's history is your
+git history.
 
-Siłownia dwa razy w tygodniu (`strength: {enabled: true}` w `trainctl.yaml`) to
-osobny tor obok biegania: nie dokłada kilometrów, znika w taperze i nigdy nie
-ląduje dzień przed akcentem. Uzasadnienie jest jedno i mówimy je wprost —
-**ekonomia biegu**, nie „ochrona przed urazami": jedyna metaanaliza na samych
-biegaczach dała wynik nieistotny. `trainctl why` w dniu siłowni dopowiada resztę
-prawdy: efekt jest mały, u biegaczy 34–45 lat statystycznie znika, a badania
-kończą się na 10 km w laboratorium.
+| command | what it does |
+|---|---|
+| `init` | profile wizard; `--from-intervals` proposes one from 16 weeks of history |
+| `plan` | generate the plan; judges whether your time goal is realistic |
+| `today` / `week` | the session for today / the week, with journal status |
+| `why` | physiological purpose + the research rules behind the session |
+| `log` | record what you actually did |
+| `shift` / `reschedule` | move one session / re-solve the whole week around busy days |
+| `adapt` | compare execution with the plan, propose corrections |
+| `review` | one call instead of pull + adapt + week |
+| `push` / `pull` | sync with intervals.icu (→ Garmin/Coros/Wahoo) |
+| `export` | `.fit` for the watch, `.ics` calendar, A4 printout, race-day pack |
+| `desk` | training windows around office hours; the pace-over-feel rule |
+| `diff` | what a regeneration would change — before it changes it |
 
-Profil z prawdziwych danych zamiast samooceny: gdy klucz intervals.icu jest
-dostępny, kreator proponuje objętość, dni treningowe i dzień długiego wybiegania
-z ostatnich 16 tygodni — Enter przyjmuje propozycję, wpisanie własnej wartości ją
-nadpisuje. Kandydatów na starty (do kalibracji stref) tylko pokazujemy: wynik
-wpisany błędnie przesuwa wszystkie tempa, więc tę decyzję zostawiamy człowiekowi.
+## Requirements
 
-Synchronizacja z zegarkiem (intervals.icu jako hub → Garmin/Coros/Wahoo):
+- **Node ≥ 22.18.** There is no build step: the CLI runs TypeScript through
+  Node's native type stripping.
+- For sync: an [intervals.icu](https://intervals.icu) account and an API key
+  (Settings → Developer Settings).
 
-```
-# klucz: intervals.icu → Settings → Developer Settings
-export TRAINCTL_INTERVALS_API_KEY=...   # zmienna środowiskowa
-echo 'TRAINCTL_INTERVALS_API_KEY=...' >> .env   # albo plik .env w katalogu treningowym
-pnpm trainctl push --days 14   # plan → kalendarz intervals.icu → zegarek
-pnpm trainctl pull --days 28   # wykonanie + wellness → sync.json, porównanie z planem
-```
+> **Your watch must connect to intervals.icu directly** (Settings →
+> Connections), not through Strava. Since December 2024 intervals.icu does not
+> pass Strava-sourced activities through its API, so `pull` receives records
+> with no distance and no type. `trainctl` says so explicitly instead of
+> reporting "0 runs" — but it cannot work around it. Details:
+> [docs/integrations/intervalsicu.md](docs/integrations/intervalsicu.md) §1.8.1.
 
-Klucza nigdy nie wpisujesz do `trainctl.yaml` — ten plik jest w gicie. `.env`
-i `.trainctl-secret` dopisuje do `.gitignore` samo `trainctl init`, a gdyby
-mimo to sekret leżał w repozytorium bez ochrony, CLI powie to przy każdym
-uruchomieniu. Zmienna ustawiona jawnie w powłoce wygrywa nad plikiem.
+The API key never goes into `trainctl.yaml` — that file is in your repo. Use
+the `TRAINCTL_INTERVALS_API_KEY` environment variable, a `.env` file, or
+`.trainctl-secret`. `trainctl init` adds all of those to `.gitignore`, and if a
+secret ever sits unprotected in a git repo the CLI says so on every run.
 
-**Zegarek musi być podpięty do intervals.icu bezpośrednio** (Settings →
-Connections), nie przez Stravę: od grudnia 2024 hub nie przepuszcza danych
-Stravy przez API i `pull` dostaje puste rekordy. `trainctl` mówi wtedy wprost,
-ile aktywności zostało zatrzymanych i dlaczego, zamiast raportować „0 biegów".
+## How it decides
 
-CLI działa na bieżącym katalogu i trzyma wszystko w plikach (`trainctl.yaml`,
-`plan/`, `log.jsonl`) — bez konta, bez bazy; historia zmian planu to git.
-Uruchamiane natywnym type-strippingiem Node ≥23.6 (bez kroku budowania).
+Two sources, kept separate on purpose.
 
-Wyjście jest kolorowe w terminalu i czyste wszędzie indziej: `NO_COLOR=1`
-wyłącza barwy, `TRAINCTL_ASCII=1` wymusza znaki ASCII, a przekierowanie do pliku
-lub potoku automatycznie zdejmuje formatowanie. Serwer MCP dostaje tę samą
-treść bez sekwencji ANSI — handlery opisują wyjście blokami
-(`src/ui/blocks.ts`), a kolory dokłada dopiero renderer CLI.
+**Published research.** Every engine rule carries an ID from
+[docs/science/FOUNDATIONS.md](docs/science/FOUNDATIONS.md) (~60 sources), and
+`trainctl why` quotes them. Values with no source behind them are marked in the
+code as engineering choices rather than dressed up as science. Some findings
+are deliberately *negative*: the 10% rule and ACWR are not treated as injury
+thresholds, HRV-guided training is not implemented, and strength work is
+justified by running economy — **not** by injury prevention, because the only
+meta-analysis on runners came out non-significant.
 
-## Język
+**A corpus of 50 real coaching plans** (2020–2025, one coach, ~1300 days). It
+sets the house style — session shapes, warm-up and cool-down lengths, which
+days carry accents. It has also *refuted* assumptions more than once: the coach
+never once scheduled a time trial in 1231 days, which changed how calibration
+works; and measuring long runs removed a solver penalty that was pushing plans
+away from what the coach actually does.
 
-Domyślnie angielski; polski jako drugi język:
-
-```
-trainctl today --lang pl            # jednorazowo
-export TRAINCTL_LANG=pl             # na sesję
-echo 'language: pl' >> trainctl.yaml   # na stałe, razem z katalogiem treningowym
-```
-
-Kolejność: flaga bije zmienną, zmienna bije `trainctl.yaml`. Serwer MCP dziedziczy
-język katalogu, więc agent mówi tak samo jak `plan/PLAN.md`. Polski nie jest
-tłumaczeniem angielskiego — opisy jednostek to głos trenera z korpusu
-(„6 kilometrów w tempie spokojnym", „przerwy 2 minutowe w marszu"), a angielski
-brzmi jak zapis anglojęzycznego planu („6 km easy", „2 min walk recovery").
-Liczebniki są odmieniane (1 kilometr / 3 kilometry / 5 kilometrów, z pułapką
-12–14), a liczby dziesiętne mają przecinek.
-
-Dwujęzyczne jest wszystko, co widzi człowiek i agent: wyjście komend,
-`--help`, `plan/PLAN.md`, szablon `trainctl.yaml` z komentarzami, `AGENTS.md`,
-objaśnienia reguł, opisy narzędzi MCP, kroki treningu w pliku FIT, rozpiska
-do druku, pakiet startowy i tytuły w kalendarzu intervals.icu.
-
-`trainctl init --lang pl` zostawia w `trainctl.yaml` odkomentowane `language: pl` —
-katalog treningowy pamięta wybór, więc kolejne komendy nie potrzebują flagi.
-
-## Eksport
-
-Trzy drogi „na zewnątrz", zależnie od tego, co masz pod ręką:
-
-| Co | Format | Do czego |
-|---|---|---|
-| `--what plan` / `workout` | `.fit` | katalog `GARMIN/Workouts` na zegarku (kabel) lub import w Garmin Connect |
-| `--what calendar` | `.ics` | Google Calendar, Outlook, kalendarz telefonu |
-| `--what print` | `.html` | rozpiska pod A4 — Ctrl+P, z kratką na odhaczanie |
-| `--what race` | `.html` | pakiet startowy: splity, papierowa opaska tempa na nadgarstek, tabela korekty na temperaturę |
-
-Bez kabla i bez plików: `trainctl push` wysyła treningi przez intervals.icu.
-Pliki FIT są weryfikowane binarnie w testach, a format potwierdzono, wgrywając
-wygenerowany plik do niezależnego parsera intervals.icu (struktura kroków,
-pętle powtórzeń i cele tempa odczytane poprawnie).
+The corpus itself contains personal data and is **not** distributed.
 
 ## Agent (MCP)
 
-Ten sam silnik jako narzędzia dla Claude Code / innych klientów MCP:
-
 ```
-claude mcp add trainctl --env TRAINCTL_DIR="C:\sciezka\do\mojego-treningu" ^
-  -- node "C:\...\trainctl\packages\mcp\src\bin.ts"
+claude mcp add trainctl --env TRAINCTL_DIR="/path/to/my-training" ^
+  -- npx -y trainctl-mcp
 ```
 
-Narzędzia: `trainctl_plan`, `trainctl_today`, `trainctl_week`, `trainctl_log`, `trainctl_shift`,
-`trainctl_why`, `trainctl_diff`, `trainctl_init`, `trainctl_push`, `trainctl_pull`, `trainctl_adapt`,
-`trainctl_desk`, `trainctl_reschedule`, `trainctl_export`, `trainctl_review`. Rozmowa jest
-interfejsem: „co mam dziś wybiegać?", „w czwartek release — przesuń interwały",
-„jak mi poszło w tym tygodniu?". Agent widzi tydzień (`trainctl_week`), renegocjuje
-(`trainctl_shift` z ochroną dnia startu i ostrzeżeniem I-7) i tłumaczy plan cytując
-badania (`trainctl_why`).
+Fifteen tools (`trainctl_plan`, `trainctl_today`, `trainctl_week`,
+`trainctl_shift`, `trainctl_why`, `trainctl_review`, …). `trainctl init` leaves
+an `AGENTS.md` in your training directory that turns the agent into a coach
+rather than a command runner: ask before regenerating a plan, ask for context
+when a week was missed, never invent numbers.
 
-`trainctl init` zostawia w katalogu treningowym `AGENTS.md` — instrukcję, która
-robi z agenta trenera, a nie wykonawcę komend: poniedziałkowy przegląd, pytanie
-o kontekst przy pominiętych sesjach, zakaz regenerowania planu bez pytania.
-Kto woli powiadomienie zamiast rozmowy, znajdzie przykład zadania cron/Actions
-w [docs/examples/github-actions-review.md](docs/examples/github-actions-review.md)
-— z zastrzeżeniami, dlaczego to nie jest domyślna droga.
+## Language
 
-## Rozwój
+English by default, Polish available:
+
+```
+trainctl today --lang pl
+export TRAINCTL_LANG=pl
+trainctl init --lang pl      # writes `language: pl` into trainctl.yaml
+```
+
+Polish is not a translation of the English — session descriptions carry the
+corpus coach's voice, with proper declension and decimal commas. English reads
+like a natively written plan.
+
+## What it deliberately does not do
+
+- No streaks, badges, or social feed.
+- No readiness score telling you to go easy today.
+- No injury-risk prediction. The load metrics people use for it do not survive
+  scrutiny, and pretending otherwise would be worse than silence.
+- No automatic re-planning. `adapt` proposes; you edit `trainctl.yaml` and
+  regenerate. A plan that changes silently is a black box.
+
+## Expectations
+
+This is a personal tool released in the open because the code is more useful to
+others than it is hidden. **There is no support promise.** Issues may go
+unanswered; pull requests may sit. If you need a maintained product, this is
+not it yet.
+
+Bug reports with a reproducible case are still welcome, and reports of the
+engine producing something a coach would call wrong are the most valuable kind.
+
+## Development
 
 ```
 pnpm install
-pnpm test        # vitest (packages/*/src/**/*.test.ts)
-pnpm typecheck   # tsc --noEmit
+pnpm test        # 496 tests
+pnpm typecheck
 ```
 
-Reguły silnika odwołują się do ID z `docs/science/FOUNDATIONS.md` §10
-(np. `P-2`, `T-5`, `W-7`) — wartości bez pokrycia w źródłach są oznaczone
-w kodzie jako inżynierskie.
+Architecture, phases and decisions: [SPEC.md](SPEC.md). Engine rules reference
+IDs from FOUNDATIONS §10 (`P-2`, `T-5`, `W-7`, …).
 
-## Korpus — odtworzenie lokalne
+## Licence
 
-```
-# źródła: 50 planów .doc/.docx (2020–2025)
-# .doc → .docx: LibreOffice headless
-soffice --headless --convert-to docx --outdir corpus/source corpus/source/*.doc
-python tools/corpus/extract_text.py   # → corpus/raw-text/*.txt
-```
+MIT — see [LICENSE](LICENSE).

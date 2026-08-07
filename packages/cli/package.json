@@ -1,15 +1,45 @@
 {
   "name": "@trainctl/cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "trainctl: CLI — plan/today/week/shift/review/push/pull/export",
+  "keywords": [
+    "running",
+    "training-plan",
+    "cli",
+    "mcp",
+    "intervals-icu",
+    "plan-as-code"
+  ],
   "license": "MIT",
+  "author": "Dariusz Tyszka",
+  "homepage": "https://github.com/dithiothreitol/trainctl",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dithiothreitol/trainctl.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/dithiothreitol/trainctl/issues"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "bin": {
     "trainctl": "./src/bin.ts"
   },
   "exports": {
     ".": "./src/commands.ts"
+  },
+  "files": [
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@trainctl/core": "workspace:*",

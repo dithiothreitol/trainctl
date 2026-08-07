@@ -1,12 +1,41 @@
 {
   "name": "@trainctl/export",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "trainctl: eksport FIT (zegarek), ICS (kalendarz), HTML (druk, pakiet startowy)",
+  "keywords": [
+    "fit",
+    "garmin",
+    "ics",
+    "training-plan",
+    "export"
+  ],
   "license": "MIT",
+  "author": "Dariusz Tyszka",
+  "homepage": "https://github.com/dithiothreitol/trainctl",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dithiothreitol/trainctl.git",
+    "directory": "packages/export"
+  },
+  "bugs": {
+    "url": "https://github.com/dithiothreitol/trainctl/issues"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "exports": {
     ".": "./src/index.ts"
+  },
+  "files": [
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@trainctl/core": "workspace:*"

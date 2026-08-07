@@ -1,8 +1,25 @@
 {
   "name": "trainctl",
+  "version": "0.1.0",
   "private": true,
   "description": "Coach treningowy w terminalu: plan jako kod, trener jako narzędzie agenta (CLI + MCP)",
+  "keywords": [
+    "running",
+    "training-plan",
+    "cli",
+    "mcp",
+    "coach"
+  ],
   "license": "MIT",
+  "author": "Dariusz Tyszka",
+  "homepage": "https://github.com/dithiothreitol/trainctl#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dithiothreitol/trainctl.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dithiothreitol/trainctl/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=22.18.0"

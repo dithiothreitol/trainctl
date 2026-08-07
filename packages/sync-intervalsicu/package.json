@@ -1,12 +1,40 @@
 {
   "name": "@trainctl/sync-intervalsicu",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "trainctl: adapter intervals.icu (pull aktywności/wellness, push treningów)",
+  "keywords": [
+    "intervals-icu",
+    "garmin",
+    "sync",
+    "training-plan"
+  ],
   "license": "MIT",
+  "author": "Dariusz Tyszka",
+  "homepage": "https://github.com/dithiothreitol/trainctl",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dithiothreitol/trainctl.git",
+    "directory": "packages/sync-intervalsicu"
+  },
+  "bugs": {
+    "url": "https://github.com/dithiothreitol/trainctl/issues"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "exports": {
     ".": "./src/index.ts"
+  },
+  "files": [
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@trainctl/core": "workspace:*"

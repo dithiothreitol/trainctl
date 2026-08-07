@@ -1,15 +1,44 @@
 {
   "name": "@trainctl/mcp",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "trainctl: serwer MCP — trener jako narzędzia agenta (Claude Code, Codex)",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "running",
+    "training-plan",
+    "ai-agent"
+  ],
   "license": "MIT",
+  "author": "Dariusz Tyszka",
+  "homepage": "https://github.com/dithiothreitol/trainctl",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dithiothreitol/trainctl.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/dithiothreitol/trainctl/issues"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "bin": {
     "trainctl-mcp": "./src/bin.ts"
   },
   "exports": {
     ".": "./src/server.ts"
+  },
+  "files": [
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
