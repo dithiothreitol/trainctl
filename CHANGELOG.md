@@ -39,6 +39,14 @@ Feature-complete for a first release; packaging and metadata prepared.
   consistency, each finding with its FOUNDATIONS rule ID. Warnings keep exit
   code 0; errors (and warnings under `--strict`) return 1, so a training
   repo can run it in CI.
+- `diff --plan <file>`: compare the current plan against another plan file —
+  the what-if workflow, where a scenario (moved race, dropped tune-up) lives
+  on a git branch or in a copied directory and the diff shows goal, prediction
+  and week-by-week changes before anything is decided.
+- `AGENTS.md` teaches the agent to correlate sources it can see (calendar,
+  issue tracker, on-call) with the training week — propose `reschedule` before
+  a conflict, `desk --heavy` after a cognitively heavy day — always naming the
+  signal and never applying without a yes.
 - Export: `.fit` workouts (own encoder, verified against an independent parser),
   `.ics` calendar, A4 printout, race-day pack with splits and a paper pace band.
 - intervals.icu sync: push planned sessions to the watch, pull execution and

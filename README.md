@@ -78,6 +78,29 @@ away from what the coach actually does.
 
 The corpus itself contains personal data and is **not** distributed.
 
+## Plan as code
+
+The plan is a YAML file in your git repository — and that changes what a plan
+can do, not just where it is stored:
+
+- **What-if branches.** A scenario lives on a branch or in a copied directory:
+  change the race date in `trainctl.yaml` *there*, regenerate *there*, then
+  `trainctl diff --plan scenario/plan/plan.yaml` shows the goal, the prediction
+  and every week that differs — before you decide. From a branch without a
+  worktree: `git show scenario:plan/plan.yaml > s.yaml && trainctl diff --plan s.yaml`.
+- **CI on your training.** `trainctl check` lints the plan against the engine's
+  invariants — 48 h between accents, taper shape, strength adjacency, file
+  integrity — each finding with its FOUNDATIONS rule ID, and the exit code
+  turns a training repo's pipeline red. Example:
+  [docs/examples/ci-check.md](docs/examples/ci-check.md).
+- **A human coach as reviewer.** Week changes are diffs, so a coach can review
+  them the way engineers review code: comment on a line, approve, merge.
+  Example: [docs/examples/coach-review.md](docs/examples/coach-review.md).
+- **Reproducibility.** The same `trainctl.yaml` and the same engine version
+  produce the same plan — in five years too. No model drifts under you, no
+  backend can shut down; pin the version in your training repo and every
+  session stays explainable: a rule ID in the plan, a commit in the history.
+
 ## Agent (MCP)
 
 ```

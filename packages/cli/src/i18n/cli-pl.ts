@@ -46,6 +46,7 @@ export const cliPl: CliMessages = {
     diff: 'co by się zmieniło po regeneracji planu z aktualnego trainctl.yaml',
     check: 'sprawdź plan: inwarianty silnika + integralność pliku; błędy psują kod wyjścia (CI)',
     optStrict: 'ostrzeżenia też psują kod wyjścia (do CI)',
+    optDiffPlan: 'porównaj z innym plikiem planu (gałąź scenariusza albo worktree)',
     optDate: 'data (domyślnie: dziś)',
     optDateOther: 'inna data niż dziś',
     optDateWeek: 'data w interesującym tygodniu',
@@ -310,6 +311,13 @@ export const cliPl: CliMessages = {
     localeChanged: (planLocale: string, current: string) =>
       `plan wygenerowano w języku „${planLocale}”, a pracujesz w „${current}” — ` +
       'uruchom trainctl plan, żeby przegenerować opisy',
+    titleFile: (path: string) => `Różnice: bieżący plan → ${path}`,
+    identical: (path: string) => `Bieżący plan i ${path} są identyczne.`,
+    otherPlanMissing: (path: string) =>
+      `Brak pliku planu w ${path} — z gałęzi: git show <gałąź>:plan/plan.yaml > scenariusz.yaml`,
+    goalChanged: (before: string, after: string) => `cel: ${before} → ${after}`,
+    vdotChanged: (before: number, after: number) => `VDOT: ${n(before)} → ${n(after)}`,
+    predictionChanged: (before: string, after: string) => `predykcja: ${before} → ${after}`,
   },
 
   check: {
@@ -798,7 +806,11 @@ export const cliPl: CliMessages = {
     reviewDate: 'data odniesienia (domyślnie dziś)',
     diff:
       'Dry-run: co zmieniłaby regeneracja planu z aktualnego trainctl.yaml (nowe wyniki, ' +
-      'zmiana profilu). Nic nie zapisuje.',
+      'zmiana profilu). Nic nie zapisuje. Z plan=<ścieżka> porównuje bieżący plan z innym ' +
+      'plan.yaml — workflow „co jeśli”: scenariusz żyje na gałęzi gita albo w skopiowanym ' +
+      'katalogu (przesunięta data startu, odpuszczony start kontrolny), a diff pokazuje cel, ' +
+      'predykcję i różnice tydzień po tygodniu, zanim użytkownik zdecyduje.',
+    diffPlan: 'ścieżka do innego plan.yaml do porównania (gałąź scenariusza, worktree, kopia)',
     check:
       'Lint pliku planu względem inwariantów silnika: ≥48 h między akcentami (I-7), wolny dzień ' +
       'przed startem (T-10), kształt taperu (T-4/T-5, F-13), sąsiedztwo siły (S-5), ≥75% objętości ' +
@@ -823,6 +835,9 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
 - **Po starcie albo sprawdzianie** → dopytaj o czas i zaproponuj wpis do
   \`athlete.results\`. Pomiar bez wpisanego wyniku niczego nie zmienia — strefy
   dalej liczą się ze starego biegu.
+- **Po ręcznej edycji \`plan/plan.yaml\`** → \`trainctl_check\`. Błędy znaczą, że
+  plik się rozjechał; ostrzeżenia niosą ID reguł z FOUNDATIONS — warto je
+  zrelacjonować.
 
 ## Zasady
 
@@ -840,6 +855,28 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
 6. **Cytuj powody, nie tylko polecenia.** \`trainctl_why\` podaje cel jednostki i
    reguły z badań (ID z \`docs/science/FOUNDATIONS.md\`) — to jest wartość, którą
    trener wnosi ponad listę treningów.
+7. **Pytanie „co jeśli” dostaje scenariusz, nie nadpisanie.** „Co jeśli przełożę
+   start o trzy tygodnie?” → gałąź gita albo skopiowany katalog, zmiana
+   \`trainctl.yaml\` TAM, regeneracja tam, potem \`trainctl_diff\` z plan=<ścieżka
+   do plan.yaml scenariusza> i pokazanie różnic. Prawdziwy plan zostaje
+   nietknięty, dopóki użytkownik nie zdecyduje.
+
+## Koreluj to, co widzisz
+
+Narzędzia trainctl to nie jedyne Twoje oczy. Jeśli widzisz też kalendarz
+użytkownika, tracker zadań, grafik dyżurów albo robocze repozytoria, wiąż je
+z tygodniem treningowym, zamiast czekać, aż ktoś Ci powie:
+
+- Release, deadline albo wyjazd wypadający w dzień treningowy → zaproponuj
+  \`trainctl_reschedule\` z blokadą tych dni, **zanim** konflikt się wydarzy
+  („w czwartek release — przełożyć interwały na środę?”).
+- Dzień ciężki kognitywnie — długie sesje z agentami, gęsta kolejka code
+  review, incydent → \`trainctl_desk\` z heavy=true; po takim dniu akcent
+  prowadzi się po tempie, nie po czuciu (S-8).
+
+Dwie granice: proponuj, nigdy nie stosuj bez zgody, i nazwij sygnał, z którego
+korzystasz („widzę release w kalendarzu”) — błędny domysł musi być łatwy do
+sprostowania. Dane o zdrowiu tylko ze źródeł podłączonych dokładnie w tym celu.
 
 ## Czego nie robić
 

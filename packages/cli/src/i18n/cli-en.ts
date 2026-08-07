@@ -33,6 +33,7 @@ export const cliEn = {
     diff: 'what would change if the plan were regenerated from trainctl.yaml',
     check: 'lint the plan: engine invariants + file integrity; errors fail the exit code (CI)',
     optStrict: 'warnings also fail the exit code (for CI)',
+    optDiffPlan: 'compare with another plan file instead (a scenario branch or worktree)',
     optDate: 'date (defaults to today)',
     optDateOther: 'a date other than today',
     optDateWeek: 'any date inside the week you care about',
@@ -296,6 +297,13 @@ export const cliEn = {
     localeChanged: (planLocale: string, current: string) =>
       `the plan was generated in "${planLocale}", you are running in "${current}" — ` +
       'run trainctl plan to regenerate the descriptions',
+    titleFile: (path: string) => `Differences: current plan → ${path}`,
+    identical: (path: string) => `The current plan and ${path} are identical.`,
+    otherPlanMissing: (path: string) =>
+      `No plan file at ${path} — from a branch: git show <branch>:plan/plan.yaml > scenario.yaml`,
+    goalChanged: (before: string, after: string) => `goal: ${before} → ${after}`,
+    vdotChanged: (before: number, after: number) => `VDOT: ${n(before)} → ${n(after)}`,
+    predictionChanged: (before: string, after: string) => `prediction: ${before} → ${after}`,
   },
 
   check: {
@@ -776,7 +784,11 @@ export const cliEn = {
     reviewDate: 'reference date (defaults to today)',
     diff:
       'Dry run: what regenerating the plan from the current trainctl.yaml would change (new results, ' +
-      'a changed profile). Saves nothing.',
+      'a changed profile). Saves nothing. With plan=<path> it compares the current plan against ' +
+      'another plan.yaml instead — the what-if workflow: a scenario lives on a git branch or in a ' +
+      'copied directory (changed race date, dropped tune-up), and the diff shows goal, prediction ' +
+      'and week-by-week changes before the user decides.',
+    diffPlan: 'path to another plan.yaml to compare against (scenario branch, worktree, copy)',
     check:
       'Lint the plan file against the engine invariants: ≥48 h between accents (I-7), the day before ' +
       'a race stays free (T-10), taper shape (T-4/T-5, F-13), strength adjacency (S-5), ≥75% easy ' +
@@ -801,6 +813,8 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
 - **After a race or a time trial** → ask for the time and propose an entry in
   \`athlete.results\`. A measurement with no result written down changes nothing —
   the zones still come from the older run.
+- **After a hand edit of \`plan/plan.yaml\`** → \`trainctl_check\`. Errors mean the
+  file went inconsistent; warnings carry FOUNDATIONS rule IDs worth relaying.
 
 ## Rules
 
@@ -818,6 +832,28 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
 6. **Cite reasons, not just commands.** \`trainctl_why\` gives the purpose of a session
    and the rules behind it (IDs from \`docs/science/FOUNDATIONS.md\`) — that is the
    value a coach adds over a list of workouts.
+7. **A what-if question gets a scenario, not an overwrite.** “What if the race
+   moves three weeks?” → git branch or a copied directory, change \`trainctl.yaml\`
+   THERE, regenerate there, then \`trainctl_diff\` with plan=<path to the scenario’s
+   plan.yaml> and show the differences. The real plan stays untouched until the
+   user decides.
+
+## Correlate what you can see
+
+The trainctl tools are not your only eyes. If you also see the user’s calendar,
+issue tracker, on-call schedule or work repositories, connect them to the week
+instead of waiting to be told:
+
+- A release, a deadline or travel landing on a training day → propose
+  \`trainctl_reschedule\` with those days blocked **before** the conflict happens
+  (“Thursday is the release — move the intervals to Wednesday?”).
+- A cognitively heavy day — long agent sessions, a dense review queue, an
+  incident → \`trainctl_desk\` with heavy=true; after such a day the accent runs
+  by pace, not by feel (S-8).
+
+Two boundaries: propose, never apply without a yes, and name the signal you
+used (“I saw the release in the calendar”) so a wrong guess is easy to correct.
+Health data only from sources the user connected for exactly that purpose.
 
 ## What not to do
 

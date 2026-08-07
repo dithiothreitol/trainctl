@@ -204,9 +204,11 @@ export function createTrainctlServer(
     'trainctl_diff',
     {
       description: t.diff,
-      inputSchema: {},
+      inputSchema: {
+        plan: z.string().optional().describe(t.diffPlan),
+      },
     },
-    async () => toTool(cmdDiff(dir)),
+    async (args) => toTool(cmdDiff(dir, args)),
   )
 
   server.registerTool(

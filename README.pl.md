@@ -34,6 +34,7 @@ pnpm trainctl shift       # wybór treningu i nowego dnia z listy (strzałki/cyf
 pnpm trainctl shift --from 2026-08-06 --to 2026-08-07   # albo wprost, bez pytań
 pnpm trainctl week -i     # przeglądanie tygodni: ←/→, t = dziś, s = przesuń, q = wyjście
 pnpm trainctl diff        # co zmieniłaby regeneracja z aktualnego trainctl.yaml
+pnpm trainctl diff --plan scenariusz/plan/plan.yaml   # porównanie z planem z innej gałęzi/katalogu
 pnpm trainctl check       # lint planu: inwarianty silnika + integralność pliku (--strict do CI)
 pnpm trainctl export      # zapyta: rozpiska do druku / plan na zegarek / jeden trening / kalendarz
 pnpm trainctl export --what print     # albo wprost, bez pytań
@@ -92,6 +93,29 @@ wyłącza barwy, `TRAINCTL_ASCII=1` wymusza znaki ASCII, a przekierowanie do pli
 lub potoku automatycznie zdejmuje formatowanie. Serwer MCP dostaje tę samą
 treść bez sekwencji ANSI — handlery opisują wyjście blokami
 (`src/ui/blocks.ts`), a kolory dokłada dopiero renderer CLI.
+
+## Plan jako kod
+
+Plan to plik YAML w Twoim repozytorium — i to zmienia, co plan potrafi, a nie
+tylko gdzie leży:
+
+- **Gałęzie „co jeśli".** Scenariusz żyje na gałęzi albo w skopiowanym
+  katalogu: zmieniasz datę startu w `trainctl.yaml` *tam*, regenerujesz *tam*,
+  a `trainctl diff --plan scenariusz/plan/plan.yaml` pokazuje cel, predykcję
+  i każdy różniący się tydzień — zanim zdecydujesz. Z gałęzi bez worktree:
+  `git show scenariusz:plan/plan.yaml > s.yaml && trainctl diff --plan s.yaml`.
+- **CI na własny trening.** `trainctl check` sprawdza plan pod inwarianty
+  silnika — 48 h między akcentami, kształt taperu, sąsiedztwo siły,
+  integralność pliku — każde ustalenie z ID reguły z FOUNDATIONS, a kod
+  wyjścia czerwieni pipeline repozytorium treningowego. Przykład:
+  [docs/examples/ci-check.md](docs/examples/ci-check.md).
+- **Trener-człowiek jako reviewer.** Zmiany tygodnia to diffy, więc trener
+  robi review jak przy kodzie: komentarz przy linii, approve, merge.
+  Przykład: [docs/examples/coach-review.md](docs/examples/coach-review.md).
+- **Odtwarzalność.** Ten sam `trainctl.yaml` i ta sama wersja silnika dają ten
+  sam plan — za pięć lat też. Nic nie dryfuje pod Tobą i żaden backend nie
+  może zgasnąć; przypnij wersję w repo treningowym, a każda jednostka pozostaje
+  wytłumaczalna: ID reguły w planie, commit w historii.
 
 ## Język
 

@@ -1,6 +1,6 @@
 /** Handlery komend CLI — czyste funkcje (cwd, argumenty) → { output, code }. */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import {
   addDays,
   analyzeExecution,
@@ -33,6 +33,7 @@ import {
   findDay,
   fmtTime,
   loadPlan,
+  loadPlanFile,
   shiftWorkout,
   workoutText,
   writePlan,
@@ -1262,9 +1263,71 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
   }
 }
 
-export function cmdDiff(cwd: string): CmdResult {
+/** Różnice tydzień po tygodniu, dzień po dniu — po rodzajach jednostek, nie po opisach. */
+function diffWeeks(from: StoredPlan['weeks'], to: StoredPlan['weeks']): string[] {
+  const lines: string[] = []
+  const toByStart = new Map(to.map((w) => [w.weekStart, w]))
+  for (const week of from) {
+    const f = toByStart.get(week.weekStart)
+    if (!f) {
+      lines.push(ui().diff.weekGone(week.weekStart))
+      continue
+    }
+    if (f.skeleton.targetKm !== week.skeleton.targetKm) {
+      lines.push(
+        ui().diff.weekVolume(week.weekStart, week.skeleton.targetKm, f.skeleton.targetKm),
+      )
+    }
+    const fd = new Map(f.days.map((d) => [d.date, d]))
+    for (const day of week.days) {
+      const nd = fd.get(day.date)
+      const a = day.workout?.kind ?? ui().week.rest
+      const b = nd?.workout?.kind ?? ui().week.rest
+      if (a !== b) lines.push(ui().diff.dayChanged(day.date, a, b))
+    }
+  }
+  for (const w of to) {
+    if (!from.some((s) => s.weekStart === w.weekStart)) {
+      lines.push(ui().diff.weekNew(w.weekStart, w.skeleton.targetKm))
+    }
+  }
+  return lines
+}
+
+/**
+ * Porównanie scenariuszowe: bieżący plan vs plan z innego pliku (inna gałąź,
+ * worktree, kopia). Obie strony to zapisane plany — poza układem tygodni
+ * porównujemy też cel, kalibrację i predykcję, bo scenariusz zwykle zmienia
+ * właśnie je („co jeśli przełożę start o trzy tygodnie?").
+ */
+function diffAgainstPlanFile(stored: StoredPlan, path: string): CmdResult {
+  const other = loadPlanFile(path)
+  const t = ui().diff
+  const lines: string[] = []
+  const goalOf = (p: StoredPlan) => {
+    const time = p.goal.targetTimeSec ? ` (${fmtTime(p.goal.targetTimeSec)})` : ''
+    return `${p.goal.name}, ${p.goal.date}${time}`
+  }
+  if (goalOf(stored) !== goalOf(other)) lines.push(t.goalChanged(goalOf(stored), goalOf(other)))
+  if (stored.vdot !== other.vdot) lines.push(t.vdotChanged(stored.vdot, other.vdot))
+  const predOf = (p: StoredPlan) =>
+    p.prediction ? `${fmtTime(p.prediction.loSec)}–${fmtTime(p.prediction.hiSec)}` : undefined
+  const predA = predOf(stored)
+  const predB = predOf(other)
+  if (predA && predB && predA !== predB) lines.push(t.predictionChanged(predA, predB))
+  lines.push(...diffWeeks(stored.weeks, other.weeks))
+  if (lines.length === 0) {
+    return okDoc([b.success(t.identical(path))])
+  }
+  return okDoc([b.title(t.titleFile(path)), b.bullets(lines)])
+}
+
+export function cmdDiff(cwd: string, opts: { plan?: string | undefined } = {}): CmdResult {
   try {
     const stored = loadPlan(cwd)
+    if (opts.plan) {
+      return diffAgainstPlanFile(stored, isAbsolute(opts.plan) ? opts.plan : join(cwd, opts.plan))
+    }
     const config = loadConfig(cwd)
     const fresh = computePlan(config, stored.generatedAt)
     const lines: string[] = []
@@ -1276,31 +1339,7 @@ export function cmdDiff(cwd: string): CmdResult {
     // bo inaczej „plan aktualny" byłoby nieprawdą wobec tego, co widzi biegacz.
     const current = getLocale()
     const staleLocale = stored.locale !== undefined && stored.locale !== current
-    const freshByStart = new Map(fresh.weeks.map((w) => [w.weekStart, w]))
-    for (const week of stored.weeks) {
-      const f = freshByStart.get(week.weekStart)
-      if (!f) {
-        lines.push(ui().diff.weekGone(week.weekStart))
-        continue
-      }
-      if (f.skeleton.targetKm !== week.skeleton.targetKm) {
-        lines.push(
-          ui().diff.weekVolume(week.weekStart, week.skeleton.targetKm, f.skeleton.targetKm),
-        )
-      }
-      const fd = new Map(f.days.map((d) => [d.date, d]))
-      for (const day of week.days) {
-        const nd = fd.get(day.date)
-        const a = day.workout?.kind ?? ui().week.rest
-        const b = nd?.workout?.kind ?? ui().week.rest
-        if (a !== b) lines.push(ui().diff.dayChanged(day.date, a, b))
-      }
-    }
-    for (const w of fresh.weeks) {
-      if (!stored.weeks.some((s) => s.weekStart === w.weekStart)) {
-        lines.push(ui().diff.weekNew(w.weekStart, w.skeleton.targetKm))
-      }
-    }
+    lines.push(...diffWeeks(stored.weeks, fresh.weeks))
     const localeNote = staleLocale
       ? [b.warn(ui().diff.localeChanged(stored.locale!, current))]
       : []

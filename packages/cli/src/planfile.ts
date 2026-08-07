@@ -133,6 +133,17 @@ export function loadPlan(cwd: string): StoredPlan {
   return parse(readFileSync(path, 'utf-8')) as StoredPlan
 }
 
+/**
+ * Plan z dowolnego pliku — do porównań scenariuszowych (`diff --plan`):
+ * inna gałąź (git show gałąź:plan/plan.yaml > plik), worktree, kopia robocza.
+ */
+export function loadPlanFile(path: string): StoredPlan {
+  if (!existsSync(path)) {
+    throw new Error(ui().diff.otherPlanMissing(path))
+  }
+  return parse(readFileSync(path, 'utf-8')) as StoredPlan
+}
+
 export function findDay(
   plan: StoredPlan,
   date: string,

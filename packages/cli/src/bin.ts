@@ -87,7 +87,7 @@ const banner =
 program
   .name('trainctl')
   .description(banner)
-  .option('--lang <kod>', ui().cmd.lang)
+  .option('--lang <code>', ui().cmd.lang)
   .configureHelp({
     styleTitle: (str) => theme.bold(theme.color(str, 'accent')),
     styleCommandText: (str) => theme.color(str, 'brand'),
@@ -220,7 +220,7 @@ program
 program
   .command('export')
   .description(ui().cmd.export)
-  .option('--what <rodzaj>', ui().cmd.optExportWhat)
+  .option('--what <kind>', ui().cmd.optExportWhat)
   .option('--date <iso>', ui().cmd.optExportDate)
   .action(async (opts) => {
     if (opts.what) return print(cmdExport(cwd, opts))
@@ -255,7 +255,8 @@ program
 program
   .command('diff')
   .description(ui().cmd.diff)
-  .action(() => print(cmdDiff(cwd)))
+  .option('--plan <file>', ui().cmd.optDiffPlan)
+  .action((opts) => print(cmdDiff(cwd, opts)))
 
 program
   .command('check')
