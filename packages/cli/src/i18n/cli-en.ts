@@ -71,6 +71,9 @@ export const cliEn = {
     outsidePlan: (date: string, from: string, to: string) =>
       `${date}: outside the plan range (${from} → ${to}).`,
     noPlan: 'No plan yet — run: trainctl plan',
+    planMalformed: (file: string) =>
+      `${file} is not a usable plan (no goal/weeks) — run trainctl check to see what is broken, ` +
+      'or trainctl plan to regenerate it',
     missingConfig: (file: string) => `No ${file} — run: trainctl init`,
     configErrors: (file: string, errors: string) => `Errors in ${file}:\n  - ${errors}`,
     cancelled: 'cancelled',
@@ -291,7 +294,18 @@ export const cliEn = {
     weekGone: (weekStart: string) => `- week ${weekStart}: disappears from the plan`,
     weekVolume: (weekStart: string, before: number, after: number) =>
       `~ week ${weekStart}: volume ${n(before)} → ${n(after)} km`,
+    weekTotalKm: (weekStart: string, before: number, after: number) =>
+      `~ week ${weekStart}: total of the days ${n(before)} → ${n(after)} km`,
     dayChanged: (date: string, before: string, after: string) => `~ ${date}: ${before} → ${after}`,
+    dayDistance: (date: string, kind: string, before: number, after: number) =>
+      `~ ${date}: ${kind} ${n(before)} → ${n(after)} km`,
+    daySegments: (date: string, kind: string) =>
+      `~ ${date}: ${kind} — same volume, different segments`,
+    strengthAdded: (date: string, durationMin: number) =>
+      `+ ${date}: strength added (${durationMin} min)`,
+    strengthGone: (date: string) => `- ${date}: strength dropped`,
+    strengthDuration: (date: string, before: number, after: number) =>
+      `~ ${date}: strength ${before} → ${after} min`,
     weekNew: (weekStart: string, km: number) => `+ week ${weekStart}: new (${n(km)} km)`,
     applyHint: 'to apply: trainctl plan (overwrites plan/ — you have it in git)',
     localeChanged: (planLocale: string, current: string) =>
@@ -301,6 +315,11 @@ export const cliEn = {
     identical: (path: string) => `The current plan and ${path} are identical.`,
     otherPlanMissing: (path: string) =>
       `No plan file at ${path} — from a branch: git show <branch>:plan/plan.yaml > scenario.yaml`,
+    otherPlanInvalid: (path: string) =>
+      `${path} is not a plan file (no goal/weeks) — from a branch: ` +
+      'git show <branch>:plan/plan.yaml > scenario.yaml',
+    goalDesc: (name: string, distanceKm: number, date: string, time: string) =>
+      `${name}, ${n(distanceKm)} km, ${date}${time ? ` (${time})` : ''}`,
     goalChanged: (before: string, after: string) => `goal: ${before} → ${after}`,
     vdotChanged: (before: number, after: number) => `VDOT: ${n(before)} → ${n(after)}`,
     predictionChanged: (before: string, after: string) => `prediction: ${before} → ${after}`,
@@ -319,6 +338,10 @@ export const cliEn = {
       `${warns} ${pluralEn(warns, { one: 'warning', other: 'warnings' })}`,
     strictHint: 'warnings do not change the exit code — add --strict to make them fail (CI)',
     strictNote: 'strict mode: warnings count as failures',
+    weeksMissing: (file: string) =>
+      `${file}: no list of weeks (weeks:) — the file is empty or truncated; regenerate: trainctl plan`,
+    goalMissing: (file: string) =>
+      `${file}: no goal with a date (goal.date) — fix the YAML or regenerate the plan`,
     malformed: (where: string) =>
       `entry ${where}: missing required fields (weekStart/days or date) — fix the YAML or regenerate the plan`,
     weekLength: (weekStart: string, days: number) =>

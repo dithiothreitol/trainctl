@@ -84,6 +84,9 @@ export const cliPl: CliMessages = {
     outsidePlan: (date: string, from: string, to: string) =>
       `${date}: poza zakresem planu (${from} → ${to}).`,
     noPlan: 'Brak planu — uruchom najpierw: trainctl plan',
+    planMalformed: (file: string) =>
+      `${file} to nie jest kompletny plan (brak goal/weeks) — uruchom trainctl check, ` +
+      'żeby zobaczyć co jest połamane, albo trainctl plan, żeby przegenerować',
     missingConfig: (file: string) => `Brak ${file} — uruchom najpierw: trainctl init`,
     configErrors: (file: string, errors: string) => `Błędy w ${file}:\n  - ${errors}`,
     cancelled: 'anulowano',
@@ -305,7 +308,18 @@ export const cliPl: CliMessages = {
     weekGone: (weekStart: string) => `- tydzień ${weekStart}: znika z planu`,
     weekVolume: (weekStart: string, before: number, after: number) =>
       `~ tydzień ${weekStart}: objętość ${n(before)} → ${n(after)} km`,
+    weekTotalKm: (weekStart: string, before: number, after: number) =>
+      `~ tydzień ${weekStart}: suma dni ${n(before)} → ${n(after)} km`,
     dayChanged: (date: string, before: string, after: string) => `~ ${date}: ${before} → ${after}`,
+    dayDistance: (date: string, kind: string, before: number, after: number) =>
+      `~ ${date}: ${kind} ${n(before)} → ${n(after)} km`,
+    daySegments: (date: string, kind: string) =>
+      `~ ${date}: ${kind} — ta sama objętość, inny układ członów`,
+    strengthAdded: (date: string, durationMin: number) =>
+      `+ ${date}: dochodzi siła (${durationMin} min)`,
+    strengthGone: (date: string) => `- ${date}: znika siła`,
+    strengthDuration: (date: string, before: number, after: number) =>
+      `~ ${date}: siła ${before} → ${after} min`,
     weekNew: (weekStart: string, km: number) => `+ tydzień ${weekStart}: nowy (${n(km)} km)`,
     applyHint: 'zastosowanie: trainctl plan (nadpisze plan/ — masz go w gicie)',
     localeChanged: (planLocale: string, current: string) =>
@@ -315,6 +329,11 @@ export const cliPl: CliMessages = {
     identical: (path: string) => `Bieżący plan i ${path} są identyczne.`,
     otherPlanMissing: (path: string) =>
       `Brak pliku planu w ${path} — z gałęzi: git show <gałąź>:plan/plan.yaml > scenariusz.yaml`,
+    otherPlanInvalid: (path: string) =>
+      `${path} to nie jest plik planu (brak goal/weeks) — z gałęzi: ` +
+      'git show <gałąź>:plan/plan.yaml > scenariusz.yaml',
+    goalDesc: (name: string, distanceKm: number, date: string, time: string) =>
+      `${name}, ${n(distanceKm)} km, ${date}${time ? ` (${time})` : ''}`,
     goalChanged: (before: string, after: string) => `cel: ${before} → ${after}`,
     vdotChanged: (before: number, after: number) => `VDOT: ${n(before)} → ${n(after)}`,
     predictionChanged: (before: string, after: string) => `predykcja: ${before} → ${after}`,
@@ -332,6 +351,10 @@ export const cliPl: CliMessages = {
       `${warns} ${pluralPl(warns, { one: 'ostrzeżenie', few: 'ostrzeżenia', other: 'ostrzeżeń' })}`,
     strictHint: 'ostrzeżenia nie zmieniają kodu wyjścia — w CI dodaj --strict, żeby zawodziły',
     strictNote: 'tryb ścisły: ostrzeżenia liczą się jak błędy',
+    weeksMissing: (file: string) =>
+      `${file}: brak listy tygodni (weeks:) — plik jest pusty albo obcięty; przegeneruj: trainctl plan`,
+    goalMissing: (file: string) =>
+      `${file}: brak celu z datą (goal.date) — popraw YAML albo przegeneruj plan`,
     malformed: (where: string) =>
       `wpis ${where}: brak wymaganych pól (weekStart/days albo date) — popraw YAML albo przegeneruj plan`,
     weekLength: (weekStart: string, days: number) =>

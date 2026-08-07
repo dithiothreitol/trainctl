@@ -104,6 +104,25 @@ describe('świeży plan przechodzi lint bez ustaleń', () => {
 })
 
 describe('integralność pliku (error)', () => {
+  // Plik bywa pusty albo obcięty (przerwana edycja, `git show` na złej ścieżce).
+  // Lint ma o tym opowiedzieć — dokładnie on jest komendą „po ręcznej edycji".
+  it('weeksMissing + goalMissing: pusty dokument to dwa ustalenia, nie wyjątek', () => {
+    const issues = validatePlan({ weeks: undefined, goal: undefined })
+    expect(codes(issues)).toEqual(['goalMissing', 'weeksMissing'])
+    expect(issues.every((i) => i.severity === 'error')).toBe(true)
+  })
+
+  it('weeksMissing: weeks innego typu niż lista', () => {
+    const issues = validatePlan({ weeks: 7 as unknown as Microcycle[], goal: marathon })
+    expect(codes(issues)).toEqual(['weeksMissing'])
+  })
+
+  it('goalMissing: cel bez daty nie wywraca reszty kontroli', () => {
+    const goal = { ...marathon, date: undefined } as unknown as RaceGoal
+    const issues = validatePlan({ weeks: buildWeeks(marathon), goal })
+    expect(codes(issues)).toEqual(['goalMissing'])
+  })
+
   it('malformed: tydzień bez weekStart wypada z kontroli, ale jest zgłoszony', () => {
     const weeks = buildWeeks(marathon)
     delete (weeks[1] as unknown as Record<string, unknown>)['weekStart']

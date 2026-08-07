@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { setLocale, weekTotals } from '@trainctl/core'
-import { cmdCheck, cmdPlan, cmdReschedule, cmdShift } from './commands.ts'
+import { cmdCheck, cmdPlan, cmdReschedule, cmdShift, cmdToday } from './commands.ts'
 import { loadPlan, writePlan, PLAN_YAML } from './planfile.ts'
 
 setLocale('pl')
@@ -57,6 +57,50 @@ describe('trainctl check', () => {
       expect(r.output).toContain('Brak planu')
     } finally {
       rmSync(empty, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
+    }
+  })
+
+  it('pusty plan.yaml: ustalenia lintu zamiast wyjątku, kod 1', () => {
+    const before = readFileSync(join(dir, PLAN_YAML), 'utf-8')
+    try {
+      writeFileSync(join(dir, PLAN_YAML), '', 'utf-8')
+      const r = cmdCheck(dir)
+      expect(r.code).toBe(1)
+      expect(r.output).toContain('Integralność pliku')
+      expect(r.output).toContain('brak listy tygodni')
+      expect(r.output).toContain('brak celu z datą')
+      expect(r.output).not.toMatch(/Cannot read|undefined/)
+    } finally {
+      writeFileSync(join(dir, PLAN_YAML), before, 'utf-8')
+    }
+  })
+
+  it('weeks nie jest listą (ręczna edycja): błąd lintu, nie wyjątek', () => {
+    const before = readFileSync(join(dir, PLAN_YAML), 'utf-8')
+    try {
+      writeFileSync(
+        join(dir, PLAN_YAML),
+        'goal: { date: "2026-11-29", distanceKm: 42.195, name: X, priority: A }\nweeks: 7\n',
+        'utf-8',
+      )
+      const r = cmdCheck(dir)
+      expect(r.code).toBe(1)
+      expect(r.output).toContain('brak listy tygodni')
+      expect(r.output).not.toContain('brak celu z datą')
+    } finally {
+      writeFileSync(join(dir, PLAN_YAML), before, 'utf-8')
+    }
+  })
+
+  it('połamany plan zatrzymuje pozostałe komendy czytelnym zdaniem', () => {
+    const before = readFileSync(join(dir, PLAN_YAML), 'utf-8')
+    try {
+      writeFileSync(join(dir, PLAN_YAML), 'goal: {}\n', 'utf-8')
+      const r = cmdToday(dir, { date: TODAY })
+      expect(r.code).toBe(1)
+      expect(r.output).toContain('trainctl check')
+    } finally {
+      writeFileSync(join(dir, PLAN_YAML), before, 'utf-8')
     }
   })
 

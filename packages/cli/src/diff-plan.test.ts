@@ -7,9 +7,10 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { setLocale } from '@trainctl/core'
+import { stringify } from 'yaml'
+import { setLocale, weekTotals } from '@trainctl/core'
 import { cmdDiff, cmdPlan } from './commands.ts'
-import { PLAN_YAML } from './planfile.ts'
+import { loadPlan, PLAN_YAML } from './planfile.ts'
 
 setLocale('pl')
 
@@ -57,7 +58,9 @@ describe('trainctl diff --plan (plan spekulatywny)', () => {
   it('scenariusz z przesuniętym startem: cel + nowe tygodnie, nic o regeneracji', () => {
     const r = cmdDiff(dir, { plan: join(scenarioDir, PLAN_YAML) })
     expect(r.code).toBe(0)
-    expect(r.output).toContain('cel: Maraton testowy, 2026-11-29 → Maraton testowy, 2026-12-20')
+    expect(r.output).toContain(
+      'cel: Maraton testowy, 42,2 km, 2026-11-29 → Maraton testowy, 42,2 km, 2026-12-20',
+    )
     // trzy dodatkowe tygodnie planu widoczne jako nowe
     expect(r.output).toContain('+ tydzień 2026-12-14')
     // układ tygodni wspólnych też się zmienia (taper przesunięty) — jest co czytać
@@ -76,5 +79,68 @@ describe('trainctl diff --plan (plan spekulatywny)', () => {
     const r = cmdDiff(dir, { plan: 'nie-ma.yaml' })
     expect(r.code).toBe(1)
     expect(r.output).toContain('git show')
+  })
+
+  it('plik bez planu (pusty, zły git show): czytelny błąd zamiast wyjątku', () => {
+    writeFileSync(join(dir, 'pusty.yaml'), '', 'utf-8')
+    const r = cmdDiff(dir, { plan: 'pusty.yaml' })
+    expect(r.code).toBe(1)
+    expect(r.output).toContain('to nie jest plik planu')
+    expect(r.output).not.toMatch(/Cannot read|undefined/)
+  })
+})
+
+/**
+ * Scenariusz zmienia zwykle objętość, a nie rodzaje jednostek — porównanie po
+ * samych rodzajach mówiłoby „identyczne" o planach różnych w każdym dniu.
+ */
+describe('trainctl diff --plan widzi zmiany poza rodzajem jednostki', () => {
+  it('skrócone jednostki i dołożona siła to nie jest „identyczny” plan', () => {
+    const plan = loadPlan(dir)
+    for (const week of plan.weeks) {
+      for (const day of week.days) {
+        if (day.workout) {
+          day.workout.distanceKm = Math.round(day.workout.distanceKm * 5) / 10
+          for (const seg of day.workout.segments) {
+            if (seg.distanceKm) seg.distanceKm = Math.round(seg.distanceKm * 5) / 10
+          }
+        }
+        day.strength = { kind: 'heavy', description: 'siła', durationMin: 40, ruleRefs: [] }
+      }
+      Object.assign(week, weekTotals(week.days))
+    }
+    writeFileSync(join(dir, 'polowa.yaml'), stringify(plan), 'utf-8')
+    const r = cmdDiff(dir, { plan: 'polowa.yaml' })
+    expect(r.code).toBe(0)
+    expect(r.output).not.toContain('identyczne')
+    expect(r.output).toMatch(/~ \d{4}-\d{2}-\d{2}: \w+ [\d,]+ → [\d,]+ km/)
+    expect(r.output).toContain('suma dni')
+    expect(r.output).toContain('dochodzi siła (40 min)')
+  })
+
+  it('przebudowa akcentu przy tej samej objętości: inny układ członów', () => {
+    const plan = loadPlan(dir)
+    const day = plan.weeks
+      .flatMap((w) => w.days)
+      .find((d) => d.workout?.kind === 'quality_intervals')
+    expect(day).toBeDefined()
+    const work = day!.workout!.segments.find((s) => s.type === 'intervals')
+    expect(work).toBeDefined()
+    // ta sama objętość członu, inny podział na powtórzenia (6×800 → 4×1200)
+    work!.reps = (work!.reps ?? 6) - 2
+    work!.repM = Math.round(((work!.reps + 2) * (work!.repM ?? 800)) / work!.reps)
+    writeFileSync(join(dir, 'inne-odcinki.yaml'), stringify(plan), 'utf-8')
+    const r = cmdDiff(dir, { plan: 'inne-odcinki.yaml' })
+    expect(r.output).toContain('inny układ członów')
+  })
+
+  it('sam dystans startu (maraton → połówka) też jest zmianą celu', () => {
+    const plan = loadPlan(dir)
+    plan.goal = { ...plan.goal, distanceKm: 21.0975 }
+    writeFileSync(join(dir, 'polmaraton.yaml'), stringify(plan), 'utf-8')
+    const r = cmdDiff(dir, { plan: 'polmaraton.yaml' })
+    expect(r.output).toContain(
+      'cel: Maraton testowy, 42,2 km, 2026-11-29 → Maraton testowy, 21,1 km, 2026-11-29',
+    )
   })
 })

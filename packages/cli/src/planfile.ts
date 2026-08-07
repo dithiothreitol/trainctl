@@ -125,12 +125,40 @@ export function applyStrength(weeks: Microcycle[], strength: StrengthConfig): vo
   }
 }
 
-export function loadPlan(cwd: string): StoredPlan {
+/**
+ * Minimum, na którym opierają się komendy: cel z datą i lista tygodni.
+ * Plik bywa pusty albo obcięty (przerwana edycja, `git show` na złej ścieżce) —
+ * lepiej powiedzieć to zdaniem niż wywalić się na `null.goal`.
+ */
+function looksLikePlan(value: unknown): value is StoredPlan {
+  if (!value || typeof value !== 'object') return false
+  const plan = value as Partial<StoredPlan>
+  return (
+    !!plan.goal &&
+    typeof plan.goal === 'object' &&
+    typeof plan.goal.date === 'string' &&
+    Array.isArray(plan.weeks)
+  )
+}
+
+/**
+ * Surowy dokument planu, bez kontroli kształtu — wyłącznie dla `trainctl check`,
+ * które o połamanym pliku ma zgłosić ustalenie lintu, a nie rzucić wyjątkiem.
+ */
+export function readPlanDocument(cwd: string): unknown {
   const path = join(cwd, PLAN_YAML)
   if (!existsSync(path)) {
     throw new Error(ui().common.noPlan)
   }
-  return parse(readFileSync(path, 'utf-8')) as StoredPlan
+  return parse(readFileSync(path, 'utf-8'))
+}
+
+export function loadPlan(cwd: string): StoredPlan {
+  const doc = readPlanDocument(cwd)
+  if (!looksLikePlan(doc)) {
+    throw new Error(ui().common.planMalformed(PLAN_YAML))
+  }
+  return doc
 }
 
 /**
@@ -141,7 +169,11 @@ export function loadPlanFile(path: string): StoredPlan {
   if (!existsSync(path)) {
     throw new Error(ui().diff.otherPlanMissing(path))
   }
-  return parse(readFileSync(path, 'utf-8')) as StoredPlan
+  const doc = parse(readFileSync(path, 'utf-8'))
+  if (!looksLikePlan(doc)) {
+    throw new Error(ui().diff.otherPlanInvalid(path))
+  }
+  return doc
 }
 
 export function findDay(

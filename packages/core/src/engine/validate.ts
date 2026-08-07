@@ -44,6 +44,8 @@ const Z1_SEGMENT_TYPES = new Set(['easy', 'warmup', 'cooldown'])
 
 export type PlanIssueCode =
   // integralność pliku (error)
+  | 'weeksMissing'
+  | 'goalMissing'
   | 'malformed'
   | 'weekLength'
   | 'weekStartNotMonday'
@@ -87,8 +89,13 @@ export interface PlanIssue {
 }
 
 export interface ValidatePlanInput {
-  weeks: Microcycle[]
-  goal: RaceGoal
+  /**
+   * Wejście pochodzi z pliku edytowanego ręcznie, więc pola mogą nie istnieć
+   * albo mieć zły typ. Kontrola kształtu należy do walidatora — `check` ma o
+   * połamanym pliku ZGŁOSIĆ ustalenie, a nie wywrócić się na nim.
+   */
+  weeks: Microcycle[] | undefined
+  goal: RaceGoal | undefined
   style?: HouseStyle
 }
 
@@ -107,10 +114,18 @@ export function validatePlan(input: ValidatePlanInput): PlanIssue[] {
   const error = (issue: Omit<PlanIssue, 'severity'>) => issues.push({ ...issue, severity: 'error' })
   const warn = (issue: Omit<PlanIssue, 'severity'>) => issues.push({ ...issue, severity: 'warn' })
 
-  // --- 0. kształt pliku: YAML po ręcznej edycji może nie mieć wymaganych pól.
+  // --- 0. kształt dokumentu: pusty albo obcięty plan.yaml (niedokończona edycja,
+  // zły `git show`) nie ma listy tygodni ani celu. To ustalenie lintu, nie wyjątek.
+  const goalDate = input.goal && isIso(input.goal.date) ? input.goal.date : undefined
+  if (!goalDate) error({ code: 'goalMissing', ruleRefs: [], date: '' })
+  if (!Array.isArray(input.weeks)) {
+    error({ code: 'weeksMissing', ruleRefs: [], date: '' })
+    return issues
+  }
+
   // Tygodnie bez weekStart/days wypadają z dalszych kontroli zamiast je wywracać.
   const weeks: Microcycle[] = []
-  for (const [wi, week] of (input.weeks ?? []).entries()) {
+  for (const [wi, week] of input.weeks.entries()) {
     if (!week || !isIso(week.weekStart) || !Array.isArray(week.days)) {
       error({ code: 'malformed', ruleRefs: [], date: `#${wi + 1}`, kind: 'week' })
       continue
@@ -190,10 +205,12 @@ export function validatePlan(input: ValidatePlanInput): PlanIssue[] {
     .sort((a, b) => a.date.localeCompare(b.date))
   const dayByDate = new Map(allDays.map((d) => [d.date, d]))
 
-  // --- 4. dzień startu docelowego istnieje i jest startem
-  const raceDay = allDays.find((d) => d.date === input.goal.date && d.workout?.kind === 'race')
-  if (!raceDay) {
-    error({ code: 'raceDayMissing', ruleRefs: [], date: input.goal.date })
+  // --- 4. dzień startu docelowego istnieje i jest startem (tylko gdy cel ma datę)
+  if (goalDate) {
+    const raceDay = allDays.find((d) => d.date === goalDate && d.workout?.kind === 'race')
+    if (!raceDay) {
+      error({ code: 'raceDayMissing', ruleRefs: [], date: goalDate })
+    }
   }
 
   // --- 5. I-7: ≥48 h między akcentami — w całym planie, także na styku tygodni

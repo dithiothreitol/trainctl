@@ -34,6 +34,7 @@ import {
   fmtTime,
   loadPlan,
   loadPlanFile,
+  readPlanDocument,
   shiftWorkout,
   workoutText,
   writePlan,
@@ -1148,6 +1149,12 @@ function describeIssue(issue: PlanIssue): string {
     wd && wd in messages().weekday ? messages().weekday[wd as Weekday] : (wd ?? '')
   let text: string
   switch (issue.code) {
+    case 'weeksMissing':
+      text = t.weeksMissing(PLAN_YAML)
+      break
+    case 'goalMissing':
+      text = t.goalMissing(PLAN_YAML)
+      break
     case 'malformed':
       text = t.malformed(issue.date)
       break
@@ -1227,18 +1234,19 @@ function describeIssue(issue: PlanIssue): string {
 
 export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {}): CmdResult {
   try {
-    const plan = loadPlan(cwd)
+    // Czytamy surowy dokument, nie `loadPlan`: lint jest jedyną komendą, która ma
+    // o połamanym pliku opowiedzieć zamiast odmówić działania.
+    const doc = readPlanDocument(cwd)
+    const plan = (doc && typeof doc === 'object' ? doc : {}) as Partial<StoredPlan>
     const issues = validatePlan({ weeks: plan.weeks, goal: plan.goal })
     const errors = issues.filter((i) => i.severity === 'error')
     const warns = issues.filter((i) => i.severity === 'warn')
     const t = ui().check
 
     if (issues.length === 0) {
-      const sessions = plan.weeks.reduce(
-        (sum, w) => sum + w.days.filter((d) => d.workout).length,
-        0,
-      )
-      return okDoc([b.success(t.passed(plan.weeks.length, sessions))])
+      const weeks = plan.weeks ?? []
+      const sessions = weeks.reduce((sum, w) => sum + w.days.filter((d) => d.workout).length, 0)
+      return okDoc([b.success(t.passed(weeks.length, sessions))])
     }
 
     const blocks: Block[] = [b.title(t.title, t.subtitle(PLAN_YAML))]
@@ -1263,32 +1271,72 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
   }
 }
 
-/** Różnice tydzień po tygodniu, dzień po dniu — po rodzajach jednostek, nie po opisach. */
+/**
+ * Kształt jednostki bez opisów i temp: typy członów, powtórzenia, dystanse.
+ * Po tym poznajemy przebudowę akcentu (6×800 → 4×1200) przy tej samej objętości —
+ * sam rodzaj i suma kilometrów by ją przemilczały.
+ */
+const segmentShape = (workout: PlannedWorkout): string =>
+  (workout.segments ?? [])
+    .map((s) => `${s.type}/${s.reps ?? 0}×${s.repM ?? 0}/${Math.round((s.distanceKm ?? 0) * 10)}`)
+    .join('|')
+
+const kmDiffers = (a: number | undefined, b: number | undefined): boolean =>
+  Math.abs((a ?? 0) - (b ?? 0)) > 0.05
+
+/**
+ * Różnice tydzień po tygodniu, dzień po dniu — po danych planu (rodzaj, objętość,
+ * układ członów, siła), nie po opisach: te zależą od języka katalogu.
+ */
 function diffWeeks(from: StoredPlan['weeks'], to: StoredPlan['weeks']): string[] {
+  const t = ui().diff
   const lines: string[] = []
   const toByStart = new Map(to.map((w) => [w.weekStart, w]))
   for (const week of from) {
     const f = toByStart.get(week.weekStart)
     if (!f) {
-      lines.push(ui().diff.weekGone(week.weekStart))
+      lines.push(t.weekGone(week.weekStart))
       continue
     }
     if (f.skeleton.targetKm !== week.skeleton.targetKm) {
-      lines.push(
-        ui().diff.weekVolume(week.weekStart, week.skeleton.targetKm, f.skeleton.targetKm),
-      )
+      lines.push(t.weekVolume(week.weekStart, week.skeleton.targetKm, f.skeleton.targetKm))
+    }
+    // targetKm to zamiar szkieletu, totalKm — plan faktycznie rozpisany na dni.
+    // Scenariusz bywa zmianą wyłącznie tego drugiego (skrócone jednostki).
+    if (kmDiffers(week.totalKm, f.totalKm)) {
+      lines.push(t.weekTotalKm(week.weekStart, week.totalKm ?? 0, f.totalKm ?? 0))
     }
     const fd = new Map(f.days.map((d) => [d.date, d]))
     for (const day of week.days) {
-      const nd = fd.get(day.date)
-      const a = day.workout?.kind ?? ui().week.rest
-      const b = nd?.workout?.kind ?? ui().week.rest
-      if (a !== b) lines.push(ui().diff.dayChanged(day.date, a, b))
+      const other = fd.get(day.date)
+      const a = day.workout
+      const c = other?.workout
+      const aKind = a?.kind ?? ui().week.rest
+      const cKind = c?.kind ?? ui().week.rest
+      if (aKind !== cKind) {
+        lines.push(t.dayChanged(day.date, aKind, cKind))
+      } else if (a && c) {
+        if (kmDiffers(a.distanceKm, c.distanceKm)) {
+          lines.push(t.dayDistance(day.date, aKind, a.distanceKm, c.distanceKm))
+        } else if (segmentShape(a) !== segmentShape(c)) {
+          lines.push(t.daySegments(day.date, aKind))
+        }
+      }
+      // Siła to osobny tor (nie WorkoutKind), więc jej pojawienie się albo znik
+      // nie ruszy porównania biegania — trzeba o nią zapytać wprost.
+      if (!other) continue
+      const as = day.strength
+      const cs = other.strength
+      if (!as && cs) lines.push(t.strengthAdded(day.date, cs.durationMin))
+      else if (as && !cs) lines.push(t.strengthGone(day.date))
+      else if (as && cs && as.durationMin !== cs.durationMin) {
+        lines.push(t.strengthDuration(day.date, as.durationMin, cs.durationMin))
+      }
     }
   }
   for (const w of to) {
     if (!from.some((s) => s.weekStart === w.weekStart)) {
-      lines.push(ui().diff.weekNew(w.weekStart, w.skeleton.targetKm))
+      lines.push(t.weekNew(w.weekStart, w.skeleton.targetKm))
     }
   }
   return lines
@@ -1304,10 +1352,15 @@ function diffAgainstPlanFile(stored: StoredPlan, path: string): CmdResult {
   const other = loadPlanFile(path)
   const t = ui().diff
   const lines: string[] = []
-  const goalOf = (p: StoredPlan) => {
-    const time = p.goal.targetTimeSec ? ` (${fmtTime(p.goal.targetTimeSec)})` : ''
-    return `${p.goal.name}, ${p.goal.date}${time}`
-  }
+  // Dystans jest częścią celu tak samo jak data: scenariusz „ten sam start, ale
+  // połówka zamiast maratonu" nie zmienia ani nazwy, ani terminu.
+  const goalOf = (p: StoredPlan) =>
+    t.goalDesc(
+      p.goal.name,
+      p.goal.distanceKm,
+      p.goal.date,
+      p.goal.targetTimeSec ? fmtTime(p.goal.targetTimeSec) : '',
+    )
   if (goalOf(stored) !== goalOf(other)) lines.push(t.goalChanged(goalOf(stored), goalOf(other)))
   if (stored.vdot !== other.vdot) lines.push(t.vdotChanged(stored.vdot, other.vdot))
   const predOf = (p: StoredPlan) =>
