@@ -1,7 +1,6 @@
 {
   "name": "trainctl-export",
   "version": "0.1.0",
-  "private": true,
   "description": "trainctl: eksport FIT (zegarek), ICS (kalendarz), HTML (druk, pakiet startowy)",
   "keywords": [
     "fit",

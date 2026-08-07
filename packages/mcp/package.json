@@ -1,7 +1,6 @@
 {
   "name": "trainctl-mcp",
   "version": "0.1.0",
-  "private": true,
   "description": "trainctl: serwer MCP — trener jako narzędzia agenta (Claude Code, Codex)",
   "keywords": [
     "mcp",

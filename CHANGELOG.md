@@ -8,9 +8,9 @@ change between minor versions — a regenerated plan can differ.
 
 Nothing yet.
 
-## [0.1.0] — not released
+## [0.1.0] — 2026-08-07
 
-Feature-complete for a first release; packaging and metadata prepared.
+First public release.
 
 ### Engine
 

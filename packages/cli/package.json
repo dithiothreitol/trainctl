@@ -1,7 +1,6 @@
 {
   "name": "trainctl",
   "version": "0.1.0",
-  "private": true,
   "description": "trainctl: CLI — plan/today/week/shift/review/push/pull/export",
   "keywords": [
     "running",

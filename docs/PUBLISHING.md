@@ -1,9 +1,15 @@
 # Publikacja OSS — stan przygotowania i decyzje
 
-Stan na 2026-08-07 (aktualizacja wieczorna: nazwy paczek, CI, pliki repozytorium).
+**Repozytorium jest publiczne od 2026-08-07**:
+<https://github.com/dithiothreitol/trainctl>, MIT, Discussions wyłączone,
+prywatne zgłaszanie podatności włączone, tag `v0.1.0`. Warunek „sezon na sobie"
+został świadomie odpuszczony — decyzja właściciela, nie przeoczenie.
+**Paczki npm czekają na `npm login` + `pnpm publish -r`** (zob. „Co zostało").
 
-**Decyzja zapadła:** repozytorium **publiczne + npm, MIT — ale dopiero po
-sezonie na sobie.** Rozumowanie w skrócie: projekt nie ma kroku budowania
+Poniżej zapis rozumowania, które do tego doprowadziło — zostaje, bo tłumaczy,
+czemu projekt jest otwarty, a korpus nie.
+
+**Decyzja:** repozytorium **publiczne + npm, MIT**. Rozumowanie w skrócie: projekt nie ma kroku budowania
 (ADR-007), więc `npm publish` publikuje źródło — prywatne repo przy publicznej
 paczce ukryłoby wyłącznie historię i issues, dając koszty zamknięcia bez jego
 korzyści. Nisza jest gęsto obsadzona open source (kilka niezależnych serwerów
@@ -12,9 +18,9 @@ zamknięcie kodu nie ochroniłoby niczego — usunęłoby tylko zaufanie w jedyn
 grupie, która daje narzędziu klucz do własnych danych treningowych. Fosą jest
 korpus (nie jest dystrybuowany) i metoda wyprowadzania reguł, nie kod.
 
-Publikacja czeka na **przejście pełnego cyklu treningowego na sobie** —
-sprzężenie zwrotne z jednego przepracowanego sezonu jest warte więcej niż
-wcześniejsza data wydania.
+Pierwotnie publikacja miała czekać na przejście pełnego cyklu treningowego na
+sobie. Sezon nadal jest najlepszym źródłem sprzężenia zwrotnego — teraz po
+prostu popłynie z otwartego repozytorium, a nie z szuflady.
 
 ## Co jest zrobione
 
@@ -40,8 +46,10 @@ wcześniejsza data wydania.
 - **`publishConfig.access: public`** w każdym pakiecie (zostaje po zmianie
   nazw — kosztuje nic, a chroni przed publikacją jako prywatna).
 - **CI** (`.github/workflows/ci.yml`): typecheck + testy na Linuksie i Windowsie,
-  Node 22.18 (minimum z `engines`) i 24. Korpusu na runnerze nie ma, więc
-  siedem testów backtestu pomija się samo — tak jest zamierzone.
+  Node 22.18 (minimum z `engines`) i 24. Korpusu na runnerze nie ma — i pierwszy
+  przebieg to wykrył: `describe.skipIf` wykonuje ciało opisu, więc odczyt
+  `corpus.json` wywracał zbiórkę testów. Teraz ciało nie powstaje w ogóle,
+  a zostaje po nim jeden jawnie pominięty test.
 - **Pliki repozytorium**: `CONTRIBUTING.md` (jak działa repo, czego wymaga
   zmiana reguły silnika), `SECURITY.md` (prywatne zgłoszenie przez GitHub
   Security Advisories, powierzchnia: jeden host wyjściowy, klucz API, cztery
@@ -56,24 +64,38 @@ wcześniejsza data wydania.
   odpowiedzi" tylko odpychają czytelnika, którego nikt o nic nie pytał.
 - **CHANGELOG.md** w formacie Keep a Changelog, z jawną sekcją znanych
   ograniczeń.
-- **`private: true` ZOSTAJE** we wszystkich pakietach — to bezpiecznik przed
-  przypadkowym `pnpm publish -r`. Zdjęcie flagi jest krokiem 1 publikacji.
+- **`private: true`** stało w pięciu pakietach do dnia publikacji jako
+  bezpiecznik przed przypadkowym `pnpm publish -r`; zdjęte 2026-08-07.
 
-## Co zostaje do zrobienia w dniu publikacji
+## Zrobione w dniu publikacji (2026-08-07)
 
-1. **Sezon na sobie** — warunek wstępny, nie formalność.
-2. Zdjąć `private: true` z pięciu pakietów (jedyna zmiana w kodzie, jakiej
-   wymaga publikacja).
-3. `pnpm release:dry` i **przeczytać listę plików każdej paczki**, nie tylko
-   podsumowanie. Zanim flaga zniknie, tę samą listę pokazuje
-   `pnpm -r exec npm pack --dry-run` — `npm pack` działa też na prywatnych.
-4. `pnpm publish -r` (kolejność zależności ustawia pnpm samo).
-5. Repo z prywatnego na publiczne; w ustawieniach włączyć **private vulnerability
-   reporting** (SECURITY.md i szablony issue kierują do tej ścieżki) i rozważyć
-   wyłączenie Discussions.
-6. Tag `v0.1.0`, GitHub Release z linkiem do SPEC i FOUNDATIONS.
-7. Po pierwszym zielonym CI: sprawdzić, czy badge w obu README świeci — link
-   wskazuje na `workflows/ci.yml` w gałęzi `main`.
+1. Historia gita zweryfikowana jeszcze raz przed przełączeniem: żaden plik
+   korpusu, `.env` ani `.trainctl-secret` nigdy w niej nie był, a jedyne
+   wystąpienia `API_KEY=` to placeholdery w dokumentacji.
+2. `private: true` zdjęte z pięciu pakietów.
+3. Repozytorium publiczne; Discussions wyłączone (kanałem są issues),
+   prywatne zgłaszanie podatności włączone, tematy ustawione.
+4. Tag `v0.1.0` + GitHub Release.
+5. CI zielone na czterech konfiguracjach (Linux/Windows × Node 22.18/24),
+   badge w obu README świeci.
+
+## Co zostało
+
+**Publikacja paczek na npm.** Wymaga zalogowanej sesji npm, więc robi to
+człowiek:
+
+```bash
+npm login                       # konto z prawem do nazw trainctl*
+pnpm release:dry                # przeczytaj listę plików KAŻDEJ paczki
+pnpm publish -r --access public # kolejność zależności ustawia pnpm samo
+```
+
+Nazwy `trainctl`, `trainctl-core`, `trainctl-export`, `trainctl-mcp`,
+`trainctl-sync-intervalsicu` były wolne 2026-08-07. Zawartość tarballi
+zweryfikowana `npm pack --dry-run`: 5, 7, 8, 23 i 24 pliki, bez testów.
+Po publikacji: sprawdzić `npx trainctl init` i `npx -y trainctl-mcp`
+w czystym katalogu — to są dwa zdania, które README obiecuje w pierwszym
+akapicie.
 
 **Dystrybucja bez kroku budowania** działa tylko dla Node ≥ 22.18 (natywny
 type-stripping; wersje 23.0–23.5 wymagają flagi). `engines` to wymusza. Jeśli

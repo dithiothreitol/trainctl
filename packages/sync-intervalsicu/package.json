@@ -1,7 +1,6 @@
 {
   "name": "trainctl-sync-intervalsicu",
   "version": "0.1.0",
-  "private": true,
   "description": "trainctl: adapter intervals.icu (pull aktywności/wellness, push treningów)",
   "keywords": [
     "intervals-icu",
