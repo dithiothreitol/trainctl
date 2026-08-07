@@ -2,11 +2,11 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** **Fazy 0–5 ZAKOŃCZONE — v1 kompletna** (2026-08-05). Silnik (`@trainctl/core`) + CLI (`@trainctl/cli`, kolorowy TUI i interaktywny kreator) + serwer MCP (`@trainctl/mcp`, 14 narzędzi) + sync intervals.icu (`@trainctl/sync-intervalsicu`) + adaptacja i tryb biurkowy; **255 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie.
+**Status:** **Fazy 0–13 ZAKOŃCZONE** (2026-08-07). Pięć pakietów: silnik (`@trainctl/core`) + CLI (`@trainctl/cli`, 16 komend, kolorowy TUI, dwujęzyczny) + serwer MCP (`@trainctl/mcp`, 16 narzędzi) + sync intervals.icu (`@trainctl/sync-intervalsicu`) + eksport (`@trainctl/export`: FIT/ICS/wydruk/pakiet startowy); **532 testy**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie. Metadane wydania 0.1.0 przygotowane; **publikacja (publiczne repo + npm, MIT) czeka na pełny sezon na sobie** — decyzje i kroki: `docs/PUBLISHING.md`.
 
-**Sync zweryfikowany e2e na żywym koncie 2026-08-05** (szczegóły: `docs/integrations/intervalsicu.md` §2a) — składnia treningów parsowana poprawnie, cele tempa zapisane, idempotencja działa. Otwarte: dostarczenie na fizyczny zegarek (wymaga konta spiętego z Garmin Connect). Dalej: kolejne sporty (`SportModule`), REST API/hosting, publikacja OSS.
+**Sync zweryfikowany e2e na żywym koncie 2026-08-05** (szczegóły: `docs/integrations/intervalsicu.md` §2a) — składnia treningów parsowana poprawnie, cele tempa zapisane, idempotencja działa. Otwarte: dostarczenie na fizyczny zegarek — wymaga zegarka spiętego z intervals.icu **bezpośrednio**, nie przez Stravę (§1.8.1). Dalej: kolejne sporty (`SportModule`), REST API/hosting.
 
-**Nazwa robocza:** `trainctl` (krótka komenda CLI; łatwa do zmiany przed publikacją)
+**Nazwa:** `trainctl` — zdecydowana przy rename całego projektu (2026-08-06); wolna na npm i GitHubie w chwili sprawdzenia.
 
 ## 1. Wizja
 
@@ -48,7 +48,8 @@ z uzasadnieniem, a renegocjacja tygodnia to jedna komenda/jedno zdanie do agenta
 
 **v1 (serce: coach w agencie):** intake → plan biegowy pod zawody/cel → mikrocykle
 tygodniowe → „co dziś" → log wykonania → renegocjacja → adaptacja. Local-first,
-bez konta, dane w SQLite + plikach.
+bez konta, dane wyłącznie w plikach (ADR-007; SQLite rozważane, nie okazało się
+potrzebne — migawka sync to `sync.json`).
 
 **Poza v1 (kolejność wg faz):** sync intervals.icu, adaptacja w pętli na danych
 z zegarka, tryb biurkowy, kolejne sporty (triathlon — korpus już go zawiera),
@@ -62,22 +63,28 @@ Monorepo TypeScript (pnpm workspaces), architektura portów i adapterów:
 trainctl/
 ├─ packages/
 │  ├─ core/              czysta logika domenowa, ZERO I/O
-│  │   ├─ domain/        Athlete, Workout, Microcycle, Macrocycle, Race, Load
-│  │   ├─ engine/        generator planu, periodyzacja, progresje, guardraile
+│  │   ├─ domain/        Athlete, Workout, Microcycle, Macrocycle, Race
+│  │   ├─ engine/        generator planu, periodyzacja, adaptacja, siła, walidacja (check)
 │  │   ├─ solver/        renegocjacja tygodnia (constraints)
-│  │   ├─ zones/         VDOT / critical speed → strefy temp
-│  │   └─ ports/         SportModule, SyncProvider, PlanRepository (interfejsy)
-│  ├─ sport-running/     pierwszy plugin sportu (implementuje SportModule)
-│  ├─ cli/               trainctl init|plan|today|log|shift|why|diff  (cienki adapter)
-│  ├─ mcp/               serwer MCP — te same use-case'y co CLI   (cienki adapter)
+│  │   ├─ zones/         VDOT / critical speed → strefy temp; predykcja; upał
+│  │   ├─ i18n/          locale, katalogi domenowe en/pl
+│  │   └─ ports/         SyncProvider (interfejsy)
+│  ├─ cli/               16 komend: init|plan|today|week|log|shift|why|adapt|desk|
+│  │                     push|pull|export|reschedule|review|diff|check (cienki adapter;
+│  │                     storage = pliki na cwd: trainctl.yaml, plan/, log.jsonl — ADR-007)
+│  ├─ mcp/               serwer MCP, 16 narzędzi — te same handlery co CLI (ADR-008)
 │  ├─ sync-intervalsicu/ adapter SyncProvider (hub → Garmin/Coros/Wahoo)
-│  ├─ export/            FIT (zegarek), ICS (kalendarz), HTML (wydruk)
-│  └─ storage/           SQLite + pliki planu YAML/MD (adapter PlanRepository)
+│  └─ export/            FIT (zegarek), ICS (kalendarz), HTML (wydruk, pakiet startowy)
 ├─ tools/corpus/         ETL korpusu (Python, narzędzia jednorazowe — nie produkt)
 ├─ corpus/               dane źródłowe i pochodne (PII → gitignore!)
 └─ docs/
-   ├─ science/           fundament naukowy z cytowaniami (faza 0)
+   ├─ science/           fundament naukowy z cytowaniami (faza 0 + korekty korpusowe)
+   ├─ integrations/      intervals.icu: weryfikacje, ograniczenia (Strava §1.8.1)
+   ├─ examples/          CI (ci-check), trener-reviewer (coach-review), Actions review
    └─ adr/               decyzje architektoniczne
+
+Docelowo (poza v1): sport-running/ jako plugin portu SportModule — dziś logika
+biegowa mieszka w core, port powstanie razem z drugim sportem, nie wcześniej.
 ```
 
 **Zasady modularności** (uzasadnienie wyboru stacku — patrz ADR-001):
@@ -298,3 +305,4 @@ użytkownika.
 | 021 | 2026-08-05 | `review` to **read-only kompozycja** istniejących use-case'ów; automatyzacja w CI zostaje **przykładem w docs**, nie funkcją produktu | raport nie może mieć własnej logiki treningowej — inaczej pojawiłaby się druga, rozjeżdżająca się definicja „jak mi poszło". Bot w Actions nie zapyta, czy pominięty tydzień to choroba czy wał w pracy, a wymaga klucza API w cudzych sekretach — dubluje kanał agentowy gorszym medium i łamie local-first; kto chce, włącza to sam |
 | 020 | 2026-08-05 | Kalibracja formy **startami, nie sprawdzianami**: `tuneUpRaces` w trainctl.yaml są ścieżką główną, `kind: 'test'` włącza się dopiero przy pustym kalendarzu startów; część główna sprawdzianu eksportowana BEZ celu tempa | plan v1.1 zakładał sprawdzian co ~6 tyg. jako mechanizm domyślny — **korpus to obalił**: 0 sprawdzianów w 1231 dniach, za to 45 startów co ~28 dni. Reguła „korpus wygrywa z hipotezą" zadziałała. Cel tempa na sprawdzianie sterowałby wynikiem, który ma dopiero powstać (analogia do ADR-010) |
 | 019 | 2026-08-05 | Profil z historii to **propozycja z proweniencją**, nie cicha automatyka: każda wartość dostaje w YAML komentarz „skąd", kandydaci na wyniki startów są tylko wypisywani (potwierdza użytkownik/agent), a przy <4 aktywnych tygodniach komenda odmawia zamiast zgadywać | samoocena formy jest największym źródłem błędu planu, ale cichy zapis zgadniętych wartości zamieniłby silnik w czarną skrzynkę — sprzeczność z plan-as-code; wynik startu wpisany błędnie przesuwa CAŁE strefy treningowe, więc to miejsce, gdzie automatyzacja musi się zatrzymać |
+| 025 | 2026-08-07 | `trainctl check`: **error** wyłącznie dla stanów nieosiągalnych przez narzędzie (niespójność pliku), odstępstwa od reguł metodycznych to **warn** — kod 0 bez `--strict`; kontrola I-5 z podłogą generatora | `shift` celowo pozwala złamać I-7 z ostrzeżeniem — lint czerwieniący się na świadome decyzje stałby się bezużyteczny w CI po pierwszym przesunięciu. Podział robi z `check` bezpieczny domyślny strażnik, `--strict` zostawia pedanterię jako opt-in. Bez podłogi I-5 świeży plan o niskiej objętości ostrzegałby sam na siebie |

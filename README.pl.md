@@ -7,8 +7,7 @@ Coach treningowy dla ludzi żyjących w terminalu: silnik planów biegowych
 (docelowo multi-sport) z interfejsem **CLI + MCP** — trener staje się narzędziem
 Twojego agenta (Claude Code, Codex), a plan jest kodem w repo.
 
-**Status:** Faza 0 — fundament. Zobacz [SPEC.md](SPEC.md) (wizja, architektura,
-fazy, decyzje).
+Wizja, architektura, fazy i decyzje: [SPEC.md](SPEC.md).
 
 ## Struktura
 
@@ -86,7 +85,7 @@ ile aktywności zostało zatrzymanych i dlaczego, zamiast raportować „0 bieg�
 
 CLI działa na bieżącym katalogu i trzyma wszystko w plikach (`trainctl.yaml`,
 `plan/`, `log.jsonl`) — bez konta, bez bazy; historia zmian planu to git.
-Uruchamiane natywnym type-strippingiem Node ≥23.6 (bez kroku budowania).
+Uruchamiane natywnym type-strippingiem Node ≥22.18 (bez kroku budowania).
 
 Wyjście jest kolorowe w terminalu i czyste wszędzie indziej: `NO_COLOR=1`
 wyłącza barwy, `TRAINCTL_ASCII=1` wymusza znaki ASCII, a przekierowanie do pliku
