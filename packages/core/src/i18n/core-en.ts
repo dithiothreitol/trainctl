@@ -261,6 +261,9 @@ export const coreEn = {
     cannotBlockRaceDay: 'the race day cannot be blocked — the solver does not move it',
     droppedEasy: 'ran out of days — an easy session costs least (volume, not stimulus)',
     droppedOther: 'ran out of days after the blocked dates',
+    droppedLine: (kind: string, from: string, reason: string) =>
+      `dropped: ${kind} from ${from} — ${reason}`,
+    tradeoffLine: (note: string) => `trade-off: ${note}`,
     noMakeUp:
       'We do not make up the dropped kilometres on the following days — piling volume on ' +
       'after a missed session works against the progression (P-1/P-3).',

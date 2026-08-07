@@ -105,7 +105,24 @@ const median = (xs: number[]) => {
   return s.length % 2 ? s[(s.length - 1) / 2]! : (s[s.length / 2 - 1]! + s[s.length / 2]!) / 2
 }
 
-describe.skipIf(!existsSync(CORPUS))('backtest: sezon HM wiosna 2025 vs trener', () => {
+const HAS_CORPUS = existsSync(CORPUS)
+
+/**
+ * `describe.skipIf` tu nie wystarcza: vitest i tak WYKONUJE ciało opisu, żeby
+ * zebrać testy, a odczyt korpusu w pierwszej linii wywracał całą zbiórkę wszędzie
+ * poza maszyną autora — na CI plik nie istnieje. Bez korpusu ciało nie uruchamia
+ * się w ogóle, a zostaje po nim jeden jawnie pominięty test: brak backtestu ma
+ * być widoczny w raporcie, nie niemy.
+ */
+const describeCorpus: (name: string, fn: () => void) => void = HAS_CORPUS ? describe : () => {}
+
+if (!HAS_CORPUS) {
+  describe('backtest: sezon HM wiosna 2025 vs trener', () => {
+    it.skip('wymaga corpus/parsed/corpus.json — korpus nie jest dystrybuowany (PII)', () => {})
+  })
+}
+
+describeCorpus('backtest: sezon HM wiosna 2025 vs trener', () => {
   const plans: CorpusPlan[] = JSON.parse(readFileSync(CORPUS, 'utf-8'))
   const FROM = '2025-01-06'
   const RACE = '2025-03-30' // Półmaraton Warszawski (w korpusie)

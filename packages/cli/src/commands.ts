@@ -443,7 +443,7 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
     if (!hit) return ok(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', plan.goal.date))
     const { week } = hit
     const sk = week.skeleton
-    const model = sk.intensityModel === 'pyramidal' ? 'piramidalnie' : 'polaryzacja'
+    const model = messages().intensityModel[sk.intensityModel]
     const rows: string[][] = []
     const accents: (ColorName | undefined)[] = []
     for (const day of week.days) {

@@ -273,6 +273,9 @@ export const corePl: CoreMessages = {
     cannotBlockRaceDay: 'dnia startu nie da się zablokować — solver go nie rusza',
     droppedEasy: 'zabrakło dnia — spokojna jednostka kosztuje najmniej (objętość, nie bodziec)',
     droppedOther: 'zabrakło dnia po zablokowaniu terminów',
+    droppedLine: (kind: string, from: string, reason: string) =>
+      `odpuszczone: ${kind} z ${from} — ${reason}`,
+    tradeoffLine: (note: string) => `kompromis: ${note}`,
     noMakeUp:
       'Nie nadrabiamy odpuszczonych kilometrów w kolejnych dniach — dokładanie objętości ' +
       'po wypadniętej sesji działa przeciw progresji (P-1/P-3).',

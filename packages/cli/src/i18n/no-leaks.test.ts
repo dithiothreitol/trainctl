@@ -53,6 +53,10 @@ const POLISH_WORDS = new RegExp(
       'objetosc', 'szczyt', 'baza', 'budowanie', 'sila', 'silowa', 'spokojne',
       'interwaly', 'podbiegi', 'sprawdzian', 'rozgrzewka', 'trucht', 'przerwa',
       'blad', 'bledy', 'reguly', 'jednostka', 'jednostki', 'odciazenie',
+      // Wpadki złapane dopiero na zrzutach ekranu do README: wszystkie bez
+      // diakrytyków, więc sito znaków ich nie widziało — `week` mówiło
+      // „piramidalnie", a `reschedule` „odpuszczone"/„kompromis".
+      'piramidalnie', 'polaryzacja', 'odpuszczone', 'kompromis',
     ].join('|') +
     ')\\b',
   'i',
@@ -128,6 +132,13 @@ describe('komendy po angielsku nie przeciekają polskim', () => {
       return r
     }],
     ['reschedule', () => cmdReschedule(dir, { date: TODAY, block: ['2026-08-06'] })],
+    // Blokada większości tygodnia zmusza solver do odpuszczenia sesji — dopiero
+    // ta ścieżka drukuje listę kompromisów, w której siedziała polska wpadka.
+    ['reschedule (z odpuszczeniem sesji)', () =>
+      cmdReschedule(dir, {
+        date: TODAY,
+        block: ['2026-08-04', '2026-08-05', '2026-08-06', '2026-08-08'],
+      })],
     ['shift', () => cmdShift(dir, { from: '2026-08-06', to: '2026-08-07' })],
     ['shift (błąd)', () => cmdShift(dir, { from: '2030-01-01', to: '2030-01-02' })],
     ['init (istnieje)', () => cmdInit(dir)],

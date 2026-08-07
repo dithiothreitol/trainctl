@@ -111,7 +111,9 @@ function scoreArrangement(
       if (req.longRunDayPreference?.includes(slot.weekday)) {
         score += 60
       } else {
-        notes.push(messages().solver.longRunOffPreferredDay(slot.weekday))
+        // dzień tygodnia przez katalog: surowy klucz („wed") w polskim zdaniu
+        // czytał się jak przeoczenie tłumaczenia — bo nim był
+        notes.push(messages().solver.longRunOffPreferredDay(messages().weekday[slot.weekday]))
       }
     }
     // S-3: akcenty się liczą; sprawdzian wyżej — bez niego nie ma czym kalibrować stref
@@ -251,8 +253,8 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
 
   const tradeoffs: string[] = []
   for (const m of moved) tradeoffs.push(`${m.kind}: ${m.from} → ${m.to}`)
-  for (const d of dropped) tradeoffs.push(`odpuszczone: ${d.kind} z ${d.from} — ${d.reason}`)
-  for (const note of best?.notes ?? []) tradeoffs.push(`kompromis: ${note}`)
+  for (const d of dropped) tradeoffs.push(messages().solver.droppedLine(d.kind, d.from, d.reason))
+  for (const note of best?.notes ?? []) tradeoffs.push(messages().solver.tradeoffLine(note))
   if (dropped.length) {
     warnings.push(
       messages().solver.noMakeUp,
