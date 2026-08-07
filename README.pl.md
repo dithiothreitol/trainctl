@@ -1,5 +1,9 @@
 # trainctl
 
+[![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.18-brightgreen.svg)](package.json)
+
 *English version: [README.md](README.md). Ten dokument jest pełniejszy —
 angielski jest skrócony pod pierwszy kontakt obcego czytelnika.*
 
@@ -11,11 +15,13 @@ Wizja, architektura, fazy i decyzje: [SPEC.md](SPEC.md).
 
 ## Struktura
 
-- `packages/` — monorepo TypeScript (core, sport-running, cli, mcp, sync, storage)
+- `packages/` — monorepo TypeScript: `trainctl-core` (silnik), `trainctl` (CLI),
+  `trainctl-mcp` (narzędzia agenta), `trainctl-export` (FIT/ICS/HTML),
+  `trainctl-sync-intervalsicu` (adapter huba)
 - `tools/corpus/` — jednorazowe ETL korpusu planów trenerskich (Python)
 - `corpus/` — dane źródłowe (gitignore — PII)
-- `docs/science/` — fundament naukowy z cytowaniami
-- `docs/adr/` — decyzje architektoniczne
+- `docs/science/FOUNDATIONS.md` — fundament naukowy z cytowaniami i ID reguł
+- [SPEC.md](SPEC.md) — architektura, fazy i tabela decyzji (ADR)
 
 ## Użycie (CLI)
 
@@ -186,13 +192,19 @@ w [docs/examples/github-actions-review.md](docs/examples/github-actions-review.m
 
 ```
 pnpm install
+pnpm check       # typecheck + testy — to samo, co robi CI
 pnpm test        # vitest (packages/*/src/**/*.test.ts)
 pnpm typecheck   # tsc --noEmit
 ```
 
+542 testy; siedem z nich porównuje silnik z korpusem planów trenerskich i same
+się pomijają, gdy korpusu nie ma — a nie ma go poza maszyną autora.
+
 Reguły silnika odwołują się do ID z `docs/science/FOUNDATIONS.md` §10
 (np. `P-2`, `T-5`, `W-7`) — wartości bez pokrycia w źródłach są oznaczone
-w kodzie jako inżynierskie.
+w kodzie jako inżynierskie. Co musi nieść ze sobą zmiana reguły silnika i jak
+wygląda tu review: [CONTRIBUTING.md](CONTRIBUTING.md). Zgłoszenie podatności:
+[SECURITY.md](SECURITY.md).
 
 ## Korpus — odtworzenie lokalne
 

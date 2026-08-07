@@ -1,0 +1,28 @@
+name: Feature request
+description: A capability the engine or the interfaces do not have yet
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The training situation
+      description: What are you trying to do in your training week that the tool cannot do today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like it to do
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence, if the request touches the engine
+      description: |
+        Engine rules carry an ID from docs/science/FOUNDATIONS.md. A change to
+        how sessions are planned needs either a source or an explicit statement
+        that it is a coaching preference rather than a finding. Corpus-backed
+        observations count too — say which plans and how many.

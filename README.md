@@ -1,5 +1,9 @@
 # trainctl
 
+[![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.18-brightgreen.svg)](package.json)
+
 A running coach that lives in your terminal: a plan-generating engine with a
 **CLI + MCP** interface. Your plan is code in a git repo, and your agent
 (Claude Code, Codex, any MCP client) gets the coach as a tool.
@@ -150,12 +154,17 @@ no race result it will not calibrate zones from watch readings.
 
 ```
 pnpm install
-pnpm test        # 496 tests
-pnpm typecheck
+pnpm check       # typecheck + tests, what CI runs
 ```
 
+542 tests; seven of them backtest the engine against the coaching corpus and
+skip themselves when it is absent, which it is outside the author's machine.
+
 Architecture, phases and decisions: [SPEC.md](SPEC.md). Engine rules reference
-IDs from FOUNDATIONS §10 (`P-2`, `T-5`, `W-7`, …).
+IDs from FOUNDATIONS §10 (`P-2`, `T-5`, `W-7`, …). How to contribute — and what
+a change to an engine rule needs to carry with it:
+[CONTRIBUTING.md](CONTRIBUTING.md). Reporting a vulnerability:
+[SECURITY.md](SECURITY.md).
 
 ## Licence
 

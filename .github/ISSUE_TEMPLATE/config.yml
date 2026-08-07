@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Why does the engine plan it this way?
+    url: https://github.com/dithiothreitol/trainctl/blob/main/docs/science/FOUNDATIONS.md
+    about: Every rule has an ID and a source. `trainctl why` quotes them for a given session.
+  - name: Architecture and decisions
+    url: https://github.com/dithiothreitol/trainctl/blob/main/SPEC.md
+    about: Phases, package layout and the ADR table — what was decided and why.
+  - name: Security issue
+    url: https://github.com/dithiothreitol/trainctl/security/advisories/new
+    about: Report privately instead of opening an issue.

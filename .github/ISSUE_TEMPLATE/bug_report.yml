@@ -1,0 +1,49 @@
+name: Bug report
+description: Something the tool does wrong, or a session it plans that makes no sense
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before pasting files: `trainctl.yaml`, `plan/plan.yaml` and `log.jsonl`
+        describe a real person's training. Trim them to the part that matters.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command you ran and what came back. Paste the output as text, not a screenshot.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`trainctl --version`, or the commit you are on"
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: Node and OS
+      description: "`node --version` and your operating system"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: lint
+    attributes:
+      label: For issues about a generated plan
+      options:
+        - label: I ran `trainctl check` and pasted its findings above
+        - label: The session I am reporting on is one `trainctl why` explains differently than expected
