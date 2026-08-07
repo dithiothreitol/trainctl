@@ -322,14 +322,50 @@ followersom w samym intervals.icu, a co dopiero przez API zewnętrznym appkom.
 
 **Konsekwencja praktyczna dla „trainctl":** to nie jest już tylko kwestia „czy
 robimy integrację bezpośrednią ze Strava" (odpowiedź: nie, i słusznie) — to
-oznacza, że **droga danych „zegarek → Strava → intervals.icu → API → trainctl"
-prawdopodobnie nie zwróci pełnych danych** (streams, laps) przez API
-intervals.icu, niezależnie od architektury huba. Hub w pełni działa tylko
-dla ścieżki „zegarek → bezpośrednie połączenie z intervals.icu (Garmin
-Connect / Polar Flow / Coros / Suunto / Wahoo w Ustawieniach intervals.icu)
-→ API". Użytkownicy „trainctl", którzy mają podłączoną **tylko** Stravę (a nie
-bezpośrednio swój zegarek) do intervals.icu, mogą nie mieć widocznych
-pełnych danych dla naszego narzędzia.
+oznacza, że droga „zegarek → Strava → intervals.icu → API → trainctl" nie
+działa. Hub działa wyłącznie dla ścieżki „zegarek → bezpośrednie połączenie
+z intervals.icu (Garmin Connect / Polar Flow / Coros / Suunto / Wahoo
+w Ustawieniach intervals.icu) → API".
+
+### 1.8.1 Potwierdzenie empiryczne (2026-08-07)
+
+Przewidywanie powyżej sformułowano warunkowo („prawdopodobnie nie zwróci
+pełnych danych"). Test na żywym koncie pokazał, że **jest gorzej, niż
+zakładaliśmy — nie chodzi o niepełne dane, tylko o ich całkowity brak**.
+
+Konto `i665499`, spięte **wyłącznie przez Stravę**, okno dwóch lat
+(2024-08-01 → 2026-08-07). `GET /athlete/0/activities` zwraca 50 rekordów,
+z których każdy ma dokładnie pięć pól:
+
+```json
+{ "id": "19572987988", "icu_athlete_id": "i665499",
+  "start_date_local": "2026-08-02T12:45:43", "source": "STRAVA",
+  "_note": "STRAVA activities are not available via the API" }
+```
+
+Brak `type`, brak `distance`, brak `moving_time` — nie da się z tego policzyć
+niczego. Wellness w tym samym oknie: 68 wpisów, **zero z jakąkolwiek wartością**
+(brak tętna spoczynkowego, HRV, wagi).
+
+**Wnioski dla implementacji** (wdrożone tego samego dnia):
+
+1. Wykrywamy takie rekordy **strukturalnie** — po braku `type` i `distance` —
+   a nie po treści pola `_note`. Adnotacja jest angielskim zdaniem, które
+   intervals.icu może przeredagować bez uprzedzenia; dopasowanie do niej
+   byłoby dokładnie tą klasą błędu, którą tępimy w całym repo.
+2. `SyncedActivity` niesie `source` i `dataWithheld`, żeby powód dotarł
+   z adaptera aż do komunikatu dla użytkownika.
+3. `trainctl pull` mówi wprost, ile aktywności i z jakiego źródła zostało
+   zatrzymanych. Samo „19 aktywności, 0 biegowych" jest prawdą, która
+   wprowadza w błąd: sugeruje awarię synchronizacji zegarka.
+4. `trainctl init --from-intervals` odmawia ze wskazaniem **integracji**, nie
+   treningu, i podpowiada podpięcie zegarka bezpośrednio.
+
+**Dla użytkownika:** samo posiadanie konta intervals.icu nie wystarczy. Zegarek
+musi być podpięty do intervals.icu **bezpośrednio** (Settings → Connections),
+nie przez Stravę — inaczej `pull`, `init --from-intervals`, `adapt` i `review`
+nie mają czym operować. `push` (plan → kalendarz → zegarek) działa niezależnie
+od tego, bo tam my jesteśmy źródłem danych.
 
 ---
 
