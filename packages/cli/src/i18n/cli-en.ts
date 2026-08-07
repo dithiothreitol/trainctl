@@ -98,6 +98,9 @@ export const cliEn = {
     raceCandidates: 'Possible races for zone calibration (confirm before adding!)',
     noRaceCandidates: 'I found no race candidates — add a calibration result by hand.',
     fillGoal: 'fill in the goal section in trainctl.yaml → trainctl plan',
+    gitignoreHeader: 'trainctl — secrets, never commit these',
+    gitignoreUpdated: (patterns: string) =>
+      `Added to .gitignore: ${patterns} — that is where the intervals.icu key goes`,
     unnamed: 'unnamed',
   },
 
@@ -484,10 +487,17 @@ export const cliEn = {
     strengthSummary: (minutes: number) => `strength ~${n(minutes)} min`,
   },
 
+  envFile: {
+    unprotected: (envFile: string, ignoreFile: string) =>
+      `${envFile} is loaded and this directory is a git repository, but no ${ignoreFile} ` +
+      `appears to exclude it. Add a line "${envFile}" to ${ignoreFile} before your next ` +
+      'commit — an API key that reaches git history stays there even after you delete the file.',
+  },
+
   sync: {
     missingKey: (secretFile: string) =>
-      'No intervals.icu API key. Set the TRAINCTL_INTERVALS_API_KEY environment variable ' +
-      `or save the key in ${secretFile} (add it to .gitignore!).\n` +
+      'No intervals.icu API key. Set TRAINCTL_INTERVALS_API_KEY in the environment, ' +
+      `in a .env file, or save the key in ${secretFile} — and make sure git ignores it.\n` +
       'Key: intervals.icu → Settings → Developer Settings.',
   },
 

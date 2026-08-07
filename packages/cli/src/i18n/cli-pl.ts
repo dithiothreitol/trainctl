@@ -108,6 +108,9 @@ export const cliPl: CliMessages = {
     raceCandidates: 'Możliwe starty do kalibracji stref (potwierdź, zanim dopiszesz!)',
     noRaceCandidates: 'Nie znalazłem kandydatów na starty — wynik do kalibracji dopisz ręcznie.',
     fillGoal: 'uzupełnij sekcję goal w trainctl.yaml → trainctl plan',
+    gitignoreHeader: 'trainctl — sekrety, nigdy ich nie commituj',
+    gitignoreUpdated: (patterns: string) =>
+      `Dopisano do .gitignore: ${patterns} — tam trafia klucz do intervals.icu`,
     unnamed: 'bez nazwy',
   },
 
@@ -506,10 +509,17 @@ export const cliPl: CliMessages = {
     strengthSummary: (minutes: number) => `siła ~${n(minutes)} min`,
   },
 
+  envFile: {
+    unprotected: (envFile: string, ignoreFile: string) =>
+      `Wczytano ${envFile}, a ten katalog jest repozytorium gita i żaden ${ignoreFile} ` +
+      `go nie wyklucza. Dopisz linię „${envFile}” do ${ignoreFile}, zanim zrobisz kolejny ` +
+      'commit — klucz API, który trafi do historii gita, zostaje tam nawet po skasowaniu pliku.',
+  },
+
   sync: {
     missingKey: (secretFile: string) =>
-      'Brak klucza API intervals.icu. Ustaw zmienną TRAINCTL_INTERVALS_API_KEY ' +
-      `albo zapisz klucz w pliku ${secretFile} (dodaj go do .gitignore!).\n` +
+      'Brak klucza API intervals.icu. Ustaw TRAINCTL_INTERVALS_API_KEY w środowisku, ' +
+      `w pliku .env albo zapisz klucz w ${secretFile} — i upewnij się, że git go ignoruje.\n` +
       'Klucz: intervals.icu → Settings → Developer Settings.',
   },
 

@@ -1,5 +1,5 @@
 /** Handlery komend CLI — czyste funkcje (cwd, argumenty) → { output, code }. */
-import { existsSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   addDays,
@@ -20,6 +20,7 @@ import {
   type Weekday,
 } from '@trainctl/core'
 import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
+import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, logFor, parseTime, readLog, type LogEntry } from './logfile.ts'
@@ -69,6 +70,7 @@ import {
   readSnapshot,
   workoutsToPush,
   writeSnapshot,
+  SECRET_FILE,
   SYNC_FILE,
   type ProviderFactory,
 } from './sync.ts'
@@ -76,6 +78,7 @@ import {
 // dla MCP (importuje wyłącznie z @trainctl/cli = commands.ts)
 export { defaultProviderFactory, hasApiKey, type ProviderFactory } from './sync.ts'
 export { readConfigLanguage } from './config.ts'
+export { loadEnvFile, ENV_FILE, type EnvFileOutcome } from './env-file.ts'
 // serwer MCP opisuje narzędzia tym samym katalogiem, co CLI
 export { ui, type CliMessages } from './i18n/index.ts'
 
@@ -188,6 +191,7 @@ export async function cmdInitFromIntervals(
     const p = outcome.profile
     writeConfigTemplate(cwd, inferredConfigYaml(p))
     writeAgentsFile(cwd)
+    protectSecrets(cwd)
 
     const recent4 = p.weeklyKm.slice(-4).map((w) => w.km)
     const blocks: Block[] = [
@@ -237,13 +241,36 @@ function writeAgentsFile(cwd: string): boolean {
   return true
 }
 
+/** Pliki z sekretami, które nigdy nie mogą trafić do repozytorium (ADR-009). */
+const SECRET_PATTERNS = [ENV_FILE, '.env.*', SECRET_FILE]
+
+/**
+ * Ochrona sekretów w katalogu treningowym. Katalog jest repozytorium gita,
+ * a od kiedy czytamy `.env`, brak wpisu w `.gitignore` to prosta droga do
+ * wypchnięcia klucza API. Istniejącego pliku nie nadpisujemy — dokładamy
+ * wyłącznie brakujące wzorce, żeby nie ruszać reguł użytkownika.
+ */
+function protectSecrets(cwd: string): string[] {
+  const path = join(cwd, '.gitignore')
+  const existing = existsSync(path) ? readFileSync(path, 'utf-8') : ''
+  const present = new Set(existing.split('\n').map((l) => l.trim().replace(/^\/+/, '')))
+  const missing = SECRET_PATTERNS.filter((p) => !present.has(p))
+  if (missing.length === 0) return []
+  const header = `# ${ui().init.gitignoreHeader}`
+  const block = `${header}\n${missing.join('\n')}\n`
+  writeFileSync(path, existing && !existing.endsWith('\n') ? `${existing}\n${block}` : existing + block, 'utf-8')
+  return missing
+}
+
 export function cmdInit(cwd: string, content?: string): CmdResult {
   try {
     writeConfigTemplate(cwd, content)
     const agents = writeAgentsFile(cwd)
+    const ignored = protectSecrets(cwd)
     return okDoc([
       b.success(ui().init.created(CONFIG_FILE)),
       ...(agents ? [b.success(ui().init.createdAgents(AGENTS_FILE))] : []),
+      ...(ignored.length ? [b.success(ui().init.gitignoreUpdated(ignored.join(', ')))] : []),
       ...(content
         ? []
         : [

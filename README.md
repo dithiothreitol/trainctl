@@ -63,10 +63,21 @@ Synchronizacja z zegarkiem (intervals.icu jako hub → Garmin/Coros/Wahoo):
 
 ```
 # klucz: intervals.icu → Settings → Developer Settings
-export TRAINCTL_INTERVALS_API_KEY=...        # albo plik .trainctl-secret (w .gitignore)
+export TRAINCTL_INTERVALS_API_KEY=...   # zmienna środowiskowa
+echo 'TRAINCTL_INTERVALS_API_KEY=...' >> .env   # albo plik .env w katalogu treningowym
 pnpm trainctl push --days 14   # plan → kalendarz intervals.icu → zegarek
 pnpm trainctl pull --days 28   # wykonanie + wellness → sync.json, porównanie z planem
 ```
+
+Klucza nigdy nie wpisujesz do `trainctl.yaml` — ten plik jest w gicie. `.env`
+i `.trainctl-secret` dopisuje do `.gitignore` samo `trainctl init`, a gdyby
+mimo to sekret leżał w repozytorium bez ochrony, CLI powie to przy każdym
+uruchomieniu. Zmienna ustawiona jawnie w powłoce wygrywa nad plikiem.
+
+**Zegarek musi być podpięty do intervals.icu bezpośrednio** (Settings →
+Connections), nie przez Stravę: od grudnia 2024 hub nie przepuszcza danych
+Stravy przez API i `pull` dostaje puste rekordy. `trainctl` mówi wtedy wprost,
+ile aktywności zostało zatrzymanych i dlaczego, zamiast raportować „0 biegów".
 
 CLI działa na bieżącym katalogu i trzyma wszystko w plikach (`trainctl.yaml`,
 `plan/`, `log.jsonl`) — bez konta, bez bazy; historia zmian planu to git.

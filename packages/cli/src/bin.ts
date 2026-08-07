@@ -7,6 +7,7 @@
 import { Command } from 'commander'
 import { resolveLocale, setLocale } from '@trainctl/core'
 import { readConfigLanguage } from './config.ts'
+import { loadEnvFile, ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import {
   cmdAdapt,
@@ -38,6 +39,11 @@ import { runWizard, toYaml } from './ui/wizard.ts'
 
 const cwd = process.cwd()
 
+// `.env` PRZED wszystkim innym: ma działać nie tylko dla klucza API, ale też
+// dla TRAINCTL_LANG, a język ustalamy zaraz niżej. `loadEnvFile` nie nadpisuje
+// zmiennych już obecnych w środowisku — jawny export wygrywa nad plikiem.
+const envFile = loadEnvFile(cwd)
+
 // Język ustalamy PRZED zbudowaniem drzewa komend: opisy w `--help` też są
 // tłumaczone, a commander czyta je w momencie definiowania komendy.
 // Kolejność źródeł: --lang > TRAINCTL_LANG > language w trainctl.yaml > angielski.
@@ -58,6 +64,14 @@ setLocale(
 
 const theme = new Theme()
 const program = new Command()
+
+// Ostrzeżenie na stderr, nie na stdout: wyjście komend bywa przekierowywane
+// do pliku albo potoku, a to jest komunikat dla człowieka, nie dane.
+if (envFile.unprotected) {
+  console.error(
+    `${theme.color(theme.sym.warn, 'warn')} ${ui().envFile.unprotected(ENV_FILE, '.gitignore')}`,
+  )
+}
 
 function print(result: CmdResult): void {
   console.log(result.blocks ? renderAnsi(result.blocks, theme) : result.output)

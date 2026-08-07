@@ -6,10 +6,14 @@
  */
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { resolveLocale, setLocale } from '@trainctl/core'
-import { readConfigLanguage, ui } from '@trainctl/cli'
+import { loadEnvFile, readConfigLanguage, ui, ENV_FILE } from '@trainctl/cli'
 import { createTrainctlServer } from './server.ts'
 
 const dir = process.env.TRAINCTL_DIR ?? process.cwd()
+
+// `.env` z katalogu treningowego — klient MCP zwykle uruchamia serwer bez
+// powłoki użytkownika, więc bez tego klucz API byłby nieosiągalny dla agenta.
+const envFile = loadEnvFile(dir)
 
 // Agent dziedziczy język katalogu treningowego: opisy jednostek, które zwracamy
 // przez MCP, mają brzmieć tak samo jak te w plan/PLAN.md.
@@ -22,3 +26,6 @@ setLocale(locale)
 const server = createTrainctlServer(dir)
 await server.connect(new StdioServerTransport())
 console.error(`[trainctl-mcp] ${ui().mcp.dirLine(dir, locale)}`)
+if (envFile.unprotected) {
+  console.error(`[trainctl-mcp] ${ui().envFile.unprotected(ENV_FILE, '.gitignore')}`)
+}
