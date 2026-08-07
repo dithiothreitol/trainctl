@@ -96,6 +96,42 @@ describe('eksport do kalendarza (.ics)', () => {
   })
 })
 
+describe('nazwy plików bez znaków spoza ASCII', () => {
+  /**
+   * `ł` nie jest „l z kreską" w sensie Unicode, więc NFD go nie rozkłada —
+   * bez osobnej mapy wpadał w filtr [^a-zA-Z0-9] i plik nazywał się
+   * `interwa-y.fit`, a start we Wrocławiu dawał `bieg-wroc-awski.ics`.
+   */
+  let polishDir: string
+
+  beforeAll(() => {
+    polishDir = mkdtempSync(join(tmpdir(), 'trainctl-exp-pl-'))
+    writeFileSync(
+      join(polishDir, 'trainctl.yaml'),
+      CONFIG.replace('Maraton testowy', 'Bieg Wrocławski wokół Odry'),
+      'utf-8',
+    )
+    cmdPlan(polishDir, { date: '2026-08-05' })
+  })
+  afterAll(() =>
+    rmSync(polishDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }),
+  )
+
+  it('polskie litery są przybliżane, nie gubione', () => {
+    expect(cmdExport(polishDir, { what: 'calendar' }).code).toBe(0)
+    expect(cmdExport(polishDir, { what: 'plan' }).code).toBe(0)
+    const files = readdirSync(join(polishDir, 'export'))
+
+    const ics = files.find((f) => f.endsWith('.ics'))!
+    expect(ics).toBe('bieg-wroclawski-wokol-odry.ics')
+
+    const interwaly = files.find((f) => f.includes('interwaly'))
+    expect(interwaly, `nazwy .fit: ${files.filter((f) => f.endsWith('.fit')).join(', ')}`)
+      .toBeDefined()
+    for (const f of files) expect(f).toMatch(/^[a-z0-9.-]+$/)
+  })
+})
+
 describe('rozpiska do wydruku', () => {
   it('generuje HTML z tabelami tygodni i stylem druku', () => {
     const r = cmdExport(dir, { what: 'print' })

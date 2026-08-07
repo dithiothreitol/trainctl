@@ -514,7 +514,7 @@ pnpm install
 pnpm check       # typecheck + testy — to samo, co robi CI
 ```
 
-543 testy. Siedem z nich porównuje silnik z korpusem planów trenerskich, który
+544 testy. Siedem z nich porównuje silnik z korpusem planów trenerskich, który
 nie jest dystrybuowany; bez niego ten zestaw zgłasza się jako jeden pominięty
 test, zamiast po cichu zniknąć.
 

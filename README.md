@@ -506,7 +506,7 @@ pnpm install
 pnpm check       # typecheck + tests — what CI runs
 ```
 
-543 tests. Seven of them backtest the engine against the coaching corpus, which
+544 tests. Seven of them backtest the engine against the coaching corpus, which
 is not distributed; without it that suite reports itself as one skipped test
 rather than quietly disappearing.
 

@@ -74,8 +74,21 @@ export interface ExportedFile {
   description: string
 }
 
+/**
+ * Litery, których NFD nie rozłoży, bo nie są „litera + znak diakrytyczny", tylko
+ * osobnymi znakami Unicode. Bez tej mapy „interwały" dawały plik `interwa-y.fit`,
+ * a „Bieg Wrocławski" — `bieg-wroc-awski.ics`: nazwa pliku na zegarku gubiła
+ * literę zamiast ją przybliżyć. Zakres celowo europejski — tyle nazw startów
+ * i etykiet jednostek realnie przechodzi tędy.
+ */
+const NON_DECOMPOSING: Record<string, string> = {
+  ł: 'l', Ł: 'L', ø: 'o', Ø: 'O', đ: 'd', Đ: 'D',
+  ß: 'ss', æ: 'ae', Æ: 'AE', œ: 'oe', Œ: 'OE',
+}
+
 const safeName = (text: string): string =>
   text
+    .replace(/[łŁøØđĐßæÆœŒ]/g, (ch) => NON_DECOMPOSING[ch] ?? ch)
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-zA-Z0-9]+/g, '-')
