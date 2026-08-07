@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { setLocale } from '@trainctl/core'
+import { setLocale } from 'trainctl-core'
 
 setLocale('pl')
 import {
@@ -8,7 +8,7 @@ import {
   type AthleteProfile,
   type PlannedDay,
   type WeekSkeleton,
-} from '@trainctl/core'
+} from 'trainctl-core'
 import { distance, duration, paceTarget, toPushableWorkout, toWorkoutSyntax } from './workout-syntax.ts'
 
 describe('prymitywy składni', () => {

@@ -5,8 +5,8 @@
  * Uwaga: stdout jest kanałem protokołu — logi wyłącznie na stderr.
  */
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { resolveLocale, setLocale } from '@trainctl/core'
-import { loadEnvFile, readConfigLanguage, ui, ENV_FILE } from '@trainctl/cli'
+import { resolveLocale, setLocale } from 'trainctl-core'
+import { loadEnvFile, readConfigLanguage, ui, ENV_FILE } from 'trainctl'
 import { createTrainctlServer } from './server.ts'
 
 const dir = process.env.TRAINCTL_DIR ?? process.cwd()

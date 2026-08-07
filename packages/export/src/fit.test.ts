@@ -3,11 +3,11 @@
  * binarną, a nie tylko to, że funkcja czegoś nie wyrzuciła.
  */
 import { describe, expect, it } from 'vitest'
-import { setLocale } from '@trainctl/core'
+import { setLocale } from 'trainctl-core'
 
 // Nazwy kroków to treść po polsku — testujemy je w tym języku.
 setLocale('pl')
-import type { PlannedWorkout } from '@trainctl/core'
+import type { PlannedWorkout } from 'trainctl-core'
 import { encodeWorkoutFit, fitCrc, paceToSpeedRange, toFitSteps } from './fit.ts'
 
 // ------------------------------------------------------------------ dekoder

@@ -3,8 +3,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from '@trainctl/core'
-import { setLocale } from '@trainctl/core'
+import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from 'trainctl-core'
+import { setLocale } from 'trainctl-core'
 import { cmdInitFromIntervals } from './commands.ts'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej

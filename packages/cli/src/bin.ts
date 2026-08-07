@@ -5,7 +5,7 @@
  * MCP używa tych samych handlerów i dostaje wersję bez ANSI (ui/blocks.ts).
  */
 import { Command } from 'commander'
-import { resolveLocale, setLocale } from '@trainctl/core'
+import { resolveLocale, setLocale } from 'trainctl-core'
 import { readConfigLanguage } from './config.ts'
 import { loadEnvFile, ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { setLocale } from '@trainctl/core'
+import { setLocale } from 'trainctl-core'
 import { b, renderAnsi, renderPlain, wrap } from './blocks.ts'
 import { Theme, detectCapabilities, stripAnsi, visibleLength } from './theme.ts'
 import { parseDaysInput, parseDistanceInput, parseTimeInput, toYaml } from './wizard.ts'

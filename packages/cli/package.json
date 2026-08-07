@@ -1,5 +1,5 @@
 {
-  "name": "@trainctl/cli",
+  "name": "trainctl",
   "version": "0.1.0",
   "private": true,
   "description": "trainctl: CLI — plan/today/week/shift/review/push/pull/export",
@@ -42,9 +42,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@trainctl/core": "workspace:*",
-    "@trainctl/export": "workspace:*",
-    "@trainctl/sync-intervalsicu": "workspace:*",
+    "trainctl-core": "workspace:*",
+    "trainctl-export": "workspace:*",
+    "trainctl-sync-intervalsicu": "workspace:*",
     "commander": "^14.0.0",
     "yaml": "^2.6.0"
   }

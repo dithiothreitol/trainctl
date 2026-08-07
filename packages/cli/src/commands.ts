@@ -21,7 +21,7 @@ import {
   type PlannedWorkout,
   type SyncedActivity,
   type Weekday,
-} from '@trainctl/core'
+} from 'trainctl-core'
 import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
 import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
@@ -80,7 +80,7 @@ import {
   type ProviderFactory,
 } from './sync.ts'
 
-// dla MCP (importuje wyłącznie z @trainctl/cli = commands.ts)
+// dla MCP (importuje wyłącznie z trainctl = commands.ts)
 export { defaultProviderFactory, hasApiKey, type ProviderFactory } from './sync.ts'
 export { readConfigLanguage } from './config.ts'
 export { loadEnvFile, ENV_FILE, type EnvFileOutcome } from './env-file.ts'

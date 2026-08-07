@@ -4,7 +4,7 @@
  * w funkcjach `*Choices` — pętla wejścia jest cienka i wymaga TTY.
  */
 import { emitKeypressEvents } from 'node:readline'
-import { messages, type Microcycle, type PlannedDay } from '@trainctl/core'
+import { messages, type Microcycle, type PlannedDay } from 'trainctl-core'
 import { cmdShift, cmdWeek } from './commands.ts'
 import { ui } from './i18n/index.ts'
 import { loadPlan, workoutText, type StoredPlan } from './planfile.ts'

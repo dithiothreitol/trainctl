@@ -1,5 +1,5 @@
 {
-  "name": "@trainctl/mcp",
+  "name": "trainctl-mcp",
   "version": "0.1.0",
   "private": true,
   "description": "trainctl: serwer MCP — trener jako narzędzia agenta (Claude Code, Codex)",
@@ -42,10 +42,10 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "@trainctl/cli": "workspace:*",
+    "trainctl": "workspace:*",
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@trainctl/core": "workspace:*"
+    "trainctl-core": "workspace:*"
   }
 }

@@ -13,8 +13,8 @@
  * — trzymamy się formy pewnej, żeby nie wygenerować treningu, którego serwis
  * nie sparsuje.
  */
-import { messages } from '@trainctl/core'
-import type { PaceRange, PlannedDay, PlannedSegment, PushableWorkout } from '@trainctl/core'
+import { messages } from 'trainctl-core'
+import type { PaceRange, PlannedDay, PlannedSegment, PushableWorkout } from 'trainctl-core'
 
 /** s/km → `M:SS/km Pace`. */
 export function paceTarget(pace: PaceRange): string {

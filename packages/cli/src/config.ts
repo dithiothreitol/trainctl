@@ -2,8 +2,8 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse } from 'yaml'
-import { DEFAULT_LOCALE, getLocale } from '@trainctl/core'
-import type { AthleteProfile, InferredProfile, RaceGoal, Weekday } from '@trainctl/core'
+import { DEFAULT_LOCALE, getLocale } from 'trainctl-core'
+import type { AthleteProfile, InferredProfile, RaceGoal, Weekday } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 
 export const CONFIG_FILE = 'trainctl.yaml'

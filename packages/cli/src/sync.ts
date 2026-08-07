@@ -5,8 +5,8 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { addDays, type SyncProvider, type SyncedActivity, type SyncedWellness } from '@trainctl/core'
-import { IntervalsIcuProvider, toPushableWorkout } from '@trainctl/sync-intervalsicu'
+import { addDays, type SyncProvider, type SyncedActivity, type SyncedWellness } from 'trainctl-core'
+import { IntervalsIcuProvider, toPushableWorkout } from 'trainctl-sync-intervalsicu'
 import { ui } from './i18n/index.ts'
 import { loadPlan, type StoredPlan } from './planfile.ts'
 

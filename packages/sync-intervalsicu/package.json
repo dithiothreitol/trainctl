@@ -1,5 +1,5 @@
 {
-  "name": "@trainctl/sync-intervalsicu",
+  "name": "trainctl-sync-intervalsicu",
   "version": "0.1.0",
   "private": true,
   "description": "trainctl: adapter intervals.icu (pull aktywności/wellness, push treningów)",
@@ -37,6 +37,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@trainctl/core": "workspace:*"
+    "trainctl-core": "workspace:*"
   }
 }

@@ -1,11 +1,11 @@
 /**
  * Serwer MCP „trainctl" — te same use-case'y co CLI, jako narzędzia agenta.
- * Cienki adapter: handlery z @trainctl/cli są warstwą use-case'ów (ADR-008);
+ * Cienki adapter: handlery z trainctl są warstwą use-case'ów (ADR-008);
  * tu tylko schematy wejść i mapowanie CmdResult → wynik narzędzia MCP.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import { ui } from '@trainctl/cli'
+import { ui } from 'trainctl'
 import {
   cmdAdapt,
   cmdCheck,
@@ -27,7 +27,7 @@ import {
   defaultProviderFactory,
   type CmdResult,
   type ProviderFactory,
-} from '@trainctl/cli'
+} from 'trainctl'
 
 const isoDate = () => z.string().regex(/^\d{4}-\d{2}-\d{2}$/, ui().mcp.isoDate)
 

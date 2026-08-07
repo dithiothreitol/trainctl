@@ -4,7 +4,7 @@
  * użytkownika (docs/integrations/intervalsicu.md §1.1). Model BYO-key (ADR-006).
  * `fetch` jest wstrzykiwany — testy jadą na nagranych odpowiedziach, bez sieci.
  */
-import { messages } from '@trainctl/core'
+import { messages } from 'trainctl-core'
 
 export const BASE_URL = 'https://intervals.icu/api/v1'
 

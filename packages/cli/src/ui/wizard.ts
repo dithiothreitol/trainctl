@@ -4,7 +4,7 @@
  * wtedy zapisujemy szablon jak dotąd.
  */
 import { createInterface, type Interface } from 'node:readline/promises'
-import type { InferenceOutcome, InferredProfile } from '@trainctl/core'
+import type { InferenceOutcome, InferredProfile } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
 import { sparkline, Theme } from './theme.ts'
 

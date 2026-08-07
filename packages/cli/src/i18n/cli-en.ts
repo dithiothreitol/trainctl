@@ -1,10 +1,10 @@
 /**
  * Angielski katalog tekstów interfejsu — ŹRÓDŁO TYPU dla `cli-pl.ts`.
- * Teksty domenowe (opisy jednostek, diagnozy) mieszkają w `@trainctl/core`;
+ * Teksty domenowe (opisy jednostek, diagnozy) mieszkają w `trainctl-core`;
  * tutaj jest wyłącznie to, co należy do warstwy CLI/MCP: nazwy komend,
  * nagłówki, podpowiedzi, komunikaty błędów i opisy narzędzi agenta.
  */
-import { formatNumber, pluralEn } from '@trainctl/core'
+import { formatNumber, pluralEn } from 'trainctl-core'
 
 const n = (value: number) => formatNumber('en', value)
 

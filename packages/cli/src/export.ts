@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { getLocale, heatLadder, messages, type PlannedDay } from '@trainctl/core'
+import { getLocale, heatLadder, messages, type PlannedDay } from 'trainctl-core'
 import {
   encodeWorkoutFit,
   fmtClock,
@@ -16,7 +16,7 @@ import {
   type PrintWeek,
   type RacePackInput,
   type RaceScenario,
-} from '@trainctl/export'
+} from 'trainctl-export'
 import { ui } from './i18n/index.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 

@@ -3,11 +3,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { PushableWorkout, SyncProvider, SyncedActivity } from '@trainctl/core'
+import type { PushableWorkout, SyncProvider, SyncedActivity } from 'trainctl-core'
 import { cmdPlan, cmdPull, cmdPush } from './commands.ts'
 import { loadPlan } from './planfile.ts'
 import { compare, readApiKey, workoutsToPush, SECRET_FILE } from './sync.ts'
-import { setLocale } from '@trainctl/core'
+import { setLocale } from 'trainctl-core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.

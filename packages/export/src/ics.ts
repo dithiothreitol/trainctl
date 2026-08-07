@@ -3,7 +3,7 @@
  * kalendarza telefonu. Zdarzenia całodniowe, bo trening ma dzień, nie godzinę
  * (o porze decyduje tryb biurkowy).
  */
-import type { PlannedDay } from '@trainctl/core'
+import type { PlannedDay } from 'trainctl-core'
 
 export interface IcsOptions {
   planName: string

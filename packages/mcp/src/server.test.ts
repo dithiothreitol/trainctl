@@ -5,10 +5,10 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
-import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from '@trainctl/core'
-import { localToday } from '@trainctl/cli'
+import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from 'trainctl-core'
+import { localToday } from 'trainctl'
 import { createTrainctlServer } from './server.ts'
-import { setLocale } from '@trainctl/core'
+import { setLocale } from 'trainctl-core'
 
 // Scenariusze agentowe czytamy po polsku — tak brzmią też opisy w planie
 // użytkownika, gdy ma language: pl. Wybór języka testuje i18n.test.ts.

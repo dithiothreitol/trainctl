@@ -10,7 +10,7 @@ import type {
   SyncProvider,
   SyncedActivity,
   SyncedWellness,
-} from '@trainctl/core'
+} from 'trainctl-core'
 import { IntervalsIcuClient, type ClientOptions } from './client.ts'
 
 /** Prefiks pozwala odróżnić nasze wpisy od tych dodanych ręcznie przez atletę. */

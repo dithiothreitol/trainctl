@@ -3,7 +3,7 @@
  * Kształt odpowiedzi wzorowany na przykładach z docs/integrations/intervalsicu.md §2.
  */
 import { describe, expect, it } from 'vitest'
-import { setLocale } from '@trainctl/core'
+import { setLocale } from 'trainctl-core'
 
 setLocale('pl')
 import { IntervalsIcuClient, IntervalsIcuError } from './client.ts'

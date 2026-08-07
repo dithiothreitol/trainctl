@@ -13,7 +13,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { setLocale } from '@trainctl/core'
+import { setLocale } from 'trainctl-core'
 import {
   cmdAdapt,
   cmdCheck,

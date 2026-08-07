@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { cmdAdapt, cmdExport, cmdLog, cmdPlan, cmdToday, cmdWhy } from './commands.ts'
 import { loadConfig } from './config.ts'
 import { loadPlan } from './planfile.ts'
-import { setLocale } from '@trainctl/core'
+import { setLocale } from 'trainctl-core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.

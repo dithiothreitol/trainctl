@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { cmdDiff, cmdInit, cmdLog, cmdPlan, cmdShift, cmdToday, cmdWhy } from './commands.ts'
 import { loadPlan } from './planfile.ts'
-import { setLocale } from '@trainctl/core'
+import { setLocale } from 'trainctl-core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.

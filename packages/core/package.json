@@ -1,5 +1,5 @@
 {
-  "name": "@trainctl/core",
+  "name": "trainctl-core",
   "version": "0.1.0",
   "private": true,
   "description": "trainctl: silnik planów treningowych — strefy, makro/mikrocykle, solver, adaptacja",

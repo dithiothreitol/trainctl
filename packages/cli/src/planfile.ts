@@ -17,7 +17,7 @@ import {
   type PlannedDay,
   type RaceGoal,
   type RacePrediction,
-} from '@trainctl/core'
+} from 'trainctl-core'
 import type { StrengthConfig, TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
 

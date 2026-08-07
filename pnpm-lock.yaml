@@ -20,18 +20,18 @@ importers:
 
   packages/cli:
     dependencies:
-      '@trainctl/core':
-        specifier: workspace:*
-        version: link:../core
-      '@trainctl/export':
-        specifier: workspace:*
-        version: link:../export
-      '@trainctl/sync-intervalsicu':
-        specifier: workspace:*
-        version: link:../sync-intervalsicu
       commander:
         specifier: ^14.0.0
         version: 14.0.3
+      trainctl-core:
+        specifier: workspace:*
+        version: link:../core
+      trainctl-export:
+        specifier: workspace:*
+        version: link:../export
+      trainctl-sync-intervalsicu:
+        specifier: workspace:*
+        version: link:../sync-intervalsicu
       yaml:
         specifier: ^2.6.0
         version: 2.9.0
@@ -40,7 +40,7 @@ importers:
 
   packages/export:
     dependencies:
-      '@trainctl/core':
+      trainctl-core:
         specifier: workspace:*
         version: link:../core
 
@@ -49,20 +49,20 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.12.0
         version: 1.30.0(zod@3.25.76)
-      '@trainctl/cli':
+      trainctl:
         specifier: workspace:*
         version: link:../cli
       zod:
         specifier: ^3.24.0
         version: 3.25.76
     devDependencies:
-      '@trainctl/core':
+      trainctl-core:
         specifier: workspace:*
         version: link:../core
 
   packages/sync-intervalsicu:
     dependencies:
-      '@trainctl/core':
+      trainctl-core:
         specifier: workspace:*
         version: link:../core
 

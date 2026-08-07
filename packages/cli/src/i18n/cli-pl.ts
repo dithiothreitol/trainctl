@@ -7,7 +7,7 @@
  *  - cudzysłowy drukarskie „…", półpauza — w zdaniu, dywiz w złożeniach,
  *  - tryb rozkazujący w podpowiedziach („uruchom", „dopisz"), bo tak mówi trener.
  */
-import { formatNumber, pluralPl } from '@trainctl/core'
+import { formatNumber, pluralPl } from 'trainctl-core'
 import type { CliMessages } from './cli-en.ts'
 
 const n = (value: number) => formatNumber('pl', value)
