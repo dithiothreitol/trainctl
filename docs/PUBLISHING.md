@@ -12,10 +12,9 @@ zamknięcie kodu nie ochroniłoby niczego — usunęłoby tylko zaufanie w jedyn
 grupie, która daje narzędziu klucz do własnych danych treningowych. Fosą jest
 korpus (nie jest dystrybuowany) i metoda wyprowadzania reguł, nie kod.
 
-Publikacja czeka na **przejście pełnego cyklu treningowego na sobie**: silnik
-nigdy nie poprowadził nikogo od bazy do startu, a integracja jest zablokowana
-ograniczeniem Stravy. Wypuszczenie teraz kupiłoby issues o rzeczach, których
-autor sam jeszcze nie wie.
+Publikacja czeka na **przejście pełnego cyklu treningowego na sobie** —
+sprzężenie zwrotne z jednego przepracowanego sezonu jest warte więcej niż
+wcześniejsza data wydania.
 
 ## Co jest zrobione
 
@@ -33,9 +32,12 @@ autor sam jeszcze nie wie.
   po niej 21 plików i 216 kB.
 - **`publishConfig.access: public`** w każdym pakiecie (scope `@trainctl/*`
   wymaga tego jawnie, inaczej npm odmawia publikacji scoped jako publiczny).
-- **README po angielsku** dla obcego czytelnika: status „narzędzie osobiste,
-  bez obietnicy wsparcia", wymagania, ograniczenie Stravy postawione wprost,
-  sekcja „czego to świadomie nie robi". Polska wersja jako `README.pl.md`.
+- **README po angielsku** dla obcego czytelnika: co narzędzie robi, wymagania,
+  ograniczenie Stravy postawione wprost, skąd biorą się decyzje silnika i gdzie
+  odmawia liczby zamiast ją zmyślić. Polska wersja jako `README.pl.md`.
+  **Bez akapitów uprzedzającego tłumaczenia się** — wersja `0.1.0` mówi o
+  dojrzałości tyle, ile trzeba, a zdania w rodzaju „issues mogą zostać bez
+  odpowiedzi" tylko odpychają czytelnika, którego nikt o nic nie pytał.
 - **CHANGELOG.md** w formacie Keep a Changelog, z jawną sekcją znanych
   ograniczeń.
 - **`private: true` ZOSTAJE** we wszystkich pakietach — to bezpiecznik przed

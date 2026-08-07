@@ -10,9 +10,7 @@ Nothing yet.
 
 ## [0.1.0] — not released
 
-First version prepared for publication. Not on npm yet: the engine has not
-guided a full training cycle from start to race, and until it has, the honest
-label is "unproven".
+Feature-complete for a first release; packaging and metadata prepared.
 
 ### Engine
 

@@ -6,13 +6,7 @@ A running coach that lives in your terminal: a plan-generating engine with a
 
 *Polska wersja tego dokumentu: [README.pl.md](README.pl.md).*
 
-> **Status: personal tool, published early.** The engine has not yet guided a
-> full training cycle from start to race. Numbers come from published research
-> and from a corpus of 50 real coaching plans, but nobody has raced off a plan
-> it produced. Treat it accordingly. There is no support promise — see
-> [Expectations](#expectations).
-
-## What it actually does
+## What it does
 
 ```
 mkdir my-training && cd my-training && git init   # plan-as-code: a git repo
@@ -68,12 +62,11 @@ Two sources, kept separate on purpose.
 
 **Published research.** Every engine rule carries an ID from
 [docs/science/FOUNDATIONS.md](docs/science/FOUNDATIONS.md) (~60 sources), and
-`trainctl why` quotes them. Values with no source behind them are marked in the
-code as engineering choices rather than dressed up as science. Some findings
-are deliberately *negative*: the 10% rule and ACWR are not treated as injury
-thresholds, HRV-guided training is not implemented, and strength work is
-justified by running economy — **not** by injury prevention, because the only
-meta-analysis on runners came out non-significant.
+`trainctl why` quotes them at you. Values with no source behind them are marked
+in the code as engineering choices rather than dressed up as science — and
+where the evidence is thin, `why` says so: strength work is justified by
+running economy, **not** injury prevention, because the only meta-analysis on
+runners came out non-significant.
 
 **A corpus of 50 real coaching plans** (2020–2025, one coach, ~1300 days). It
 sets the house style — session shapes, warm-up and cool-down lengths, which
@@ -111,24 +104,23 @@ Polish is not a translation of the English — session descriptions carry the
 corpus coach's voice, with proper declension and decimal commas. English reads
 like a natively written plan.
 
-## What it deliberately does not do
+## Where the engine refuses
 
-- No streaks, badges, or social feed.
-- No readiness score telling you to go easy today.
-- No injury-risk prediction. The load metrics people use for it do not survive
-  scrutiny, and pretending otherwise would be worse than silence.
-- No automatic re-planning. `adapt` proposes; you edit `trainctl.yaml` and
-  regenerate. A plan that changes silently is a black box.
+Three things it will not compute, each for a documented reason:
 
-## Expectations
+- **Injury risk.** The load metrics used for it — ACWR, the 10% rule, "+30% is
+  dangerous" — do not hold up in the literature (FOUNDATIONS N-1…N-3). A number
+  here would be invented, so there is none.
+- **Readiness from HRV.** The performance advantage comes out at SMD 0.20 with
+  the interval crossing zero (FOUNDATIONS §8). Zones come from race results
+  instead.
+- **Its own plan, silently.** `adapt` returns proposals; applying them means
+  editing `trainctl.yaml` and regenerating, so the change is a diff you
+  approved.
 
-This is a personal tool released in the open because the code is more useful to
-others than it is hidden. **There is no support promise.** Issues may go
-unanswered; pull requests may sit. If you need a maintained product, this is
-not it yet.
-
-Bug reports with a reproducible case are still welcome, and reports of the
-engine producing something a coach would call wrong are the most valuable kind.
+It also refuses rather than guesses: below 4 active weeks of history it will
+not infer a profile, above 25 °C it will not predict a heat penalty, and with
+no race result it will not calibrate zones from watch readings.
 
 ## Development
 
