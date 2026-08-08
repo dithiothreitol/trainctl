@@ -113,6 +113,32 @@ describe('trainctl review — bez klucza (offline)', () => {
   })
 })
 
+describe('trainctl review — ślad subiektywny (ADR-027)', () => {
+  it('cytuje wpisy z RPE i notatkami dosłownie, ostatni wpis dnia wygrywa', async () => {
+    cmdLog(dir, { date: '2026-08-11', rpe: '8', note: 'po nocce, ledwo żywy' })
+    cmdLog(dir, { date: '2026-08-13', rpe: '4' })
+    cmdLog(dir, { date: '2026-08-13', rpe: '5', note: 'jednak lepiej' })
+    const r = await cmdReview(dir, { date: TODAY }, factory)
+    expect(r.code).toBe(0)
+    expect(r.output).toContain('Jak się biegało')
+    expect(r.output).toContain('2026-08-11 · RPE 8 · „po nocce, ledwo żywy”')
+    expect(r.output).toContain('2026-08-13 · RPE 5 · „jednak lepiej”')
+    expect(r.output).not.toContain('RPE 4') // nadpisany wpis nie wraca
+  })
+
+  it('wpis spoza okna przeglądu nie wchodzi do śladu', async () => {
+    cmdLog(dir, { date: '2026-08-06', rpe: '9', note: 'stare dzieje' })
+    const r = await cmdReview(dir, { date: TODAY }, factory)
+    expect(r.output).not.toContain('stare dzieje')
+  })
+
+  it('bez odczuć w oknie sekcja się nie pojawia', async () => {
+    cmdLog(dir, { date: '2026-08-11', status: 'done', km: '12' })
+    const r = await cmdReview(dir, { date: TODAY }, factory)
+    expect(r.output).not.toContain('Jak się biegało')
+  })
+})
+
 describe('trainctl review — treść merytoryczna', () => {
   it('uprzedza o starcie kontrolnym w nadchodzącym tygodniu', async () => {
     const r = await cmdReview(dir, { date: '2026-08-31' }, factory)

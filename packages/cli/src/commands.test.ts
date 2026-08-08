@@ -117,6 +117,20 @@ describe('trainctl log', () => {
     expect(cmdLog(dir, { date: '2030-01-01' }).code).toBe(1)
     expect(cmdLog(dir, { date: '2026-08-04', status: 'meh' }).code).toBe(1)
   })
+
+  it('zapisuje RPE i today je pokazuje', () => {
+    const r = cmdLog(dir, { date: '2026-08-04', rpe: '7' })
+    expect(r.code).toBe(0)
+    expect(cmdToday(dir, { date: '2026-08-04' }).output).toContain('RPE 7')
+  })
+
+  it('odrzuca RPE poza skalą CR-10 (całkowite 1–10)', () => {
+    for (const rpe of ['0', '11', '7.5', 'ciężko']) {
+      const r = cmdLog(dir, { date: '2026-08-04', rpe })
+      expect(r.code).toBe(1)
+      expect(r.output).toContain('RPE')
+    }
+  })
 })
 
 describe('trainctl shift', () => {

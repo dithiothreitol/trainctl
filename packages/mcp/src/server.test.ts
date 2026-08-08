@@ -116,11 +116,15 @@ describe('serwer MCP trainctl', () => {
 
   it('agent loguje wykonanie i widzi status w week', async () => {
     const log = await call('trainctl_log', {
-      date: '2026-08-05', status: 'done', time: '52:00', note: 'po pracy, ciężko',
+      date: '2026-08-05', status: 'done', time: '52:00', rpe: '6', note: 'po pracy, ciężko',
     })
     expect(log.isError).toBe(false)
     const week = await call('trainctl_week', { date: '2026-08-05' })
     expect(week.text).toContain('[done]')
+    // odprawa cytuje odczucie dosłownie — materiał do rozmowy, nie do liczenia (ADR-027)
+    const review = await call('trainctl_review', { date: '2026-08-05' })
+    expect(review.text).toContain('RPE 6')
+    expect(review.text).toContain('po pracy, ciężko')
   })
 
   it('agent prosi o adaptację i dostaje propozycje, nie zmieniony plan', async () => {

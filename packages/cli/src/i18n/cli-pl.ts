@@ -54,6 +54,7 @@ export const cliPl: CliMessages = {
     optStatus: 'done|skipped|modified',
     optKm: 'przebiegnięte km',
     optTime: 'czas MM:SS albo HH:MM:SS',
+    optRpe: 'wysiłek sesji jako liczba całkowita 1–10 (CR-10)',
     optNote: 'notatka (samopoczucie, warunki)',
     optFrom: 'data źródłowa',
     optTo: 'data docelowa',
@@ -178,6 +179,8 @@ export const cliPl: CliMessages = {
   log: {
     outsidePlan: (date: string) => `Data ${date} poza zakresem planu.`,
     unknownStatus: (status: string) => `Nieznany status „${status}” — done|skipped|modified.`,
+    badRpe: (rpe: string) =>
+      `RPE „${rpe}” wypada poza skalę — podaj liczbę całkowitą 1–10 (10 = wysiłek maksymalny).`,
     saved: (date: string, status: string) => `Zalogowano ${date}: ${status}.`,
   },
 
@@ -472,6 +475,11 @@ export const cliPl: CliMessages = {
     volume: 'Objętość',
     volumeValue: (actualKm: number, plannedKm: number) =>
       `${n(actualKm)} z ${n(plannedKm)} km planu`,
+    feel: 'Jak się biegało',
+    feelLine: (date: string, rpe: number | undefined, note: string | undefined) =>
+      [date, ...(rpe !== undefined ? [`RPE ${rpe}`] : []), ...(note ? [`„${note}”`] : [])].join(
+        ' · ',
+      ),
     signals: 'Sygnały',
     noSignals: 'Bez sygnałów do korekty — plan trzyma się rzeczywistości.',
     seeAdapt: 'są propozycje korekt — szczegóły: trainctl adapt',
@@ -771,6 +779,8 @@ export const cliPl: CliMessages = {
     logStatus: 'domyślnie done',
     logKm: 'przebiegnięte km',
     logTime: 'czas MM:SS albo HH:MM:SS',
+    logRpe:
+      'wysiłek sesji jako liczba całkowita 1–10 (CR-10, 10 = maksymalny). Zapytaj biegacza po sesji — nigdy nie zgaduj.',
     logNote: 'samopoczucie, warunki, uwagi',
     shift:
       'Renegocjacja tygodnia: zamień treningi między dwiema datami TEGO SAMEGO tygodnia ' +
@@ -859,6 +869,15 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
 - **Po starcie albo sprawdzianie** → dopytaj o czas i zaproponuj wpis do
   \`athlete.results\`. Pomiar bez wpisanego wyniku niczego nie zmienia — strefy
   dalej liczą się ze starego biegu.
+- **Po zalogowanym treningu** → krótka odprawa. Zapytaj, jak było, i zapisz to
+  w dzienniku (\`trainctl_log\` z rpe 1–10 i notatką) — ślad odczuć wraca potem
+  w przeglądzie tygodnia. Gdy odczucie kłóci się z rolą jednostki (spokojny
+  bieg opisany „ledwo żywy”), zadaj jedno pytanie o kontekst — sen, praca,
+  życie — zamiast wyciągać wnioski z pojedynczego wpisu.
+- **Masz pod ręką harmonogram?** Jeśli środowisko, w którym działasz, umie
+  uruchamiać zadania cyklicznie, zaproponuj użytkownikowi automatyczną
+  poniedziałkową odprawę (\`trainctl_review\`) — raz i za jego zgodą, nie po
+  cichu.
 - **Po ręcznej edycji \`plan/plan.yaml\`** → \`trainctl_check\`. Błędy znaczą, że
   plik się rozjechał; ostrzeżenia niosą ID reguł z FOUNDATIONS — warto je
   zrelacjonować.
@@ -884,6 +903,11 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
    \`trainctl.yaml\` TAM, regeneracja tam, potem \`trainctl_diff\` z plan=<ścieżka
    do plan.yaml scenariusza> i pokazanie różnic. Prawdziwy plan zostaje
    nietknięty, dopóki użytkownik nie zdecyduje.
+8. **Odczucia są materiałem do rozmowy, nie do arytmetyki.** RPE i notatki
+   z dziennika wolno cytować i zestawiać („trzeci tydzień z rzędu piszesz
+   «ciężko»”), ale nigdy nie przeliczać na strefy, tempa ani objętość (Z-4).
+   Powtarzająca się ciężkość to powód do rozmowy i ewentualnie
+   \`trainctl_adapt\` — nie do cichej korekty.
 
 ## Koreluj to, co widzisz
 

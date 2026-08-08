@@ -41,6 +41,7 @@ export const cliEn = {
     optStatus: 'done|skipped|modified',
     optKm: 'kilometres covered',
     optTime: 'time as MM:SS or HH:MM:SS',
+    optRpe: 'session effort as a whole number 1–10 (CR-10)',
     optNote: 'note (how it felt, conditions)',
     optFrom: 'source date',
     optTo: 'target date',
@@ -166,6 +167,8 @@ export const cliEn = {
   log: {
     outsidePlan: (date: string) => `Date ${date} is outside the plan range.`,
     unknownStatus: (status: string) => `Unknown status "${status}" — use done|skipped|modified.`,
+    badRpe: (rpe: string) =>
+      `RPE "${rpe}" is off the scale — use a whole number 1–10 (10 = maximal effort).`,
     saved: (date: string, status: string) => `Logged ${date}: ${status}.`,
   },
 
@@ -453,6 +456,11 @@ export const cliEn = {
     volume: 'Volume',
     volumeValue: (actualKm: number, plannedKm: number) =>
       `${n(actualKm)} of ${n(plannedKm)} km planned`,
+    feel: 'How it felt',
+    feelLine: (date: string, rpe: number | undefined, note: string | undefined) =>
+      [date, ...(rpe !== undefined ? [`RPE ${rpe}`] : []), ...(note ? [`“${note}”`] : [])].join(
+        ' · ',
+      ),
     signals: 'Signals',
     noSignals: 'No corrections needed — the plan matches reality.',
     seeAdapt: 'there are suggested corrections — details: trainctl adapt',
@@ -752,6 +760,8 @@ export const cliEn = {
     logStatus: 'defaults to done',
     logKm: 'kilometres covered',
     logTime: 'time as MM:SS or HH:MM:SS',
+    logRpe:
+      'session effort as a whole number 1–10 (CR-10, 10 = maximal). Ask the runner after the session — never guess it.',
     logNote: 'how it felt, conditions, remarks',
     shift:
       'Week renegotiation: swap the sessions of two dates within THE SAME week ' +
@@ -837,6 +847,14 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
 - **After a race or a time trial** → ask for the time and propose an entry in
   \`athlete.results\`. A measurement with no result written down changes nothing —
   the zones still come from the older run.
+- **After a logged session** → a short debrief. Ask how it went and write it
+  down (\`trainctl_log\` with rpe 1–10 and a note) — the trail of feelings comes
+  back in the weekly review. When the feeling clashes with the session's role
+  (an easy run described as “barely alive”), ask one question about context —
+  sleep, work, life — instead of drawing conclusions from a single entry.
+- **Got a scheduler at hand?** If the environment you run in can execute
+  recurring tasks, offer the user an automatic Monday debrief
+  (\`trainctl_review\`) — once, and with their consent, never silently.
 - **After a hand edit of \`plan/plan.yaml\`** → \`trainctl_check\`. Errors mean the
   file went inconsistent; warnings carry FOUNDATIONS rule IDs worth relaying.
 
@@ -861,6 +879,11 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
    THERE, regenerate there, then \`trainctl_diff\` with plan=<path to the scenario’s
    plan.yaml> and show the differences. The real plan stays untouched until the
    user decides.
+8. **Feelings are material for conversation, not arithmetic.** RPE and journal
+   notes may be quoted and laid side by side (“third week in a row you write
+   ‘heavy’”), but never converted into zones, paces or volume (Z-4). Recurring
+   heaviness is a reason to talk — and maybe \`trainctl_adapt\` — not for a
+   silent correction.
 
 ## Correlate what you can see
 

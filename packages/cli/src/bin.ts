@@ -161,6 +161,7 @@ program
   .option('--status <s>', ui().cmd.optStatus, 'done')
   .option('--km <n>', ui().cmd.optKm)
   .option('--time <t>', ui().cmd.optTime)
+  .option('--rpe <n>', ui().cmd.optRpe)
   .option('--note <text>', ui().cmd.optNote)
   .action((opts) => print(cmdLog(cwd, opts)))
 

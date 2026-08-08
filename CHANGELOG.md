@@ -6,7 +6,23 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- `trainctl log --rpe <1–10>` (CLI and the `trainctl_log` MCP tool): session
+  effort on the CR-10 scale, stored in the journal and shown by `today`. The
+  engine only stores and quotes it — it never converts feelings into zones,
+  paces or volume (ADR-027; collection is grounded in P-6, the refusal in Z-4).
+- The weekly review has a new section, *How it felt*: journal entries with an
+  RPE or a note from the reviewed window, quoted verbatim (the last entry per
+  day wins). No aggregation, no thresholds — the trail is material for a
+  conversation with the coach-agent, not input to arithmetic.
+- `AGENTS.md` grew a debrief ritual (after a logged session, ask how it went
+  and record it; when the feeling clashes with the session's role, ask one
+  question about context), rule 8 — feelings are for conversation, not
+  arithmetic — and an opt-in offer of a scheduled Monday debrief.
+- `docs/examples/proactive-review.md`: the coach speaks first — a weekly
+  check-in from the agent's scheduler or cron, with the consent and
+  propose-don't-apply rules spelled out.
 
 ## [0.1.1] — 2026-08-08
 

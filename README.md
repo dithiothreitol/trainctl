@@ -172,9 +172,15 @@ Rules
 **Record what actually happened.**
 
 ```bash
-trainctl log --km 8 --time 41:20 --note "felt good"
+trainctl log --km 8 --time 41:20 --rpe 4 --note "felt good"
 trainctl log --date 2026-08-06 --status skipped --note "work"
 ```
+
+`--rpe` is the session effort on the 1–10 scale. The engine stores it and the
+weekly review quotes it back verbatim — it never turns feelings into zones,
+paces or volume (that refusal is deliberate; see [Where it refuses](#where-it-refuses)).
+The trail exists so that a conversation — with your coach-agent or with yourself
+in three weeks — starts from what you actually said at the time.
 
 **Renegotiate the week when life gets in the way.** `shift` swaps two sessions;
 `reschedule` re-solves the whole week around days you cannot train, and says out
@@ -222,7 +228,7 @@ a key is configured). `trainctl adapt` compares execution with the plan and
 | `today` | the session for today | `--date` |
 | `week` | the week, with journal status | `--date`, `-i` (arrow-key browsing) |
 | `why` | purpose + research rules behind a session | `--date` |
-| `log` | record a completed session | `--status`, `--km`, `--time`, `--note` |
+| `log` | record a completed session | `--status`, `--km`, `--time`, `--rpe`, `--note` |
 | `shift` | swap two sessions inside a week | `--from`, `--to` (or pick from a list) |
 | `reschedule` | re-solve the week around busy days | `--block <dates…>`, `--apply` |
 | `adapt` | analyse execution, propose corrections | `--date` |

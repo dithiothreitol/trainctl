@@ -10,6 +10,12 @@ export interface LogEntry {
   status: 'done' | 'skipped' | 'modified'
   km?: number
   timeSec?: number
+  /**
+   * Wysiłek sesji w skali CR-10 (1–10, Foster). Zbieranie uzasadnia P-6 (sRPE);
+   * granica użycia: silnik te wartości wyłącznie przechowuje i cytuje — nigdy
+   * nie kalibruje z nich stref (Z-4) ani nie liczy gotowości (ADR-027).
+   */
+  rpe?: number
   note?: string
   loggedAt: string
 }

@@ -424,6 +424,7 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
         b.success(
           ui().today.logged(entry.status) +
             (entry.km ? `, ${entry.km} km` : '') +
+            (entry.rpe !== undefined ? `, RPE ${entry.rpe}` : '') +
             (entry.note ? ` — ${entry.note}` : ''),
         ),
       )
@@ -485,6 +486,7 @@ export function cmdLog(
     status?: string | undefined
     km?: string | undefined
     time?: string | undefined
+    rpe?: string | undefined
     note?: string | undefined
   } = {},
 ): CmdResult {
@@ -496,11 +498,18 @@ export function cmdLog(
     if (!['done', 'skipped', 'modified'].includes(status)) {
       return fail(new Error(ui().log.unknownStatus(String(opts.status))))
     }
+    // CR-10 bez zera: wpis dotyczy odbytej sesji, a 0 znaczy „brak wysiłku" —
+    // dolna granica 1 to wybór inżynierski, sama skala z P-6 (Foster).
+    const rpe = opts.rpe === undefined ? undefined : Number(opts.rpe)
+    if (rpe !== undefined && (!Number.isInteger(rpe) || rpe < 1 || rpe > 10)) {
+      return fail(new Error(ui().log.badRpe(String(opts.rpe))))
+    }
     appendLog(cwd, {
       date,
       status,
       ...(opts.km ? { km: Number(opts.km) } : {}),
       ...(opts.time ? { timeSec: parseTime(opts.time) } : {}),
+      ...(rpe !== undefined ? { rpe } : {}),
       ...(opts.note ? { note: opts.note } : {}),
       loggedAt: new Date().toISOString(),
     })
@@ -1059,6 +1068,22 @@ export async function cmdReview(
           : []),
       ]),
     )
+
+    // 2b) ślad subiektywny — dziennik cytowany dosłownie, po jednym wpisie na
+    // datę (późniejszy nadpisuje wcześniejszy, jak w logFor). Żadnej agregacji
+    // ani progów: interpretacja odczuć należy do rozmowy z trenerem-agentem,
+    // silnik z RPE niczego nie liczy (ADR-027, Z-4).
+    const latestByDate = new Map<string, LogEntry>()
+    for (const l of logs) if (l.date >= from && l.date <= today) latestByDate.set(l.date, l)
+    const feel = [...latestByDate.values()]
+      .filter((l) => l.rpe !== undefined || l.note)
+      .sort((a, z) => a.date.localeCompare(z.date))
+    if (feel.length) {
+      blocks.push(
+        b.section(ui().review.feel),
+        b.bullets(feel.map((l) => ui().review.feelLine(l.date, l.rpe, l.note))),
+      )
+    }
 
     // 3) sygnały adaptacji — sekcja pojawia się tylko wtedy, gdy jest co powiedzieć
     const adapt = cmdAdapt(cwd, { date: today })

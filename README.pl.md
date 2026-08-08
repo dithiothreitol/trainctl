@@ -174,9 +174,15 @@ Reguły
 **Zapisz, co naprawdę się wydarzyło.**
 
 ```bash
-trainctl log --km 8 --time 41:20 --note "dobre czucie"
+trainctl log --km 8 --time 41:20 --rpe 4 --note "dobre czucie"
 trainctl log --date 2026-08-06 --status skipped --note "praca"
 ```
+
+`--rpe` to wysiłek sesji w skali 1–10. Silnik go zapisuje, a tygodniowy
+przegląd cytuje dosłownie — nigdy nie przelicza odczuć na strefy, tempa ani
+objętość (ta odmowa jest celowa; patrz [Gdzie silnik odmawia](#gdzie-silnik-odmawia)).
+Ślad istnieje po to, żeby rozmowa — z trenerem-agentem albo z samym sobą za
+trzy tygodnie — zaczynała się od tego, co naprawdę wtedy powiedziałeś.
 
 **Renegocjuj tydzień, gdy życie wchodzi w drogę.** `shift` zamienia dwie
 jednostki miejscami; `reschedule` przestawia cały tydzień wokół dni, w których
@@ -225,7 +231,7 @@ Twoimi plecami.
 | `today` | trening na dziś | `--date` |
 | `week` | tydzień ze statusem z dziennika | `--date`, `-i` (przeglądanie strzałkami) |
 | `why` | cel jednostki + reguły z badań | `--date` |
-| `log` | zapis wykonania | `--status`, `--km`, `--time`, `--note` |
+| `log` | zapis wykonania | `--status`, `--km`, `--time`, `--rpe`, `--note` |
 | `shift` | zamiana dwóch jednostek w tygodniu | `--from`, `--to` (albo wybór z listy) |
 | `reschedule` | przestawia tydzień wokół zajętych dni | `--block <daty…>`, `--apply` |
 | `adapt` | analiza wykonania → propozycje korekt | `--date` |

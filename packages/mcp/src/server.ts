@@ -94,6 +94,7 @@ export function createTrainctlServer(
         status: z.enum(['done', 'skipped', 'modified']).optional().describe(t.logStatus),
         km: z.string().optional().describe(t.logKm),
         time: z.string().optional().describe(t.logTime),
+        rpe: z.string().optional().describe(t.logRpe),
         note: z.string().optional().describe(t.logNote),
       },
     },
