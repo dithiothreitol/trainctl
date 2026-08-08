@@ -2,9 +2,10 @@
 
 **Repozytorium jest publiczne od 2026-08-07**:
 <https://github.com/dithiothreitol/trainctl>, MIT, Discussions wyłączone,
-prywatne zgłaszanie podatności włączone, tag `v0.1.0`. Warunek „sezon na sobie"
-został świadomie odpuszczony — decyzja właściciela, nie przeoczenie.
-**Paczki npm czekają na `npm login` + `pnpm publish -r`** (zob. „Co zostało").
+prywatne zgłaszanie podatności włączone. Warunek „sezon na sobie" został
+świadomie odpuszczony — decyzja właściciela, nie przeoczenie.
+**Paczki są na npm od 2026-08-08 w wersji 0.1.1** (0.1.0 zdeprecjonowane —
+patrz sekcja o npm niżej); wydania: tagi `v0.1.0` i `v0.1.1`.
 
 Poniżej zapis rozumowania, które do tego doprowadziło — zostaje, bo tłumaczy,
 czemu projekt jest otwarty, a korpus nie.
