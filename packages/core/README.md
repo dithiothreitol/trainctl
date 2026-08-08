@@ -26,7 +26,7 @@ Every rule carries an ID from
 engineering choices rather than dressed up as science. Session shapes come from
 a corpus of 50 real coaching plans, which is not distributed.
 
-Requires Node ≥ 22.18 — the package ships TypeScript source and relies on native
-type stripping. Zero runtime dependencies.
+Requires Node ≥ 22.18. Ships compiled JavaScript with type declarations, plus
+the TypeScript sources and source maps. Zero runtime dependencies.
 
 MIT · https://github.com/dithiothreitol/trainctl

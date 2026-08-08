@@ -13,6 +13,7 @@ export const cliEn = {
   cmd: {
     banner: 'plan as code, coach as your agent’s tool',
     lang: 'interface language: en | pl (or TRAINCTL_LANG / language in trainctl.yaml)',
+    version: 'print the installed version',
     init: 'create your profile (interactive in a terminal)',
     initTemplate: 'write the template without asking',
     initFromIntervals: 'propose a profile from intervals.icu history (needs an API key)',

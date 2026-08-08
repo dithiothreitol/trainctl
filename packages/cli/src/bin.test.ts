@@ -7,7 +7,7 @@
  * zieloną suitę i wywala się dopiero u użytkownika przy pierwszym uruchomieniu.
  */
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -50,6 +50,16 @@ describe('binarka CLI pod natywnym Node', () => {
     for (const cmd of ['plan', 'today', 'week', 'log', 'shift', 'why', 'diff', 'push', 'pull', 'review']) {
       expect(out).toContain(cmd)
     }
+  })
+
+  it('--version podaje wersję z manifestu paczki', () => {
+    // Ścieżka `../package.json` musi trafiać i z `src/`, i z `dist/` — a wersja
+    // ma pochodzić z manifestu, nie z liczby zaszytej w kodzie (patrz 0.1.0,
+    // gdzie handshake MCP raportował inną wersję niż paczka).
+    const manifest = JSON.parse(
+      readFileSync(join(HERE, '../package.json'), 'utf-8'),
+    ) as { version: string }
+    expect(run(['--version']).trim()).toBe(manifest.version)
   })
 
   it('review poza TTY: czysty tekst bez ANSI, działa bez klucza', () => {

@@ -1,7 +1,7 @@
 {
   "name": "trainctl-export",
-  "version": "0.1.0",
-  "description": "trainctl: eksport FIT (zegarek), ICS (kalendarz), HTML (druk, pakiet startowy)",
+  "version": "0.1.1",
+  "description": "trainctl exports: FIT workouts for the watch, ICS calendar, printable plan and race-day pack",
   "keywords": [
     "fit",
     "garmin",
@@ -28,15 +28,26 @@
     ".": "./src/index.ts"
   },
   "files": [
+    "dist",
     "src/**/*.ts",
     "!src/**/*.test.ts",
     "README.md",
     "LICENSE"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
   },
   "dependencies": {
     "trainctl-core": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
   }
 }

@@ -1,8 +1,8 @@
 {
   "name": "trainctl-monorepo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
-  "description": "Coach treningowy w terminalu: plan jako kod, trener jako narzędzie agenta (CLI + MCP)",
+  "description": "Running coach in your terminal: training plan as code in a git repo, coach as a tool for your agent (CLI + MCP)",
   "keywords": [
     "running",
     "training-plan",
@@ -31,7 +31,8 @@
     "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/sync-intervalsicu && tsc --noEmit -p packages/export && tsc --noEmit -p packages/cli && tsc --noEmit -p packages/mcp",
     "check": "pnpm typecheck && pnpm test",
     "trainctl": "node packages/cli/src/bin.ts",
-    "release:dry": "pnpm publish -r --dry-run --no-git-checks"
+    "release:dry": "pnpm publish -r --dry-run --no-git-checks",
+    "build": "pnpm -r run build"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

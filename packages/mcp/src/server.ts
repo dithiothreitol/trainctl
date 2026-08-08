@@ -5,6 +5,7 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import { packageVersion } from './version.ts'
 import { ui } from 'trainctl'
 import {
   cmdAdapt,
@@ -43,7 +44,7 @@ export function createTrainctlServer(
   factory: ProviderFactory = defaultProviderFactory,
 ): McpServer {
   const t = ui().mcp
-  const server = new McpServer({ name: 'trainctl', version: '0.1.0' })
+  const server = new McpServer({ name: 'trainctl', version: packageVersion() })
 
   server.registerTool(
     'trainctl_init',

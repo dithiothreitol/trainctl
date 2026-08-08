@@ -1,7 +1,7 @@
 {
   "name": "trainctl",
-  "version": "0.1.0",
-  "description": "trainctl: CLI — plan/today/week/shift/review/push/pull/export",
+  "version": "0.1.1",
+  "description": "Running coach in your terminal: training plan as code in a git repo (init/plan/today/why/reschedule/check)",
   "keywords": [
     "running",
     "training-plan",
@@ -32,13 +32,24 @@
     ".": "./src/commands.ts"
   },
   "files": [
+    "dist",
     "src/**/*.ts",
     "!src/**/*.test.ts",
     "README.md",
     "LICENSE"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "types": "./dist/commands.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/commands.d.ts",
+        "default": "./dist/commands.js"
+      }
+    },
+    "bin": {
+      "trainctl": "./dist/bin.js"
+    }
   },
   "dependencies": {
     "trainctl-core": "workspace:*",
@@ -46,5 +57,8 @@
     "trainctl-sync-intervalsicu": "workspace:*",
     "commander": "^14.0.0",
     "yaml": "^2.6.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
   }
 }

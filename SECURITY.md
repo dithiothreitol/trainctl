@@ -33,8 +33,9 @@ Worth knowing when you assess a finding:
   `plan/`, `log.jsonl`, `sync.json`, `export/`. The tool writes them, reads
   them and does not send them anywhere.
 - **Four runtime dependencies** across the published packages: `commander`,
-  `yaml`, `@modelcontextprotocol/sdk`, `zod`. There is no build step — the
-  published package is the source you can read.
+  `yaml`, `@modelcontextprotocol/sdk`, `zod`. The published package carries
+  both the compiled `dist/` and the TypeScript sources it was built from, so
+  what you audit is what runs.
 
 Training plans are not medical advice, and the engine deliberately refuses to
 compute injury risk or readiness (see the README). Disagreement with a training

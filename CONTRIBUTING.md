@@ -13,11 +13,15 @@ pnpm test         # vitest only
 pnpm trainctl --help   # run the CLI from source
 ```
 
-Node ≥ 22.18 and pnpm 10 (the version is pinned in `packageManager`). There is
-no build step: the CLI and the MCP server run TypeScript through Node's native
-type stripping, so what you edit is what ships.
+Node ≥ 22.18 and pnpm 10 (the version is pinned in `packageManager`). Day to
+day there is no build: the CLI and the MCP server run TypeScript directly
+through Node's native type stripping, so what you edit is what runs. Publishing
+is different — Node refuses to strip types under `node_modules`, so `pnpm build`
+emits `dist/` and that is what the registry gets. `packaging.test.ts` guards the
+manifests against pointing at `.ts` again, and CI installs the packed tarballs
+and runs the CLI from `node_modules`.
 
-The full suite is 544 tests. Seven of them backtest the engine against a corpus
+The full suite is 552 tests. Seven of them backtest the engine against a corpus
 of real coaching plans; that corpus contains personal data and is not in the
 repository, so without it the suite reports one skipped test in its place —
 visible rather than silent.

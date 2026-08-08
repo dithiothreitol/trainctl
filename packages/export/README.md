@@ -16,7 +16,7 @@ plan leaving the terminal for a device, a calendar or a sheet of paper.
 Hill repeats are exported **without** a pace target on purpose: uphill, a flat
 pace is unreachable and the watch would alarm through the whole rep.
 
-Requires Node ≥ 22.18 (TypeScript source, native type stripping). Depends only
+Requires Node ≥ 22.18. Ships compiled JavaScript with type declarations. Depends only
 on `trainctl-core`.
 
 MIT · https://github.com/dithiothreitol/trainctl

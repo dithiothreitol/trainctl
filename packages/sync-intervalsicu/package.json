@@ -1,7 +1,7 @@
 {
   "name": "trainctl-sync-intervalsicu",
-  "version": "0.1.0",
-  "description": "trainctl: adapter intervals.icu (pull aktywności/wellness, push treningów)",
+  "version": "0.1.1",
+  "description": "intervals.icu adapter for trainctl: push planned sessions to the watch, pull activities and wellness",
   "keywords": [
     "intervals-icu",
     "garmin",
@@ -27,15 +27,26 @@
     ".": "./src/index.ts"
   },
   "files": [
+    "dist",
     "src/**/*.ts",
     "!src/**/*.test.ts",
     "README.md",
     "LICENSE"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
   },
   "dependencies": {
     "trainctl-core": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
   }
 }

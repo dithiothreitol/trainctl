@@ -37,6 +37,7 @@ import { renderAnsi } from './ui/blocks.ts'
 import { Theme } from './ui/theme.ts'
 import { withSpinner } from './ui/spinner.ts'
 import { runWizard, toYaml } from './ui/wizard.ts'
+import { packageVersion } from './version.ts'
 
 const cwd = process.cwd()
 
@@ -87,6 +88,7 @@ const banner =
 program
   .name('trainctl')
   .description(banner)
+  .version(packageVersion(), '-V, --version', ui().cmd.version)
   .option('--lang <code>', ui().cmd.lang)
   .configureHelp({
     styleTitle: (str) => theme.bold(theme.color(str, 'accent')),

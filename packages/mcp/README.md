@@ -26,6 +26,6 @@ ask for context when a week was missed, never invent numbers. Tool descriptions
 follow the directory's language, so the agent speaks the same way `plan/PLAN.md`
 reads.
 
-Requires Node ≥ 22.18 (TypeScript source, native type stripping).
+Requires Node ≥ 22.18. Ships compiled JavaScript with type declarations.
 
 MIT · https://github.com/dithiothreitol/trainctl

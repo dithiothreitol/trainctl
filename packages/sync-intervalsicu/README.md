@@ -16,7 +16,7 @@ watch, completed activities and wellness back in.
 API** (since December 2024). The adapter reports how many records were held
 back and why, instead of pretending there were no runs.
 
-Requires Node ≥ 22.18 (TypeScript source, native type stripping). Depends only
+Requires Node ≥ 22.18. Ships compiled JavaScript with type declarations. Depends only
 on `trainctl-core`; HTTP goes through the platform `fetch`.
 
 MIT · https://github.com/dithiothreitol/trainctl

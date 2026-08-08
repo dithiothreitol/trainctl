@@ -26,6 +26,7 @@ export const cliPl: CliMessages = {
   cmd: {
     banner: 'plan treningowy jako kod, trener jako narzędzie agenta',
     lang: 'język interfejsu: en | pl (albo TRAINCTL_LANG / language w trainctl.yaml)',
+    version: 'wypisz zainstalowaną wersję',
     init: 'utwórz profil (interaktywnie w terminalu)',
     initTemplate: 'zapisz szablon bez pytań',
     initFromIntervals: 'zaproponuj profil z historii intervals.icu (wymaga klucza API)',

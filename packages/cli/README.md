@@ -36,8 +36,8 @@ git history.
 
 ## Requirements
 
-**Node ≥ 22.18.** There is no build step: the CLI runs TypeScript through
-Node's native type stripping, so the published package is the source you read.
+**Node ≥ 22.18.** The package ships compiled JavaScript together with the
+TypeScript sources and source maps it was built from.
 
 For sync: an [intervals.icu](https://intervals.icu) account and an API key
 (Settings → Developer Settings), given through `TRAINCTL_INTERVALS_API_KEY`, a

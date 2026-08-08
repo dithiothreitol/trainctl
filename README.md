@@ -47,9 +47,10 @@ npx trainctl init          # no install at all
 npm install -g trainctl    # then just: trainctl
 ```
 
-**Node ≥ 22.18** is the only requirement. There is no build step — the CLI runs
-TypeScript through Node's native type stripping, so the package you install is
-the source you can read.
+**Node ≥ 22.18** is the only requirement. The package ships compiled JavaScript
+next to its TypeScript sources and source maps, so a stack trace still points at
+readable code — Node refuses to strip types under `node_modules`, which is why
+0.1.0 was replaced by 0.1.1.
 
 ## Quick start
 
@@ -506,12 +507,14 @@ pnpm install
 pnpm check       # typecheck + tests — what CI runs
 ```
 
-544 tests. Seven of them backtest the engine against the coaching corpus, which
+552 tests. Seven of them backtest the engine against the coaching corpus, which
 is not distributed; without it that suite reports itself as one skipped test
 rather than quietly disappearing.
 
-Five packages, published from source: `trainctl` (CLI), `trainctl-core`
-(engine), `trainctl-mcp`, `trainctl-export`, `trainctl-sync-intervalsicu`.
+Five packages: `trainctl` (CLI), `trainctl-core` (engine), `trainctl-mcp`,
+`trainctl-export`, `trainctl-sync-intervalsicu`. Development runs straight from
+TypeScript (Node's type stripping); `pnpm build` emits the `dist/` that gets
+published.
 
 Architecture, phases and the ADR table: [SPEC.md](SPEC.md). How to contribute and
 what a change to an engine rule needs to carry:

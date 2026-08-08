@@ -47,9 +47,10 @@ npx trainctl init          # bez instalacji
 npm install -g trainctl    # i potem po prostu: trainctl
 ```
 
-Jedyny wymóg to **Node ≥ 22.18**. Nie ma kroku budowania — CLI uruchamia
-TypeScript natywnym type-strippingiem Node, więc paczka, którą instalujesz, jest
-źródłem, które możesz przeczytać.
+Jedyny wymóg to **Node ≥ 22.18**. Paczka zawiera skompilowany JavaScript obok
+źródeł TypeScript i map źródeł, więc ślad stosu dalej prowadzi do czytelnego
+kodu — Node odmawia zdejmowania typów pod `node_modules`, i dlatego 0.1.0
+zostało zastąpione przez 0.1.1.
 
 ## Start
 
@@ -514,12 +515,14 @@ pnpm install
 pnpm check       # typecheck + testy — to samo, co robi CI
 ```
 
-544 testy. Siedem z nich porównuje silnik z korpusem planów trenerskich, który
+552 testy. Siedem z nich porównuje silnik z korpusem planów trenerskich, który
 nie jest dystrybuowany; bez niego ten zestaw zgłasza się jako jeden pominięty
 test, zamiast po cichu zniknąć.
 
-Pięć pakietów, publikowanych ze źródła: `trainctl` (CLI), `trainctl-core`
-(silnik), `trainctl-mcp`, `trainctl-export`, `trainctl-sync-intervalsicu`.
+Pięć pakietów: `trainctl` (CLI), `trainctl-core` (silnik), `trainctl-mcp`,
+`trainctl-export`, `trainctl-sync-intervalsicu`. Rozwój idzie prosto z
+TypeScriptu (type-stripping Node), a `pnpm build` produkuje `dist/`, które
+trafia do rejestru.
 
 Architektura, fazy i tabela decyzji (ADR): [SPEC.md](SPEC.md). Jak dołożyć swoje
 i co musi nieść ze sobą zmiana reguły silnika:

@@ -8,6 +8,35 @@ change between minor versions — a regenerated plan can differ.
 
 Nothing yet.
 
+## [0.1.1] — 2026-08-08
+
+### Fixed
+
+- **0.1.0 could not run once installed.** The packages published their
+  TypeScript sources with `exports` and `bin` pointing at `.ts` files, which
+  works in the repository but not from `node_modules`: Node deliberately refuses
+  to strip types there (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`), so
+  `npx trainctl` died on startup. The packages now ship compiled JavaScript with
+  type declarations and source maps, built by `pnpm build`, with the TypeScript
+  sources alongside. 0.1.0 is deprecated on npm.
+- Export filenames dropped the Polish `ł` — `interwały` became `interwa-y.fit`,
+  and a race called *Bieg Wrocławski* produced `bieg-wroc-awski.ics`. Letters
+  that Unicode does not decompose (`ł ø đ ß æ œ`) are transliterated now.
+- The MCP server reported a hard-coded `0.1.0` in its handshake regardless of
+  the package version; both binaries read their own manifest now.
+
+### Added
+
+- `trainctl --version` — the bug-report template asked for it before it existed.
+- `packaging.test.ts`: the published entry points must be built files, versions
+  must match across packages, and package descriptions must be English.
+- CI installs the packed tarballs into a clean directory and runs the CLI and
+  the MCP server from `node_modules` — the check that 0.1.0 lacked.
+
+### Changed
+
+- Package descriptions on npm are English (they were Polish in 0.1.0).
+
 ## [0.1.0] — 2026-08-07
 
 First public release.
