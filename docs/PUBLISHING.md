@@ -79,28 +79,35 @@ prostu popłynie z otwartego repozytorium, a nie z szuflady.
 5. CI zielone na czterech konfiguracjach (Linux/Windows × Node 22.18/24),
    badge w obu README świeci.
 
-## Co zostało
+## npm — opublikowane 2026-08-07/08
 
-**Publikacja paczek na npm.** Wymaga zalogowanej sesji npm, więc robi to
-człowiek:
+`trainctl`, `trainctl-core`, `trainctl-export`, `trainctl-mcp`,
+`trainctl-sync-intervalsicu` — wszystkie w wersji **0.1.1**.
+
+**0.1.0 było zepsute i jest zdeprecjonowane.** Paczki publikowały źródło TS
+(`exports`/`bin` → `.ts`), a Node odmawia zdejmowania typów pod `node_modules`,
+więc `npx trainctl` wywalało się przy starcie. Żaden test tego nie widział —
+wszystkie uruchamiają kod z drzewa źródeł. Korekta: ADR-026, wydanie 0.1.1,
+plus dwa strażniki (`packaging.test.ts` i job `dist` w CI, który instaluje
+tarballe do czystego katalogu i uruchamia binarki z `node_modules`).
+
+Lekcja na przyszłe wydania: **`npx <paczka>` w czystym katalogu jest częścią
+publikacji, nie sprzątaniem po niej.**
+
+Publikacja wymaga tokenu granularnego z „Bypass 2FA" (samo `npm login` nie
+wystarcza — npm odrzuca `publish` z 403). Sekwencja:
 
 ```bash
-npm login                       # konto z prawem do nazw trainctl*
-pnpm release:dry                # przeczytaj listę plików KAŻDEJ paczki
-pnpm publish -r --access public # kolejność zależności ustawia pnpm samo
+npm config set //registry.npmjs.org/:_authToken <token>
+pnpm build && pnpm release:dry     # przeczytaj listę plików KAŻDEJ paczki
+pnpm publish -r --access public
+npx <paczka>@<wersja> --version    # z rejestru, w pustym katalogu
 ```
 
-Nazwy `trainctl`, `trainctl-core`, `trainctl-export`, `trainctl-mcp`,
-`trainctl-sync-intervalsicu` były wolne 2026-08-07. Zawartość tarballi
-zweryfikowana `npm pack --dry-run`: 5, 7, 8, 23 i 24 pliki, bez testów.
-Po publikacji: sprawdzić `npx trainctl init` i `npx -y trainctl-mcp`
-w czystym katalogu — to są dwa zdania, które README obiecuje w pierwszym
-akapicie.
-
-**Dystrybucja bez kroku budowania** działa tylko dla Node ≥ 22.18 (natywny
-type-stripping; wersje 23.0–23.5 wymagają flagi). `engines` to wymusza. Jeśli
-zasięg ma być większy — dopiero wtedy dodać build (esbuild do ESM + d.ts),
-zgodnie z ADR-007 („build dojdzie przy publikacji").
+**Build jest od 0.1.1 obowiązkowy** (ADR-026): `pnpm build` → `dist/` z JS,
+deklaracjami i mapami źródeł; `publishConfig` przestawia wejścia paczki na
+`dist/*.js`, a w repozytorium nic się nie zmienia — dalej jedziemy na natywnym
+type-strippingu Node ≥ 22.18, którego wymaga `engines`.
 
 ## Czego NIE publikować nigdy
 
