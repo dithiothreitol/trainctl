@@ -372,24 +372,25 @@ od tego, bo tam my jesteśmy źródłem danych.
 ## 2. Przykładowe wywołania API (udokumentowane)
 
 Wszystkie poniższe pochodzą z [API Integration Cookbook](https://forum.intervals.icu/t/intervals-icu-api-integration-cookbook/80090)
-i dedykowanych wątków forum cytowanych wyżej — nie są wymyślone.
+i dedykowanych wątków forum cytowanych wyżej — nie są wymyślone. Tokeny i klucze
+w przykładach zastąpiono placeholderami; nie przepisuj ich z forum dosłownie.
 
 **Lista aktywności (Bearer):**
 ```bash
 curl 'https://intervals.icu/api/v1/athlete/0/activities?oldest=2024-11-19&newest=2024-11-20' \
-    -H 'Authorization: Bearer d842c1fc25f241e5ae440d09756448a9'
+    -H 'Authorization: Bearer YOUR_API_TOKEN'
 ```
 (`0` = athlete powiązany z tokenem)
 
 **Pobranie oryginalnego pliku aktywności:**
 ```bash
 curl 'https://intervals.icu/api/v1/activity/i55751783/file' \
-    -H 'Authorization: Bearer d842c1fc25f241e5ae440d09756448a9' > activity.fit.gz
+    -H 'Authorization: Bearer YOUR_API_TOKEN' > activity.fit.gz
 ```
 
 **Basic Auth (wariant z API key jako username/password):**
 ```bash
-curl -u API_KEY:1l0nlqjq3j1obdhg08rz5rfhx \
+curl -u API_KEY:YOUR_API_KEY \
     https://intervals.icu/api/v1/athlete/2049151/activities.csv
 ```
 
@@ -402,13 +403,13 @@ curl -H "Authorization: Bearer YOUR_API_TOKEN" \
 **Odczyt wellness:**
 ```bash
 curl 'https://intervals.icu/api/v1/athlete/0/wellness?oldest=2024-11-18&newest=2024-11-20' \
-    -H 'Authorization: Bearer d842c1fc25f241e5ae440d09756448a9'
+    -H 'Authorization: Bearer YOUR_API_TOKEN'
 ```
 
 **Zapis masowy wellness:**
 ```bash
 curl -X PUT 'https://intervals.icu/api/v1/athlete/0/wellness-bulk' \
-    -H 'Authorization: Bearer d842c1fc25f241e5ae440d09756448a9' \
+    -H 'Authorization: Bearer YOUR_API_TOKEN' \
     -H 'Content-Type: application/json' \
     -d '[{"id":"2024-11-20","weight":69.1},{"id":"2024-11-19","weight":69.3}]'
 ```
