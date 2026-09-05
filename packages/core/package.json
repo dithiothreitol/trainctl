@@ -1,6 +1,6 @@
 {
   "name": "trainctl-core",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Deterministic running-plan engine: pace zones from race results, macro/microcycles, week re-solver, plan lint",
   "keywords": [
     "running",

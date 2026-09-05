@@ -1,6 +1,6 @@
 {
   "name": "trainctl-export",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "trainctl exports: FIT workouts for the watch, ICS calendar, printable plan and race-day pack",
   "keywords": [
     "fit",

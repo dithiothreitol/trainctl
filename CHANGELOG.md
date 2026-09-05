@@ -6,6 +6,8 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
+## [0.2.0] ? 2026-09-05
+
 ### Reviewed adaptation and time-aware scheduling
 
 - Execution data now distinguishes unknown from explicitly skipped sessions.
