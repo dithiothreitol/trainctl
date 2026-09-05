@@ -21,8 +21,9 @@ export interface ExecutionRecord {
   plannedKm: number
   actualKm?: number
   kind?: WorkoutKind
-  /** Dzień z planu bez wykonania i bez logu = pominięty. */
-  status: 'done' | 'missed' | 'unplanned' | 'rest'
+  /** Missing evidence is unknown; only an explicit skipped entry is missed. */
+  status: 'done' | 'missed' | 'unplanned' | 'rest' | 'unknown'
+  source?: 'sync' | 'journal' | 'none'
 }
 
 export interface AdaptationAction {
@@ -39,6 +40,8 @@ export interface AdaptationAction {
 }
 
 export interface AdaptationProposal {
+  dataStatus: 'complete' | 'incomplete' | 'empty'
+  unknownSessions: number
   windowDays: number
   complianceKm: number
   missedSessions: number
@@ -55,6 +58,7 @@ export interface AdaptationInput {
   currentWeeklyKm: number
   /** Wyniki startów nowsze niż kalibracja planu. */
   newResults?: RaceResult[]
+  calibrationChanged?: boolean
   /** Dystans ostatniego startu — dla protokołu powrotu (R-1/R-3). */
   lastRace?: { date: string; distanceKm: number }
   /**
@@ -69,7 +73,7 @@ const WINDOW_DAYS = 21
 const LAYOFF_DAYS = 10
 
 export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
-  const from = new Date(Date.parse(input.today) - WINDOW_DAYS * 86_400_000)
+  const from = new Date(Date.parse(input.today) - (WINDOW_DAYS - 1) * 86_400_000)
     .toISOString()
     .slice(0, 10)
   const window = input.execution
@@ -80,6 +84,10 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const actualKm = window.reduce((s, e) => s + (e.actualKm ?? 0), 0)
   const compliance = plannedKm > 0 ? actualKm / plannedKm : 1
   const missedSessions = window.filter((e) => e.status === 'missed').length
+  const unknownSessions = window.filter((e) => e.status === 'unknown').length
+  const observed = window.some((e) => e.status === 'done' || e.status === 'missed' || e.status === 'unplanned')
+  const staleWindow = window.length > 0 && diffDays(window.at(-1)!.date, input.today) > 1
+  const dataStatus = !observed ? 'empty' : unknownSessions || staleWindow ? 'incomplete' : 'complete'
   const missedQuality = window.filter(
     (e) => e.status === 'missed' && (e.kind === 'quality_intervals' || e.kind === 'quality_continuous'),
   ).length
@@ -88,12 +96,14 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const actions: AdaptationAction[] = []
   const warnings: string[] = []
   const m = messages()
+  if (dataStatus !== 'complete') warnings.push(m.adapt.incompleteData)
 
   // 1) Najdłuższa przerwa bez biegania w oknie
   const runDays = window.filter((e) => (e.actualKm ?? 0) > 0).map((e) => e.date)
   const lastRun = runDays.at(-1)
-  const layoff = lastRun ? diffDays(lastRun, input.today) : WINDOW_DAYS
-  if (layoff >= LAYOFF_DAYS) {
+  const observedDays = window.length ? Math.min(WINDOW_DAYS, diffDays(window[0]!.date, input.today) + 1) : 0
+  const layoff = lastRun ? diffDays(lastRun, input.today) : observedDays
+  if (dataStatus === 'complete' && layoff >= LAYOFF_DAYS) {
     const restartKm = Math.round(input.currentWeeklyKm * 0.55)
     diagnosis.push(m.adapt.layoffDiagnosis(layoff))
     actions.push({
@@ -134,6 +144,9 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
       ruleRefs: ['Z-9', 'Z-6'],
     })
   }
+  if (input.calibrationChanged && !input.newResults?.length) {
+    actions.push({ type: 'recalibrate-zones', detail: m.adapt.recalibrateFromResult, ruleRefs: ['Z-9', 'Z-6'] })
+  }
 
   // 3b) Sprawdzian/start kontrolny bez wyniku w profilu — pętla kalibracji stoi
   for (const t of input.uncalibratedTests ?? []) {
@@ -149,9 +162,9 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   }
 
   // 4) Zgodność objętości
-  if (plannedKm > 0 && layoff < LAYOFF_DAYS) {
+  if (dataStatus === 'complete' && plannedKm > 0 && layoff < LAYOFF_DAYS) {
     if (compliance < 0.7) {
-      const realistic = Math.max(10, Math.round((actualKm / WINDOW_DAYS) * 7))
+      const realistic = Math.max(10, Math.round((actualKm / Math.max(1, observedDays)) * 7))
       diagnosis.push(
         m.adapt.complianceLow(
           Math.round(compliance * 100), Math.round(actualKm), Math.round(plannedKm),
@@ -185,6 +198,8 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   }
 
   return {
+    dataStatus,
+    unknownSessions,
     windowDays: WINDOW_DAYS,
     complianceKm: Math.round(compliance * 100) / 100,
     missedSessions,

@@ -169,6 +169,7 @@ export const coreEn = {
   },
 
   adapt: {
+    incompleteData: 'Execution data is incomplete. Missing records do not prove a training break; confirm skipped sessions or refresh the data before changing volume.',
     layoffDiagnosis: (days: number) =>
       `${days} days without running — the plan from before the break is out of date.`,
     postRaceDiagnosis: (days: number, distanceKm: number) =>
@@ -256,6 +257,9 @@ export const coreEn = {
   },
 
   solver: {
+    badConstraints: 'Invalid time budget or preparation time.',
+    pinnedConflict: (date: string) => `Protected day ${date} conflicts with the availability or time budget.`,
+    noTime: 'No available time window; the session was dropped rather than compressed.',
     longRunOffPreferredDay: (weekday: string) => `long run outside its preferred day (${weekday})`,
     dateOutsideWeek: (date: string) => `${date} is outside this week — ignored`,
     cannotBlockRaceDay: 'the race day cannot be blocked — the solver does not move it',

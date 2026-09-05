@@ -2,7 +2,7 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** **Fazy 0–13 ZAKOŃCZONE** (2026-08-07). Pięć pakietów: silnik (`trainctl-core`) + CLI (`trainctl`, 16 komend, kolorowy TUI, dwujęzyczny) + serwer MCP (`trainctl-mcp`, 16 narzędzi) + sync intervals.icu (`trainctl-sync-intervalsicu`) + eksport (`trainctl-export`: FIT/ICS/wydruk/pakiet startowy); **552 testy**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie (7 testów, pomijają się bez korpusu). Wydanie 0.1.0 przygotowane: nazwy npm bez scope'u, README każdego pakietu, CI na GitHub Actions (Linux + Windows, Node 22.18 i 24), pliki społecznościowe; **repozytorium publiczne od 2026-08-07 (MIT); npm: 0.1.1 — 0.1.0 zdeprecjonowane, bo publikowało źródło TS (ADR-026)** — stan i decyzje: `docs/PUBLISHING.md`.
+**Status:** **Fazy 0–13 ZAKOŃCZONE** (2026-08-07). Pięć pakietów: silnik (`trainctl-core`) + CLI (`trainctl`, 16 komend, kolorowy TUI, dwujęzyczny) + serwer MCP (`trainctl-mcp`, 16 narzędzi) + sync intervals.icu (`trainctl-sync-intervalsicu`) + eksport (`trainctl-export`: FIT/ICS/wydruk/pakiet startowy); **585 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie (7 testów, pomijają się bez korpusu). Wydanie 0.1.0 przygotowane: nazwy npm bez scope'u, README każdego pakietu, CI na GitHub Actions (Linux + Windows, Node 22.18 i 24), pliki społecznościowe; **repozytorium publiczne od 2026-08-07 (MIT); npm: 0.1.1 — 0.1.0 zdeprecjonowane, bo publikowało źródło TS (ADR-026)** — stan i decyzje: `docs/PUBLISHING.md`.
 
 **Sync zweryfikowany e2e na żywym koncie 2026-08-05** (szczegóły: `docs/integrations/intervalsicu.md` §2a) — składnia treningów parsowana poprawnie, cele tempa zapisane, idempotencja działa. Otwarte: dostarczenie na fizyczny zegarek — wymaga zegarka spiętego z intervals.icu **bezpośrednio**, nie przez Stravę (§1.8.1). Dalej: kolejne sporty (`SportModule`), REST API/hosting.
 
@@ -309,3 +309,20 @@ użytkownika.
 | 025 | 2026-08-07 | `trainctl check`: **error** wyłącznie dla stanów nieosiągalnych przez narzędzie (niespójność pliku), odstępstwa od reguł metodycznych to **warn** — kod 0 bez `--strict`; kontrola I-5 z podłogą generatora | `shift` celowo pozwala złamać I-7 z ostrzeżeniem — lint czerwieniący się na świadome decyzje stałby się bezużyteczny w CI po pierwszym przesunięciu. Podział robi z `check` bezpieczny domyślny strażnik, `--strict` zostawia pedanterię jako opt-in. Bez podłogi I-5 świeży plan o niskiej objętości ostrzegałby sam na siebie |
 | 026 | 2026-08-08 | **Paczki npm publikują build (`dist/`), nie źródło TS** — `publishConfig.exports`/`bin` wskazują na `dist/*.js`, w tarballu leżą też źródła i mapy źródeł; w repozytorium nic się nie zmienia (dalej type-stripping) | korekta ADR-007 wymuszona przez Node, nie przez preferencję: zdejmowanie typów jest **wyłączone dla plików pod `node_modules`** (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING), więc 0.1.0 zainstalowane z npm nie startowało. Wykryte dopiero testem instalacyjnym, bo cała suita uruchamia kod z drzewa źródeł — stąd `packaging.test.ts` i job `dist` w CI |
 | 027 | 2026-08-08 | Dane subiektywne (RPE, notatki z dziennika): silnik **zapisuje i cytuje dosłownie, nigdy nie liczy** — żadnej gotowości, progów alarmowych ani automatycznych korekt z odczuć; interpretacja to zadanie rozmowy trener-agent ↔ biegacz | P-6 uzasadnia zbieranie sRPE, ale Z-4 mówi, że RPE jest najgorszym kalibratorem stref, a gotowości z miękkich sygnałów silnik odmawia już od HRV (§ „Gdzie silnik odmawia”). Liczba wyprowadzona z odczuć byłaby wymyślona — a cytat zachowuje całą wartość danych: trend widać w rozmowie, w której można dopytać o kontekst, czego żaden próg nie umie. Granica jest ta sama, co w zasadzie „nie wymyślaj liczb” w AGENTS.md — teraz obowiązuje symetrycznie silnik |
+
+
+## 11. Rozszerzenia po v0.1.1 (2026-09-05)
+
+Zaimplementowano rozróżnienie braku danych od potwierdzonego pominięcia,
+wspólną interpretację wykonania w pull/review/adapt, zatwierdzane propozycje
+zmian, renegocjację według budżetów czasu, jawne pochodzenie kalibracji,
+dane strukturalne MCP i samodzielny eksport mobilny. Opis poleceń i granic:
+[REVIEWED-ADAPTATION.md](docs/REVIEWED-ADAPTATION.md).
+
+| # | Data | Decyzja | Uzasadnienie |
+|---|------|---------|--------------|
+| 028 | 2026-09-05 | Brak rekordu = unknown; missed wymaga jawnego skipped. Jeden model wykonania dla pull, review i adapt. | Awaria synchronizacji nie może udawać przerwy w bieganiu; poprawka dziennika ma pierwszeństwo. |
+| 029 | 2026-09-05 | Adaptacja ma osobne prepare i apply ID, z odciskiem planu/profilu/dziennika/sync i zawartości propozycji. | Zatwierdzany wariant musi być tym, który użytkownik obejrzał; dane zmienione od podglądu wymagają nowej propozycji. Zachowujemy dni przeszłe, zapisane, przypięte i ręcznie edytowane. |
+| 030 | 2026-09-05 | Budżety minut i przypięcia są ograniczeniami solvera; czas zawiera przerwy, przygotowanie i siłę. | Dostępny dzień nie oznacza nieograniczonego czasu. Solver pokazuje odpuszczone jednostki i alternatywne priorytety, bez automatycznego ścieśniania treningu. |
+| 031 | 2026-09-05 | Plan przechowuje kalibrację, wersję schematu/silnika i odciski wygenerowanych dni. Wyniki można jawnie wykluczać. | Nowe wyniki porównujemy z rzeczywiście zapisaną historią; uzasadnienie ujawnia heurystykę wyboru i nie udaje liczbowej pewności. |
+| 032 | 2026-09-05 | MCP zwraca dane strukturalne obok tekstu; mobile jest eksportem HTML offline. | Agent operuje na faktach i propozycjach, a użytkownik może odczytać trening na telefonie bez konta ani nowego backendu. |

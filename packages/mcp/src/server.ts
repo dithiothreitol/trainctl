@@ -32,9 +32,12 @@ import {
 
 const isoDate = () => z.string().regex(/^\d{4}-\d{2}-\d{2}$/, ui().mcp.isoDate)
 
+const toolOutputSchema = { code: z.number(), output: z.string(), data: z.record(z.string(), z.unknown()) }
+
 function toTool(r: CmdResult) {
   return {
-    content: [{ type: 'text' as const, text: r.output }],
+    content: [{ type: 'text' as const, text: r.output }, { type: 'text' as const, text: JSON.stringify(r.data ?? {}) }],
+    structuredContent: { code: r.code, output: r.output, data: r.data ?? {} },
     ...(r.code !== 0 ? { isError: true } : {}),
   }
 }
@@ -50,6 +53,8 @@ export function createTrainctlServer(
     'trainctl_init',
     {
       description: t.init,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: true },
       inputSchema: {
         fromIntervals: z.boolean().optional().describe(t.initFromIntervals),
       },
@@ -62,6 +67,8 @@ export function createTrainctlServer(
     'trainctl_plan',
     {
       description: t.plan,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: false },
       inputSchema: { date: isoDate().optional().describe(t.planDate) },
     },
     async (args) => toTool(cmdPlan(dir, args)),
@@ -71,6 +78,8 @@ export function createTrainctlServer(
     'trainctl_today',
     {
       description: t.today,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: { date: isoDate().optional() },
     },
     async (args) => toTool(cmdToday(dir, args)),
@@ -80,6 +89,8 @@ export function createTrainctlServer(
     'trainctl_week',
     {
       description: t.week,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: { date: isoDate().optional().describe(t.weekDate) },
     },
     async (args) => toTool(cmdWeek(dir, args)),
@@ -89,6 +100,8 @@ export function createTrainctlServer(
     'trainctl_log',
     {
       description: t.log,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: false },
       inputSchema: {
         date: isoDate().optional(),
         status: z.enum(['done', 'skipped', 'modified']).optional().describe(t.logStatus),
@@ -105,6 +118,8 @@ export function createTrainctlServer(
     'trainctl_shift',
     {
       description: t.shift,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: false },
       inputSchema: {
         from: isoDate().describe(t.shiftFrom),
         to: isoDate().describe(t.shiftTo),
@@ -117,6 +132,8 @@ export function createTrainctlServer(
     'trainctl_why',
     {
       description: t.why,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: { date: isoDate().optional() },
     },
     async (args) => toTool(cmdWhy(dir, args)),
@@ -126,7 +143,13 @@ export function createTrainctlServer(
     'trainctl_adapt',
     {
       description: t.adapt,
-      inputSchema: { date: isoDate().optional().describe(t.adaptDate) },
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: false },
+      inputSchema: {
+        date: isoDate().optional().describe(t.adaptDate),
+        prepare: z.boolean().optional().describe(ui().improve.prepare),
+        apply: z.string().optional().describe(ui().improve.apply),
+      },
     },
     async (args) => toTool(cmdAdapt(dir, args)),
   )
@@ -135,6 +158,8 @@ export function createTrainctlServer(
     'trainctl_desk',
     {
       description: t.desk,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         date: isoDate().optional(),
         heavy: z.boolean().optional().describe(t.deskHeavy),
@@ -147,8 +172,10 @@ export function createTrainctlServer(
     'trainctl_export',
     {
       description: t.export,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: false },
       inputSchema: {
-        what: z.enum(['plan', 'workout', 'calendar', 'print', 'race']),
+        what: z.enum(['plan', 'workout', 'calendar', 'print', 'race', 'mobile']),
         date: isoDate().optional().describe(t.exportDate),
       },
     },
@@ -159,8 +186,14 @@ export function createTrainctlServer(
     'trainctl_reschedule',
     {
       description: t.reschedule,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: false },
       inputSchema: {
         block: z.array(isoDate()).optional().describe(t.rescheduleBlock),
+        time: z.array(z.string()).optional().describe(ui().improve.time),
+        pin: z.array(isoDate()).optional().describe(ui().improve.pin),
+        preparation: z.string().optional().describe(ui().improve.preparation),
+        strategy: z.enum(['long', 'quality']).optional().describe(ui().improve.strategy),
         date: isoDate().optional().describe(t.rescheduleDate),
         apply: z.boolean().optional().describe(t.rescheduleApply),
       },
@@ -172,6 +205,8 @@ export function createTrainctlServer(
     'trainctl_push',
     {
       description: t.push,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: true },
       inputSchema: {
         from: isoDate().optional().describe(t.pushFrom),
         to: isoDate().optional().describe(t.pushTo),
@@ -185,7 +220,9 @@ export function createTrainctlServer(
     'trainctl_pull',
     {
       description: t.pull,
-      inputSchema: { days: z.string().optional().describe(t.pullDays) },
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: true },
+      inputSchema: { days: z.string().optional().describe(t.pullDays), date: isoDate().optional() },
     },
     async (args) => toTool(await cmdPull(dir, args, factory)),
   )
@@ -194,6 +231,8 @@ export function createTrainctlServer(
     'trainctl_review',
     {
       description: t.review,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: true },
       inputSchema: {
         days: z.string().optional().describe(t.reviewDays),
         date: isoDate().optional().describe(t.reviewDate),
@@ -206,6 +245,8 @@ export function createTrainctlServer(
     'trainctl_diff',
     {
       description: t.diff,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         plan: z.string().optional().describe(t.diffPlan),
       },
@@ -217,6 +258,8 @@ export function createTrainctlServer(
     'trainctl_check',
     {
       description: t.check,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         strict: z.boolean().optional().describe(t.checkStrict),
       },

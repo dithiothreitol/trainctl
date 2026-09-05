@@ -131,7 +131,7 @@ describe('trainctl push', () => {
 
 describe('trainctl pull', () => {
   it('zapisuje migawkę i raportuje rozjazdy', async () => {
-    const r = await cmdPull(dir, { days: '5' }, factory)
+    const r = await cmdPull(dir, { days: '5', date: '2026-08-09' }, factory)
     expect(r.code).toBe(0)
     expect(r.output).toContain('Aktywności')
     expect(existsSync(join(dir, 'sync.json'))).toBe(true)
@@ -150,7 +150,7 @@ describe('porównanie plan ↔ wykonanie', () => {
     expect(byDate.get('2026-08-03')!.status).toBe('unplanned') // wolne, a biegał
     const tue = byDate.get('2026-08-04')!
     expect(['matched', 'shorter', 'longer']).toContain(tue.status)
-    expect(byDate.get('2026-08-06')?.status).toBe('missed')
+    expect(byDate.get('2026-08-06')?.status).toBe('unknown')
   })
 
   it('dni bez planu i bez wykonania są pomijane', () => {

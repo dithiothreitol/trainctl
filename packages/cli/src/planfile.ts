@@ -1,5 +1,6 @@
 /** Plan jako pliki: plan/plan.yaml (źródło prawdy) + plan/PLAN.md (render). */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { parse, stringify } from 'yaml'
 import {
@@ -20,10 +21,14 @@ import {
 } from 'trainctl-core'
 import type { StrengthConfig, TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
+import { inspectCalibration, type Calibration } from './calibration.ts'
+import { packageVersion } from './version.ts'
 
 export const PLAN_DIR = 'plan'
 export const PLAN_YAML = join(PLAN_DIR, 'plan.yaml')
 export const PLAN_MD = join(PLAN_DIR, 'PLAN.md')
+
+export const dayFingerprint = (day: PlannedDay): string => createHash('sha256').update(JSON.stringify(day)).digest('hex')
 
 export interface PlanChange {
   at: string
@@ -32,6 +37,13 @@ export interface PlanChange {
 }
 
 export interface StoredPlan {
+  schemaVersion?: number
+  engineVersion?: string
+  calibration?: Calibration
+  /** Checksums of generated days, used to preserve arbitrary manual edits. */
+  generatedDays?: Record<string, string>
+  timeBudgets?: Record<string, number>
+  preparationMinutes?: number
   generatedAt: string
   /** Język, w którym zapisano opisy jednostek — `trainctl diff` mówi, gdy się rozjedzie. */
   locale?: string
@@ -46,10 +58,10 @@ export interface StoredPlan {
   weeks: Microcycle[]
 }
 
-export function computePlan(config: TrainctlConfig, today: string): StoredPlan {
+export function computePlan(config: TrainctlConfig, today: string, calibrationDate = today): StoredPlan {
   const { athlete, goal } = config
   const usable = athlete.results.filter(
-    (r) => r.date <= today && diffDays(r.date, today) <= 540,
+    (r) => !r.excluded && r.date <= calibrationDate && diffDays(r.date, calibrationDate) <= 540,
   )
   let vdot: number
   let vdotSource: StoredPlan['vdotSource']
@@ -69,6 +81,9 @@ export function computePlan(config: TrainctlConfig, today: string): StoredPlan {
   )
   if (config.strength?.enabled) applyStrength(weeks, config.strength)
   const plan: StoredPlan = {
+    schemaVersion: 1,
+    engineVersion: packageVersion(),
+    calibration: inspectCalibration(athlete.results, calibrationDate),
     generatedAt: today,
     locale: getLocale(),
     vdot: Math.round(vdot * 10) / 10,
@@ -81,11 +96,12 @@ export function computePlan(config: TrainctlConfig, today: string): StoredPlan {
     weeks,
   }
   if (usable.length > 0) {
-    plan.prediction = predictRace(usable, goal.distanceKm, { today })
+    plan.prediction = predictRace(usable, goal.distanceKm, { today: calibrationDate })
   }
   if (vdotSource === 'goal-target') {
     plan.feasibilityWarnings.push(ui().planMd.zonesFromGoal)
   }
+  plan.generatedDays = Object.fromEntries(plan.weeks.flatMap((w) => w.days).map((d) => [d.date, dayFingerprint(d)]))
   return plan
 }
 

@@ -54,7 +54,7 @@ describe('buildExecution', () => {
     expect(byDate.get('2026-08-04')!.actualKm).toBe(11)
     expect(byDate.get('2026-08-05')!.actualKm).toBe(12) // z dziennika
     expect(byDate.get('2026-08-03')!.status).toBe('rest')
-    expect(byDate.get('2026-08-06')!.status).toBe('missed')
+    expect(byDate.get('2026-08-06')!.status).toBe('unknown')
     expect(exec.every((e) => e.date <= '2026-08-09')).toBe(true)
   })
 
@@ -77,15 +77,16 @@ describe('buildExecution', () => {
       [],
       '2026-08-09',
     )
-    expect(exec.find((e) => e.date === '2026-08-04')!.status).toBe('missed')
+    expect(exec.find((e) => e.date === '2026-08-04')!.status).toBe('unknown')
   })
 })
 
 describe('trainctl adapt', () => {
-  it('bez danych wykonania proponuje konserwatywny restart', () => {
+  it('bez danych wykonania informuje o brakach zamiast diagnozować przerwę', () => {
     const r = cmdAdapt(dir, { date: '2026-09-01' })
     expect(r.code).toBe(0)
-    expect(r.output).toContain('conservative-restart')
+    expect(r.output).not.toContain('conservative-restart')
+    expect(r.data?.proposal).toMatchObject({ dataStatus: 'empty', actions: [] })
     expect(r.output).toContain('Brak sync.json')
   })
 

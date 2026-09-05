@@ -22,7 +22,10 @@ const przerwy = (count: number) =>
 const sesje = (count: number) =>
   `${count} ${pluralPl(count, { one: 'sesja', few: 'sesje', other: 'sesji' })}`
 
+import { improvePl } from './improve-pl.ts'
+
 export const cliPl: CliMessages = {
+  improve: improvePl,
   cmd: {
     banner: 'plan treningowy jako kod, trener jako narzędzie agenta',
     lang: 'język interfejsu: en | pl (albo TRAINCTL_LANG / language w trainctl.yaml)',
@@ -67,7 +70,7 @@ export const cliPl: CliMessages = {
     optBlock: 'dni, w których nie możesz trenować',
     optWhichWeek: 'który tydzień (domyślnie: bieżący)',
     optApply: 'zapisz zmiany w planie (bez tego tylko podgląd)',
-    optExportWhat: 'plan | workout | calendar | print | race',
+    optExportWhat: 'plan | workout | calendar | print | race | mobile',
     optExportDate: 'trening do eksportu (dla --what workout)',
     firstSteps: 'Pierwsze kroki: ',
     interactively: 'Interaktywnie: ',
@@ -253,6 +256,7 @@ export const cliPl: CliMessages = {
   },
 
   compare: {
+    unknown: 'Brak danych wykonania',
     matched: 'zgodne',
     shorter: 'krótsze',
     longer: 'dłuższe',
@@ -497,7 +501,7 @@ export const cliPl: CliMessages = {
       `Sprawdzian: ${date} — po nim dopisz wynik do trainctl.yaml, inaczej strefy stoją (W-11).`,
     keySession: 'Kluczowa jednostka',
     todoWriteResult: 'dopisz wynik pomiaru do athlete.results → trainctl diff → trainctl plan',
-    todoSeeAdapt: 'przejrzyj propozycje: trainctl adapt (zmiany zatwierdzasz w trainctl.yaml)',
+    todoSeeAdapt: 'przejrzyj propozycje: trainctl adapt --prepare, potem zatwierdź zapisane ID przez --apply',
     todoPush: 'wyślij nadchodzący tydzień na zegarek: trainctl push --days 7',
     todoPrint: 'rozpiska na lodówkę: trainctl export --what print',
     todoReschedule:
@@ -792,9 +796,9 @@ export const cliPl: CliMessages = {
       'Wyjaśnij trening: cel fizjologiczny jednostki + reguły z badań ' +
       '(ID z docs/science/FOUNDATIONS.md).',
     adapt:
-      'Porównaj wykonanie (sync.json + dziennik) z planem i zaproponuj korekty: urealnienie ' +
-      'objętości, restart po przerwie, protokół po starcie, rekalibrację stref. ' +
-      'ZWRACA PROPOZYCJE — nie zmienia planu. Zastosowanie: edycja trainctl.yaml + trainctl_plan.',
+      'Porównaj wykonanie z planem i zaproponuj korekty. Domyślnie nie zapisuje zmian. ' +
+      'prepare=true zapisuje konkretny wariant: pokaż zmieniane sesje i ostrzeżenia, zapytaj biegacza o zgodę, ' +
+      'następnie wywołaj apply z zatwierdzonym ID. Zmiana danych unieważnia propozycję.',
     adaptDate: 'data odniesienia (domyślnie dziś)',
     desk:
       'Dzień przy biurku: okna treningowe wokół godzin pracy, przerwy w siedzeniu i reguła ' +
@@ -887,7 +891,7 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
 1. **Nie regeneruj planu bez pytania.** \`trainctl_plan\` nadpisuje istniejący plan.
    Przy wątpliwościach: \`trainctl_diff\` (pokazuje różnice, nic nie zapisuje).
 2. **Adaptacja proponuje, nie przepisuje.** \`trainctl_adapt\` zwraca propozycje;
-   zastosowanie to świadoma edycja \`trainctl.yaml\` → \`trainctl_diff\` → \`trainctl_plan\`.
+   użyj prepare=true, aby zapisać konkretną zmianę. Pokaż zmieniane sesje i ostrzeżenia,\n   zapytaj o zgodę, a następnie wywołaj apply z zatwierdzonym ID. Zmienione dane\n   wymagają nowej propozycji. Brak danych nie potwierdza pominięcia treningu.
 3. **Pytaj o kontekst, zanim zaczniesz liczyć.** Pominięty tydzień to co innego
    przy chorobie, a co innego przy wale w pracy — pierwszy wymaga ostrożnego
    powrotu, drugi zwykle tylko przestawienia dni.

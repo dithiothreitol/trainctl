@@ -7,6 +7,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { addDays, type SyncProvider, type SyncedActivity, type SyncedWellness } from 'trainctl-core'
 import { IntervalsIcuProvider, toPushableWorkout } from 'trainctl-sync-intervalsicu'
+import { buildExecution } from './execution.ts'
+import type { LogEntry } from './logfile.ts'
 import { ui } from './i18n/index.ts'
 import { loadPlan, type StoredPlan } from './planfile.ts'
 
@@ -15,6 +17,8 @@ export const SYNC_FILE = 'sync.json'
 
 export interface SyncSnapshot {
   pulledAt: string
+  from?: string
+  to?: string
   activities: SyncedActivity[]
   wellness: SyncedWellness[]
 }
@@ -55,6 +59,14 @@ export function workoutsToPush(plan: StoredPlan, from: string, to: string) {
 }
 
 export function writeSnapshot(cwd: string, snapshot: SyncSnapshot): void {
+  const previous = readSnapshot(cwd)
+  if (previous && snapshot.from && snapshot.to) {
+    const outside = (date: string) => date < snapshot.from! || date > snapshot.to!
+    const merged = new Map(previous.activities.filter((a) => outside(a.date)).map((a) => [a.externalId, a]))
+    for (const a of snapshot.activities) merged.set(a.externalId, a)
+    snapshot = { ...snapshot, activities: [...merged.values()],
+      wellness: [...previous.wellness.filter((w) => outside(w.date)), ...snapshot.wellness] }
+  }
   writeFileSync(join(cwd, SYNC_FILE), JSON.stringify(snapshot, null, 1), 'utf-8')
 }
 
@@ -70,49 +82,19 @@ export interface Comparison {
   plannedKm: number
   actualKm?: number
   /** Klucz statusu — niezależny od języka; etykietę dokłada warstwa prezentacji. */
-  status: 'matched' | 'shorter' | 'longer' | 'missed' | 'unplanned'
+  status: 'matched' | 'shorter' | 'longer' | 'missed' | 'unplanned' | 'unknown'
 }
 
-export function compare(plan: StoredPlan, activities: SyncedActivity[], from: string, to: string): Comparison[] {
-  const byDate = new Map<string, SyncedActivity[]>()
-  for (const a of activities) {
-    if (a.date < from || a.date > to) continue
-    byDate.set(a.date, [...(byDate.get(a.date) ?? []), a])
-  }
-  const out: Comparison[] = []
-  const seen = new Set<string>()
-  for (const week of plan.weeks) {
-    for (const day of week.days) {
-      if (day.date < from || day.date > to) continue
-      const acts = byDate.get(day.date) ?? []
-      const actualKm = acts.reduce((s, a) => s + (a.distanceKm ?? 0), 0)
-      const plannedKm = day.workout?.distanceKm ?? 0
-      seen.add(day.date)
-      if (!day.workout && acts.length === 0) continue
-      let status: Comparison['status']
-      if (!day.workout) status = 'unplanned'
-      else if (acts.length === 0) status = 'missed'
-      else if (actualKm < plannedKm * 0.85) status = 'shorter'
-      else if (actualKm > plannedKm * 1.15) status = 'longer'
-      else status = 'matched'
-      out.push({
-        date: day.date,
-        plannedKm,
-        ...(acts.length ? { actualKm: Math.round(actualKm * 10) / 10 } : {}),
-        status,
-      })
-    }
-  }
-  for (const [date, acts] of byDate) {
-    if (seen.has(date)) continue
-    out.push({
-      date,
-      plannedKm: 0,
-      actualKm: Math.round(acts.reduce((s, a) => s + (a.distanceKm ?? 0), 0) * 10) / 10,
-      status: 'unplanned',
+export function compare(plan: StoredPlan, activities: SyncedActivity[], from: string, to: string, logs: LogEntry[] = []): Comparison[] {
+  return buildExecution(plan, activities, logs, to)
+    .filter((e) => e.date >= from && e.status !== 'rest')
+    .map((e) => {
+      const status: Comparison['status'] = e.status === 'unknown' ? 'unknown'
+        : e.status === 'missed' ? 'missed' : e.status === 'unplanned' ? 'unplanned'
+        : (e.actualKm ?? 0) < e.plannedKm * 0.85 ? 'shorter'
+        : (e.actualKm ?? 0) > e.plannedKm * 1.15 ? 'longer' : 'matched'
+      return { date: e.date, plannedKm: e.plannedKm, status, ...(e.actualKm !== undefined ? { actualKm: e.actualKm } : {}) }
     })
-  }
-  return out.sort((a, b) => a.date.localeCompare(b.date))
 }
 
 export function defaultRange(today: string, days: number): { from: string; to: string } {

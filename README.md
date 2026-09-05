@@ -1,5 +1,11 @@
 # trainctl
 
+New in the working tree: reviewed adaptation (`adapt --prepare`, then
+`adapt --apply <id>`), time budgets and pinned days in `reschedule`, transparent
+zone calibration, structured MCP results and `export --what mobile`.
+Missing execution data is now reported as unknown. See the
+[workflow guide](docs/REVIEWED-ADAPTATION.md) for usage and compatibility notes.
+
 [![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.18-brightgreen.svg)](package.json)
@@ -230,8 +236,8 @@ a key is configured). `trainctl adapt` compares execution with the plan and
 | `why` | purpose + research rules behind a session | `--date` |
 | `log` | record a completed session | `--status`, `--km`, `--time`, `--rpe`, `--note` |
 | `shift` | swap two sessions inside a week | `--from`, `--to` (or pick from a list) |
-| `reschedule` | re-solve the week around busy days | `--block <dates…>`, `--apply` |
-| `adapt` | analyse execution, propose corrections | `--date` |
+| `reschedule` | re-solve the week around busy days | `--block`, `--time`, `--pin`, `--preparation`, `--strategy`, `--apply` |
+| `adapt` | analyse execution, propose corrections | `--date`, `--prepare`, `--apply <id>` |
 | `review` | pull + adapt + week in one call | `--days` |
 | `desk` | training windows around office hours | `--heavy` |
 | `push` | send planned sessions to intervals.icu | `--days`, `--from`, `--to` |
@@ -477,7 +483,7 @@ Three things the engine will not compute, each for a documented reason:
   the interval crossing zero (FOUNDATIONS §8). Zones come from race results
   instead.
 - **Its own plan, silently.** `adapt` returns proposals; applying them means
-  editing `trainctl.yaml` and regenerating, so the change is a diff you approved.
+  the reviewed `adapt --prepare` → `adapt --apply <id>` workflow for volume and calibration, with the exact changes shown before application.
 
 It also refuses rather than guesses: below 4 active weeks of history it will not
 infer a profile, above 25 °C it will not predict a heat penalty, and with no race
@@ -513,7 +519,7 @@ pnpm install
 pnpm check       # typecheck + tests — what CI runs
 ```
 
-552 tests. Seven of them backtest the engine against the coaching corpus, which
+585 tests. Seven of them backtest the engine against the coaching corpus, which
 is not distributed; without it that suite reports itself as one skipped test
 rather than quietly disappearing.
 

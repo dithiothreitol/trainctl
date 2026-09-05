@@ -1,5 +1,11 @@
 # trainctl
 
+Nowości w wersji roboczej: adaptacja z podglądem (`adapt --prepare`, następnie
+`adapt --apply <id>`), budżety czasu i przypięte dni w `reschedule`, jawna
+kalibracja stref, dane strukturalne MCP oraz `export --what mobile`.
+Brak danych wykonania jest teraz stanem niepotwierdzonym. Przykłady i zasady
+zgodności ze starszymi planami: [opis nowego workflow](docs/REVIEWED-ADAPTATION.md).
+
 [![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.18-brightgreen.svg)](package.json)
@@ -233,8 +239,8 @@ Twoimi plecami.
 | `why` | cel jednostki + reguły z badań | `--date` |
 | `log` | zapis wykonania | `--status`, `--km`, `--time`, `--rpe`, `--note` |
 | `shift` | zamiana dwóch jednostek w tygodniu | `--from`, `--to` (albo wybór z listy) |
-| `reschedule` | przestawia tydzień wokół zajętych dni | `--block <daty…>`, `--apply` |
-| `adapt` | analiza wykonania → propozycje korekt | `--date` |
+| `reschedule` | przestawia tydzień wokół zajętych dni | `--block`, `--time`, `--pin`, `--preparation`, `--strategy`, `--apply` |
+| `adapt` | analiza wykonania → propozycje korekt | `--date`, `--prepare`, `--apply <id>` |
 | `review` | pull + adapt + week w jednym | `--days` |
 | `desk` | okna treningowe wokół godzin pracy | `--heavy` |
 | `push` | wysyła treningi do intervals.icu | `--days`, `--from`, `--to` |
@@ -484,8 +490,8 @@ Trzy rzeczy, których nie policzy, każda z udokumentowanego powodu:
 - **Gotowość z HRV.** Przewaga wychodzi na SMD 0,20 z przedziałem przez zero
   (FOUNDATIONS §8). Strefy biorą się z wyników startów.
 - **Własny plan, po cichu.** `adapt` zwraca propozycje; zastosowanie ich to
-  edycja `trainctl.yaml` i regeneracja, więc zmiana jest diffem, który
-  zatwierdziłeś.
+  podgląd przez `adapt --prepare` i zatwierdzenie przez `adapt --apply <id>`
+  dla objętości i kalibracji. Stosowany jest dokładnie przejrzany wariant.
 
 Odmawia też zamiast zgadywać: poniżej 4 aktywnych tygodni historii nie wywnioskuje
 profilu, powyżej 25 °C nie poda korekty cieplnej, a bez wyniku startu nie
@@ -521,7 +527,7 @@ pnpm install
 pnpm check       # typecheck + testy — to samo, co robi CI
 ```
 
-552 testy. Siedem z nich porównuje silnik z korpusem planów trenerskich, który
+585 testów. Siedem z nich porównuje silnik z korpusem planów trenerskich, który
 nie jest dystrybuowany; bez niego ten zestaw zgłasza się jako jeden pominięty
 test, zamiast po cichu zniknąć.
 

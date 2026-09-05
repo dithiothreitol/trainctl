@@ -5,13 +5,14 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { getLocale, heatLadder, messages, type PlannedDay } from 'trainctl-core'
+import { estimateWorkoutMinutes, getLocale, heatLadder, messages, type PlannedDay } from 'trainctl-core'
 import {
   encodeWorkoutFit,
   fmtClock,
   fmtPace,
   toIcs,
   toPrintableHtml,
+  toMobileHtml,
   toRacePackHtml,
   type PrintWeek,
   type RacePackInput,
@@ -19,6 +20,7 @@ import {
 } from 'trainctl-export'
 import { ui } from './i18n/index.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
+import { kindPurpose, ruleExplain, ruleEvidence } from './rules-explain.ts'
 
 /**
  * Tabela korekty na temperaturę (H-1…H-5). Model milczy powyżej 25 °C i poniżej
@@ -59,7 +61,7 @@ const kindLabel = (kind: string): string => {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
-export type ExportWhat = 'plan' | 'workout' | 'print' | 'calendar' | 'race'
+export type ExportWhat = 'plan' | 'workout' | 'print' | 'calendar' | 'race' | 'mobile'
 export type ExportFormat = 'fit' | 'ics' | 'html'
 
 export interface ExportRequest {
@@ -118,6 +120,27 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   const dir = req.outDir ?? join(cwd, EXPORT_DIR)
   mkdirSync(dir, { recursive: true })
   const files: ExportedFile[] = []
+  if (req.what === 'mobile') {
+    if (!req.date) throw new Error(ui().improve.mobileNeedDate)
+    const hit = findDay(plan, req.date)
+    if (!hit) throw new Error(ui().log.outsidePlan(req.date))
+    const day = hit.day
+    const labels = ui().improve
+    const minutes = (day.workout ? estimateWorkoutMinutes(day.workout, plan.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
+    const html = toMobileHtml({
+      lang: getLocale(), title: labels.mobile, date: day.date, goal: plan.goal.name,
+      kind: day.workout ? kindLabel(day.workout.kind) : labels.mobileRest,
+      distance: day.workout ? messages().units.km(day.workout.distanceKm) : '',
+      duration: labels.minuteEstimate(minutes),
+      purpose: day.workout ? kindPurpose(day.workout.kind) : ui().today.restDayBody,
+      steps: day.workout?.segments.map((s) => s.description) ?? [ui().today.restDayBody],
+      rules: [...new Set([...(day.workout?.ruleRefs ?? []), ...hit.week.skeleton.ruleRefs])].map((id) => `${id} — ${ruleExplain(id) ?? id} (${labels[ruleEvidence(id)]})`),
+      ...(day.strength ? { strength: day.strength.description } : {}), labels,
+    })
+    const path = join(dir, `${day.date}-mobile.html`)
+    writeFileSync(path, html, 'utf-8')
+    return [{ path, bytes: Buffer.byteLength(html), description: labels.mobile }]
+  }
 
   if (req.what === 'workout') {
     if (!req.date) throw new Error(t.needDate)

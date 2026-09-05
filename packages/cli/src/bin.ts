@@ -192,6 +192,8 @@ program
 program
   .command('adapt')
   .description(ui().cmd.adapt)
+  .option('--prepare', ui().improve.prepare)
+  .option('--apply <id>', ui().improve.apply)
   .option('--date <iso>', ui().cmd.optDate)
   .action((opts) => print(cmdAdapt(cwd, opts)))
 
@@ -215,6 +217,7 @@ program
 program
   .command('pull')
   .description(ui().cmd.pull)
+  .option('--date <iso>', ui().cmd.optDate)
   .option('--days <n>', ui().cmd.optDaysBack)
   .action(async (opts) =>
     print(await withSpinner(ui().cmd.spinnerPull, () => cmdPull(cwd, opts), theme)),
@@ -241,6 +244,10 @@ program
 program
   .command('reschedule')
   .description(ui().cmd.reschedule)
+  .option('--time <budget...>', ui().improve.time)
+  .option('--pin <iso...>', ui().improve.pin)
+  .option('--preparation <minutes>', ui().improve.preparation)
+  .option('--strategy <kind>', ui().improve.strategy)
   .option('--block <iso...>', ui().cmd.optBlock)
   .option('--date <iso>', ui().cmd.optWhichWeek)
   .option('--apply', ui().cmd.optApply)

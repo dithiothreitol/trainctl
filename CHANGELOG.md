@@ -6,6 +6,31 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
+### Reviewed adaptation and time-aware scheduling
+
+- Execution data now distinguishes unknown from explicitly skipped sessions.
+  Pull, review and adaptation share running-only classification and the latest
+  journal correction. Shorter sync refreshes retain older history.
+- `adapt --prepare` saves an inspectable, content-addressed plan proposal;
+  `adapt --apply <id>` applies exactly that proposal and rejects changed inputs
+  or edited proposal files. Past, logged, pinned and manually edited days stay
+  intact. Applicable patches cover volume and calibration; recovery remains an
+  individual coaching decision.
+- `reschedule --time YYYY-MM-DD=minutes --pin YYYY-MM-DD --preparation minutes`
+  honors time budgets including preparation, recoveries and strength. Preview
+  exposes alternatives (`--strategy long|quality`) and dropped sessions.
+- Plans retain calibration inputs and generated-day checksums. `why` explains
+  result selection and rule provenance; `excluded`/`exclusionReason` let runners
+  retain unsuitable race results without using them for zones or predictions.
+- MCP tools return structured domain data with output schemas and annotations.
+- `export --what mobile --date YYYY-MM-DD`: standalone responsive workout HTML,
+  including light/dark mode, session steps, purpose and expandable reasoning.
+- Fixed new-result detection comparing a result collection against itself,
+  cycling counting toward a planned run, and the sync test's dependence on the
+  current calendar date. `pull --date` makes historical sync ranges explicit.
+
+See [the workflow guide](docs/REVIEWED-ADAPTATION.md) for examples and boundaries.
+
 ### Added
 
 - `trainctl log --rpe <1–10>` (CLI and the `trainctl_log` MCP tool): session

@@ -130,6 +130,8 @@ export function loadConfig(cwd: string): TrainctlConfig {
     if (!Array.isArray(a.results)) errors.push(v.listOptional('athlete.results'))
     else
       a.results.forEach((r, i) => {
+        if (r.excluded !== undefined && typeof r.excluded !== 'boolean') errors.push(v.boolean(`athlete.results[${i}].excluded`))
+        if (r.exclusionReason !== undefined && typeof r.exclusionReason !== 'string') errors.push(v.required(`athlete.results[${i}].exclusionReason`))
         if (!ISO_RE.test(String(r?.date))) errors.push(v.isoDate(`athlete.results[${i}].date`))
         if (typeof r?.distanceKm !== 'number' || r.distanceKm <= 0)
           errors.push(v.numberGtZero(`athlete.results[${i}].distanceKm`))

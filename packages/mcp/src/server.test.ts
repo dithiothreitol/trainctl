@@ -53,6 +53,24 @@ afterAll(async () => {
 })
 
 describe('serwer MCP trainctl', () => {
+  it('publishes output schemas and returns execution facts as structured content', async () => {
+    await call('trainctl_plan', { date: '2026-08-05' })
+    const { tools } = await client.listTools()
+    expect(tools.every((tool) => tool.outputSchema !== undefined)).toBe(true)
+    expect(tools.find((tool) => tool.name === 'trainctl_today')?.annotations?.readOnlyHint).toBe(true)
+    expect(tools.find((tool) => tool.name === 'trainctl_adapt')?.annotations?.readOnlyHint).toBe(false)
+    const result = await client.callTool({ name: 'trainctl_today', arguments: { date: '2026-08-04' } })
+    expect(result.structuredContent).toMatchObject({ code: 0, data: { date: '2026-08-04', day: { workout: { kind: 'quality_intervals' } } } })
+  })
+
+  it('accepts time budgets through the same handler as the CLI', async () => {
+    await call('trainctl_plan', { date: '2026-08-05' })
+    const result = await client.callTool({ name: 'trainctl_reschedule', arguments: { date: '2026-08-24', time: ['2026-08-27=35'], preparation: '10' } })
+    expect(result.isError).not.toBe(true)
+    const { data } = result.structuredContent as { data: { budgetRows: { date: string; minutes: number }[] } }
+    expect(data.budgetRows.find((row) => row.date === '2026-08-27')!.minutes).toBeLessThanOrEqual(35)
+  })
+
   it('wystawia komplet 16 narzędzi', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()

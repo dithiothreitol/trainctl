@@ -12,3 +12,10 @@ export const ruleExplain = (id: string): string | undefined =>
 
 /** Po co jest ta jednostka — jedno zdanie o celu fizjologicznym. */
 export const kindPurpose = (kind: WorkoutKind): string => ui().kindPurpose[kind]
+
+/** Labels describe provenance, never numerical certainty or evidence grades. */
+export function ruleEvidence(id: string): 'research' | 'corpus' | 'engineering' | 'unclassified' {
+  if (['T-9', 'T-12', 'W-13', 'R-5', 'P-3'].includes(id)) return 'engineering'
+  if (['T-10', 'T-11', 'W-12', 'S-9a'].includes(id)) return 'corpus'
+  return ruleExplain(id) ? 'research' : 'unclassified'
+}

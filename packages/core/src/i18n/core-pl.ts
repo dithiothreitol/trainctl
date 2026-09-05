@@ -175,6 +175,7 @@ export const corePl: CoreMessages = {
   },
 
   adapt: {
+    incompleteData: 'Dane wykonania są niepełne. Brak wpisów nie potwierdza przerwy w treningu; potwierdź pominięte sesje lub odśwież dane przed zmianą objętości.',
     layoffDiagnosis: (days: number) =>
       `${days} ${pluralPl(days, { one: 'dzień', few: 'dni', other: 'dni' })} bez biegania — ` +
       'plan sprzed przerwy jest nieaktualny.',
@@ -267,6 +268,9 @@ export const corePl: CoreMessages = {
   },
 
   solver: {
+    badConstraints: 'Nieprawidłowy budżet czasu lub czas przygotowania.',
+    pinnedConflict: (date: string) => `Chroniony dzień ${date} koliduje z dostępnością lub budżetem czasu.`,
+    noTime: 'Brak wystarczającego okna czasowego; jednostkę odpuszczono zamiast ścieśniać.',
     longRunOffPreferredDay: (weekday: string) =>
       `długie wybieganie poza preferowanym dniem (${weekday})`,
     dateOutsideWeek: (date: string) => `data ${date} jest poza tym tygodniem — pominięta`,

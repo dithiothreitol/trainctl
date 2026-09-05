@@ -5,10 +5,12 @@
  * nagłówki, podpowiedzi, komunikaty błędów i opisy narzędzi agenta.
  */
 import { formatNumber, pluralEn } from 'trainctl-core'
+import { improveEn } from './improve-en.ts'
 
 const n = (value: number) => formatNumber('en', value)
 
 export const cliEn = {
+  improve: improveEn,
   /** Opisy komend i flag — to, co widać w `trainctl --help`. */
   cmd: {
     banner: 'plan as code, coach as your agent’s tool',
@@ -54,7 +56,7 @@ export const cliEn = {
     optBlock: 'days you cannot train on',
     optWhichWeek: 'which week (defaults to the current one)',
     optApply: 'save the changes (without it, preview only)',
-    optExportWhat: 'plan | workout | calendar | print | race',
+    optExportWhat: 'plan | workout | calendar | print | race | mobile',
     optExportDate: 'session to export (for --what workout)',
     firstSteps: 'First steps: ',
     interactively: 'Interactive: ',
@@ -239,6 +241,7 @@ export const cliEn = {
   },
 
   compare: {
+    unknown: 'No execution data',
     matched: 'on plan',
     shorter: 'shorter',
     longer: 'longer',
@@ -476,7 +479,7 @@ export const cliEn = {
       `Time trial: ${date} — write the result into trainctl.yaml afterwards, or the zones stall (W-11).`,
     keySession: 'Key session',
     todoWriteResult: 'write the measured result into athlete.results → trainctl diff → trainctl plan',
-    todoSeeAdapt: 'review the proposals: trainctl adapt (you approve changes in trainctl.yaml)',
+    todoSeeAdapt: 'review the proposals: trainctl adapt --prepare, then approve the saved ID with --apply',
     todoPush: 'send the coming week to your watch: trainctl push --days 7',
     todoPrint: 'a sheet for the fridge: trainctl export --what print',
     todoReschedule:
@@ -775,7 +778,7 @@ export const cliEn = {
     adapt:
       'Compare execution (sync.json + journal) with the plan and propose corrections: a realistic ' +
       'volume, a restart after a break, a post-race protocol, zone recalibration. ' +
-      'RETURNS PROPOSALS — it does not change the plan. To apply: edit trainctl.yaml + trainctl_plan.',
+      'By default returns proposals only. Use prepare=true to save a concrete patch; show its changes and ask the runner to approve it before calling apply with its ID. Changed inputs invalidate the patch.',
     adaptDate: 'reference date (defaults to today)',
     desk:
       'Desk day: training windows around working hours, sitting breaks, and the rule for running ' +
@@ -863,7 +866,7 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
 1. **Do not regenerate the plan without asking.** \`trainctl_plan\` overwrites the
    existing plan. When in doubt: \`trainctl_diff\` (shows the differences, saves nothing).
 2. **Adaptation proposes, it does not rewrite.** \`trainctl_adapt\` returns proposals;
-   applying them is a deliberate edit of \`trainctl.yaml\` → \`trainctl_diff\` → \`trainctl_plan\`.
+   use prepare=true for a concrete patch. Show its session changes and warnings, then ask\n   for approval before calling apply with that ID. If inputs changed, prepare a new proposal.\n   Missing execution data is unknown, not proof of a skipped session.
 3. **Ask for context before you start computing.** A missed week means one thing
    after illness and another after a crunch at work — the first needs a careful
    return, the second usually just a reshuffle of days.

@@ -146,7 +146,8 @@ describe('rekalibracja i akcenty', () => {
 describe('przypadki brzegowe', () => {
   it('pusta historia nie wywraca analizy', () => {
     const p = analyzeExecution({ today: TODAY, execution: [], currentWeeklyKm: 50 })
-    expect(p.actions.some((a) => a.type === 'conservative-restart')).toBe(true)
+    expect(p.actions).toEqual([])
+    expect(p.dataStatus).toBe('empty')
   })
 
   it('same dni wolne (tydzień odciążenia) → brak fałszywej diagnozy niedowykonania', () => {

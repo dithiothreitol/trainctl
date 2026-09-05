@@ -16,6 +16,7 @@
 import type { Microcycle, PlannedDay, PlannedWorkout, Weekday, WorkoutKind } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
 import { diffDays } from '../util/dates.ts'
+import { estimateWorkoutMinutes } from '../engine/duration.ts'
 
 const QUALITY: ReadonlySet<WorkoutKind> = new Set([
   'quality_intervals',
@@ -40,6 +41,12 @@ const DROP_ORDER: WorkoutKind[] = [
 ]
 
 export interface RescheduleRequest {
+  timeBudgets?: Record<string, number>
+  preparationMinutes?: number
+  pinnedDates?: string[]
+  /** Already completed/past days: fixed for this solve, without storing a pin. */
+  fixedDates?: string[]
+  strategy?: 'long' | 'quality'
   week: Microcycle
   /** Daty, w których użytkownik nie może trenować (np. „w czwartek release"). */
   blockedDates: string[]
@@ -119,6 +126,7 @@ function scoreArrangement(
     // S-3: akcenty się liczą; sprawdzian wyżej — bez niego nie ma czym kalibrować stref
     if (QUALITY.has(kind)) {
       score += kind === 'test' ? 220 : 150
+      if (req.strategy === 'quality') score += 200
       if (req.qualityDayPreference?.includes(slot.weekday)) score += 30
     }
     if (kind === 'easy' || kind === 'easy_hills') score += 40
@@ -163,6 +171,10 @@ function search(
     }
     for (let s = 0; s < slots.length; s++) {
       if (assignment[s]) continue
+      const slot = slots[s]!
+      const budget = req.timeBudgets?.[slot.date]
+      const strength = req.week.days.find((d) => d.date === slot.date)?.strength?.durationMin ?? 0
+      if (budget !== undefined && estimateWorkoutMinutes(items[itemIndex]!.workout, req.preparationMinutes ?? 15) + strength > budget) continue
       assignment[s] = items[itemIndex]
       place(itemIndex + 1)
       assignment[s] = undefined
@@ -175,6 +187,18 @@ function search(
 export function reschedule(req: RescheduleRequest): RescheduleResult {
   const { week } = req
   const blocked = new Set(req.blockedDates)
+  const pinned = new Set([...(req.pinnedDates ?? []), ...(req.fixedDates ?? []), ...week.days.filter((d) => d.pinned).map((d) => d.date)])
+  if (!Number.isInteger(req.preparationMinutes ?? 15) || (req.preparationMinutes ?? 15) < 0 || (req.preparationMinutes ?? 15) > 120) throw new Error(messages().solver.badConstraints)
+  for (const [date, minutes] of Object.entries(req.timeBudgets ?? {})) {
+    if (!week.days.some((d) => d.date === date) || !Number.isInteger(minutes) || minutes < 0 || minutes > 1440) throw new Error(messages().solver.badConstraints)
+  }
+  for (const date of pinned) {
+    const day = week.days.find((d) => d.date === date)
+    if (!day || (blocked.has(date) && (day.workout || day.strength))) throw new Error(messages().solver.pinnedConflict(date))
+    const budget = req.timeBudgets?.[date]
+    const needed = (day.workout ? estimateWorkoutMinutes(day.workout, req.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
+    if (budget !== undefined && needed > budget) throw new Error(messages().solver.pinnedConflict(date))
+  }
   const raceDay = week.days.find((d) => d.workout?.kind === 'race')
   const dayBeforeRace = raceDay ? week.days.find((d) => diffDays(d.date, raceDay.date) === 1) : undefined
 
@@ -191,12 +215,13 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
 
   // jednostki do rozstawienia (bez startu) i wolne sloty
   const items: Item[] = week.days
-    .filter((d) => d.workout && d.workout.kind !== 'race')
+    .filter((d) => d.workout && d.workout.kind !== 'race' && !pinned.has(d.date))
     .map((d) => ({ workout: d.workout!, originalDate: d.date }))
 
   const slots: Slot[] = week.days
     .filter((d) => {
       if (blocked.has(d.date)) return false
+      if (pinned.has(d.date)) return false
       if (raceDay && d.date === raceDay.date) return false
       if (dayBeforeRace && d.date === dayBeforeRace.date) return false // dzień przed startem lekki
       if (req.availableDays?.length && !req.availableDays.includes(d.weekday)) return false
@@ -204,7 +229,7 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
     })
     .map((d, i) => ({ date: d.date, weekday: d.weekday, index: i }))
 
-  const fixed = raceDay?.workout ? [{ date: raceDay.date, workout: raceDay.workout }] : []
+  const fixed = week.days.filter((d) => d.workout && (d.workout.kind === 'race' || pinned.has(d.date))).map((d) => ({ date: d.date, workout: d.workout! }))
 
   // brak miejsc dla wszystkich — poświęcamy wg ustalonej kolejności
   const dropped: RescheduleResult['dropped'] = []
@@ -227,10 +252,30 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
     })
   }
 
-  const best = search(keep, slots, req, fixed)
+  let best = search(keep, slots, req, fixed)
+  if (req.timeBudgets || req.strategy === 'quality') {
+    // At most seven sessions: enumerate subsets to avoid dropping easy runs
+    // merely because a long run cannot fit in any time window.
+    best = undefined
+    let chosen: Item[] = []
+    for (let mask = 0; mask < 2 ** items.length; mask++) {
+      const subset = items.filter((_, i) => (mask & (1 << i)) !== 0)
+      if (subset.length > slots.length || subset.length < chosen.length) continue
+      const candidate = search(subset, slots, req, fixed)
+      if (candidate && (!best || subset.length > chosen.length || candidate.score > best.score)) {
+        best = candidate
+        chosen = subset
+      }
+    }
+    dropped.splice(0)
+    for (const item of items.filter((item) => !chosen.includes(item))) {
+      dropped.push({ kind: item.workout.kind, from: item.originalDate, reason: messages().solver.noTime })
+    }
+  }
   const days: PlannedDay[] = week.days.map((d) => {
     const base: PlannedDay = { date: d.date, weekday: d.weekday }
-    if (raceDay && d.date === raceDay.date && d.workout) base.workout = d.workout
+    if (((raceDay && d.date === raceDay.date) || pinned.has(d.date)) && d.workout) base.workout = d.workout
+    if (d.pinned || req.pinnedDates?.includes(d.date)) base.pinned = true
     // Siła nie bierze udziału w tasowaniu (to nie jest jednostka biegowa), ale
     // MUSI przetrwać: solver buduje dni od zera, więc bez tego wiersza
     // `reschedule --apply` po cichu kasowałby sesje siłowe z całego tygodnia.
@@ -268,7 +313,7 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
     tradeoffs,
     warnings,
     score: best?.score ?? 0,
-    changed: moved.length > 0 || dropped.length > 0,
+    changed: moved.length > 0 || dropped.length > 0 || days.some((d, i) => d.pinned !== week.days[i]?.pinned),
   }
 }
 

@@ -21,7 +21,7 @@ emits `dist/` and that is what the registry gets. `packaging.test.ts` guards the
 manifests against pointing at `.ts` again, and CI installs the packed tarballs
 and runs the CLI from `node_modules`.
 
-The full suite is 552 tests. Seven of them backtest the engine against a corpus
+The full suite is 585 tests. Seven of them backtest the engine against a corpus
 of real coaching plans; that corpus contains personal data and is not in the
 repository, so without it the suite reports one skipped test in its place —
 visible rather than silent.

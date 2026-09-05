@@ -19,6 +19,9 @@ export interface RaceResult {
   timeSec: number
   name?: string
   terrain?: 'road' | 'trail'
+  /** Explicitly excluded from calibration; kept in the athlete's history. */
+  excluded?: boolean
+  exclusionReason?: string
 }
 
 export type RacePriority = 'A' | 'B' | 'C'
@@ -156,6 +159,8 @@ export interface StrengthSession {
 export interface PlannedDay {
   date: string
   weekday: Weekday
+  /** User decision: preserve this day during automatic proposals. */
+  pinned?: boolean
   /** Brak = dzień wolny (odpoczynek jest jawną częścią metodyki). */
   workout?: PlannedWorkout
   /** Równoległa sesja siłowa — tylko gdy moduł siły jest włączony. */

@@ -45,6 +45,16 @@ beforeAll(() => {
 afterAll(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('binarka CLI pod natywnym Node', () => {
+  it('supports time budgets and mobile export through the actual CLI', () => {
+    run(['plan', '--date', '2026-08-05'])
+    const output = run(['reschedule', '--date', '2026-08-24', '--time', '2026-08-27=35', '--pin', '2026-08-29', '--preparation', '10'])
+    expect(output).toContain('35 min')
+    run(['export', '--what', 'mobile', '--date', '2026-08-04'])
+    expect(readFileSync(join(dir, 'export/2026-08-04-mobile.html'), 'utf-8')).toContain('name="viewport"')
+    expect(run(['adapt', '--help'])).toContain('--prepare')
+    expect(run(['adapt', '--help'])).toContain('--apply')
+  }, 20_000)
+
   it('--help działa (parsowanie całego drzewa komend)', () => {
     const out = run(['--help'])
     for (const cmd of ['plan', 'today', 'week', 'log', 'shift', 'why', 'diff', 'push', 'pull', 'review']) {

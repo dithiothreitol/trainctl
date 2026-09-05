@@ -93,6 +93,7 @@ export async function runExportPicker(
   const what = await select<string>(
     p.exportWhat,
     [
+      { label: ui().improve.mobile, value: 'mobile', hint: ui().improve.mobileExport },
       { label: p.exportPrint, value: 'print', hint: p.exportPrintHint },
       { label: p.exportRace, value: 'race', hint: p.exportRaceHint },
       { label: p.exportPlan, value: 'plan', hint: p.exportPlanHint },
@@ -102,7 +103,7 @@ export async function runExportPicker(
     theme,
   )
   if (!what) return undefined
-  if (what !== 'workout') return { what }
+  if (what !== 'workout' && what !== 'mobile') return { what }
 
   let plan: StoredPlan
   try {
@@ -115,7 +116,7 @@ export async function runExportPicker(
   // filtrujemy po PLANIE, nie po treści podpowiedzi — porównanie z napisem
   // „wolne" działało tylko po polsku
   const withWorkout = new Set(week.days.filter((d) => d.workout).map((d) => d.date))
-  const choices = dayChoices(week).filter((c) => withWorkout.has(c.value))
+  const choices = what === 'mobile' ? dayChoices(week).map(({ disabled, ...choice }) => choice) : dayChoices(week).filter((c) => withWorkout.has(c.value))
   const date = await select(p.whichWorkout, choices, theme)
   return date ? { what, date } : undefined
 }

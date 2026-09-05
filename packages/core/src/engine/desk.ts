@@ -16,6 +16,7 @@
  */
 import type { PlannedWorkout } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
+import { estimateWorkoutMinutes } from './duration.ts'
 
 export interface DeskProfile {
   /** "HH:MM" */
@@ -66,10 +67,7 @@ const toHhmm = (min: number): string =>
 
 /** Szacunek czasu trwania jednostki: dystans × tempo spokojne + narzut. */
 function estimateMinutes(workout: PlannedWorkout): number {
-  const km = workout.distanceKm || 0
-  const paceSec =
-    workout.segments.find((s) => s.pace)?.pace?.hiSecPerKm ?? 330
-  return Math.round((km * paceSec) / 60) + 15 // przebranie/rozruch
+  return estimateWorkoutMinutes(workout)
 }
 
 const QUALITY: ReadonlySet<string> = new Set([
