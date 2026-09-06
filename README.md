@@ -1,10 +1,18 @@
 # trainctl
 
-New in the working tree: reviewed adaptation (`adapt --prepare`, then
-`adapt --apply <id>`), time budgets and pinned days in `reschedule`, transparent
-zone calibration, structured MCP results and `export --what mobile`.
-Missing execution data is now reported as unknown. See the
-[workflow guide](docs/REVIEWED-ADAPTATION.md) for usage and compatibility notes.
+New in 0.3.0: three coaching workflows, available
+through both CLI and MCP:
+
+```sh
+trainctl shorten --minutes 40  # today's session within the total time budget
+trainctl why                   # purpose, dose, phase and placement in this plan
+trainctl review --prepare      # completed week and exact changes for approval
+trainctl adapt --apply <id>    # apply the proposal you reviewed
+```
+
+The 40 minutes include preparation and planned strength. A shorter variant may
+give up the original training purpose; the preview says so. Preparing proposals
+keeps the active plan unchanged. See the [workflow guide](docs/REVIEWED-ADAPTATION.md).
 
 [![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -519,7 +527,7 @@ pnpm install
 pnpm check       # typecheck + tests — what CI runs
 ```
 
-585 tests. Seven of them backtest the engine against the coaching corpus, which
+641 tests. Seven of them backtest the engine against the coaching corpus, which
 is not distributed; without it that suite reports itself as one skipped test
 rather than quietly disappearing.
 

@@ -5,7 +5,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, beforeAll, afterAll } from 'vitest'
 import { cmdExport, cmdPlan, cmdReschedule, cmdShift, cmdToday, cmdWeek } from './commands.ts'
 import { fmtTime, loadPlan } from './planfile.ts'
 import { setLocale } from 'trainctl-core'
@@ -187,3 +187,7 @@ describe('pakiet startowy: jedna połówka, jawny scenariusz, gęsta drabinka', 
     expect(temps[0]).toBeLessThan(10)
   })
 })
+
+// Historical fixtures use a controlled wall clock; production writes protect the real past.
+beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-08-01T12:00:00Z')) })
+afterAll(() => vi.useRealTimers())

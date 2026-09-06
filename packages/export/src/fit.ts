@@ -217,7 +217,7 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
         break
       }
       case 'alternating': {
-        const total = Math.round(seg.distanceKm ?? 0)
+        const total = seg.distanceKm ?? 0
         const pairs = Math.floor(total / 2)
         if (pairs < 1 || !seg.pace) {
           steps.push(distanceStep(f.alternating, total, seg.pace, 0))
@@ -238,6 +238,9 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
           high: 0,
           intensity: 0,
         })
+        const remainder = total - 2 * pairs
+        if (remainder > 0) steps.push(distanceStep(f.faster, Math.min(1, remainder), fast, 0))
+        if (remainder > 1) steps.push(distanceStep(f.slower, remainder - 1, slow, 1))
         break
       }
       case 'progression': {
@@ -252,7 +255,7 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
         for (let i = 0; i < 3; i++) {
           const v = Math.round(from + ((to - from) * i) / 2)
           steps.push(
-            distanceStep(f.progressionPart(i + 1, 3), third, { loSecPerKm: v, hiSecPerKm: v }, 0),
+            distanceStep(f.progressionPart(i + 1, 3), i === 2 ? total - 2 * third : third, { loSecPerKm: v, hiSecPerKm: v }, 0),
           )
         }
         break

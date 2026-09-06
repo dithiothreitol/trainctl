@@ -13,6 +13,10 @@ const n = (value: number) => formatNumber('en', value)
 const km = (value: number) => `${n(value)} km`
 
 export const coreEn = {
+  shorten: {
+    badBudget: 'Use whole minutes: budget and strength 0–1440, preparation 0–120.',
+    repeats: (reps: number, meters: number, pace: string, recovery: number) => `${reps} × ${meters} m at ${pace}/km; ${recovery} s recovery after each repetition`,
+  },
   units: {
     km,
     meters: (value: number) => `${n(value)} m`,
@@ -158,6 +162,8 @@ export const coreEn = {
   },
 
   macro: {
+    raceDurationUnknown: 'Race duration is unknown; no training window can be confirmed.',
+    raceConflict: (date: string) => `Race calendar conflict at ${date}: multiple races in one week or a tune-up during taper. Resolve the calendar explicitly.`,
     raceDateInPast: 'Race date is in the past',
     ultraTaperExtrapolated: 'T-8: ultra — extrapolated, no direct source',
     compressedPlan: (weeks: number) =>
@@ -257,6 +263,7 @@ export const coreEn = {
   },
 
   solver: {
+    blockedStrength: (date: string) => `Strength removed from blocked day ${date}.`,
     badConstraints: 'Invalid time budget or preparation time.',
     pinnedConflict: (date: string) => `Protected day ${date} conflicts with the availability or time budget.`,
     noTime: 'No available time window; the session was dropped rather than compressed.',

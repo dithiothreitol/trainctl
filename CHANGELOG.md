@@ -6,7 +6,52 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
-## [0.2.0] ? 2026-09-05
+## [0.3.0] — 2026-09-06
+
+### Added — everyday coaching workflows
+
+- `shorten --minutes 40` / `trainctl_shorten` saves a single-session proposal,
+  accounting for preparation, recovery and strength. Reduced quality variants
+  preserve pace and bookends; easy replacements explicitly give up the original
+  purpose. Approved exceptions survive adaptation and carry their rationale
+  when moved. All use the existing proposal ID and expiry protections.
+- `why` explains the stored session's goal, phase, dose, neighboring demanding
+  sessions, execution and time constraints; it identifies manual edits.
+- `review --prepare` / `trainctl_review(prepare=true)` combines execution facts
+  with a saved diff for approval, or explains why no change can be prepared.
+  Seven-day reports cover exactly seven dates; refresh includes the 21-day
+  adaptation window. No test result means a request for data, not a timestamp-only
+  recalibration patch. CLI, MCP and agent onboarding support both languages.
+
+### Fixed — training workflow audit
+
+- Generated weeks reconcile actual session distances with their budget. Small
+  budgets no longer force minimum-size quality sessions; lint reports mileage
+  and easy-share deviations instead of suppressing low-volume warnings.
+- Zone-only recalibration preserves approved workout structure and volume.
+  Volume changes are anchored in upcoming weeks; accepted baselines are saved
+  in the plan instead of replaying progression from its original date.
+- Proposals expire at the next local calendar day. Historical date selection
+  cannot bypass protection of past sessions. Manual swaps also respect recorded
+  sessions, race dates, pins and time budgets.
+- Race distance is separate from training volume. Training compliance excludes
+  both planned and actual races. Unknown race duration is no longer 15 minutes.
+- Hill returns count toward distance and duration. FIT and intervals.icu preserve
+  alternating/progression remainders; estimates count the final exported recovery.
+- Conflicting tune-ups are rejected explicitly. Generation respects the preferred
+  long-run day; taper carries frequency forward and reports infeasible schedules.
+  Full-day blocks also remove strength, with a visible trade-off.
+- `log --test-time MM:SS` (MCP: `testTime`) stores the measured segment separately.
+  Whole-session time is never suggested as the test result. Synced completed
+  tests also trigger a request for their missing result.
+- Input validation rejects non-finite numbers, negative distances, malformed
+  times and impossible calendar dates.
+
+Validation: 641 passing tests, including 21 audit regression cases and 35
+coaching-workflow regression cases. Type checks, builds and installation of all
+five packages verified, including CLI workflows, FIT/mobile export and MCP.
+
+## [0.2.0] — 2026-09-05
 
 ### Reviewed adaptation and time-aware scheduling
 

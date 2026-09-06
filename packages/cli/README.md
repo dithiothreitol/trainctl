@@ -24,10 +24,11 @@ git history.
 | `plan` | generate the plan; judges whether your time goal is realistic |
 | `today` / `week` | the session for today / the week, with journal status |
 | `why` | physiological purpose + the research rules behind the session |
+| `shorten --minutes 40` | propose a shorter session, including preparation and strength; show any lost purpose |
 | `log` | record what you actually did |
 | `shift` / `reschedule` | move one session / re-solve the whole week around busy days |
 | `adapt` | compare execution with the plan, propose corrections |
-| `review` | one call instead of pull + adapt + week |
+| `review` | execution and the week ahead; `--prepare` includes exact changes for approval |
 | `push` / `pull` | sync with intervals.icu (→ Garmin/Coros/Wahoo) |
 | `export` | `.fit` for the watch, `.ics` calendar, A4 printout, race-day pack |
 | `desk` | training windows around office hours; the pace-over-feel rule |

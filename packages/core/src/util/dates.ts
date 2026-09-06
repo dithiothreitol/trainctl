@@ -4,7 +4,9 @@ import { messages } from '../i18n/index.ts'
 export function parseIso(iso: string): Date {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
   if (!m) throw new Error(messages().dates.invalidIso(iso))
-  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+  const date = new Date(`${iso}T00:00:00.000Z`)
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== iso) throw new Error(messages().dates.invalidIso(iso))
+  return date
 }
 
 export function toIso(d: Date): string {

@@ -15,6 +15,7 @@ import type {
 } from '../domain/types.ts'
 import { addDays, diffDays, mondayOf } from '../util/dates.ts'
 import { messages } from '../i18n/index.ts'
+import { COACH_STYLE } from './house-style.ts'
 
 /** P-2: tydzień odciążenia po 3 tygodniach ładowania. Współczynnik 0,7 — inż. */
 const DELOAD_EVERY = 4
@@ -125,9 +126,10 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   const tuneUpByWeek = new Map<string, TuneUpRace>()
   for (const r of tuneUps) {
     const ws = mondayOf(r.date)
-    // dwa starty w jednym tygodniu: ważniejszy (B) wygrywa, potem wcześniejszy
+    // A race is a calendar commitment; never silently discard one.
     const prev = tuneUpByWeek.get(ws)
-    if (!prev || (prev.priority === 'C' && r.priority === 'B')) tuneUpByWeek.set(ws, r)
+    if (prev || diffDays(firstWeek, ws) / 7 >= loadWeeks) throw new Error(messages().macro.raceConflict(r.date))
+    tuneUpByWeek.set(ws, r)
   }
 
   const weeks: WeekSkeleton[] = []
@@ -204,9 +206,10 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
     const weeksToGoal = totalWeeks - 1 - i
     const wantsTest =
       !tuneUp &&
+      targetKm >= testDistanceKm(goal) * 4 &&
       !inTaper &&
       !deload &&
-      tuneUps.length === 0 &&
+      !tuneUps.some(r => Math.abs(diffDays(weekStart, r.date)) < CALIBRATION_GAP_WEEKS * 7) &&
       i >= TEST_MIN_WEEK_INDEX &&
       weeksSinceCalibration >= CALIBRATION_GAP_WEEKS &&
       weeksToGoal >= TEST_MIN_WEEKS_TO_GOAL
@@ -225,6 +228,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       deload,
       keepIntensity: inTaper, // T-1
       keepFrequency: inTaper, // T-2
+      ...(inTaper ? { sessionCount: Math.min(new Set(athlete.daysAvailable).size, Math.max(COACH_STYLE.minWorkoutsPerWeek, Math.ceil(loadTarget / COACH_STYLE.typicalKmPerSession))) } : {}),
       // start kontrolny liczy się jako akcent tygodnia (T-12), sprawdzian też (W-13)
       qualitySessions:
         phase === 'race' ? 1 : Math.max(1, qualityPerWeek - (tuneUp || wantsTest ? 1 : 0)),

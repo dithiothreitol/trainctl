@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { parse, stringify } from 'yaml'
 import {
   diffDays,
+  estimateWorkoutMinutes,
   generateMicrocycle,
   getLocale,
   messages,
@@ -37,6 +38,7 @@ export interface PlanChange {
 }
 
 export interface StoredPlan {
+  loadState?: { baselineWeeklyKm: number; effectiveFrom: string }
   schemaVersion?: number
   engineVersion?: string
   calibration?: Calibration
@@ -76,9 +78,13 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   }
   const zones = paceZones(vdot)
   const macro = planMacrocycle({ today, goal, athlete })
-  const weeks = macro.weeks.map((skeleton) =>
-    generateMicrocycle({ skeleton, athlete, zones, goal, testDistanceKm: testDistanceKm(goal) }),
-  )
+  let previousFrequency: number | undefined
+  const weeks = macro.weeks.map((skeleton) => {
+    if (skeleton.keepFrequency && previousFrequency !== undefined) skeleton.sessionCount = previousFrequency
+    const week = generateMicrocycle({ skeleton, athlete, zones, goal, testDistanceKm: testDistanceKm(goal) })
+    if (!skeleton.keepFrequency) previousFrequency = week.days.filter(d => d.workout).length
+    return week
+  })
   if (config.strength?.enabled) applyStrength(weeks, config.strength)
   const plan: StoredPlan = {
     schemaVersion: 1,
@@ -285,7 +291,7 @@ export function renderMarkdown(plan: StoredPlan): string {
   return lines.join('\n')
 }
 
-const QUALITY_KINDS = new Set(['quality_intervals', 'quality_continuous', 'sharpener'])
+const QUALITY_KINDS = new Set(['quality_intervals', 'quality_continuous', 'sharpener', 'test', 'race'])
 
 /** Zamiana treningów między dwoma datami tego samego tygodnia (renegocjacja ręczna). */
 export function shiftWorkout(
@@ -301,20 +307,34 @@ export function shiftWorkout(
   if (from.week.weekStart !== to.week.weekStart) {
     throw new Error(t.sameWeekOnly)
   }
-  const race = from.week.skeleton.raceDate
+  if (from.day.pinned || to.day.pinned) throw new Error(ui().improve.pinnedShift)
+  if (from.day.workout?.kind === 'race' || to.day.workout?.kind === 'race') throw new Error(t.notRaceDay)
+  const race = from.week.days.find(d => d.workout?.kind === 'race')?.date ?? from.week.skeleton.raceDate
   if (race) {
     if (fromDate === race || toDate === race) throw new Error(t.notRaceDay)
     const dayBefore = diffDays(fromDate, race) === 1 ? fromDate : diffDays(toDate, race) === 1 ? toDate : null
-    const moved = from.day.workout
-    if (dayBefore === toDate && moved && QUALITY_KINDS.has(moved.kind)) {
+    const moved = dayBefore === toDate ? from.day.workout : to.day.workout
+    if (dayBefore && moved) {
       throw new Error(t.dayBeforeRaceLight)
     }
   }
+  for (const [day, workout] of [[from.day, to.day.workout], [to.day, from.day.workout]] as const) {
+    const budget = plan.timeBudgets?.[day.date]
+    const minutes = (workout ? estimateWorkoutMinutes(workout, plan.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
+    if (budget !== undefined && minutes > budget) {
+      throw new Error(ui().improve.badBudget)
+    }
+  }
   const tmp = from.day.workout
+  const adjustment = from.day.timeAdjustment
   if (to.day.workout) from.day.workout = to.day.workout
   else delete from.day.workout
   if (tmp) to.day.workout = tmp
   else delete to.day.workout
+  if (to.day.timeAdjustment) from.day.timeAdjustment = to.day.timeAdjustment
+  else delete from.day.timeAdjustment
+  if (adjustment) to.day.timeAdjustment = adjustment
+  else delete to.day.timeAdjustment
 
   const warnings: string[] = []
   const qualityDays = from.week.days

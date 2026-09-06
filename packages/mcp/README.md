@@ -13,12 +13,19 @@ claude mcp add trainctl --env TRAINCTL_DIR="/path/to/my-training" \
 `trainctl.yaml`, `plan/`, `log.jsonl`); without it the server uses the current
 working directory.
 
-Sixteen tools over the same handlers the CLI uses, so the agent and your
+Seventeen tools over the same handlers the CLI uses, so the agent and your
 terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
 `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
 `trainctl_adapt`, `trainctl_desk`, `trainctl_reschedule`, `trainctl_export`,
-`trainctl_review`.
+`trainctl_review`, `trainctl_shorten`.
+
+For “only 40 minutes today”, use `trainctl_shorten({minutes: 40})`; it saves a
+proposal and explains any lost purpose. `trainctl_why` explains the actual
+session in context. For “review my week and show changes to approve”, use
+`trainctl_review({prepare: true})`. Show the returned diff and warnings, then
+call `trainctl_adapt({apply: "<id>"})` after approval. Changed inputs or a new
+local calendar day invalidate the proposal.
 
 `trainctl init` leaves an `AGENTS.md` in the training directory that turns the
 agent into a coach rather than a command runner: ask before regenerating a plan,

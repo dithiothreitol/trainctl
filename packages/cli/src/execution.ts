@@ -19,7 +19,9 @@ export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], l
   return dates.filter((date) => date <= today).map((date): ExecutionRecord => {
     const day = planned.get(date)
     const log = journal.get(date)
-    const plannedKm = day?.workout?.distanceKm ?? 0
+    const plannedKm = day?.workout?.kind === 'race'
+      ? day.workout.raceDistanceKm ?? (plan.goal.date === date ? plan.goal.distanceKm : plan.weeks.find(w => w.skeleton.tuneUp?.date === date)?.skeleton.tuneUp?.distanceKm ?? 0)
+      : day?.workout?.distanceKm ?? 0
     const skipped = log?.status === 'skipped'
     const actualKm = skipped ? 0 : log?.km ?? runs.get(date) ?? (log?.status === 'done' ? plannedKm : undefined)
     const done = !skipped && (log?.status === 'done' || (actualKm ?? 0) > 0)

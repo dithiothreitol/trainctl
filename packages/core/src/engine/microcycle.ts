@@ -36,6 +36,27 @@ const mid = (r: { loSecPerKm: number; hiSecPerKm: number }) =>
  */
 export const kmText = (n: number): string => messages().units.km(n)
 
+/** Change generated pace targets only; distances, recoveries and placement survive. */
+export function recalibrateWorkout(workout: PlannedWorkout, zones: PaceZones, polarized: boolean): PlannedWorkout {
+  const next = structuredClone(workout)
+  for (const s of next.segments) {
+    if (s.type === 'easy' || s.type === 'warmup') {
+      s.pace = workout.kind === 'long'
+        ? { loSecPerKm: zones.easy.hiSecPerKm, hiSecPerKm: zones.easy.hiSecPerKm + 30 } : { ...zones.easy }
+    } else if (s.type === 'intervals') {
+      s.pace = { ...(polarized || workout.kind === 'sharpener' ? zones.interval : zones.threshold) }
+      s.description = s.description.replace(/\d+:\d{2}/g, fmtPace(mid(s.pace)))
+    } else if (s.type === 'progression') {
+      s.pace = { loSecPerKm: mid(zones.threshold), hiSecPerKm: zones.marathon.hiSecPerKm }
+      s.description = messages().workout.progression(s.distanceKm ?? 0, fmtPace(s.pace.hiSecPerKm), fmtPace(s.pace.loSecPerKm))
+    } else if (s.type === 'alternating') {
+      s.pace = { loSecPerKm: zones.threshold.loSecPerKm, hiSecPerKm: zones.easy.loSecPerKm }
+      s.description = messages().workout.alternating(s.distanceKm ?? 0, fmtPace(s.pace.loSecPerKm), fmtPace(s.pace.hiSecPerKm))
+    }
+  }
+  return next
+}
+
 // ------------------------------------------------------------ budowa jednostek
 
 function segWarmup(km: number, z: PaceZones): PlannedSegment {
@@ -88,7 +109,7 @@ function buildHillsDay(easyKm: number, style: HouseStyle, z: PaceZones): Planned
   const repsKm = (style.hillsReps * style.hillsRepM) / 1000
   return {
     kind: 'easy_hills',
-    distanceKm: Math.round(easyKm + repsKm + style.cooldownKm),
+    distanceKm: easyKm + 2 * repsKm + style.cooldownKm,
     ruleRefs: ['I-5'],
     segments: [
       {
@@ -101,7 +122,7 @@ function buildHillsDay(easyKm: number, style: HouseStyle, z: PaceZones): Planned
         type: 'hills',
         reps: style.hillsReps,
         repM: style.hillsRepM,
-        distanceKm: repsKm,
+        distanceKm: 2 * repsKm, // uphill work plus the return to the starting point
         description: messages().workout.hills(style.hillsReps, style.hillsRepM),
       },
       segCooldown(style.cooldownKm),
@@ -228,7 +249,9 @@ function buildRace(goal: RaceGoal): PlannedWorkout {
     kind: 'race',
     distanceKm: 0, // dystans startu nie wlicza się do objętości treningowej tygodnia
     ruleRefs: [],
-    segments: [{ type: 'race', description: messages().workout.raceGoal(goal.name) }],
+    raceDistanceKm: goal.distanceKm,
+    ...(goal.targetTimeSec ? { estimatedRaceTimeSec: goal.targetTimeSec } : {}),
+    segments: [{ type: 'race', distanceKm: goal.distanceKm, description: messages().workout.raceGoal(goal.name) }],
   }
 }
 
@@ -238,8 +261,9 @@ function buildTuneUp(race: TuneUpRace): PlannedWorkout {
   return {
     kind: 'race',
     distanceKm: 0,
+    raceDistanceKm: race.distanceKm,
     ruleRefs: ['T-10', 'T-11', 'T-12'],
-    segments: [{ type: 'race', description: messages().workout.raceOther(what) }],
+    segments: [{ type: 'race', distanceKm: race.distanceKm, description: messages().workout.raceOther(what) }],
   }
 }
 
@@ -279,14 +303,17 @@ export interface MicrocycleInput {
 
 export function generateMicrocycle(input: MicrocycleInput): Microcycle {
   const { skeleton, athlete, zones } = input
-  const style = input.style ?? COACH_STYLE
+  const defaults = input.style ?? COACH_STYLE
+  const style = athlete.longRunDay
+    ? { ...defaults, longRunDayPreference: [athlete.longRunDay, ...defaults.longRunDayPreference.filter(d => d !== athlete.longRunDay)] }
+    : defaults
   const available = WEEKDAY_ORDER.filter((wd) => athlete.daysAvailable.includes(wd))
   const dateOf = (wd: Weekday) => addDays(skeleton.weekStart, WEEKDAY_ORDER.indexOf(wd))
 
   const plan = new Map<Weekday, PlannedWorkout>()
 
   if (skeleton.raceDate && input.goal) {
-    planRaceWeek(plan, skeleton.raceDate, input.goal, available, style, zones, skeleton.weekStart)
+    planRaceWeek(plan, skeleton.raceDate, input.goal, available, style, zones, skeleton.weekStart, skeleton.sessionCount)
   } else {
     planNormalWeek(plan, skeleton, available, style, zones, input.testDistanceKm)
   }
@@ -316,12 +343,13 @@ export function generateMicrocycle(input: MicrocycleInput): Microcycle {
 export function weekTotals(days: PlannedDay[]): { totalKm: number; easyShare: number } {
   const totalKm = days.reduce((sum, d) => sum + (d.workout?.distanceKm ?? 0), 0)
   const z1 = days.reduce((sum, d) => {
-    if (!d.workout) return sum
+    if (!d.workout || d.workout.kind === 'race') return sum
     return (
       sum +
       d.workout.segments
         .filter((s) => s.type === 'easy' || s.type === 'warmup' || s.type === 'cooldown')
-        .reduce((a, s) => a + (s.distanceKm ?? 0), 0)
+        .reduce((a, s) => a + (s.distanceKm ?? 0), 0) +
+      d.workout.segments.filter(s => s.type === 'hills').reduce((a, s) => a + ((s.reps ?? 0) * (s.repM ?? 0)) / 1000, 0)
     )
   }, 0)
   return { totalKm, easyShare: totalKm > 0 ? z1 / totalKm : 1 }
@@ -335,6 +363,7 @@ function planRaceWeek(
   style: HouseStyle,
   zones: PaceZones,
   weekStart: string,
+  sessionCount?: number,
 ): void {
   const raceIdx = diffDays(weekStart, raceDate)
   const raceWd = WEEKDAY_ORDER[raceIdx]
@@ -351,7 +380,7 @@ function planRaceWeek(
       Math.abs(raceIdx - 3 - WEEKDAY_ORDER.indexOf(a)) -
       Math.abs(raceIdx - 3 - WEEKDAY_ORDER.indexOf(b)),
   )[0]
-  for (const wd of before.slice(0, 3)) {
+  for (const wd of before.slice(0, Math.max(0, (sessionCount ?? 4) - 1))) {
     plan.set(wd, wd === sharpenerWd ? buildSharpener(style, zones) : buildEasy(5, zones))
   }
 }
@@ -369,7 +398,7 @@ function planNormalWeek(
   const inTaper = skeleton.phase === 'taper'
   const workoutsCount = Math.min(
     available.length,
-    Math.max(style.minWorkoutsPerWeek, Math.ceil(target / style.typicalKmPerSession)),
+    skeleton.sessionCount ?? Math.max(style.minWorkoutsPerWeek, Math.ceil(target / style.typicalKmPerSession)),
   )
 
   // Start kontrolny / sprawdzian zajmuje swój dzień PRZED rozdaniem reszty:
@@ -453,11 +482,51 @@ function planNormalWeek(
         s +
         w.segments
           .filter((x) => x.type === 'easy' || x.type === 'warmup' || x.type === 'cooldown')
-          .reduce((a, x) => a + (x.distanceKm ?? 0), 0),
+          .reduce((a, x) => a + (x.distanceKm ?? 0), 0) +
+        w.segments.filter(x => x.type === 'hills').reduce((a, x) => a + (x.distanceKm ?? 0) / 2, 0),
       0,
     )
     if (total === 0 || z1 / total >= 0.75 || qualityMainKm <= 3) break
     qualityMainKm -= 1
     buildAll()
+  }
+
+  // Reconcile actual sessions with the macro budget. Minimum-sized accents are
+  // optional; they must never force an unrequested increase in weekly distance.
+  const total = () => [...plan.values()].reduce((n, w) => n + w.distanceKm, 0)
+  const hardKm = () => [...plan.values()].filter(w => w.kind !== 'race').reduce((n, w) => n + w.segments.reduce((a, s) =>
+    a + (['easy', 'warmup', 'cooldown'].includes(s.type) ? 0 : s.type === 'hills' ? (s.distanceKm ?? 0) / 2 : s.distanceKm ?? 0), 0), 0)
+  for (const kind of ['quality_continuous', 'quality_intervals', 'easy_hills'] as const) {
+    for (const [wd, workout] of plan) {
+      if (total() <= target && hardKm() <= target * 0.25) break
+      if (workout.kind === kind) plan.set(wd, buildEasy(0, zones))
+    }
+  }
+  // Distribute the residual only to easy running; keep race/test and long intact.
+  for (const [wd, w] of plan) if (w.kind === 'easy') plan.set(wd, buildEasy(0, zones))
+  const easySlots = [...plan.keys()].filter(wd => plan.get(wd)?.kind === 'easy')
+  for (const wd of free) {
+    if (plan.size >= workoutsCount) break
+    if (!plan.has(wd)) { plan.set(wd, buildEasy(0, zones)); easySlots.push(wd) }
+  }
+  let remaining = Math.max(0, target - total())
+  for (const [i, wd] of easySlots.entries()) {
+    const km = Math.min(18, Math.round(remaining / (easySlots.length - i) * 10) / 10)
+    if (km > 0) plan.set(wd, buildEasy(km, zones))
+    else plan.delete(wd)
+    remaining = Math.max(0, remaining - km)
+  }
+  // An all-quality template can leave no easy slot: release its smallest accent.
+  if (remaining > 0.5 && !easySlots.length) {
+    const replace = [...plan].reverse().find(([, w]) => w.kind === 'quality_continuous' || w.kind === 'easy_hills')
+    if (replace) plan.set(replace[0], buildEasy(Math.min(18, replace[1].distanceKm + remaining), zones))
+  }
+  remaining = Math.max(0, target - total())
+  for (const wd of free) {
+    if (remaining <= 0.05) break
+    if (plan.has(wd)) continue
+    const km = Math.min(18, Math.round(remaining * 10) / 10)
+    plan.set(wd, buildEasy(km, zones))
+    remaining -= km
   }
 }

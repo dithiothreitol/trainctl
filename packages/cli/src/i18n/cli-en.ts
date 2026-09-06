@@ -6,10 +6,12 @@
  */
 import { formatNumber, pluralEn } from 'trainctl-core'
 import { improveEn } from './improve-en.ts'
+import { coachEn } from './coach-en.ts'
 
 const n = (value: number) => formatNumber('en', value)
 
 export const cliEn = {
+  coach: coachEn,
   improve: improveEn,
   /** Opisy komend i flag — to, co widać w `trainctl --help`. */
   cmd: {
@@ -722,7 +724,7 @@ export const cliEn = {
 
   /** What each session kind is for — the physiological purpose, one sentence. */
   kindPurpose: {
-    easy: 'Aerobic volume in the easy zone — the foundation of adaptation, at no recovery cost.',
+    easy: 'Easy running contributes low-intensity kilometers to the weekly training volume.',
     long: 'Long run: base endurance, running economy and resistance to fatigue (durability).',
     easy_hills:
       'Easy running plus hills: specific strength and economy at minimal cost (the coach’s house style).',
@@ -773,7 +775,7 @@ export const cliEn = {
     shiftFrom: 'date of the session to move',
     shiftTo: 'target date (the two sessions are swapped)',
     why:
-      'Explain a session: its physiological purpose plus the rules behind it ' +
+      'Explain the stored session: purpose, race goal, phase, actual dose, neighboring demanding sessions, time budget, execution and manual edits, plus the rules behind it ' +
       '(IDs from docs/science/FOUNDATIONS.md).',
     adapt:
       'Compare execution (sync.json + journal) with the plan and propose corrections: a realistic ' +
@@ -816,7 +818,7 @@ export const cliEn = {
       'the week ahead (phase, volume, key session, races/time trials) and a list of concrete ' +
       'actions. Use THIS instead of calling trainctl_pull + trainctl_adapt + trainctl_week in sequence — ' +
       'e.g. when the user asks “how did I do?” or starts a new week. Works without an API key too ' +
-      '(then from the journal and the last snapshot). Changes nothing in the plan.',
+      '(then from the journal and the last snapshot). Use prepare=true when asked for concrete changes to approve. Show the saved diff and warnings, then call trainctl_adapt(apply=ID) only after approval. The review itself changes nothing in the plan.',
     reviewDays: 'how many days back to summarise, default 7',
     reviewDate: 'reference date (defaults to today)',
     diff:
@@ -843,6 +845,9 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
 
 ## Rituals
 
+- **Only 40 minutes today** → \`trainctl_shorten(minutes=40)\`. The budget includes preparation and strength. Show the exact before/after, any lost purpose and warnings; use the returned ID only after approval. Never silently substitute an easy run for quality work.
+- **Why this workout** → \`trainctl_why\`. Lead with purpose, current phase and the actual dose, then explain placement and sources. Manual edits have no inferred intention.
+- **Review and propose changes** → \`trainctl_review(prepare=true)\`. Show execution gaps and the saved changes. Approve with \`trainctl_adapt(apply=ID)\`; do not regenerate or sync between preview and approval.
 - **Start of the week** → \`trainctl_review\`. One call instead of pull + adapt +
   week. Relay the result in plain language and propose at most two things to do.
 - **Before any change to the week** → \`trainctl_week\` first, to see the context.

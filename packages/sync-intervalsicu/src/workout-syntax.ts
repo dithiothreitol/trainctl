@@ -74,12 +74,15 @@ function segmentSteps(seg: PlannedSegment, easyPace?: PaceRange): string[] {
 
     case 'alternating': {
       // bieg zmienny: naprzemiennie 1 km szybko / 1 km wolno
-      const totalKm = Math.round(seg.distanceKm ?? 0)
+      const totalKm = seg.distanceKm ?? 0
       const fast = seg.pace ? { loSecPerKm: seg.pace.loSecPerKm, hiSecPerKm: seg.pace.loSecPerKm } : undefined
       const slow = seg.pace ? { loSecPerKm: seg.pace.hiSecPerKm, hiSecPerKm: seg.pace.hiSecPerKm } : undefined
       const pairs = Math.floor(totalKm / 2)
       if (!fast || !slow || pairs < 1) return [`- ${distance(totalKm)} ${target}`]
-      return ['', `${pairs}x`, `- 1km ${paceTarget(fast)}`, `- 1km ${paceTarget(slow)}`, '']
+      const remainder = totalKm - 2 * pairs
+      return ['', `${pairs}x`, `- 1km ${paceTarget(fast)}`, `- 1km ${paceTarget(slow)}`, '',
+        ...(remainder > 0 ? [`- ${distance(Math.min(1, remainder))} ${paceTarget(fast)}`] : []),
+        ...(remainder > 1 ? [`- ${distance(remainder - 1)} ${paceTarget(slow)}`] : [])]
     }
 
     case 'progression': {
@@ -93,7 +96,7 @@ function segmentSteps(seg: PlannedSegment, easyPace?: PaceRange): string[] {
         const v = Math.round(from + ((to - from) * i) / 2)
         return { loSecPerKm: v, hiSecPerKm: v }
       }
-      return [0, 1, 2].map((i) => `- ${distance(third)} ${paceTarget(stepPace(i))}`)
+      return [0, 1, 2].map((i) => `- ${distance(i === 2 ? Number((totalKm - 2 * third).toFixed(6)) : third)} ${paceTarget(stepPace(i))}`)
     }
 
     case 'easy':

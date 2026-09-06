@@ -134,13 +134,15 @@ describe('sprawdzian jako fallback (W-13)', () => {
     }
   })
 
-  it('gdy w kalendarzu SĄ starty, sprawdzianów nie ma wcale', () => {
+  it('odległy start nie wyłącza późniejszych sprawdzianów', () => {
     const plan = planMacrocycle({
       today: TODAY,
       goal: marathon,
       athlete: withRaces([{ date: '2026-09-05', priority: 'B' }]),
     })
-    expect(plan.weeks.some((w) => w.testPlanned)).toBe(false)
+    const tests = plan.weeks.filter(w => w.testPlanned)
+    expect(tests.length).toBeGreaterThan(0)
+    expect(tests.every(w => w.weekStart >= '2026-10-19')).toBe(true)
   })
 
   it('odstęp między sprawdzianami co najmniej rytm kalibracji (W-12)', () => {

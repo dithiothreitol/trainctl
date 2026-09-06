@@ -7,7 +7,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { setLocale, weekTotals } from 'trainctl-core'
 import { cmdCheck, cmdPlan, cmdReschedule, cmdShift, cmdToday } from './commands.ts'
 import { loadPlan, writePlan, PLAN_YAML } from './planfile.ts'
@@ -42,11 +42,13 @@ afterAll(() => {
 })
 
 describe('trainctl check', () => {
-  it('świeży plan: bez zastrzeżeń, kod 0', () => {
+  it('świeży plan: jawne ograniczenie częstotliwości, bez błędów pliku', () => {
+    expect(cmdPlan(dir, { date: TODAY }).output).toContain('częstotliwość')
     const r = cmdCheck(dir)
     expect(r.code).toBe(0)
-    expect(r.output).toContain('Bez zastrzeżeń')
-    expect(r.output).toMatch(/17 tygodni/)
+    expect(r.output).toContain('częstotliwość')
+    expect(r.output).not.toContain('Integralność pliku')
+    expect(r.output).toContain('2026-11-23')
   })
 
   it('brak planu: czytelny błąd', () => {
@@ -184,3 +186,7 @@ describe('reschedule --apply zostawia spójne sumy (regresja z lint)', () => {
     }
   })
 })
+
+// Historical fixtures use a controlled wall clock; production writes protect the real past.
+beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-08-01T12:00:00Z')) })
+afterAll(() => vi.useRealTimers())

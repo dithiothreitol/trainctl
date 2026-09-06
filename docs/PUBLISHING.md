@@ -4,8 +4,14 @@
 <https://github.com/dithiothreitol/trainctl>, MIT, Discussions wyłączone,
 prywatne zgłaszanie podatności włączone. Warunek „sezon na sobie" został
 świadomie odpuszczony — decyzja właściciela, nie przeoczenie.
-**Paczki są na npm od 2026-08-08 w wersji 0.1.1** (0.1.0 zdeprecjonowane —
-patrz sekcja o npm niżej); wydania: tagi `v0.1.0` i `v0.1.1`.
+**Bieżące wydanie: 0.3.0 (2026-09-06)** dla wszystkich pięciu paczek.
+Historia wydań: `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.3.0`.
+0.1.0 pozostaje zdeprecjonowane — przyczynę opisano w historycznej sekcji npm.
+
+0.3.0 obejmuje skracanie jednostki do budżetu czasu, wyjaśnianie konkretnego
+treningu i przegląd tygodnia z propozycją do zatwierdzenia, a także poprawki
+z audytu. Walidacja: 641 testów, typy, build oraz instalacja pięciu tarballi
+w osobnym katalogu, z wykonaniem scenariuszy CLI i uruchomieniem MCP.
 
 Poniżej zapis rozumowania, które do tego doprowadziło — zostaje, bo tłumaczy,
 czemu projekt jest otwarty, a korpus nie.

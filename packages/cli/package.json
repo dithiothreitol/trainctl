@@ -1,6 +1,6 @@
 {
   "name": "trainctl",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Running coach in your terminal: training plan as code in a git repo (init/plan/today/why/reschedule/check)",
   "keywords": [
     "running",

@@ -2,7 +2,7 @@
 
 > Plan treningowy jako kod, trener jako narzędzie agenta.
 
-**Status:** **Fazy 0–13 ZAKOŃCZONE** (2026-08-07). Pięć pakietów: silnik (`trainctl-core`) + CLI (`trainctl`, 16 komend, kolorowy TUI, dwujęzyczny) + serwer MCP (`trainctl-mcp`, 16 narzędzi) + sync intervals.icu (`trainctl-sync-intervalsicu`) + eksport (`trainctl-export`: FIT/ICS/wydruk/pakiet startowy); **585 testów**, w tym smoke prawdziwych binarek pod natywnym Node i backtest na korpusie (7 testów, pomijają się bez korpusu). Wydanie 0.1.0 przygotowane: nazwy npm bez scope'u, README każdego pakietu, CI na GitHub Actions (Linux + Windows, Node 22.18 i 24), pliki społecznościowe; **repozytorium publiczne od 2026-08-07 (MIT); npm: 0.1.1 — 0.1.0 zdeprecjonowane, bo publikowało źródło TS (ADR-026)** — stan i decyzje: `docs/PUBLISHING.md`.
+**Status:** **Wydanie 0.3.0** (2026-09-06). Pięć pakietów: silnik (`trainctl-core`), CLI (`trainctl`, 17 komend, dwujęzyczny), MCP (`trainctl-mcp`, 17 narzędzi), sync intervals.icu (`trainctl-sync-intervalsicu`) i eksport (`trainctl-export`). **641 testów**, w tym uruchomienia binarek pod natywnym Node i backtest na korpusie (7 testów, pomijają się bez korpusu). Nowe scenariusze: skracanie jednostki do budżetu czasu, wyjaśnienia w kontekście oraz przegląd tygodnia z propozycją do zatwierdzenia; włączono również poprawki z audytu 0.2.0. Repozytorium publiczne od 2026-08-07 (MIT). Historia i procedura wydania: `docs/PUBLISHING.md`.
 
 **Sync zweryfikowany e2e na żywym koncie 2026-08-05** (szczegóły: `docs/integrations/intervalsicu.md` §2a) — składnia treningów parsowana poprawnie, cele tempa zapisane, idempotencja działa. Otwarte: dostarczenie na fizyczny zegarek — wymaga zegarka spiętego z intervals.icu **bezpośrednio**, nie przez Stravę (§1.8.1). Dalej: kolejne sporty (`SportModule`), REST API/hosting.
 
@@ -69,10 +69,10 @@ trainctl/
 │  │   ├─ zones/         VDOT / critical speed → strefy temp; predykcja; upał
 │  │   ├─ i18n/          locale, katalogi domenowe en/pl
 │  │   └─ ports/         SyncProvider (interfejsy)
-│  ├─ cli/               16 komend: init|plan|today|week|log|shift|why|adapt|desk|
-│  │                     push|pull|export|reschedule|review|diff|check (cienki adapter;
+│  ├─ cli/               17 komend: init|plan|today|week|log|shift|why|adapt|desk|
+│  │                     push|pull|export|reschedule|review|diff|check|shorten (cienki adapter;
 │  │                     storage = pliki na cwd: trainctl.yaml, plan/, log.jsonl — ADR-007)
-│  ├─ mcp/               serwer MCP, 16 narzędzi — te same handlery co CLI (ADR-008)
+│  ├─ mcp/               serwer MCP, 17 narzędzi — te same handlery co CLI (ADR-008)
 │  ├─ sync-intervalsicu/ adapter SyncProvider (hub → Garmin/Coros/Wahoo)
 │  └─ export/            FIT (zegarek), ICS (kalendarz), HTML (wydruk, pakiet startowy)
 ├─ tools/corpus/         ETL korpusu (Python, narzędzia jednorazowe — nie produkt)

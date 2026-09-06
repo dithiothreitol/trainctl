@@ -2,7 +2,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cmdDiff, cmdInit, cmdLog, cmdPlan, cmdShift, cmdToday, cmdWhy } from './commands.ts'
 import { loadPlan } from './planfile.ts'
 import { setLocale } from 'trainctl-core'
@@ -136,17 +136,17 @@ describe('trainctl log', () => {
 describe('trainctl shift', () => {
   it('zamienia treningi w obrębie tygodnia', () => {
     const before = loadPlan(dir)
-    const tueKind = before.weeks[0]!.days[1]!.workout?.kind
-    const r = cmdShift(dir, { from: '2026-08-04', to: '2026-08-05' })
+    const tueKind = before.weeks[1]!.days[1]!.workout?.kind
+    const r = cmdShift(dir, { from: '2026-08-11', to: '2026-08-12' })
     expect(r.code).toBe(0)
     const after = loadPlan(dir)
-    expect(after.weeks[0]!.days[2]!.workout?.kind).toBe(tueKind)
+    expect(after.weeks[1]!.days[2]!.workout?.kind).toBe(tueKind)
     expect(after.changes).toHaveLength(1)
   })
 
   it('ostrzega przy złamaniu I-7 (akcenty dzień po dniu)', () => {
     // wtorkowy akcent stoi teraz w środę; przesunięcie niedzielnego na czwartek daje gap 1
-    const r = cmdShift(dir, { from: '2026-08-09', to: '2026-08-06' })
+    const r = cmdShift(dir, { from: '2026-08-16', to: '2026-08-13' })
     expect(r.code).toBe(0)
     expect(r.output).toContain('I-7')
   })
@@ -179,3 +179,7 @@ describe('trainctl diff', () => {
     expect(r.output).toContain('trainctl plan')
   })
 })
+
+// Historical fixtures use a controlled wall clock; production writes protect the real past.
+beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-08-01T12:00:00Z')) })
+afterAll(() => vi.useRealTimers())

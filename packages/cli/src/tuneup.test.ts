@@ -115,7 +115,7 @@ describe('pętla kalibracji: pomiar → wynik → strefy', () => {
   beforeEach(() => setup(WITH_RACES))
 
   it('wykonany start bez wyniku w results → propozycja wpisania go', () => {
-    cmdLog(dir, { date: '2026-09-05', status: 'done', time: '39:20' })
+    cmdLog(dir, { date: '2026-09-05', status: 'done', time: '39:20', testTime: '39:20' })
     const r = cmdAdapt(dir, { date: '2026-09-08' })
     expect(r.code).toBe(0)
     expect(r.output).toContain('recalibrate-zones')

@@ -1,5 +1,15 @@
 import type { improveEn } from './improve-en.ts'
 export const improvePl: typeof improveEn = {
+  expiredProposal: 'Propozycja wygasła. Przygotuj i przejrzyj nową propozycję dzisiaj.',
+  pastWrite: 'Nie można zmieniać dni przeszłych lub zapisanych w dzienniku.',
+  pinnedShift: 'Przed przesunięciem jawnie odblokuj przypięty dzień.',
+  badDistance: 'Dystans musi być skończoną liczbą nieujemną.',
+  skippedMetrics: 'Opuszczony trening nie może mieć dystansu ani czasu wykonania.',
+  testTime: 'czas samego sprawdzianu lub startu, bez rozgrzewki i schłodzenia',
+  testTimeOnly: 'Czas pomiaru dotyczy wykonanego testu lub startu i nie może przekraczać czasu całej sesji.',
+  unknownDuration: 'Czas startu nieznany; podaj cel czasowy, aby uzyskać szacunek.',
+  targetMismatch: (date: string, expected: number, actual: number) => `Tydzień ${date}: cel ${expected} km, rozpisano ${actual} km.`,
+  frequencyMismatch: (date: string, expected: number, actual: number) => `${date}: zadana częstotliwość ${expected}, rozpisane sesje ${actual}.`,
   diagnosis: 'Diagnoza', proposals: 'Propozycje',
   prepare: 'zapisz konkretną propozycję adaptacji do przejrzenia',
   apply: 'zastosuj zapisane ID propozycji po przejrzeniu zmian',

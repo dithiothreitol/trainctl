@@ -10,6 +10,7 @@ import {
   estimateWorkoutMinutes,
   messages,
   mondayOf,
+  parseIso,
   planDeskDay,
   reschedule,
   validatePlan,
@@ -29,7 +30,6 @@ import { ui } from './i18n/index.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, logFor, parseTime, readLog, type LogEntry } from './logfile.ts'
 import {
-  applyStrength,
   computePlan,
   findDay,
   fmtTime,
@@ -49,7 +49,8 @@ import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 import { buildExecution, isRunningActivity } from './execution.ts'
 import { resultKey } from './calibration.ts'
-import { applyProposal, prepareProposal, type PlanProposal } from './proposals.ts'
+import { applyProposal, prepareProposal, prepareShortening, type PlanProposal } from './proposals.ts'
+import { explainSession } from './explain-session.ts'
 export { buildExecution } from './execution.ts'
 
 /** Prefiks identyfikatorów, które tworzy `trainctl` — granica tego, co wolno nam kasować. */
@@ -254,6 +255,8 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
     const today = opts.date ?? localToday()
     const config = loadConfig(cwd)
     const plan = computePlan(config, today)
+    const issues = validatePlan(plan)
+    if (issues.some(issue => issue.severity === 'error')) throw new Error(issues.map(describeIssue).join('\n'))
     writePlan(cwd, plan)
 
     const weeksToRace = plan.weeks.length
@@ -320,12 +323,13 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
       blocks.push(b.blank())
       for (const w of plan.feasibilityWarnings) blocks.push(b.warn(w))
     }
+    for (const issue of issues) blocks.push(b.warn(describeIssue(issue)))
     blocks.push(
       b.blank(),
       b.success(ui().common.saved(`${PLAN_YAML} + ${PLAN_MD}`)),
       b.hint('trainctl today · trainctl week · trainctl why'),
     )
-    return okDoc(blocks, { plan })
+    return okDoc(blocks, { plan, issues })
   } catch (e) {
     return fail(e)
   }
@@ -358,7 +362,7 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
       const w = day.workout
       blocks.push(
         b.panel(
-          `${kindLabel(w.kind)} · ${w.distanceKm} km`,
+          `${kindLabel(w.kind)} · ${w.raceDistanceKm ?? w.distanceKm} km`,
           [workoutText(day)],
           KIND_COLOR[w.kind] ?? 'accent',
         ),
@@ -391,7 +395,8 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
       )
     }
     if (day.workout) blocks.push(b.hint(ui().today.whyHint(date)))
-    return okDoc(blocks, { date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null, estimatedMinutes: day.workout ? estimateWorkoutMinutes(day.workout) + (day.strength?.durationMin ?? 0) : day.strength?.durationMin ?? 0 })
+    const estimatedMinutes = (day.workout ? estimateWorkoutMinutes(day.workout) : 0) + (day.strength?.durationMin ?? 0)
+    return okDoc(blocks, { date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null, estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : null })
   } catch (e) {
     return fail(e)
   }
@@ -417,7 +422,7 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
       rows.push([
         weekdayShort(day.weekday),
         day.date.slice(5),
-        day.workout ? `${day.workout.distanceKm} km` : '—',
+        day.workout ? `${day.workout.raceDistanceKm ?? day.workout.distanceKm} km` : '—',
         day.workout ? `${workoutText(day)}${strength}${mark}` : `${ui().week.rest}${strength}`,
       ])
       accents.push(kind ? KIND_COLOR[kind] : 'muted')
@@ -447,6 +452,7 @@ export function cmdLog(
     status?: string | undefined
     km?: string | undefined
     time?: string | undefined
+    testTime?: string | undefined
     rpe?: string | undefined
     note?: string | undefined
   } = {},
@@ -465,11 +471,17 @@ export function cmdLog(
     if (rpe !== undefined && (!Number.isInteger(rpe) || rpe < 1 || rpe > 10)) {
       return fail(new Error(ui().log.badRpe(String(opts.rpe))))
     }
+    if (opts.km !== undefined && (!opts.km.trim() || !Number.isFinite(Number(opts.km)) || Number(opts.km) < 0)) throw new Error(ui().improve.badDistance)
+    const testTimeSec = opts.testTime === undefined ? undefined : parseTime(opts.testTime)
+    if (testTimeSec !== undefined && (status === 'skipped' || !['test', 'race'].includes(findDay(plan, date)?.day.workout?.kind ?? ''))) throw new Error(ui().improve.testTimeOnly)
+    if (status === 'skipped' && ((Number(opts.km) || 0) > 0 || opts.time !== undefined)) throw new Error(ui().improve.skippedMetrics)
+    if (testTimeSec !== undefined && opts.time && testTimeSec > parseTime(opts.time)) throw new Error(ui().improve.testTimeOnly)
     appendLog(cwd, {
       date,
       status,
       ...(opts.km ? { km: Number(opts.km) } : {}),
       ...(opts.time ? { timeSec: parseTime(opts.time) } : {}),
+      ...(testTimeSec !== undefined ? { testTimeSec } : {}),
       ...(rpe !== undefined ? { rpe } : {}),
       ...(opts.note ? { note: opts.note } : {}),
       loggedAt: new Date().toISOString(),
@@ -482,8 +494,15 @@ export function cmdLog(
 
 export function cmdShift(cwd: string, opts: { from: string; to: string }): CmdResult {
   try {
+    if (opts.from < localToday() || opts.to < localToday()) throw new Error(ui().improve.pastWrite)
     const plan = loadPlan(cwd)
+    const recorded = new Set(readLog(cwd).map(l => l.date))
+    for (const a of readSnapshot(cwd)?.activities ?? []) if (isRunningActivity(a) && (a.distanceKm ?? 0) > 0) recorded.add(a.date)
+    if (recorded.has(opts.from) || recorded.has(opts.to)) throw new Error(ui().improve.pastWrite)
     const { warnings } = shiftWorkout(plan, opts.from, opts.to)
+    const issues = validatePlan(plan)
+    if (issues.some(i => i.severity === 'error')) throw new Error(ui().improve.invalidProposal)
+    warnings.push(...issues.map(describeIssue))
     plan.changes.push({
       at: localToday(),
       action: 'shift',
@@ -502,11 +521,14 @@ export function cmdShift(cwd: string, opts: { from: string; to: string }): CmdRe
 export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
   try {
     const date = opts.date ?? localToday()
+    parseIso(date)
     const plan = loadPlan(cwd)
     const hit = findDay(plan, date)
     if (!hit) return ok(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', plan.goal.date))
     const { week, day } = hit
     const sk = week.skeleton
+    const execution = buildExecution(plan, readSnapshot(cwd)?.activities ?? [], readLog(cwd), localToday()).find(e => e.date === date)
+    const explanation = explainSession(plan, week, day, execution)
     const blocks: Block[] = [
       b.title(
         ui().why.title(date),
@@ -514,6 +536,10 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
           (sk.deload ? ` · ${ui().why.deloadWeek}` : ''),
       ),
     ]
+    blocks.push(b.section(ui().coach.context), b.text(explanation.purpose), b.bullets(explanation.context))
+    if (explanation.dose.length) blocks.push(b.section(ui().coach.dose), b.bullets(explanation.dose))
+    blocks.push(Number.isFinite(explanation.estimatedMinutes) && explanation.estimatedMinutes !== null
+      ? b.info(ui().improve.minuteEstimate(explanation.estimatedMinutes)) : b.info(ui().improve.unknownDuration))
     blocks.push(b.section(ui().improve.calibration))
     if (plan.calibration) {
       blocks.push(b.text(ui().improve.calibrationPolicy), b.bullets(plan.calibration.candidates.map((c) =>
@@ -523,7 +549,7 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
     blocks.push(b.section(ui().improve.evidence), b.bullets(evidence.map((e) => e.id + ': ' + ui().improve[e.origin])))
     if (!day.workout && !day.strength) {
       blocks.push(b.text(ui().why.restDay))
-      return okDoc(blocks, { day, calibration: plan.calibration ?? null, evidence })
+      return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, evidence })
     }
     if (day.strength) {
       blocks.push(
@@ -535,12 +561,12 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
       if (refs.length) blocks.push(b.section(ui().why.strengthRules), b.bullets(refs))
       if (!day.workout) {
         blocks.push(b.blank(), b.hint(ui().why.sourcesHint('§10.8')))
-        return okDoc(blocks, { day, calibration: plan.calibration ?? null, evidence })
+        return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, evidence })
       }
       blocks.push(b.blank())
     }
     const workout = day.workout
-    if (!workout) return okDoc(blocks, { day, calibration: plan.calibration ?? null, evidence })
+    if (!workout) return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, evidence })
     blocks.push(
       b.panel(kindLabel(workout.kind), [kindPurpose(workout.kind)],
         KIND_COLOR[workout.kind] ?? 'accent'),
@@ -549,7 +575,7 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
     const explained = refs.filter(ruleExplain).map((r) => `${r} — ${ruleExplain(r)}`)
     if (explained.length) blocks.push(b.section(ui().why.rules), b.bullets(explained))
     blocks.push(b.blank(), b.hint(ui().why.sourcesHint('§10')))
-    return okDoc(blocks, { day, calibration: plan.calibration ?? null, evidence })
+    return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, evidence })
   } catch (e) {
     return fail(e)
   }
@@ -710,8 +736,7 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
         const isTuneUp = d.workout?.kind === 'race' && tuneUpByDate.has(d.date)
         if (!isTest && !isTuneUp) return false
         if (resultDates.has(d.date)) return false
-        const log = logs.filter((l) => l.date === d.date).at(-1)
-        return log?.status !== 'skipped' && (log?.status === 'done' || (log?.timeSec ?? 0) > 0)
+        return execution.some(e => e.date === d.date && e.status === 'done')
       })
       .map((d) => {
         const log = logs.filter((l) => l.date === d.date).at(-1)
@@ -722,7 +747,7 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
         return {
           date: d.date,
           distanceKm: measured,
-          ...(log?.timeSec ? { timeSec: log.timeSec } : {}),
+          ...(log?.testTimeSec ? { timeSec: log.testTimeSec } : {}),
         }
       })
 
@@ -797,8 +822,27 @@ function proposalBlocks(saved: PlanProposal): Block[] {
     b.info(ui().improve.protected), b.info(ui().improve.changedConfig),
     b.table([ui().improve.date, ui().week.columns.km], saved.plan.weeks.filter((w) => w.days.some((d) => saved.changes.some((c) => c.date === d.date))).map((w) => [w.weekStart, String(w.totalKm)])),
     ...validatePlan(saved.plan).map((issue) => b.warn(describeIssue(issue))),
-    b.hint(ui().improve.proposalSaved(saved.id)),
+    b.hint(ui().coach.applyHint(saved.id)),
   ]
+}
+
+export function cmdShorten(cwd: string, opts: { date?: string | undefined; minutes?: string | number | undefined; apply?: string | undefined } = {}): CmdResult {
+  try {
+    if (opts.apply) {
+      if (opts.minutes !== undefined || opts.date !== undefined) throw new Error(ui().coach.options)
+      return cmdAdapt(cwd, { apply: opts.apply })
+    }
+    if (opts.minutes === undefined || String(opts.minutes).trim() === '') throw new Error(ui().coach.options)
+    const date = opts.date ?? localToday()
+    const { adjustment, proposal } = prepareShortening(cwd, date, Number(opts.minutes))
+    if (!adjustment) return okDoc([b.info(ui().coach.noWorkout)], { date, adjustment: null, prepared: null })
+    const t = ui().coach
+    const blocks: Block[] = [b.title(t.shortenTitle(date)), b.info(t.budget(adjustment.budgetMinutes, adjustment.preparationMinutes, adjustment.strengthMinutes)),
+      b.text(t[adjustment.reason]), b.info(t.estimates(String(adjustment.beforeMinutes ?? t.unknown), String(adjustment.afterMinutes ?? t.unknown)))]
+    if (adjustment.status !== 'unchanged') blocks.push(b.info(t.heuristic))
+    if (proposal) blocks.push(...proposalBlocks(proposal))
+    return okDoc(blocks, { date, adjustment, prepared: proposal ? { id: proposal.id, changes: proposal.changes, protectedDates: proposal.protectedDates } : null })
+  } catch (e) { return fail(e) }
 }
 
 export function cmdDesk(
@@ -906,7 +950,7 @@ export function cmdReschedule(
       preparationMinutes,
       pinnedDates: opts.pin ?? [],
       fixedDates: [...new Set([
-        ...week.days.filter((d) => d.date < date).map((d) => d.date),
+        ...week.days.filter((d) => d.date < date || d.date < localToday()).map((d) => d.date),
         ...readLog(cwd).filter((l) => week.days.some((d) => d.date === l.date)).map((l) => l.date),
         ...(readSnapshot(cwd)?.activities ?? []).filter((a) => isRunningActivity(a) && (a.distanceKm ?? 0) > 0 && week.days.some((d) => d.date === a.date)).map((a) => a.date),
       ])],
@@ -966,7 +1010,7 @@ export function cmdReschedule(
     )
     for (const w of result.warnings) blocks.push(b.warn(w))
 
-    blocks.push(b.section(ui().improve.budgetSummary), b.bullets(budgetRows.map((r) => r.date + ': ' + r.minutes + ' min' + (r.budget === null ? '' : ' / ' + r.budget + ' min'))))
+    blocks.push(b.section(ui().improve.budgetSummary), b.bullets(budgetRows.map((r) => r.date + ': ' + (Number.isFinite(r.minutes) ? r.minutes + ' min' : ui().improve.unknownDuration) + (r.budget === null ? '' : ' / ' + r.budget + ' min'))))
     if (JSON.stringify(alternative.days) !== JSON.stringify(result.days)) {
       blocks.push(b.section(ui().improve.alternatives), b.bullets(alternative.tradeoffs),
         b.hint('--strategy ' + (request.strategy === 'long' ? 'quality' : 'long')))
@@ -976,13 +1020,8 @@ export function cmdReschedule(
       // Solver mógł odpuścić sesję (dropped) — bez przeliczenia totalKm/easyShare
       // zapisany plan kłamałby w sumach i `trainctl check` miałby rację, czerwieniejąc.
       Object.assign(week, weekTotals(week.days))
-      // Bieganie się przesunęło, więc sesje siłowe mogły trafić obok akcentu.
-      // Solver zachował je na miejscu (to nie jego domena) — tu je przeliczamy,
-      // bo dopiero ta warstwa zna konfigurację siły.
-      if (config.strength?.enabled && !constraintsChanged && !request.fixedDates.length && !Object.keys(timeBudgets).length && !week.days.some((d) => d.pinned)) {
-        applyStrength([week], config.strength)
-        for (const note of week.strengthNotes ?? []) blocks.push(b.info(note))
-      }
+      // Strength stays on its day except on explicit full-day blocks. The final
+      // lint reports new running/strength conflicts without undoing those blocks.
       plan.changes.push({
         at: localToday(),
         action: 'reschedule',
@@ -1055,13 +1094,16 @@ export function cmdExport(
  */
 export async function cmdReview(
   cwd: string,
-  opts: { date?: string | undefined; days?: string | undefined } = {},
+  opts: { date?: string | undefined; days?: string | undefined; prepare?: boolean | undefined } = {},
   factory: ProviderFactory = defaultProviderFactory,
 ): Promise<CmdResult> {
   try {
     const today = opts.date ?? localToday()
-    const days = Math.abs(Number(opts.days ?? 7)) || 7
-    const from = addDays(today, -days)
+    parseIso(today)
+    const days = Number(opts.days ?? 7)
+    if (!Number.isInteger(days) || days < 1 || days > 365) throw new Error(ui().coach.badDays)
+    const from = addDays(today, 1 - days)
+    const syncFrom = addDays(today, 1 - Math.max(days, 21))
     const plan = loadPlan(cwd)
     const config = loadConfig(cwd)
 
@@ -1071,10 +1113,10 @@ export async function cmdReview(
       try {
         const provider = factory(cwd)
         const [activities, wellness] = await Promise.all([
-          provider.listActivities(from, today),
-          provider.listWellness(from, today).catch(() => []),
+          provider.listActivities(syncFrom, today),
+          provider.listWellness(syncFrom, today).catch(() => []),
         ])
-        writeSnapshot(cwd, { pulledAt: today, from, to: today, activities, wellness })
+        writeSnapshot(cwd, { pulledAt: today, from: syncFrom, to: today, activities, wellness })
       } catch (e) {
         notes.push(ui().review.refreshFailed(e instanceof Error ? e.message : String(e)))
       }
@@ -1091,12 +1133,14 @@ export async function cmdReview(
       ),
     ]
     for (const n of notes) blocks.push(b.info(n))
+    blocks.push(b.info(ui().coach.reviewWindow(from, today, days)))
 
     // 2) co się wydarzyło — te same porównania co w trainctl pull
     const rows = compare(plan, snapshot?.activities ?? [], from, today, logs)
     const plannedKm = rows.reduce((s, r) => s + r.plannedKm, 0)
     const actualKm = rows.reduce((s, r) => s + (r.actualKm ?? 0), 0)
-    const done = rows.filter((r) => r.status === 'matched' || r.status === 'longer').length
+    const execution = buildExecution(plan, snapshot?.activities ?? [], logs, today).filter(e => e.date >= from)
+    const done = execution.filter(e => e.status === 'done').length
     const missed = rows.filter((r) => r.status === 'missed')
     blocks.push(
       b.section(ui().review.pastWeek),
@@ -1108,6 +1152,10 @@ export async function cmdReview(
           : []),
       ]),
     )
+    blocks.push(b.section(ui().coach.reviewFacts), b.table([ui().improve.date, ui().improve.before, ui().improve.after, ui().improve.data],
+      execution.filter(e => e.kind || e.status === 'unplanned').map(e => [e.date, `${e.plannedKm} km`, e.actualKm === undefined ? ui().compare.unknown : `${e.actualKm} km`, ui().coach.status[e.status]])))
+    const unknown = execution.filter(e => e.status === 'unknown').map(e => e.date)
+    if (unknown.length) blocks.push(b.warn(ui().coach.reviewUnknown(unknown.join(', '))))
 
     // 2b) ślad subiektywny — dziennik cytowany dosłownie, po jednym wpisie na
     // datę (późniejszy nadpisuje wcześniejszy, jak w logFor). Żadnej agregacji
@@ -1127,6 +1175,7 @@ export async function cmdReview(
 
     // 3) sygnały adaptacji — sekcja pojawia się tylko wtedy, gdy jest co powiedzieć
     const adapt = cmdAdapt(cwd, { date: today })
+    if (adapt.code !== 0) return adapt
     const adaptation = adapt.data?.proposal as ReturnType<typeof analyzeExecution> | undefined
     const meaningful = adaptation?.actions.some((a) => a.type !== 'hold-course') === true
     if (adapt.code === 0 && meaningful) {
@@ -1142,13 +1191,15 @@ export async function cmdReview(
     // a gdy jest już wybiegany do końca — następny
     const thisWeekStart = mondayOf(today)
     const thisWeek = plan.weeks.find((w) => w.weekStart === thisWeekStart)
-    const hasFuture = thisWeek?.days.some((d) => d.date >= today && d.workout) === true
+    const finishedDates = new Set(execution.filter(e => e.status === 'done' || e.status === 'missed').map(e => e.date))
+    const isUpcoming = (d: { date: string; workout?: PlannedWorkout }) => d.workout && d.date >= today && !finishedDates.has(d.date)
+    const hasFuture = thisWeek?.days.some(isUpcoming) === true
     const week =
       (hasFuture ? thisWeek : plan.weeks.find((w) => w.weekStart === mondayOf(addDays(today, 7)))) ??
       plan.weeks.find((w) => w.days.some((d) => d.date >= today))
     if (week) {
       const sk = week.skeleton
-      const upcoming = week.days.filter((d) => d.workout)
+      const upcoming = week.days.filter(isUpcoming)
       blocks.push(
         b.section(ui().review.ahead(week.weekStart)),
         b.kv([
@@ -1195,7 +1246,21 @@ export async function cmdReview(
       )
     }
     blocks.push(b.section(ui().review.todo), b.bullets(todo))
-    return okDoc(blocks, { rows, adaptation: adaptation ?? null, upcoming: week ?? null, notes })
+    let prepared: { id: string; changes: PlanProposal['changes']; protectedDates: string[]; vdot: number } | null = null
+    let preparation: { status: 'not-requested' | 'prepared' | 'no-change' | 'blocked'; reason?: string } = { status: 'not-requested' }
+    if (opts.prepare && adaptation) {
+      try {
+        const saved = prepareProposal(cwd, today, adaptation)
+        prepared = { id: saved.id, changes: saved.changes, protectedDates: saved.protectedDates, vdot: saved.plan.vdot }
+        preparation = { status: 'prepared' }
+        blocks.push(...proposalBlocks(saved))
+      } catch (e) {
+        const reason = e instanceof Error ? e.message : String(e)
+        preparation = { status: reason === ui().improve.noPatch ? 'no-change' : 'blocked', reason }
+        blocks.push(reason === ui().improve.noPatch ? b.info(ui().coach.reviewNoChange) : b.warn(ui().coach.reviewBlocked(reason)))
+      }
+    } else blocks.push(b.hint(ui().coach.reviewHint))
+    return okDoc(blocks, { rows, execution, period: { from, to: today, days }, adaptation: adaptation ?? null, upcoming: week ?? null, notes, preparation, prepared })
   } catch (e) {
     return fail(e)
   }
@@ -1236,6 +1301,12 @@ function describeIssue(issue: PlanIssue): string {
       break
     case 'weekdayMismatch':
       text = t.weekdayMismatch(issue.date, weekdayLabel(issue.kind), weekdayLabel(issue.otherKind))
+      break
+    case 'targetKmMismatch':
+      text = ui().improve.targetMismatch(issue.date, issue.expected ?? 0, issue.actual ?? 0)
+      break
+    case 'frequencyMismatch':
+      text = ui().improve.frequencyMismatch(issue.date, issue.expected ?? 0, issue.actual ?? 0)
       break
     case 'totalKmDesync':
       text = t.totalKmDesync(issue.date, issue.expected ?? 0, issue.actual ?? 0)

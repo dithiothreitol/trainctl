@@ -1825,6 +1825,24 @@ rzeczy, które brzmią jak wiedza, a nią nie są.
 
 ---
 
+### 10.14 `engine/shorten.ts` — ograniczony czas (wybór inżynierski)
+
+**E-1** — jednorazowe skrócenie jednostki pod zadany budżet czasu. To jawna
+heurystyka produktu, bez badania potwierdzającego równoważność wariantu z oryginałem.
+Budżet obejmuje przygotowanie (domyślnie 15 minut), bieganie, wszystkie zapisane
+przerwy oraz zaplanowaną siłę. Szacunek używa wolniejszej granicy tempa.
+
+Silnik zachowuje rozgrzewkę, schłodzenie, spokojne wprowadzenie przed podbiegami,
+tempa i długości przerw. Odejmuje całe powtórzenia (minimum 2 i co najmniej połowa
+pierwotnej liczby) albo dystans co 0,1 km. Wariant ciągłego akcentu zachowuje
+co najmniej połowę głównego odcinka, długiego biegu — 60% dystansu. Jeśli te
+ograniczenia nie pozwalają zmieścić jednostki, proponuje spokojny zamiennik
+z jawną informacją o utracie pierwotnego celu. Spokojny wariant wymaga co najmniej
+15 minut biegu liczonych po szybszej granicy tempa; nie wydłuża oryginału.
+Wartości 2, 50%, 60%, 0,1 km i 15 minut są progami inżynierskimi, nie zaleceniami
+fizjologicznymi. Starty i sprawdziany nie są skracane. Brak wykonalnego wariantu
+prowadzi do komunikatu o przesunięciu treningu lub dniu wolnym, bez zmiany planu.
+
 ## 11. DO WERYFIKACJI
 
 Rzeczy, których **nie** potwierdzono z pierwszej ręki. Nic z tej listy nie powinno

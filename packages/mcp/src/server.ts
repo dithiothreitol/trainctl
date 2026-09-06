@@ -22,6 +22,7 @@ import {
   cmdReschedule,
   cmdReview,
   cmdShift,
+  cmdShorten,
   cmdToday,
   cmdWeek,
   cmdWhy,
@@ -107,6 +108,7 @@ export function createTrainctlServer(
         status: z.enum(['done', 'skipped', 'modified']).optional().describe(t.logStatus),
         km: z.string().optional().describe(t.logKm),
         time: z.string().optional().describe(t.logTime),
+        testTime: z.string().optional().describe(ui().improve.testTime),
         rpe: z.string().optional().describe(t.logRpe),
         note: z.string().optional().describe(t.logNote),
       },
@@ -166,6 +168,21 @@ export function createTrainctlServer(
       },
     },
     async (args) => toTool(cmdDesk(dir, args)),
+  )
+
+  server.registerTool(
+    'trainctl_shorten',
+    {
+      description: ui().coach.shortenMcp,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: false, openWorldHint: false },
+      inputSchema: {
+        date: isoDate().optional(),
+        minutes: z.number().int().min(0).max(1440).optional().describe(ui().coach.minutes),
+        apply: z.string().optional().describe(ui().improve.apply),
+      },
+    },
+    async (args) => toTool(cmdShorten(dir, args)),
   )
 
   server.registerTool(
@@ -236,6 +253,7 @@ export function createTrainctlServer(
       inputSchema: {
         days: z.string().optional().describe(t.reviewDays),
         date: isoDate().optional().describe(t.reviewDate),
+        prepare: z.boolean().optional().describe(ui().coach.reviewPrepare),
       },
     },
     async (args) => toTool(await cmdReview(dir, args, factory)),

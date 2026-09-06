@@ -23,8 +23,10 @@ const sesje = (count: number) =>
   `${count} ${pluralPl(count, { one: 'sesja', few: 'sesje', other: 'sesji' })}`
 
 import { improvePl } from './improve-pl.ts'
+import { coachPl } from './coach-pl.ts'
 
 export const cliPl: CliMessages = {
+  coach: coachPl,
   improve: improvePl,
   cmd: {
     banner: 'plan treningowy jako kod, trener jako narzędzie agenta',
@@ -743,7 +745,7 @@ export const cliPl: CliMessages = {
   },
 
   kindPurpose: {
-    easy: 'Objętość tlenowa w strefie spokojnej — fundament adaptacji bez kosztu regeneracyjnego.',
+    easy: 'Spokojny bieg wnosi kilometry o niskiej intensywności do tygodniowej objętości treningu.',
     long: 'Długie wybieganie: wytrzymałość podstawowa, ekonomia biegu i odporność na zmęczenie (durability).',
     easy_hills:
       'Bieg spokojny + podbiegi: siła specyficzna i ekonomia przy minimalnym koszcie (house style trenera).',
@@ -793,7 +795,7 @@ export const cliPl: CliMessages = {
     shiftFrom: 'data treningu do przesunięcia',
     shiftTo: 'data docelowa (treningi zostają zamienione)',
     why:
-      'Wyjaśnij trening: cel fizjologiczny jednostki + reguły z badań ' +
+      'Wyjaśnij zapisaną jednostkę: cel, start docelowy, faza, konkretna dawka, sąsiednie wymagające sesje, budżet czasu, wykonanie i ręczne zmiany oraz reguły ' +
       '(ID z docs/science/FOUNDATIONS.md).',
     adapt:
       'Porównaj wykonanie z planem i zaproponuj korekty. Domyślnie nie zapisuje zmian. ' +
@@ -839,7 +841,7 @@ export const cliPl: CliMessages = {
       'i lista konkretnych działań. Używaj TEGO zamiast wołania trainctl_pull + trainctl_adapt + ' +
       'trainctl_week po kolei — np. gdy użytkownik pyta „jak mi poszło?” albo zaczyna tydzień. ' +
       'Działa też bez klucza API (wtedy z dziennika i ostatniej migawki). ' +
-      'Niczego nie zmienia w planie.',
+      'Gdy użytkownik prosi o konkretne zmiany do zatwierdzenia, użyj prepare=true. Pokaż zapisany diff i ostrzeżenia, a trainctl_adapt(apply=ID) wywołaj po zatwierdzeniu. Sam przegląd nie zmienia planu.',
     reviewDays: 'ile dni wstecz podsumować, domyślnie 7',
     reviewDate: 'data odniesienia (domyślnie dziś)',
     diff:
@@ -866,6 +868,9 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
 
 ## Rytuały
 
+- **Dziś tylko 40 minut** → \`trainctl_shorten(minutes=40)\`. Budżet obejmuje przygotowanie i siłę. Pokaż dokładne przed/po, utracony cel i ostrzeżenia; zastosuj zwrócone ID po zatwierdzeniu. Nie zastępuj akcentu spokojnym biegiem bez poinformowania użytkownika.
+- **Dlaczego ten trening** → \`trainctl_why\`. Zacznij od celu, obecnej fazy i konkretnej dawki, potem wyjaśnij miejsce w tygodniu i źródła. Nie przypisuj ręcznym zmianom wymyślonego uzasadnienia.
+- **Przejrzyj tydzień i zaproponuj zmiany** → \`trainctl_review(prepare=true)\`. Pokaż luki w wykonaniu i zapisane zmiany. Zatwierdzenie przez \`trainctl_adapt(apply=ID)\`; nie regeneruj ani nie synchronizuj pomiędzy podglądem a zatwierdzeniem.
 - **Początek tygodnia** → \`trainctl_review\`. Jedno wywołanie zamiast pull + adapt +
   week. Zrelacjonuj wynik po ludzku i zaproponuj co najwyżej dwie rzeczy do zrobienia.
 - **Przed każdą zmianą w tygodniu** → najpierw \`trainctl_week\`, żeby zobaczyć kontekst.

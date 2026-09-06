@@ -3,6 +3,55 @@
 The CLI and MCP use the same operations. The examples below use a training
 directory containing `trainctl.yaml` and a generated plan.
 
+## Three coaching workflows
+
+```sh
+trainctl shorten --minutes 40
+trainctl why
+trainctl review --prepare
+# Apply only the ID from the proposal you just reviewed:
+trainctl adapt --apply <id>
+```
+
+`shorten` saves a single-session proposal for today; `--date YYYY-MM-DD` selects
+another day. The time includes the plan's preparation allowance (15 minutes by
+default), recoveries and any strength session. A tighter stored budget still
+applies. Quality variants retain pace, warm-up, cool-down and complete recoveries
+while reducing repetitions or distance. If the original purpose cannot fit,
+the output explicitly labels an easy alternative and the lost purpose. The
+engineering cutoffs are documented as E-1 in FOUNDATIONS; they do not promise
+an equivalent physiological effect. Races, time trials, pinned, past and
+recorded sessions are protected. If no variant fits, no proposal is saved.
+`shorten --apply <id>` also accepts a previously reviewed proposal ID.
+
+`why` starts with the actual session's purpose, goal race, phase, dose and nearby
+demanding sessions, followed by calibration and rule provenance. It includes
+execution status, time constraints and an approved shortening's tradeoff.
+It identifies manual edits without inventing their intention. Shortening
+metadata follows its workout when moved; time budgets remain attached to dates.
+
+`review --prepare` combines the report and a saved future-plan diff in one call.
+The default report covers seven dates **including** the reference date. For the
+last completed Monday–Sunday week, pass that Sunday's date. Adaptation still
+uses a 21-day window; when connected, review fetches at least those 21 days.
+Unknown sessions stay unknown, completed shorter runs count as completed, and
+RPE/notes stay available as context. Incomplete data or a hold-course decision
+can legitimately produce no changes. A missing test result requests data rather
+than producing a calibration-only timestamp change. Return/recovery protocols
+still require individual review: their blocked preparation is reported, not
+silently replaced with a volume patch.
+
+Review data includes `period`, `execution`, `preparation.status` and `prepared`
+(ID, changed dates and protected dates). Review without `--prepare` retains its
+report-only behavior. Neither review mode applies a proposal. The same lifecycle
+and expiration checks below cover both weekly and single-session proposals.
+
+MCP: `trainctl_shorten({minutes: 40})`, `trainctl_why({})`,
+`trainctl_review({prepare: true})`, then `trainctl_adapt({apply: "<id>"})`.
+The agent should show the diff and tradeoffs before applying. New training
+directories receive these recipes in their `AGENTS.md`; existing files are
+preserved and can be updated manually.
+
 ## Evidence before recommendations
 
 Missing activity records now mean **unknown**, not **missed**. A confirmed
@@ -30,6 +79,15 @@ profile. It includes the proposed future plan, the changed sessions, protected
 dates, and the reasoning. `--apply` applies that exact saved proposal; it does
 not calculate a new one. Changes to the plan, profile, journal or synchronization
 snapshot invalidate the proposal. An edited proposal is also rejected.
+Proposals also expire at the next local calendar day. Selecting a historical
+analysis date never authorizes rewriting past sessions. Older proposals without
+a creation-day marker must be prepared again.
+
+Zone-only recalibration preserves workout structure and volume. A volume
+correction is anchored in the first upcoming loading week, retaining phase dates
+and relative deload/taper shape. The accepted baseline is recorded in `loadState`;
+subsequent recalibration cannot restore the original profile's mileage. A
+deliberate full `plan` regeneration still uses `trainctl.yaml`.
 
 Past days, logged days, race days, pinned days and manually edited days remain
 unchanged. Original generated-day checksums let the tool detect arbitrary YAML
@@ -64,6 +122,35 @@ or set a day's `pinned: false` there to release it. Pinned workouts that conflic
 with a blocked day or time budget cause an error before the plan is written.
 Strength conflicts are reported by the plan lint; strength is retained when
 time or pin constraints prevent freely rebuilding its schedule.
+A blocked day removes both running and strength, with a visible trade-off.
+Manual `shift` also checks race dates, pins and budgets. Past or recorded days
+cannot be shifted by either command.
+
+Hill distance includes the return downhill; estimates include the final recovery
+exported to the watch. Unknown race duration cannot satisfy a time budget. Daily
+execution comparisons include race distance on both sides; training compliance
+excludes races on both sides.
+
+## Record the measured segment
+
+```sh
+# Whole session: 9 km in 54 minutes; measured 5 km test: 24 minutes.
+trainctl log --date 2026-09-12 --km 9 --time 54:00 --test-time 24:00
+trainctl adapt --date 2026-09-12
+```
+
+The result suggestion uses the test distance and `--test-time`. Without this
+field it requests the measured time instead of reusing the whole-session time.
+Review the measurement before adding it to `athlete.results`. The MCP argument
+is `testTime`; it is valid only for completed test/race days.
+
+## Resolve constraints explicitly
+
+Multiple tune-ups in one week, or a tune-up during the main race taper, currently
+require resolving the calendar before generation. They are reported as conflicts
+rather than discarded. If availability prevents the requested taper frequency
+or mileage, `check` reports the difference. Small budgets can replace an optional
+quality session with easy running instead of forcing additional mileage.
 
 ## Trace the calibration
 

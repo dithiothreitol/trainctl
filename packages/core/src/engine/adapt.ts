@@ -80,8 +80,9 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
     .filter((e) => e.date >= from && e.date <= input.today)
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const plannedKm = window.reduce((s, e) => s + e.plannedKm, 0)
-  const actualKm = window.reduce((s, e) => s + (e.actualKm ?? 0), 0)
+  const training = window.filter(e => e.kind !== 'race')
+  const plannedKm = training.reduce((s, e) => s + e.plannedKm, 0)
+  const actualKm = training.reduce((s, e) => s + (e.actualKm ?? 0), 0)
   const compliance = plannedKm > 0 ? actualKm / plannedKm : 1
   const missedSessions = window.filter((e) => e.status === 'missed').length
   const unknownSessions = window.filter((e) => e.status === 'unknown').length
@@ -176,7 +177,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
         suggestedWeeklyKm: realistic,
         ruleRefs: ['P-1', 'P-3'],
       })
-    } else if (compliance > 1.2 && missedSessions === 0) {
+    } else if (compliance > 1.2 && missedSessions === 0 && !actions.some(a => a.type === 'post-race-recovery')) {
       const raised = Math.round(input.currentWeeklyKm * 1.1)
       diagnosis.push(m.adapt.complianceHigh(Math.round(compliance * 100)))
       actions.push({

@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse } from 'yaml'
-import { DEFAULT_LOCALE, getLocale } from 'trainctl-core'
+import { DEFAULT_LOCALE, getLocale, parseIso } from 'trainctl-core'
 import type { AthleteProfile, InferredProfile, RaceGoal, Weekday } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 
@@ -101,7 +101,7 @@ export function configTemplate(): string {
 }
 
 const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
+const ISO_RE = { test: (value: string): boolean => { try { parseIso(value); return true } catch { return false } } }
 
 export function loadConfig(cwd: string): TrainctlConfig {
   const path = join(cwd, CONFIG_FILE)
@@ -120,8 +120,9 @@ export function loadConfig(cwd: string): TrainctlConfig {
 
   if (!a) errors.push(v.missingSection('athlete'))
   else {
-    if (typeof a.recentWeeklyKm !== 'number' || a.recentWeeklyKm <= 0)
+    if (typeof a.recentWeeklyKm !== 'number' || !Number.isFinite(a.recentWeeklyKm) || a.recentWeeklyKm <= 0)
       errors.push(v.numberGtZero('athlete.recentWeeklyKm'))
+    if (a.peakWeeklyKm !== undefined && (!Number.isFinite(a.peakWeeklyKm) || a.peakWeeklyKm <= 0)) errors.push(v.numberGtZero('athlete.peakWeeklyKm'))
     if (!Array.isArray(a.daysAvailable) || a.daysAvailable.length === 0)
       errors.push(v.nonEmptyDays('athlete.daysAvailable'))
     else
@@ -130,12 +131,13 @@ export function loadConfig(cwd: string): TrainctlConfig {
     if (!Array.isArray(a.results)) errors.push(v.listOptional('athlete.results'))
     else
       a.results.forEach((r, i) => {
+        if (!r) { errors.push(v.required(`athlete.results[${i}]`)); return }
         if (r.excluded !== undefined && typeof r.excluded !== 'boolean') errors.push(v.boolean(`athlete.results[${i}].excluded`))
         if (r.exclusionReason !== undefined && typeof r.exclusionReason !== 'string') errors.push(v.required(`athlete.results[${i}].exclusionReason`))
         if (!ISO_RE.test(String(r?.date))) errors.push(v.isoDate(`athlete.results[${i}].date`))
-        if (typeof r?.distanceKm !== 'number' || r.distanceKm <= 0)
+        if (typeof r?.distanceKm !== 'number' || !Number.isFinite(r.distanceKm) || r.distanceKm <= 0)
           errors.push(v.numberGtZero(`athlete.results[${i}].distanceKm`))
-        if (typeof r?.timeSec !== 'number' || r.timeSec <= 0)
+        if (typeof r?.timeSec !== 'number' || !Number.isFinite(r.timeSec) || r.timeSec <= 0)
           errors.push(v.seconds(`athlete.results[${i}].timeSec`))
       })
     if (a.tuneUpRaces !== undefined) {
@@ -144,7 +146,7 @@ export function loadConfig(cwd: string): TrainctlConfig {
         a.tuneUpRaces.forEach((r, i) => {
           if (!ISO_RE.test(String(r?.date)))
             errors.push(v.isoDate(`athlete.tuneUpRaces[${i}].date`))
-          if (typeof r?.distanceKm !== 'number' || r.distanceKm <= 0)
+          if (typeof r?.distanceKm !== 'number' || !Number.isFinite(r.distanceKm) || r.distanceKm <= 0)
             errors.push(v.numberGtZero(`athlete.tuneUpRaces[${i}].distanceKm`))
           if (r?.priority !== undefined && !['B', 'C'].includes(String(r.priority)))
             errors.push(v.priorityBc(`athlete.tuneUpRaces[${i}].priority`))
@@ -153,9 +155,10 @@ export function loadConfig(cwd: string): TrainctlConfig {
   }
   if (!g) errors.push(v.missingSection('goal'))
   else {
+    if (g.targetTimeSec !== undefined && (!Number.isFinite(g.targetTimeSec) || g.targetTimeSec <= 0)) errors.push(v.seconds('goal.targetTimeSec'))
     if (!g.name) errors.push(v.required('goal.name'))
     if (!ISO_RE.test(String(g.date))) errors.push(v.isoDate('goal.date'))
-    if (typeof g.distanceKm !== 'number' || g.distanceKm <= 0)
+    if (typeof g.distanceKm !== 'number' || !Number.isFinite(g.distanceKm) || g.distanceKm <= 0)
       errors.push(v.numberGtZero('goal.distanceKm'))
   }
   if (errors.length) fail(errors)
@@ -180,6 +183,7 @@ export function loadConfig(cwd: string): TrainctlConfig {
   return {
     athlete: {
       ...athlete,
+      daysAvailable: [...new Set(athlete.daysAvailable)],
       // brak priority w YAML czytamy jako B: użytkownik wpisał ten bieg świadomie
       ...(athlete.tuneUpRaces
         ? { tuneUpRaces: athlete.tuneUpRaces.map((r) => ({ ...r, priority: r.priority ?? 'B' })) }

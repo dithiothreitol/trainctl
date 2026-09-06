@@ -2,7 +2,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from 'trainctl-core'
@@ -71,14 +71,42 @@ describe('serwer MCP trainctl', () => {
     expect(data.budgetRows.find((row) => row.date === '2026-08-27')!.minutes).toBeLessThanOrEqual(35)
   })
 
-  it('wystawia komplet 16 narzędzi', async () => {
+  it('wystawia komplet 17 narzędzi', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual([
       'trainctl_adapt', 'trainctl_check', 'trainctl_desk', 'trainctl_diff', 'trainctl_export', 'trainctl_init', 'trainctl_log',
-      'trainctl_plan', 'trainctl_pull', 'trainctl_push', 'trainctl_reschedule', 'trainctl_review', 'trainctl_shift',
+      'trainctl_plan', 'trainctl_pull', 'trainctl_push', 'trainctl_reschedule', 'trainctl_review', 'trainctl_shift', 'trainctl_shorten',
       'trainctl_today', 'trainctl_week', 'trainctl_why',
     ])
+  })
+
+  it('prepares a 40-minute variant, explains its tradeoff and applies its exact ID', async () => {
+    await call('trainctl_plan', { date: '2026-08-05' })
+    const before = readFileSync(join(dir, 'plan/plan.yaml'), 'utf8')
+    const result = await client.callTool({ name: 'trainctl_shorten', arguments: { date: '2026-08-08', minutes: 40 } })
+    expect(result.isError).not.toBe(true)
+    const { data } = result.structuredContent as { data: { prepared: { id: string }; adjustment: { afterMinutes: number } } }
+    expect(data.adjustment.afterMinutes).toBeLessThanOrEqual(40)
+    expect(data.prepared.id).toMatch(/^[a-f0-9]{24}$/)
+    expect(readFileSync(join(dir, 'plan/plan.yaml'), 'utf8')).toBe(before)
+    expect((await call('trainctl_adapt', { apply: data.prepared.id })).isError).toBe(false)
+    const why = await client.callTool({ name: 'trainctl_why', arguments: { date: '2026-08-08' } })
+    expect(why.structuredContent).toMatchObject({ code: 0, data: { explanation: { budgetMinutes: 40 }, evidence: expect.arrayContaining([expect.objectContaining({ id: 'E-1', origin: 'engineering' })]) } })
+  })
+
+  it('returns a saved review diff through MCP for a changed calibration', async () => {
+    await call('trainctl_plan', { date: '2026-08-05' })
+    const before = readFileSync(join(dir, 'plan/plan.yaml'), 'utf8')
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('timeSec: 5400', 'timeSec: 5100'), 'utf8')
+    try {
+      const result = await client.callTool({ name: 'trainctl_review', arguments: { date: '2026-08-17', prepare: true } })
+      expect(result.isError).not.toBe(true)
+      const { data } = result.structuredContent as { data: { prepared: { id: string; changes: unknown[] } } }
+      expect(data.prepared.changes.length).toBeGreaterThan(0)
+      expect(readFileSync(join(dir, 'plan/plan.yaml'), 'utf8')).toBe(before)
+      expect((await call('trainctl_adapt', { apply: data.prepared.id })).isError).toBe(false)
+    } finally { writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf8') }
   })
 
   it('trainctl_review: agent dostaje cały poniedziałkowy rytuał w jednym wywołaniu', async () => {
@@ -232,3 +260,7 @@ describe('trainctl_init fromIntervals — profil z historii przez agenta', () =>
     expect(yaml).toContain('UZUPEŁNIJ')
   })
 })
+
+// Historical fixtures use a controlled wall clock; production writes protect the real past.
+beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-08-01T12:00:00Z')) })
+afterAll(() => vi.useRealTimers())

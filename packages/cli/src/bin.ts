@@ -24,6 +24,7 @@ import {
   cmdReschedule,
   cmdReview,
   cmdShift,
+  cmdShorten,
   cmdToday,
   cmdWeek,
   cmdWhy,
@@ -161,6 +162,7 @@ program
   .option('--status <s>', ui().cmd.optStatus, 'done')
   .option('--km <n>', ui().cmd.optKm)
   .option('--time <t>', ui().cmd.optTime)
+  .option('--test-time <t>', ui().improve.testTime)
   .option('--rpe <n>', ui().cmd.optRpe)
   .option('--note <text>', ui().cmd.optNote)
   .action((opts) => print(cmdLog(cwd, opts)))
@@ -196,6 +198,14 @@ program
   .option('--apply <id>', ui().improve.apply)
   .option('--date <iso>', ui().cmd.optDate)
   .action((opts) => print(cmdAdapt(cwd, opts)))
+
+program
+  .command('shorten')
+  .description(ui().coach.shorten)
+  .option('--minutes <n>', ui().coach.minutes)
+  .option('--date <iso>', ui().cmd.optDateOther)
+  .option('--apply <id>', ui().improve.apply)
+  .action((opts) => print(cmdShorten(cwd, opts)))
 
 program
   .command('desk')
@@ -256,6 +266,7 @@ program
 program
   .command('review')
   .description(ui().cmd.review)
+  .option('--prepare', ui().coach.reviewPrepare)
   .option('--days <n>', ui().cmd.optReviewDays)
   .option('--date <iso>', ui().cmd.optDate)
   .action(async (opts) =>

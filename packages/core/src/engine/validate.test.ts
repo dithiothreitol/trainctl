@@ -77,9 +77,9 @@ const check = (weeks: Microcycle[], goal: RaceGoal = marathon) => validatePlan({
 /** Po celowej mutacji dni przywraca spójność sum — żeby test widział TYLKO badane odstępstwo. */
 const resync = (week: Microcycle) => Object.assign(week, weekTotals(week.days))
 
-describe('świeży plan przechodzi lint bez ustaleń', () => {
+describe('świeży plan zgłasza niewykonalną częstotliwość tygodnia startowego', () => {
   it('maraton, 17 tygodni', () => {
-    expect(check(buildWeeks(marathon))).toEqual([])
+    expect(check(buildWeeks(marathon))).toEqual([expect.objectContaining({ code: 'frequencyMismatch', date: '2026-11-23', expected: 5, actual: 4 })])
   })
 
   it('półmaraton ze startem kontrolnym B w sobotę', () => {
@@ -88,18 +88,18 @@ describe('świeży plan przechodzi lint bez ustaleń', () => {
       ...athlete,
       tuneUpRaces: [{ date: '2026-09-19', distanceKm: 10, priority: 'B' }],
     })
-    expect(check(weeks, goal)).toEqual([])
+    expect(check(weeks, goal)).toEqual([expect.objectContaining({ code: 'frequencyMismatch', date: '2026-11-09', expected: 5, actual: 4 })])
   })
 
   it('plan z modułem siły', () => {
     const weeks = buildWeeks(marathon)
     withStrength(weeks)
-    expect(check(weeks)).toEqual([])
+    expect(check(weeks)).toEqual([expect.objectContaining({ code: 'frequencyMismatch', date: '2026-11-23' })])
   })
 
   it('pusty kalendarz startów → plan ze sprawdzianem też przechodzi', () => {
     const weeks = buildWeeks(marathon, { ...athlete, results: [] })
-    expect(check(weeks)).toEqual([])
+    expect(check(weeks)).toEqual([expect.objectContaining({ code: 'frequencyMismatch', date: '2026-11-23' })])
   })
 })
 
@@ -120,7 +120,7 @@ describe('integralność pliku (error)', () => {
   it('goalMissing: cel bez daty nie wywraca reszty kontroli', () => {
     const goal = { ...marathon, date: undefined } as unknown as RaceGoal
     const issues = validatePlan({ weeks: buildWeeks(marathon), goal })
-    expect(codes(issues)).toEqual(['goalMissing'])
+    expect(codes(issues.filter(i => i.severity === 'error'))).toEqual(['goalMissing'])
   })
 
   it('malformed: tydzień bez weekStart wypada z kontroli, ale jest zgłoszony', () => {
@@ -371,9 +371,9 @@ describe('I-5 z podłogą generatora', () => {
     expect(hit?.ruleRefs).toEqual(['I-5'])
   })
 
-  it('ta sama proporcja przy akcencie na podłodze generatora → cisza', () => {
+  it('mały akcent nie ukrywa niskiego udziału easy', () => {
     // 3+4+1: Z1 = 4/8 = 50%, ale część główna ≤ 4,5 km — generator sam akceptuje
     // taki tydzień przy niskiej objętości, więc lint nie ostrzega świeżego planu
-    expect(codes(check([mkWeek(4)]))).not.toContain('easyShareLow')
+    expect(codes(check([mkWeek(4)]))).toContain('easyShareLow')
   })
 })

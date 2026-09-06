@@ -153,7 +153,7 @@ export function planDeskDay(
       ruleRefs.push('B-10')
     }
     if (!windows.some((w) => w.fits)) {
-      guidance.push(m.desk.nothingFits(needMin))
+      guidance.push(Number.isFinite(needMin) ? m.desk.nothingFits(needMin) : m.macro.raceDurationUnknown)
     }
   } else {
     guidance.push(m.desk.restDayBreaks)

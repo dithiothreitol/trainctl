@@ -14,7 +14,7 @@
  * które generator (macrocycle/microcycle/strength) i solver już definiują,
  * i cytuje te same ID z docs/science/FOUNDATIONS.md §10.
  */
-import type { Microcycle, RaceGoal, PlannedWorkout, Weekday, WorkoutKind } from '../domain/types.ts'
+import type { Microcycle, RaceGoal, Weekday, WorkoutKind } from '../domain/types.ts'
 import { COACH_STYLE, type HouseStyle } from './house-style.ts'
 import { weekTotals } from './microcycle.ts'
 import { addDays, diffDays, mondayOf } from '../util/dates.ts'
@@ -67,6 +67,8 @@ export type PlanIssueCode =
   | 'strengthOnLongDay'
   | 'strengthGap'
   | 'easyShareLow'
+  | 'targetKmMismatch'
+  | 'frequencyMismatch'
   | 'longOverCap'
   | 'qualityWithoutFrame'
   | 'taperNotMonotonic'
@@ -100,13 +102,6 @@ export interface ValidatePlanInput {
 }
 
 const isIso = (value: unknown): value is string => typeof value === 'string' && ISO_DATE.test(value)
-
-/** Suma kilometrów segmentów głównych (nie-Z1) jednostki — do progu tłumienia I-5. */
-function mainSegmentsKm(workout: PlannedWorkout): number {
-  return workout.segments
-    .filter((s) => !Z1_SEGMENT_TYPES.has(s.type))
-    .reduce((sum, s) => sum + (s.distanceKm ?? 0), 0)
-}
 
 export function validatePlan(input: ValidatePlanInput): PlanIssue[] {
   const style = input.style ?? COACH_STYLE
@@ -189,7 +184,7 @@ export function validatePlan(input: ValidatePlanInput): PlanIssue[] {
     // generator zaokrągla całość np. dnia z podbiegami)
     for (const day of days) {
       const w = day.workout
-      if (!w || !Array.isArray(w.segments)) continue
+      if (!w || !Array.isArray(w.segments) || w.kind === 'race') continue
       const sum = w.segments.reduce((a, s) => a + (s.distanceKm ?? 0), 0)
       if (Math.abs(sum - w.distanceKm) > 1) {
         error({
@@ -304,24 +299,26 @@ export function validatePlan(input: ValidatePlanInput): PlanIssue[] {
     }
   }
 
-  // --- 10. I-5: ≥75% objętości w Z1. Generator przy niskiej objętości sam
-  // akceptuje niedobór, gdy część główna akcentu osiągnie podłogę (~4 km po
-  // zaokrągleniach powtórzeń) — te tygodnie tłumimy, żeby świeży plan nie
-  // ostrzegał sam na siebie. Zgłaszamy tylko, gdy akcent dałoby się jeszcze skrócić.
-  for (const { week, days } of cleanWeeks) {
+  // I-5 violations remain visible, including low-volume and manually edited plans.
+  for (const { week } of cleanWeeks) {
     const totals = recomputed.get(week.weekStart)!
     if (totals.totalKm === 0 || totals.easyShare >= 0.75) continue
-    const shrinkable = days.some(
-      (d) =>
-        d.workout &&
-        (d.workout.kind === 'quality_intervals' || d.workout.kind === 'quality_continuous') &&
-        mainSegmentsKm(d.workout) > 4.5,
-    )
-    if (shrinkable) {
-      warn({
-        code: 'easyShareLow', ruleRefs: ['I-5'], date: week.weekStart,
-        expected: 0.75, actual: Math.round(totals.easyShare * 100) / 100,
-      })
+    warn({
+      code: 'easyShareLow', ruleRefs: ['I-5'], date: week.weekStart,
+      expected: 0.75, actual: Math.round(totals.easyShare * 100) / 100,
+    })
+  }
+
+  for (const { week, days } of cleanWeeks) {
+    const target = week.skeleton?.targetKm
+    const totals = recomputed.get(week.weekStart)!
+    if (typeof target === 'number' && week.skeleton?.phase !== 'race' && Math.abs(totals.totalKm - target) > 0.5) {
+      warn({ code: 'targetKmMismatch', ruleRefs: ['P-3'], date: week.weekStart, expected: target, actual: totals.totalKm })
+    }
+    const desired = week.skeleton?.sessionCount
+    const actual = days.filter(d => d.workout).length
+    if (week.skeleton?.keepFrequency && desired !== undefined && actual !== desired) {
+      warn({ code: 'frequencyMismatch', ruleRefs: ['T-2'], date: week.weekStart, expected: desired, actual })
     }
   }
 

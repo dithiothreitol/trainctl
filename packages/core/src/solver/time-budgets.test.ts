@@ -32,7 +32,7 @@ describe('time constraints', () => {
   })
   it('includes recovery intervals, preparation and strength in the time budget', () => {
     const intervals: PlannedWorkout = { kind: 'quality_intervals', distanceKm: 3, ruleRefs: [], segments: [{ type: 'intervals', reps: 3, repM: 1000, recoverySec: 120, pace: { loSecPerKm: 300, hiSecPerKm: 300 }, description: '3 x 1 km' }] }
-    expect(estimateWorkoutMinutes(intervals, 10)).toBe(29)
+    expect(estimateWorkoutMinutes(intervals, 10)).toBe(31)
     const input = week()
     input.days[1]!.strength = { kind: 'heavy', durationMin: 30, description: 'strength', ruleRefs: [] }
     expect(() => reschedule({ week: input, blockedDates: [], pinnedDates: ['2026-08-25'], timeBudgets: { '2026-08-25': 60 } })).toThrow()

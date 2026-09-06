@@ -77,6 +77,7 @@ interface Slot {
 
 interface Item {
   workout: PlannedWorkout
+  timeAdjustment?: PlannedDay['timeAdjustment']
   originalDate: string
 }
 
@@ -216,7 +217,7 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
   // jednostki do rozstawienia (bez startu) i wolne sloty
   const items: Item[] = week.days
     .filter((d) => d.workout && d.workout.kind !== 'race' && !pinned.has(d.date))
-    .map((d) => ({ workout: d.workout!, originalDate: d.date }))
+    .map((d) => ({ workout: d.workout!, originalDate: d.date, ...(d.timeAdjustment ? { timeAdjustment: d.timeAdjustment } : {}) }))
 
   const slots: Slot[] = week.days
     .filter((d) => {
@@ -275,12 +276,13 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
   const days: PlannedDay[] = week.days.map((d) => {
     const base: PlannedDay = { date: d.date, weekday: d.weekday }
     if (((raceDay && d.date === raceDay.date) || pinned.has(d.date)) && d.workout) base.workout = d.workout
+    if (base.workout && d.timeAdjustment) base.timeAdjustment = d.timeAdjustment
     if (d.pinned || req.pinnedDates?.includes(d.date)) base.pinned = true
     // Siła nie bierze udziału w tasowaniu (to nie jest jednostka biegowa), ale
     // MUSI przetrwać: solver buduje dni od zera, więc bez tego wiersza
     // `reschedule --apply` po cichu kasowałby sesje siłowe z całego tygodnia.
     // Walidacja nowego sąsiedztwa (S-5) należy do warstwy, która zna konfigurację.
-    if (d.strength) base.strength = d.strength
+    if (d.strength && !blocked.has(d.date)) base.strength = d.strength
     return base
   })
   const moved: RescheduleResult['moved'] = []
@@ -290,13 +292,14 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
       const slot = slots[i]!
       const target = days.find((d) => d.date === slot.date)!
       target.workout = item.workout
+      if (item.timeAdjustment) target.timeAdjustment = item.timeAdjustment
       if (slot.date !== item.originalDate) {
         moved.push({ kind: item.workout.kind, from: item.originalDate, to: slot.date })
       }
     })
   }
 
-  const tradeoffs: string[] = []
+  const tradeoffs: string[] = week.days.filter(d => d.strength && blocked.has(d.date)).map(d => messages().solver.blockedStrength(d.date))
   for (const m of moved) tradeoffs.push(`${m.kind}: ${m.from} → ${m.to}`)
   for (const d of dropped) tradeoffs.push(messages().solver.droppedLine(d.kind, d.from, d.reason))
   for (const note of best?.notes ?? []) tradeoffs.push(messages().solver.tradeoffLine(note))
@@ -313,7 +316,7 @@ export function reschedule(req: RescheduleRequest): RescheduleResult {
     tradeoffs,
     warnings,
     score: best?.score ?? 0,
-    changed: moved.length > 0 || dropped.length > 0 || days.some((d, i) => d.pinned !== week.days[i]?.pinned),
+    changed: moved.length > 0 || dropped.length > 0 || days.some((d, i) => d.pinned !== week.days[i]?.pinned || !!d.strength !== !!week.days[i]?.strength),
   }
 }
 

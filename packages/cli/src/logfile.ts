@@ -10,6 +10,8 @@ export interface LogEntry {
   status: 'done' | 'skipped' | 'modified'
   km?: number
   timeSec?: number
+  /** Elapsed time of the measured race/test segment, excluding warmup/cooldown. */
+  testTimeSec?: number
   /**
    * Wysiłek sesji w skali CR-10 (1–10, Foster). Zbieranie uzasadnia P-6 (sRPE);
    * granica użycia: silnik te wartości wyłącznie przechowuje i cytuje — nigdy
@@ -43,7 +45,7 @@ export function logFor(cwd: string, date: string): LogEntry | undefined {
 /** "MM:SS" lub "HH:MM:SS" → sekundy. */
 export function parseTime(text: string): number {
   const parts = text.split(':').map(Number)
-  if (parts.some(Number.isNaN) || parts.length < 2 || parts.length > 3) {
+  if (!/^\d+:\d{2}(?::\d{2})?$/.test(text) || parts.some(p => !Number.isFinite(p) || p < 0) || parts.slice(1).some(p => p >= 60) || parts.every(p => p === 0) || parts.length < 2 || parts.length > 3) {
     throw new Error(ui().common.badTime(text))
   }
   return parts.reduce((acc, p) => acc * 60 + p, 0)

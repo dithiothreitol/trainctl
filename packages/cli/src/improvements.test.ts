@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, beforeAll, afterAll } from 'vitest'
 import { addDays, analyzeExecution, estimateWorkoutMinutes, setLocale } from 'trainctl-core'
 import { cmdAdapt, cmdExport, cmdLog, cmdPlan, cmdReschedule, cmdReview, cmdShift, cmdWhy, buildExecution } from './commands.ts'
 import { loadPlan, PLAN_YAML, writePlan } from './planfile.ts'
@@ -206,3 +206,7 @@ describe('time-aware plans and mobile export', () => {
     expect(html).toContain(locale === 'pl' ? 'Twój trening' : 'Your session')
   })
 })
+
+// Historical fixtures use a controlled wall clock; production writes protect the real past.
+beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-08-01T12:00:00Z')) })
+afterAll(() => vi.useRealTimers())

@@ -81,6 +81,8 @@ export interface WeekSkeleton {
   /** Taper: utrzymać intensywność (T-1) i częstotliwość sesji (T-2). */
   keepIntensity: boolean
   keepFrequency: boolean
+  /** Desired running frequency, retained from the last loading week in taper. */
+  sessionCount?: number
   /** Liczba sesji jakościowych w tygodniu (I-8). */
   qualitySessions: number
   raceDate?: string
@@ -138,6 +140,9 @@ export type WorkoutKind =
   | 'race'
 
 export interface PlannedWorkout {
+  /** Race distance is separate from the training-volume budget. */
+  raceDistanceKm?: number
+  estimatedRaceTimeSec?: number
   kind: WorkoutKind
   segments: PlannedSegment[]
   distanceKm: number
@@ -157,6 +162,8 @@ export interface StrengthSession {
 }
 
 export interface PlannedDay {
+  /** Explicitly approved time adjustment; original goal remains visible in why. */
+  timeAdjustment?: { originalKind: WorkoutKind; originalDistanceKm: number; budgetMinutes: number; status: 'shortened' | 'easy-alternative' }
   date: string
   weekday: Weekday
   /** User decision: preserve this day during automatic proposals. */

@@ -23,6 +23,10 @@ const przerwy = (value: number) =>
   value === 1 ? 'przerwa 1 minutowa' : `przerwy ${n(value)} minutowe`
 
 export const corePl: CoreMessages = {
+  shorten: {
+    badBudget: 'Podaj pełne minuty: budżet i siła 0–1440, przygotowanie 0–120.',
+    repeats: (reps: number, meters: number, pace: string, recovery: number) => `${reps} × ${meters} m po ${pace}/km; ${recovery} s przerwy po każdym powtórzeniu`,
+  },
   units: {
     km,
     meters: (value: number) =>
@@ -164,6 +168,8 @@ export const corePl: CoreMessages = {
   },
 
   macro: {
+    raceDurationUnknown: 'Czas startu jest nieznany; nie można potwierdzić okna treningowego.',
+    raceConflict: (date: string) => `Konflikt kalendarza zawodów ${date}: kilka startów w tygodniu lub start kontrolny w taperze. Jawnie rozstrzygnij konflikt w kalendarzu.`,
     raceDateInPast: 'Data startu w przeszłości',
     ultraTaperExtrapolated: 'T-8: ultra — ekstrapolacja bez źródła',
     compressedPlan: (weeks: number) =>
@@ -268,6 +274,7 @@ export const corePl: CoreMessages = {
   },
 
   solver: {
+    blockedStrength: (date: string) => `Usunięto siłę z zablokowanego dnia ${date}.`,
     badConstraints: 'Nieprawidłowy budżet czasu lub czas przygotowania.',
     pinnedConflict: (date: string) => `Chroniony dzień ${date} koliduje z dostępnością lub budżetem czasu.`,
     noTime: 'Brak wystarczającego okna czasowego; jednostkę odpuszczono zamiast ścieśniać.',

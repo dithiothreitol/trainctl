@@ -2,7 +2,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SyncProvider, SyncedActivity } from 'trainctl-core'
 import { cmdInit, cmdLog, cmdPlan, cmdReview } from './commands.ts'
 import { AGENTS_FILE } from './agents-md.ts'
@@ -59,6 +59,13 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('trainctl review — z kluczem API', () => {
+  it('fetches the full adaptation window but summarizes only the selected week', async () => {
+    withKey()
+    const listActivities = vi.fn(provider.listActivities)
+    const r = await cmdReview(dir, { date: TODAY, prepare: true }, () => ({ ...provider, listActivities }))
+    expect(listActivities).toHaveBeenCalledWith('2026-07-28', TODAY)
+    expect(r.data!.period).toEqual({ from: '2026-08-11', to: TODAY, days: 7 })
+  })
   it('odświeża dane i pokazuje wszystkie cztery sekcje', async () => {
     withKey()
     const r = await cmdReview(dir, { date: TODAY }, factory)
