@@ -44,6 +44,9 @@ describe('manifesty i wersje', () => {
     expect(claude['plugins'][0]).toMatchObject({ name: 'trainctl', source: './plugin', version })
     const codex = json('.agents/plugins/marketplace.json')
     expect(codex['plugins'][0]).toMatchObject({ name: 'trainctl', source: { source: 'local', path: './plugin' } })
+    // wartości, które przyjmuje parser Codex (0.153) — inna odrzuca cały marketplace przy `codex plugin marketplace add`
+    expect(['AVAILABLE', 'INSTALLED_BY_DEFAULT', 'NOT_AVAILABLE']).toContain(codex['plugins'][0]['policy']['installation'])
+    expect(['ON_INSTALL', 'ON_USE']).toContain(codex['plugins'][0]['policy']['authentication'])
     expect(existsSync(join(ROOT, 'plugin'))).toBe(true)
   })
   it('przykłady CI przypinają tę samą wersję trainctl', () => {
