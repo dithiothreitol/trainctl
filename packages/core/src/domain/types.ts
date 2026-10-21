@@ -104,6 +104,12 @@ export interface WeekSkeleton {
    * porównuje sumy dni z tym, co budżet faktycznie zostawił.
    */
   timeCappedKm?: number
+  /**
+   * Objętość tygodnia przed budżetem czasu, zapisana przy pierwszym przycięciu.
+   * Ostrzeżenie „budżet tnie objętość" mówi z niej, ile plan miałby bez budżetu —
+   * także przy rekalibracji, która dostaje tygodnie już przycięte.
+   */
+  uncappedKm?: number
   flags: string[]
   ruleRefs: string[]
 }

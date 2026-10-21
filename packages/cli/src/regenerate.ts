@@ -26,12 +26,11 @@ import {
   addDays,
   estimateWorkoutMinutes,
   mondayOf,
-  weekTotals,
   type Microcycle,
   type PlannedDay,
 } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
-import { computePlan, dayFingerprint, scaleToBaseline, type StoredPlan } from './planfile.ts'
+import { computePlan, dayFingerprint, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
 export type ProtectionReason = 'past' | 'recorded' | 'pinned' | 'baseline' | 'approved' | 'edited' | 'budget'
@@ -176,7 +175,7 @@ export function rebuildPlan(
       continue
     }
     const week: Microcycle = { ...fw, days }
-    Object.assign(week, weekTotals(days))
+    settleMixedWeek(week)
     weeks.push(week)
   }
 
