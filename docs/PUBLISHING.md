@@ -4,14 +4,18 @@
 <https://github.com/dithiothreitol/trainctl>, MIT, Discussions wyłączone,
 prywatne zgłaszanie podatności włączone. Warunek „sezon na sobie" został
 świadomie odpuszczony — decyzja właściciela, nie przeoczenie.
-**Bieżące wydanie: 0.3.0 (2026-09-06)** dla wszystkich pięciu paczek.
-Historia wydań: `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.3.0`.
+**Bieżące wydanie: 0.4.0 (2026-10-21)** dla wszystkich sześciu paczek
+i pluginu (Claude Code, Codex).
+Historia wydań: `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.3.0`, `v0.4.0`.
 0.1.0 pozostaje zdeprecjonowane — przyczynę opisano w historycznej sekcji npm.
 
-0.3.0 obejmuje skracanie jednostki do budżetu czasu, wyjaśnianie konkretnego
-treningu i przegląd tygodnia z propozycją do zatwierdzenia, a także poprawki
-z audytu. Walidacja: 641 testów, typy, build oraz instalacja pięciu tarballi
-w osobnym katalogu, z wykonaniem scenariuszy CLI i uruchomieniem MCP.
+0.4.0 obejmuje cały plan z [PLAN-v0.4.md](PLAN-v0.4.md): chronioną
+regenerację planu, CLI do skryptów (`--json`, `-C`, `status`, `--commit`),
+plugin do Claude Code i Codex, wykonanie z plików FIT/TCX/GPX (nowa paczka
+`trainctl-sync-files`) oraz silnik z budżetem czasu, blokiem po starcie
+i planem bez startu. Walidacja: 896 testów, typy, build, dziesięć rund code
+review oraz instalacja sześciu tarballi w osobnym katalogu, z wykonaniem
+scenariuszy CLI i uruchomieniem MCP.
 
 Poniżej zapis rozumowania, które do tego doprowadziło — zostaje, bo tłumaczy,
 czemu projekt jest otwarty, a korpus nie.
@@ -121,7 +125,7 @@ deklaracjami i mapami źródeł; `publishConfig` przestawia wejścia paczki na
 `dist/*.js`, a w repozytorium nic się nie zmienia — dalej jedziemy na natywnym
 type-strippingu Node ≥ 22.18, którego wymaga `engines`.
 
-## Szósta paczka (od 0.5.0)
+## Szósta paczka (od 0.4.0)
 
 `trainctl-sync-files` dołącza do pięciu paczek z tą samą wersją. Pierwsza
 publikacja nowej nazwy na npm wymaga tego samego tokenu co reszta; job `dist`

@@ -1,6 +1,6 @@
 {
   "name": "trainctl-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "trainctl as MCP tools: a research-backed running coach for Claude Code, Codex and other MCP clients",
   "keywords": [
     "mcp",

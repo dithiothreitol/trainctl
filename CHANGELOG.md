@@ -6,6 +6,8 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-10-21
+
 ### Fixed — found by running every command on a fresh directory
 
 - `review` on a Sunday no longer reports the whole week's volume next to the

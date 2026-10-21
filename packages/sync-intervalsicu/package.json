@@ -1,6 +1,6 @@
 {
   "name": "trainctl-sync-intervalsicu",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "intervals.icu adapter for trainctl: push planned sessions to the watch, pull activities and wellness",
   "keywords": [
     "intervals-icu",

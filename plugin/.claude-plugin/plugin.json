@@ -1,6 +1,6 @@
 {
   "name": "trainctl",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Running coach as your agent's tool: training plan as code, MCP tools, coach skills and a lint after plan edits",
   "author": { "name": "Dariusz Tyszka" },
   "homepage": "https://github.com/dithiothreitol/trainctl",

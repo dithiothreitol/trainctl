@@ -7,7 +7,7 @@
       "name": "trainctl",
       "source": "./plugin",
       "description": "Running coach as your agent's tool: training plan as code, MCP tools, coach skills and a lint after plan edits",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "category": "productivity",
       "keywords": ["running", "training-plan", "coach", "mcp"]
     }

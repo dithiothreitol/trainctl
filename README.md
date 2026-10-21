@@ -1,18 +1,19 @@
 # trainctl
 
-New in 0.3.0: three coaching workflows, available
-through both CLI and MCP:
+New in 0.4.0: trainctl as a **plugin for Claude Code and Codex**, execution read
+from exported **FIT, TCX and GPX files** (no API key needed), and an engine that
+knows your **time budget**, the **weeks after a race** and **plans without one**:
 
 ```sh
-trainctl shorten --minutes 40  # today's session within the total time budget
-trainctl why                   # purpose, dose, phase and placement in this plan
-trainctl review --prepare      # completed week and exact changes for approval
-trainctl adapt --apply <id>    # apply the proposal you reviewed
+trainctl init --agent claude      # profile + plugin setup for your agent
+trainctl pull --from ~/exports    # what you ran, from watch or Strava export files
+trainctl plan                     # regenerates the future, keeps what you decided
+trainctl status                   # one screen: profile, plan, key, sync, proposals, git
 ```
 
-The 40 minutes include preparation and planned strength. A shorter variant may
-give up the original training purpose; the preview says so. Preparing proposals
-keeps the active plan unchanged. See the [workflow guide](docs/REVIEWED-ADAPTATION.md).
+`plan` on an existing plan keeps past and logged days, pins, hand edits and the
+volume baseline you approved. Every command takes `--json`, `-C <dir>` and
+relative dates such as `tomorrow` or `sat`. See the [changelog](CHANGELOG.md).
 
 [![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

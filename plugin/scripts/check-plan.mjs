@@ -14,7 +14,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-export const TRAINCTL_VERSION = '0.3.0'
+export const TRAINCTL_VERSION = '0.4.0'
 const PLAN = 'plan/plan.yaml'
 
 /** Katalog treningowy, jeśli edytowany plik to jego plan/plan.yaml; inaczej undefined. */

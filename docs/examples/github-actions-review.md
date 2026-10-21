@@ -55,7 +55,7 @@ jobs:
           TRAINCTL_INTERVALS_API_KEY: ${{ secrets.TRAINCTL_INTERVALS_API_KEY }}
           NO_COLOR: '1'           # czysty tekst do komentarza
         run: |
-          npx --yes trainctl@0.3.0 review --days 7 > review.txt   # wersja jak lokalnie
+          npx --yes trainctl@0.4.0 review --days 7 > review.txt   # wersja jak lokalnie
           {
             echo 'body<<EOF'
             cat review.txt

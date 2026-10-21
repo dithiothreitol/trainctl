@@ -51,10 +51,10 @@ jobs:
       - name: trainctl check
         env:
           NO_COLOR: '1'
-        run: npx --yes trainctl@0.3.0 check
+        run: npx --yes trainctl@0.4.0 check
 ```
 
-Zamiast `trainctl@0.3.0` wpisz wersję, której używasz lokalnie
+Zamiast `trainctl@0.4.0` wpisz wersję, której używasz lokalnie
 (`trainctl --version`) — i podnoś ją świadomie, razem z regeneracją planu.
 
 `check` niczego nie zapisuje i nie potrzebuje klucza API — czyta wyłącznie

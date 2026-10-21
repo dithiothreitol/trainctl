@@ -1,18 +1,21 @@
 # trainctl
 
-Nowości w 0.3.0: trzy scenariusze dostępne
-przez CLI i MCP:
+Nowości w 0.4.0: trainctl jako **plugin do Claude Code i Codex**, wykonanie
+odczytane z wyeksportowanych **plików FIT, TCX i GPX** (bez klucza API) oraz
+silnik, który zna Twój **budżet czasu**, **tygodnie po starcie** i **plan bez
+startu**:
 
 ```sh
-trainctl shorten --minutes 40  # dzisiejszy trening w dostępnym czasie
-trainctl why                   # cel, dawka, faza i miejsce w tym planie
-trainctl review --prepare      # wykonany tydzień i zmiany do zatwierdzenia
-trainctl adapt --apply <id>    # zastosuj przejrzaną propozycję
+trainctl init --agent claude      # profil + konfiguracja pluginu dla agenta
+trainctl pull --from ~/eksport    # co przebiegłeś, z plików zegarka albo Stravy
+trainctl plan                     # przelicza przyszłość, zostawia Twoje decyzje
+trainctl status                   # jeden ekran: profil, plan, klucz, sync, propozycje, git
 ```
 
-40 minut obejmuje przygotowanie i zaplanowaną siłę. Krótszy wariant może oznaczać
-rezygnację z pierwotnego celu treningu — podgląd to opisuje. Przygotowanie propozycji
-zachowuje aktywny plan. Szczegóły: [opis scenariuszy](docs/REVIEWED-ADAPTATION.md).
+`plan` na istniejącym planie zostawia dni przeszłe i zalogowane, przypięcia,
+ręczne edycje i zatwierdzoną bazę objętości. Każda komenda przyjmuje `--json`,
+`-C <katalog>` i daty względne, np. `jutro` albo `sob`. Szczegóły:
+[changelog](CHANGELOG.md).
 
 [![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

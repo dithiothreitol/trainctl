@@ -54,7 +54,7 @@ This directory is a training plan as code. You have the `trainctl_*` MCP tools
 5. **Do not invent numbers.** Paces, volumes and rules come from the engine; if
    something is not in a tool’s output, say “I don’t know” rather than estimate.
 6. **Cite reasons, not just commands.** `trainctl_why` gives the purpose of a session
-   and the rules behind it (IDs from [docs/science/FOUNDATIONS.md](https://github.com/dithiothreitol/trainctl/blob/v0.3.0/docs/science/FOUNDATIONS.md)) — that is the
+   and the rules behind it (IDs from [docs/science/FOUNDATIONS.md](https://github.com/dithiothreitol/trainctl/blob/v0.4.0/docs/science/FOUNDATIONS.md)) — that is the
    value a coach adds over a list of workouts.
 7. **A what-if question gets a scenario, not an overwrite.** “What if the race
    moves three weeks?” → git branch or a copied directory, change `trainctl.yaml`
