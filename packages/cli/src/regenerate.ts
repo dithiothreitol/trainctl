@@ -94,14 +94,12 @@ export function rebuildPlan(
     : undefined
   const existingDays = new Map(existing.weeks.flatMap((w) => w.days).map((d) => [d.date, d]))
   // skalowanie do zatwierdzonej bazy idzie PRZED budżetem czasu, który computePlan
-  // stosuje raz, tymi samymi strefami co przy pierwszym planie (E-2). Siła stoi
-  // tam, gdzie w planie bez bazy — z aktualnymi fazami (przesunięty start) i
-  // `strength.days` — a propozycja przepisuje ją z zapisanego planu, który ma
-  // właśnie to rozstawienie; regeneracja tuż po `adapt --apply` odtwarza więc
-  // zatwierdzone dni. Drugi pełny przebieg computePlan tylko przy budżecie tygodnia,
-  // który po przycięciu rozstawia siłę od nowa; bez niego to samo rozstawienie
-  // mają już tygodnie przed skalowaniem.
-  const unscaled = loadState && config.strength?.enabled && config.time?.weeklyMinutes ? computePlan(config, macroStart, today) : undefined
+  // stosuje raz, tymi samymi strefami co przy pierwszym planie (E-2). Plan bez bazy
+  // (pełny, z budżetem) daje tygodnie sprzed decyzji — gotowe, jak w pierwotnym
+  // planie — i rozstawienie siły z aktualnymi fazami (przesunięty start) oraz
+  // `strength.days`. Propozycja przepisuje je z zapisanego planu, który ma właśnie
+  // to, więc regeneracja tuż po `adapt --apply` odtwarza zatwierdzone dni.
+  const unscaled = loadState ? computePlan(config, macroStart, today) : undefined
   const fresh = computePlan(config, macroStart, today, loadState
     ? {
         budgetStrength: 'keep',

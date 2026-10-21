@@ -78,6 +78,14 @@ describe('trainctl plan na istniejącym planie', () => {
     const fresh = initialize()
     expect(fresh.feasibilityWarnings.join('\n')).not.toContain('time budget caps')
     const reduced = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 30 }] })
+    // jeśli budżet tnie zredukowany plan, „bez budżetu" to poziom redukcji, nie pierwotny szczyt
+    const warning = reduced.plan.feasibilityWarnings.find((w) => w.includes('time budget caps'))
+    if (warning) expect(Number(warning.match(/would reach ([\d.]+) km\/week/)![1])).toBeLessThanOrEqual(30.5)
+  })
+  it('redukcja mieszcząca się w budżecie tygodnia: bez ostrzeżenia o budżecie', () => {
+    config.time = { weeklyMinutes: 240 }
+    initialize()
+    const reduced = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 30 }] })
     expect(reduced.plan.feasibilityWarnings.join('\n')).not.toContain('time budget caps')
   })
   it('rekalibracja przy budżecie tygodnia: przycięte tygodnie znów w budżecie, ostrzeżenie zostaje', () => {
@@ -90,6 +98,41 @@ describe('trainctl plan na istniejącym planie', () => {
     const warnings = recalibrated.plan.feasibilityWarnings.join('\n')
     expect(warnings).toContain('time budget caps')
     expect(warnings).not.toContain('stay over the weekly time budget')
+  })
+  it('szybsza rekalibracja przy budżecie tygodnia: przycięcie sprzed niej nadal widać w ostrzeżeniu', () => {
+    config.time = { weeklyMinutes: 240 }
+    initialize()
+    config.athlete.results = [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580, excluded: true }, { date: '2026-08-30', distanceKm: 10, timeSec: 2450 }]
+    saveConfig()
+    const recalibrated = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ type: 'recalibrate-zones' as const, detail: 'recalibrate', ruleRefs: [] }] })
+    expect(recalibrated.plan.feasibilityWarnings.join('\n')).toContain('time budget caps')
+  })
+  it('rekalibracja w środku tygodnia: bieżący tydzień zgadza się z własną objętością (P-3)', () => {
+    vi.setSystemTime(new Date('2026-09-10T12:00:00Z'))
+    config.time = { weeklyMinutes: 240 }
+    initialize()
+    config.athlete.results = [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580, excluded: true }, { date: '2026-09-05', distanceKm: 10, timeSec: 3300 }]
+    saveConfig()
+    const recalibrated = prepareProposal(dir, '2026-09-10', { ...reduction, actions: [{ type: 'recalibrate-zones' as const, detail: 'recalibrate', ruleRefs: [] }] })
+    expect(validatePlan(recalibrated.plan).filter((i) => i.code === 'targetKmMismatch')).toEqual([])
+  })
+  it('baza zatwierdzona przy budżecie bez siły: tygodnie sprzed decyzji nie dostają fałszywego „ponad budżet"', () => {
+    config.time = { weeklyMinutes: 240 }
+    initialize()
+    applyProposal(dir, prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 45 }] }).id)
+    config.athlete.results.push({ date: '2026-08-30', distanceKm: 5, timeSec: 1250 })
+    saveConfig()
+    expect(cmdPlan(dir).code).toBe(0)
+    expect(loadPlan(dir).feasibilityWarnings.join('\n')).not.toMatch(/stay over the weekly time budget: 2026-08-/)
+  })
+  it('baza zatwierdzona przy budżecie dni: regeneracja nadal mówi, że budżet tnie objętość', () => {
+    config.time = { weekdayMinutes: 50, weekendMinutes: 90 }
+    initialize()
+    applyProposal(dir, prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 45 }] }).id)
+    config.athlete.results.push({ date: '2026-08-30', distanceKm: 5, timeSec: 1250 })
+    saveConfig()
+    expect(cmdPlan(dir).code).toBe(0)
+    expect(loadPlan(dir).feasibilityWarnings.join('\n')).toContain('time budget caps')
   })
   it('zmiana athlete.recentWeeklyKm po redukcji: wygrywa profil, baza znika', () => {
     initialize()

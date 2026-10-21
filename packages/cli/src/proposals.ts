@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { estimateWorkoutMinutes, mondayOf, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
+import { addDays, estimateWorkoutMinutes, mondayOf, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
 import { logFor, readLog, LOG_FILE } from './logfile.ts'
 import { computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, scaleToBaseline, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
@@ -125,8 +125,11 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
     throw new Error(ui().improve.noPatch)
   const nextConfig = structuredClone(config)
   const candidate = withLocale(plan.locale === 'pl' ? 'pl' : 'en', () => computePlan(nextConfig, plan.generatedAt, today, {
-    // przy skalowaniu tygodnie sprzed decyzji przychodzą z zapisanego planu gotowe
-    ...(volume ? { budgetFrom: mondayOf(today) } : {}),
+    // Przy skalowaniu tygodnie sprzed decyzji przychodzą z zapisanego planu gotowe.
+    // Rekalibracja zmienia w bieżącym tygodniu tylko tempa (jego przeszłe dni zostają,
+    // więc przycięty od nowa tydzień nie zgadzałby się z własną objętością) — budżet
+    // dopasowuje tygodnie od następnego poniedziałku.
+    budgetFrom: volume ? mondayOf(today) : addDays(mondayOf(today), 7),
     // Tygodnie zapisanego planu zamiast świeżych; budżet czasu z profilu stosuje
     // potem computePlan (E-2), a siła zostaje na swoich dniach.
     budgetStrength: 'keep',
