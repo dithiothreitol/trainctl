@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { estimateWorkoutMinutes, validatePlan, weekTotals, withLocale, generateMicrocycle, paceZones, recalibrateWorkout, testDistanceKm, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
+import { estimateWorkoutMinutes, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
 import { readLog, LOG_FILE } from './logfile.ts'
-import { computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
+import { computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, scaleToBaseline, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
-import { buildExecution, isRunningActivity } from './execution.ts'
+import { isRunningActivity } from './execution.ts'
 import { clockToday } from './clock.ts'
 import { resultKey } from './calibration.ts'
 
@@ -61,8 +61,13 @@ export function recordedDates(cwd: string): Set<string> {
  */
 export function raceDayKm(cwd: string, plan: StoredPlan): number {
   const date = plan.goal.date
-  const record = buildExecution(plan, readSnapshot(cwd)?.activities ?? [], readLog(cwd), date).find((e) => e.date === date)
-  return record && record.status !== 'missed' ? record.actualKm ?? 0 : 0
+  const entry = readLog(cwd).filter((e) => e.date === date).at(-1)
+  const logged = !entry || entry.status === 'skipped' ? 0 : entry.km ?? (entry.status === 'done' ? plan.goal.distanceKm : 0)
+  const synced = (readSnapshot(cwd)?.activities ?? [])
+    .filter((a) => a.date === date && isRunningActivity(a))
+    .reduce((sum, a) => sum + (a.distanceKm ?? 0), 0)
+  // wpis z dziennika (np. rozruch rano) nie przykrywa startu pobranego z zegarka
+  return Math.max(logged, synced)
 }
 
 const describeDay = (day: PlannedDay): string => [workoutText(day), ...(day.strength ? [ui().today.strengthTitle(day.strength.durationMin) + ': ' + day.strength.description] : [])].join(' + ')
@@ -122,27 +127,24 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
     // potem computePlan (E-2), a siła zostaje na swoich dniach.
     budgetStrength: 'keep',
     beforeTimeBudget: (metadata) => {
-    // Compute calibration metadata separately; never replay a new baseline from August.
-    const zones = paceZones(metadata.vdot)
-    const anchor = plan.weeks.find(w => w.weekStart > today && !w.skeleton.deload && !['taper', 'race'].includes(w.skeleton.phase))
-      ?? plan.weeks.find(w => w.days.some(d => d.date > today))
-    metadata.weeks = plan.weeks.map(week => {
-      if (!volume) {
+      // Compute calibration metadata separately; never replay a new baseline from August.
+      // Bieżący cykl jak w zapisanym planie — szczyt i ostrzeżenia nie liczą historii poprzedniego.
+      if (plan.cycleStart) metadata.cycleStart = plan.cycleStart
+      if (volume) {
+        // Strength is an independent track; a volume correction does not reassign it.
+        const savedDays = new Map(plan.weeks.flatMap((w) => w.days).map((d) => [d.date, d]))
+        metadata.weeks = scaleToBaseline(plan.weeks, {
+          baselineKm: volume.suggestedWeeklyKm!, decidedOn: today, config: nextConfig, goal: plan.goal, vdot: metadata.vdot,
+          strengthOf: (date) => savedDays.get(date)?.strength,
+        })
+        return
+      }
+      const zones = paceZones(metadata.vdot)
+      metadata.weeks = plan.weeks.map((week) => {
         const copy = structuredClone(week)
         for (const day of copy.days) if (day.workout) day.workout = recalibrateWorkout(day.workout, zones, week.skeleton.intensityModel === 'polarized')
         return copy
-      }
-      const skeleton = structuredClone(week.skeleton)
-      delete skeleton.timeCappedKm // budżet zastosuje computePlan po skalowaniu
-      skeleton.targetKm = Math.round(volume.suggestedWeeklyKm! * skeleton.targetKm / Math.max(1, anchor?.skeleton.targetKm ?? skeleton.targetKm))
-      const generated = generateMicrocycle({ skeleton, athlete: nextConfig.athlete, goal: plan.goal, zones, testDistanceKm: testDistanceKm(plan.goal) })
-      // Strength is an independent track; a volume correction does not reassign it.
-      for (const day of generated.days) {
-        const strength = week.days.find(d => d.date === day.date)?.strength
-        if (strength) day.strength = structuredClone(strength)
-      }
-      return generated
-    })
+      })
     },
   }))
   const candidateDays = new Map(candidate.weeks.flatMap((w) => w.days).map((day) => [day.date, day]))

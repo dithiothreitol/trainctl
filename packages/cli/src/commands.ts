@@ -369,7 +369,7 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
     if (found.status === 'unreadable' && opts.fresh !== true) throw new Error(unusablePlanMessage(found))
     const existing = found.status === 'ok' ? found.plan : undefined
     const rebuild = existing && opts.fresh !== true
-      ? rebuildPlan(existing, config, { today, recorded: recordedDates(cwd), raceDayKm: raceDayKm(cwd, existing) })
+      ? rebuildPlan(existing, config, { today, recorded: recordedDates(cwd), raceDayKm: () => raceDayKm(cwd, existing) })
       : undefined
     const plan = rebuild ? rebuild.plan : computePlan(config, today)
     const issues = validatePlan(plan)
@@ -1751,12 +1751,15 @@ function diffWeeks(from: StoredPlan['weeks'], to: StoredPlan['weeks']): string[]
       lines.push(t.weekGone(week.weekStart))
       continue
     }
-    if (plannedWeekKm(f.skeleton) !== plannedWeekKm(week.skeleton)) {
+    const volumeChanged = plannedWeekKm(f.skeleton) !== plannedWeekKm(week.skeleton)
+    if (volumeChanged) {
       lines.push(t.weekVolume(week.weekStart, plannedWeekKm(week.skeleton), plannedWeekKm(f.skeleton)))
     }
     // cel tygodnia to zamiar szkieletu (po budżecie czasu), totalKm — plan faktycznie rozpisany na dni.
-    // Scenariusz bywa zmianą wyłącznie tego drugiego (skrócone jednostki).
-    if (kmDiffers(week.totalKm, f.totalKm)) {
+    // Scenariusz bywa zmianą wyłącznie tego drugiego (skrócone jednostki). Gdy sumy
+    // dni powtarzają cel (tydzień przycięty budżetem), druga linia byłaby echem pierwszej.
+    const totalsEchoTarget = !kmDiffers(week.totalKm, plannedWeekKm(week.skeleton)) && !kmDiffers(f.totalKm, plannedWeekKm(f.skeleton))
+    if (kmDiffers(week.totalKm, f.totalKm) && !(volumeChanged && totalsEchoTarget)) {
       lines.push(t.weekTotalKm(week.weekStart, week.totalKm ?? 0, f.totalKm ?? 0))
     }
     const fd = new Map(f.days.map((d) => [d.date, d]))
@@ -1837,7 +1840,7 @@ export function cmdDiff(cwd: string, opts: { plan?: string | undefined } = {}): 
     const config = loadConfig(cwd)
     // Dry-run dokładnie tej regeneracji, którą wykona `plan` (ADR-033) — inaczej
     // diff pokazywałby zmiany dni, których plan i tak nie ruszy.
-    const rebuild = rebuildPlan(stored, config, { today: localToday(), recorded: recordedDates(cwd), raceDayKm: raceDayKm(cwd, stored) })
+    const rebuild = rebuildPlan(stored, config, { today: localToday(), recorded: recordedDates(cwd), raceDayKm: () => raceDayKm(cwd, stored) })
     const fresh = rebuild.plan
     const lines: string[] = []
     if (rebuild.protectedDays.some((p) => p.reason === 'edited')) {

@@ -19,24 +19,22 @@
  *    i dni, w których nowa jednostka nie mieści się w zapisanym budżecie czasu,
  *    zostają bez zmian;
  *  - zatwierdzona baza (`loadState`) obowiązuje, dopóki użytkownik nie zmieni
- *    `athlete.recentWeeklyKm` w profilu — wtedy wygrywa profil.
+ *    `athlete.recentWeeklyKm` w profilu — wtedy wygrywa profil; dzień jej
+ *    zatwierdzenia zostaje, jak w propozycji, która zmienia dopiero dni po nim.
  */
 import {
   addDays,
   estimateWorkoutMinutes,
-  generateMicrocycle,
   mondayOf,
-  paceZones,
-  testDistanceKm,
   weekTotals,
   type Microcycle,
   type PlannedDay,
 } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
-import { computePlan, dayFingerprint, type StoredPlan } from './planfile.ts'
+import { computePlan, dayFingerprint, scaleToBaseline, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
-export type ProtectionReason = 'past' | 'recorded' | 'pinned' | 'approved' | 'edited' | 'budget'
+export type ProtectionReason = 'past' | 'recorded' | 'pinned' | 'baseline' | 'approved' | 'edited' | 'budget'
 export type RegenerationMode = 'same-cycle' | 'new-cycle'
 
 export interface Regeneration {
@@ -64,39 +62,11 @@ const sameDistance = (a: number, b: number) => Math.abs(a - b) < 0.001
  */
 const RACE_DONE_SHARE = 0.8
 
-/**
- * Skalowanie objętości do zatwierdzonej bazy — ta sama arytmetyka, co w
- * `prepareProposal` (proposals.ts), żeby regeneracja po zatwierdzonej propozycji
- * bez zmian na wejściu dawała te same dni: kotwica to pierwszy pełny tydzień
- * budowania po dacie decyzji, cele tygodni skalowane proporcjonalnie, siła
- * przepisana z wersji nieskalowanej (siła to osobny tor, korekta objętości jej
- * nie przestawia). Siła zostaje tam, gdzie stoi w zapisanym planie (`strengthSource`)
- * — jak w propozycji; dni, których zapisany plan nie ma, biorą rozstawienie świeże.
- */
-function scaleFrom(fresh: StoredPlan, config: TrainctlConfig, baseline: number, effectiveFrom: string, strengthSource: Map<string, PlannedDay> | undefined): void {
-  const zones = paceZones(fresh.vdot)
-  const anchor =
-    fresh.weeks.find((w) => w.weekStart > effectiveFrom && !w.skeleton.deload && !['taper', 'race'].includes(w.skeleton.phase)) ??
-    fresh.weeks.find((w) => w.days.some((d) => d.date > effectiveFrom))
-  const from = mondayOf(effectiveFrom)
-  fresh.weeks = fresh.weeks.map((week) => {
-    if (week.weekStart < from) return week
-    const skeleton = structuredClone(week.skeleton)
-    skeleton.targetKm = Math.round((baseline * skeleton.targetKm) / Math.max(1, anchor?.skeleton.targetKm ?? skeleton.targetKm))
-    const generated = generateMicrocycle({ skeleton, athlete: config.athlete, goal: fresh.goal, zones, testDistanceKm: testDistanceKm(fresh.goal) })
-    for (const day of generated.days) {
-      const strength = (strengthSource?.get(day.date) ?? week.days.find((d) => d.date === day.date))?.strength
-      if (strength) day.strength = structuredClone(strength)
-    }
-    return generated
-  })
-  fresh.peakKmPlanned = Math.max(...fresh.weeks.map((w) => w.totalKm))
-}
-
 export function rebuildPlan(
   existing: StoredPlan,
   config: TrainctlConfig,
-  opts: { today: string; recorded: Set<string>; raceDayKm?: number },
+  /** `raceDayKm` — leniwie: potrzebne tylko w dniu startu, a czyta dziennik i synchronizację. */
+  opts: { today: string; recorded: Set<string>; raceDayKm?: () => number },
 ): Regeneration {
   const now = clockToday()
   const today = opts.today
@@ -105,7 +75,7 @@ export function rebuildPlan(
   // sam cykl, a niezmieniony cel w dniu startu — zwykła regeneracja.
   const goalUnchanged = existing.goal.date === config.goal.date && sameDistance(existing.goal.distanceKm, config.goal.distanceKm)
   const raceDone = existing.goal.kind !== 'base' && existing.goal.date === now && !goalUnchanged &&
-    (opts.raceDayKm ?? 0) >= RACE_DONE_SHARE * existing.goal.distanceKm
+    (opts.raceDayKm?.() ?? 0) >= RACE_DONE_SHARE * existing.goal.distanceKm
   const raceBehind = existing.goal.date < now || raceDone
   const mode: RegenerationMode =
     !raceBehind && sameDistance(existing.goal.distanceKm, config.goal.distanceKm) ? 'same-cycle' : 'new-cycle'
@@ -124,16 +94,22 @@ export function rebuildPlan(
     : undefined
   const existingDays = new Map(existing.weeks.flatMap((w) => w.days).map((d) => [d.date, d]))
   // skalowanie do zatwierdzonej bazy idzie PRZED budżetem czasu, który computePlan
-  // stosuje raz, tymi samymi strefami co przy pierwszym planie (E-2). Siła zostaje
-  // na dniach z zapisanego planu (tak samo jak w propozycji, która tę bazę
-  // ustawiła), więc regeneracja tuż po `adapt --apply` odtwarza zatwierdzone dni.
-  const strengthSource = config.strength?.enabled && existing.weeks.some((w) => w.days.some((d) => d.strength))
-    ? existingDays
-    : undefined
+  // stosuje raz, tymi samymi strefami co przy pierwszym planie (E-2). Siła stoi
+  // tam, gdzie w planie bez bazy — z aktualnymi fazami (przesunięty start) i
+  // `strength.days` — a propozycja przepisuje ją z zapisanego planu, który ma
+  // właśnie to rozstawienie; regeneracja tuż po `adapt --apply` odtwarza więc
+  // zatwierdzone dni.
+  const unscaled = loadState && config.strength?.enabled ? computePlan(config, macroStart, today) : undefined
+  const unscaledDays = new Map((unscaled?.weeks ?? []).flatMap((w) => w.days).map((d) => [d.date, d]))
   const fresh = computePlan(config, macroStart, today, loadState
     ? {
         budgetStrength: 'keep',
-        beforeTimeBudget: (plan) => scaleFrom(plan, config, loadState.baselineWeeklyKm, loadState.effectiveFrom, strengthSource),
+        beforeTimeBudget: (plan) => {
+          plan.weeks = scaleToBaseline(plan.weeks, {
+            baselineKm: loadState.baselineWeeklyKm, decidedOn: loadState.effectiveFrom, config, goal: plan.goal, vdot: plan.vdot,
+            strengthOf: (date) => unscaledDays.get(date)?.strength,
+          })
+        },
       }
     : {})
 
@@ -144,7 +120,7 @@ export function rebuildPlan(
     if (opts.recorded.has(before.date)) return 'recorded'
     // dzień zatwierdzenia bazy: propozycja zmienia dopiero dni PO nim, więc
     // regeneracja w tym samym dniu też go nie rusza (inaczej „aktualny" plan by nie był)
-    if (mode === 'same-cycle' && keepLoad && before.date <= ls!.effectiveFrom) return 'approved'
+    if (mode === 'same-cycle' && keepLoad && before.date <= ls!.effectiveFrom) return 'baseline'
     if (before.pinned) return 'pinned'
     if (before.timeAdjustment && before.timeAdjustment.origin !== 'profile') return 'approved'
     // Bez mapy odcisków (plan sprzed 0.2.0) edycji nie da się odróżnić od generacji.

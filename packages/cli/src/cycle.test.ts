@@ -102,6 +102,20 @@ describe('po starcie: blok przejściowy w planie i w tym, co widać', () => {
     expect(r.code, r.output).toBe(0)
     expect(r.data).toMatchObject({ regeneration: { mode: 'same-cycle' } })
   })
+  it('rozruch w dzienniku nie przykrywa startu z synchronizacji: nowy cel po starcie to nowy cykl', () => {
+    write(RACE)
+    cmdPlan(dir, { date: '2026-08-08' })
+    process.env['TRAINCTL_TODAY'] = '2026-11-29'
+    expect(cmdLog(dir, { date: '2026-11-29', km: '3' }).code).toBe(0)
+    writeFileSync(join(dir, 'sync.json'), JSON.stringify({
+      pulledAt: '2026-11-29T15:00:00Z', wellness: [],
+      activities: [{ externalId: 'race', date: '2026-11-29', type: 'Run', distanceKm: 21.2 }],
+    }), 'utf-8')
+    write(RACE.replace('2026-11-29', '2027-04-11'))
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(r.data).toMatchObject({ regeneration: { mode: 'new-cycle' } })
+  })
   it('start zalogowany, cel bez zmian: plan w dniu startu działa jak zwykła regeneracja', () => {
     write(RACE)
     cmdPlan(dir, { date: '2026-08-08' })
@@ -148,6 +162,39 @@ describe('regeneracja po zatwierdzonej propozycji', () => {
       expect(r.data).toMatchObject({ regeneration: { changedDates: [], upToDate: true } })
     })
   }
+  const withBudget = (yaml: string) => `${yaml}time:\n  weeklyMinutes: 240\n`
+  const approve = (day: string) => {
+    process.env['TRAINCTL_TODAY'] = day
+    expect(cmdPlan(dir, { date: '2026-08-08' }).code).toBe(0)
+    applyProposal(dir, prepareProposal(dir, day, reduction).id)
+  }
+  it('start przesunięty o tydzień wcześniej po zatwierdzonej bazie: siła idzie za nowymi fazami', () => {
+    write(withBudget(RACE))
+    approve('2026-09-06')
+    write(withBudget(RACE.replace('2026-11-29', '2026-11-22')))
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(validatePlan(loadPlan(dir)).map((i) => i.code)).not.toContain('strengthInTaper')
+  })
+  it('zmiana strength.days po zatwierdzonej bazie przestawia siłę — plan nie jest „aktualny"', () => {
+    write(withBudget(RACE))
+    approve('2026-09-06')
+    write(withBudget(RACE.replace('  enabled: true\n', '  enabled: true\n  days: [mon]\n')))
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(r.data).toMatchObject({ regeneration: { upToDate: false } })
+    const future = loadPlan(dir).weeks.flatMap((w) => w.days).filter((d) => d.date > '2026-09-07' && d.strength)
+    expect(future.some((d) => d.weekday === 'mon')).toBe(true)
+  })
+  it('dzień decyzji zostaje z własnym powodem — nie „zatwierdzony wyjątek czasowy"', () => {
+    write(withBudget(RACE))
+    approve('2026-08-08')
+    write(withBudget(RACE.replace('timeSec: 2580 }\n', 'timeSec: 2580 }\n    - { date: "2026-08-01", distanceKm: 5, timeSec: 1150 }\n')))
+    const r = cmdPlan(dir, { date: '2026-08-08' })
+    expect(r.code, r.output).toBe(0)
+    expect((r.data as { regeneration: { protectedDays: unknown[] } }).regeneration.protectedDays).toContainEqual({ date: '2026-08-08', reason: 'baseline' })
+    expect(r.output).toContain('day of the approved baseline')
+  })
 })
 
 describe('plan bez startu (goal.kind: base)', () => {

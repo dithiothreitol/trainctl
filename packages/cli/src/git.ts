@@ -57,7 +57,9 @@ export function commitFiles(cwd: string, files: string[], message: string): Comm
 export function uncommitted(cwd: string, paths: string[]): string[] | undefined {
   if (!insideGitRepo(cwd)) return undefined
   const prefix = git(cwd, ['rev-parse', '--show-prefix'])
-  const r = git(cwd, ['status', '--porcelain', '-z', '--', ...paths])
+  // --untracked-files=normal: `status.showUntrackedFiles=no` w konfiguracji użytkownika
+  // nie może ukryć nowego, niezacommitowanego pliku (init uznałby go za czysty)
+  const r = git(cwd, ['status', '--porcelain', '-z', '--untracked-files=normal', '--', ...paths])
   if (r.status !== 0 || prefix.status !== 0) return undefined
   const root = prefix.stdout.trim()
   const entries = r.stdout.split('\0')
@@ -65,8 +67,9 @@ export function uncommitted(cwd: string, paths: string[]): string[] | undefined 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i]!
     if (entry.length < 4) continue
-    // `R  nowy\0stary` (rename albo kopia w indeksie): liczy się nowa ścieżka
-    if (entry[0] === 'R' || entry[0] === 'C') i++
+    // `R  nowy\0stary` (rename albo kopia — w indeksie albo, przy `git add -N`,
+    // w drzewie roboczym): liczy się nowa ścieżka, stara to osobny token
+    if (/[RC]/.test(entry.slice(0, 2))) i++
     const path = entry.slice(3)
     out.push(path.startsWith(root) ? path.slice(root.length) : path)
   }

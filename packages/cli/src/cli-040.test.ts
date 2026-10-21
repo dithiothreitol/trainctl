@@ -4,7 +4,7 @@
  * przykłady w pomocy i kody wyjścia. Część testów uruchamia prawdziwą binarkę.
  */
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -218,6 +218,16 @@ describe('status', () => {
       rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
     }
   })
+  it('rename w drzewie roboczym (git add -N): status podaje nową ścieżkę, bez śmieci ze starej', () => {
+    cmdPlan(dir, { date: '2026-08-08' })
+    const git = (args: string[]) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.test', ...args], { cwd: dir, encoding: 'utf-8' })
+    git(['init', '-q'])
+    git(['add', '-A'])
+    git(['commit', '-qm', 'init'])
+    renameSync(join(dir, 'plan', 'PLAN.md'), join(dir, 'plan', 'PLAN-old.md'))
+    git(['add', '-N', 'plan/PLAN-old.md'])
+    expect(cmdStatus(dir).data).toMatchObject({ git: { uncommitted: ['plan/PLAN-old.md'] } })
+  })
   it('plik planu, którego nie da się użyć: status nie podpowiada trainctl plan (plan by odmówił)', () => {
     mkdirSync(join(dir, 'plan'), { recursive: true })
     writeFileSync(join(dir, 'plan', 'plan.yaml'), '<<<<<<< HEAD\nweeks: [\n', 'utf-8')
@@ -290,6 +300,16 @@ describe('--commit', () => {
     rmSync(join(dir, 'trainctl.yaml'))
     execFileSync('git', ['init', '-q'], { cwd: dir })
     writeFileSync(join(dir, '.gitignore'), 'node_modules/\n', 'utf-8')
+    const r = cmdInit(dir, undefined, { commit: true })
+    expect(r.code).toBe(0)
+    expect(gitOut(['show', '--name-only', '--format=', 'HEAD'])).not.toContain('.gitignore')
+    expect(r.output).toContain('commit it yourself')
+  })
+  it('init --commit przy status.showUntrackedFiles=no: niezacommitowany .gitignore dalej poza commitem', () => {
+    rmSync(join(dir, 'trainctl.yaml'))
+    execFileSync('git', ['init', '-q'], { cwd: dir })
+    gitOut(['config', 'status.showUntrackedFiles', 'no'])
+    writeFileSync(join(dir, '.gitignore'), 'my-private-notes/\n', 'utf-8')
     const r = cmdInit(dir, undefined, { commit: true })
     expect(r.code).toBe(0)
     expect(gitOut(['show', '--name-only', '--format=', 'HEAD'])).not.toContain('.gitignore')

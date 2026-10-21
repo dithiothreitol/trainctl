@@ -7,8 +7,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { estimateWorkoutMinutes, setLocale, validatePlan } from 'trainctl-core'
-import { cmdCheck, cmdLog, cmdPlan, cmdReview, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
-import { loadPlan, writePlan, PLAN_YAML, type StoredPlan } from './planfile.ts'
+import { cmdCheck, cmdDiff, cmdLog, cmdPlan, cmdReview, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
+import { computePlan, loadPlan, writePlan, PLAN_YAML, type StoredPlan } from './planfile.ts'
+import type { TrainctlConfig } from './config.ts'
 import { readLog, readStrengthLog } from './logfile.ts'
 
 setLocale('en')
@@ -85,6 +86,31 @@ describe('E-2 · budżet czasu z profilu', () => {
     // bez budżetu plan sięgnąłby rekomendacji — to budżet go zatrzymuje, więc ostrzeżenie jest
     expect(capped.feasibilityWarnings.join(' ')).toContain('time budget caps')
     expect(readFileSync(join(dir, PLAN_YAML), 'utf-8')).not.toMatch(/timeCappedKm: \d+\.\d{2,}/)
+  })
+  it('ciaśniejszy budżet tygodnia nigdy nie daje tygodnia z większą objętością', () => {
+    const config: TrainctlConfig = {
+      athlete: { recentWeeklyKm: 55, peakWeeklyKm: 70, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580 }] },
+      goal: { name: 'Half marathon', date: '2026-11-29', distanceKm: 21.0975, priority: 'A' },
+    }
+    const totals = [120, 90, 60, 45, 30, 15].map((weeklyMinutes) =>
+      computePlan({ ...config, time: { weeklyMinutes } }, '2026-08-08').weeks.map((w) => w.totalKm))
+    for (let i = 1; i < totals.length; i++) {
+      totals[i]!.forEach((km, k) => expect(km).toBeLessThanOrEqual(totals[i - 1]![k]! + 0.5))
+    }
+  })
+  it('diff tygodnia przyciętego budżetem: jedna linia objętości, bez echa sumy dni', () => {
+    plan(`${BASE}time:\n  weeklyMinutes: 200\n`)
+    writeFileSync(join(dir, 'trainctl.yaml'), `${BASE}time:\n  weeklyMinutes: 150\n`, 'utf-8')
+    process.env['TRAINCTL_TODAY'] = '2026-08-08'
+    try {
+      const out = cmdDiff(dir).output
+      // tydzień z dniami przeszłymi ma sumę inną niż cel (stare dni zostają) — tam dwie linie mają sens
+      const weeks = [...out.matchAll(/week (\d{4}-\d{2}-\d{2}): volume/g)].map((m) => m[1]!).filter((w) => w > '2026-08-08')
+      expect(weeks.length).toBeGreaterThan(0)
+      for (const week of weeks) expect(out).not.toContain(`week ${week}: total of the days`)
+    } finally {
+      delete process.env['TRAINCTL_TODAY']
+    }
   })
   it('week pokazuje cel po budżecie czasu, nie zamiar makrocyklu', () => {
     const capped = plan(`${BASE}time:\n  weeklyMinutes: 200\n`)

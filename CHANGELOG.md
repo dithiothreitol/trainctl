@@ -41,7 +41,8 @@ change between minor versions — a regenerated plan can differ.
   counts as done only when most of its distance is logged or synced, so a
   morning shakeout before a postponed race keeps the same cycle.
 - Right after `adapt --apply`, `plan` reproduces the approved days, including
-  strength sessions, time-budget caps and the day of the decision.
+  strength sessions, time-budget caps and the day of the decision. Later,
+  strength follows the current phases and `strength.days`.
 - A `plan/plan.yaml` that cannot be read (a merge conflict, a missing goal) is
   never overwritten silently: `plan` refuses until it is fixed or `--fresh` is
   given, and `status` no longer suggests a `plan` that would fail.

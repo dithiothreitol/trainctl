@@ -196,6 +196,7 @@ export const cliPl: CliMessages = {
       past: 'przeszłe',
       recorded: 'zalogowane',
       pinned: 'przypięte',
+      baseline: 'dzień zatwierdzenia bazy',
       approved: 'zatwierdzony wyjątek czasowy',
       edited: 'ręczna edycja',
       budget: 'ponad budżet czasu',

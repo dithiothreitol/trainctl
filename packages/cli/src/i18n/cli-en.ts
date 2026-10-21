@@ -183,6 +183,7 @@ export const cliEn = {
       past: 'past',
       recorded: 'logged',
       pinned: 'pinned',
+      baseline: 'day of the approved baseline',
       approved: 'approved time exception',
       edited: 'manual edit',
       budget: 'over its time budget',

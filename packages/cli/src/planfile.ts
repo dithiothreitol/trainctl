@@ -20,7 +20,9 @@ import {
   type Microcycle,
   type PlannedDay,
   type RaceGoal,
+  plannedWeekKm,
   type RacePrediction,
+  type StrengthSession,
 } from 'trainctl-core'
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
@@ -143,9 +145,11 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   if (trailOnly) plan.feasibilityWarnings.push(ui().planMd.trailOnlyCalibration)
   opts.beforeTimeBudget?.(plan)
   if (config.time) {
-    // szczyt przed budżetem liczony z tygodni, które budżet dostaje — także po ich
-    // podmianie w haku (propozycja), inaczej redukcja objętości wyglądałaby na budżet
-    const macroPeak = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
+    // szczyt przed budżetem: zamiar tygodni bieżącego cyklu, które budżet dostaje —
+    // także po ich podmianie w haku (propozycja), inaczej redukcja objętości
+    // wyglądałaby na budżet. Cel szkieletu, nie suma dni: zaokrąglenie generatora
+    // nie może schować ostrzeżenia, gdy szczyt trafia dokładnie w rekomendację.
+    const macroPeak = Math.max(...cycleWeeksOf(plan).map((w) => w.skeleton.targetKm))
     const budget = fitTimeBudget(plan.weeks, config, zones, testDistanceKm(goal), opts.budgetStrength ?? 'reapply')
     plan.feasibilityWarnings.push(...budget.warnings)
     plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
@@ -158,6 +162,39 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   }
   plan.generatedDays = Object.fromEntries(plan.weeks.flatMap((w) => w.days).map((d) => [d.date, dayFingerprint(d)]))
   return plan
+}
+
+/**
+ * Skalowanie objętości do zatwierdzonej bazy — jedna arytmetyka dla propozycji
+ * (`adapt --prepare`, ADR-029) i regeneracji z zapisaną bazą (ADR-033), żeby
+ * `plan` tuż po `adapt --apply` odtwarzał zatwierdzone dni. Kotwica to pierwszy
+ * pełny tydzień budowania po dacie decyzji; cele tygodni skalowane proporcjonalnie
+ * od zamiaru makrocyklu (budżet czasu stosuje potem computePlan, raz). Siła to
+ * osobny tor: korekta objętości jej nie przestawia — przychodzi ze `strengthOf`.
+ */
+export function scaleToBaseline(weeks: Microcycle[], opts: {
+  baselineKm: number
+  decidedOn: string
+  config: TrainctlConfig
+  goal: RaceGoal
+  vdot: number
+  strengthOf: (date: string) => StrengthSession | undefined
+}): Microcycle[] {
+  const zones = paceZones(opts.vdot)
+  const anchor =
+    weeks.find((w) => w.weekStart > opts.decidedOn && !w.skeleton.deload && !['taper', 'race'].includes(w.skeleton.phase)) ??
+    weeks.find((w) => w.days.some((d) => d.date > opts.decidedOn))
+  return weeks.map((week) => {
+    const skeleton = structuredClone(week.skeleton)
+    delete skeleton.timeCappedKm
+    skeleton.targetKm = Math.round((opts.baselineKm * skeleton.targetKm) / Math.max(1, anchor?.skeleton.targetKm ?? skeleton.targetKm))
+    const generated = generateMicrocycle({ skeleton, athlete: opts.config.athlete, goal: opts.goal, zones, testDistanceKm: testDistanceKm(opts.goal) })
+    for (const day of generated.days) {
+      const strength = opts.strengthOf(day.date)
+      if (strength) day.strength = structuredClone(strength)
+    }
+    return generated
+  })
 }
 
 export function writePlan(cwd: string, plan: StoredPlan): void {
@@ -199,14 +236,18 @@ function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: Retur
       // Siła wraca dopiero po pętli (applyStrength) — jej minuty liczymy z tygodnia
       // przed regeneracją, inaczej kolejny przebieg uznałby tydzień za zmieszczony.
       const strengthMinutes = weeks[i]!.days.reduce((s, d) => s + (d.strength?.durationMin ?? 0), 0)
+      // Cel podawany generatorowi maleje z przebiegu na przebieg. Zapisana objętość
+      // (timeCappedKm) bywa wyższa od celu przez minima jednostek — liczona od niej
+      // kolejna redukcja mogłaby podnieść tydzień zamiast go obniżyć.
+      let requested = plannedWeekKm(weeks[i]!.skeleton)
       for (let pass = 0; pass < 4; pass++) {
         const week = weeks[i]!
         if (week.skeleton.raceDate) break
         const minutes = runMinutes(week) + strengthMinutes
         if (minutes <= time.weeklyMinutes) break
-        const current = week.skeleton.timeCappedKm ?? week.skeleton.targetKm
-        const target = Math.max(5, Math.floor(current - (minutes - time.weeklyMinutes) / easyMinPerKm))
-        if (target >= current) break
+        const target = Math.max(5, Math.floor(requested - (minutes - time.weeklyMinutes) / easyMinPerKm))
+        if (target >= requested) break
+        requested = target
         const regenerated = generateMicrocycle({ skeleton: { ...week.skeleton, targetKm: target }, athlete: config.athlete, zones, goal: config.goal, testDistanceKm: testKm })
         // zamiar makrocyklu zostaje w targetKm; budżet zapisuje obok objętość, którą
         // generator faktycznie rozpisał (bywa wyżej niż cel), bo z nią lint porównuje sumy (P-3)

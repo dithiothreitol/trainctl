@@ -16,7 +16,7 @@
  */
 import type { Microcycle, RaceGoal, Weekday, WorkoutKind } from '../domain/types.ts'
 import { COACH_STYLE, type HouseStyle } from './house-style.ts'
-import { weekTotals } from './microcycle.ts'
+import { plannedWeekKm, weekTotals } from './microcycle.ts'
 import { addDays, diffDays, mondayOf } from '../util/dates.ts'
 
 const WEEKDAY_ORDER: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
@@ -311,10 +311,9 @@ export function validatePlan(input: ValidatePlanInput): PlanIssue[] {
   }
 
   for (const { week, days } of cleanWeeks) {
-    const target = week.skeleton?.targetKm
     const totals = recomputed.get(week.weekStart)!
     // budżet czasu z profilu (E-2) świadomie obniża objętość — porównujemy z tym, co zostawił
-    const expected = week.skeleton?.timeCappedKm ?? target
+    const expected = week.skeleton ? plannedWeekKm(week.skeleton) : undefined
     if (typeof expected === 'number' && week.skeleton?.phase !== 'race' && Math.abs(totals.totalKm - expected) > 0.5) {
       warn({ code: 'targetKmMismatch', ruleRefs: ['P-3'], date: week.weekStart, expected, actual: totals.totalKm })
     }
