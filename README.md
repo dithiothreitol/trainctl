@@ -186,9 +186,14 @@ Rules
 **Record what actually happened.**
 
 ```bash
+trainctl log                    # in a terminal: pick the session, answer a few questions
 trainctl log --km 8 --time 41:20 --rpe 4 --note "felt good"
-trainctl log --date 2026-08-06 --status skipped --note "work"
+trainctl log --date yesterday --status skipped --note "work"
 ```
+
+Dates accept `YYYY-MM-DD`, `today`/`tomorrow`/`yesterday`, `+N`/`-N` and weekday
+names (`thu`). `log`, `review`, `adapt` and `pull` look back; everything else
+looks ahead.
 
 `--rpe` is the session effort on the 1–10 scale. The engine stores it and the
 weekly review quotes it back verbatim — it never turns feelings into zones,
@@ -237,16 +242,16 @@ a key is configured). `trainctl adapt` compares execution with the plan and
 
 | command | what it does | key flags |
 |---|---|---|
-| `init` | profile wizard | `--template`, `--from-intervals` |
-| `plan` | generate the plan from `trainctl.yaml` | `--date` |
+| `init` | profile wizard | `--template`, `--from-intervals`, `--commit` |
+| `plan` | generate the plan; on an existing plan regenerate only the future | `--date`, `--fresh`, `--commit` |
 | `today` | the session for today | `--date` |
 | `week` | the week, with journal status | `--date`, `-i` (arrow-key browsing) |
 | `why` | purpose + research rules behind a session | `--date` |
-| `log` | record a completed session | `--status`, `--km`, `--time`, `--test-time`, `--rpe`, `--note` |
-| `shift` | swap two sessions inside a week | `--from`, `--to` (or pick from a list) |
-| `reschedule` | re-solve the week around busy days | `--block`, `--time`, `--pin`, `--preparation`, `--strategy`, `--apply` |
-| `adapt` | analyse execution, propose corrections | `--date`, `--prepare`, `--apply <id>` |
-| `shorten` | fit one session into the time you have, as a proposal | `--minutes`, `--date`, `--apply <id>` |
+| `log` | record a completed session (no flags in a terminal: asks) | `--status`, `--km`, `--time`, `--test-time`, `--rpe`, `--note`, `--commit` |
+| `shift` | swap two sessions inside a week | `--from`, `--to` (or pick from a list), `--commit` |
+| `reschedule` | re-solve the week around busy days | `--block`, `--time`, `--pin`, `--preparation`, `--strategy`, `--apply`, `--commit` |
+| `adapt` | analyse execution, propose corrections | `--date`, `--prepare`, `--apply <id>`, `--commit` |
+| `shorten` | fit one session into the time you have, as a proposal | `--minutes`, `--date`, `--apply <id>`, `--commit` |
 | `review` | pull + adapt + week in one call | `--days`, `--date`, `--prepare` |
 | `desk` | training windows around office hours | `--heavy` |
 | `push` | send planned sessions to intervals.icu | `--days`, `--from`, `--to` |
@@ -254,9 +259,20 @@ a key is configured). `trainctl adapt` compares execution with the plan and
 | `export` | `.fit`, `.ics`, printout, race pack | `--what`, `--date` |
 | `diff` | what a regeneration would change | `--plan <file>` |
 | `check` | lint the plan; fails the exit code | `--strict` |
+| `status` | the directory at a glance: profile, plan, key, data, proposals, git | |
+| `completion` | shell completion script | `bash`, `zsh`, `fish`, `pwsh` |
 
-`--lang en|pl` works on every command. `trainctl help <command>` prints the full
-flag list.
+Every command takes `--lang en|pl`, `--json` (prints `{ code, data, output }` —
+the same data the MCP tools return) and `-C <dir>` (or `TRAINCTL_DIR`) to work
+on a training directory elsewhere. `trainctl help <command>` prints the full
+flag list with examples. Exit codes: 0 success, 1 error or refusal, 2 usage
+error (unknown command or flag, a date that is not a date).
+
+`--commit` commits exactly the files the command changed — never `.env`,
+`.trainctl-secret` or `sync.json`, and never other changes you have staged.
+`TRAINCTL_TODAY=YYYY-MM-DD` simulates the date for trying a scenario; every
+output then starts by saying so, and past-day protection follows the simulated
+date.
 
 ## Configuration
 
@@ -402,7 +418,7 @@ terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
 `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
 `trainctl_adapt`, `trainctl_shorten`, `trainctl_desk`, `trainctl_reschedule`,
-`trainctl_export`, `trainctl_review`.
+`trainctl_export`, `trainctl_review`, `trainctl_status`.
 
 The `AGENTS.md` written by `trainctl init` turns the agent into a coach rather
 than a command runner: ask before regenerating a plan, ask for context when a
@@ -503,6 +519,15 @@ result it will not calibrate zones from watch readings.
 **Is this a training plan generator or a coach?** A generator with a coach's
 manners: it explains, warns and negotiates, but it never applies a change to
 your plan without you.
+
+**What happens to my plan when I run `trainctl plan` again?** Only the future
+changes. Past and logged days, pinned days, hand edits, approved shortenings and
+days whose new session would not fit a saved time budget stay as they are; an
+approved volume baseline from `adapt` stays until you change
+`athlete.recentWeeklyKm` yourself. A different goal distance, or a new goal after
+the race, starts a new cycle and keeps the earlier weeks as history.
+`trainctl diff` shows exactly the same changes without saving; `--fresh` starts
+over (the old plan is in git).
 
 **Can I edit `plan/plan.yaml` by hand?** Yes — that is the point of plan-as-code.
 Run `trainctl check` afterwards; it verifies the invariants the generator

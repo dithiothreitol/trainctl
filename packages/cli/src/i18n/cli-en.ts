@@ -39,6 +39,7 @@ export const cliEn = {
     check: 'lint the plan: engine invariants + file integrity; errors fail the exit code (CI)',
     optStrict: 'warnings also fail the exit code (for CI)',
     optDiffPlan: 'compare with another plan file instead (a scenario branch or worktree)',
+    optFresh: 'regenerate from scratch: discard kept past days, approvals, pins and budgets (they stay in git)',
     optDate: 'date (defaults to today)',
     optDateOther: 'a date other than today',
     optDateWeek: 'any date inside the week you care about',
@@ -65,6 +66,18 @@ export const cliEn = {
     pickFromList: ' (pick from a list) · ',
     browseArrows: ' (browse with arrows)',
     colorsHint: 'Colours: NO_COLOR=1 disables them, TRAINCTL_ASCII=1 forces ASCII glyphs.',
+    datesHint:
+      'Dates: YYYY-MM-DD, today/tomorrow/yesterday, +N/-N days, or a weekday (mon…sun). ' +
+      'log, review, adapt and pull look back; the other commands look ahead.',
+    dirHint: 'Directory: -C <path> or TRAINCTL_DIR; TRAINCTL_TODAY=YYYY-MM-DD simulates the date (always announced).',
+    optJson: 'print JSON ({ code, data, output }) instead of formatted text',
+    optDir: 'training directory (defaults to TRAINCTL_DIR, then the current directory)',
+    optCommit: 'commit the files this command changed (optionally with your own message)',
+    status: 'state of the training directory: profile, plan, data, proposals, git',
+    completion: 'print a shell completion script: bash | zsh | fish | pwsh',
+    completionShell: (shells: string) => `Unknown shell — use one of: ${shells}`,
+    dirMissing: (dir: string) => `Directory ${dir} does not exist.`,
+    examples: 'Examples:',
     spinnerPush: 'sending sessions to intervals.icu…',
     spinnerPull: 'fetching data from intervals.icu…',
     spinnerReview: 'preparing the weekly review…',
@@ -139,6 +152,39 @@ export const cliEn = {
     goalInRange: (target: string) => `The goal of ${target} sits inside the predicted range.`,
     structure: 'Structure',
     phaseSpan: (phase: string, from: number, to: number) => `${phase}: weeks ${from}–${to}`,
+    regenSection: 'What the regeneration changes',
+    sameCycle: (start: string) =>
+      `Same training cycle: phases stay anchored to ${start}; future days follow trainctl.yaml.`,
+    newCycle: (weekStart: string) =>
+      `New training cycle from ${weekStart} (different goal distance, or the previous race is behind you); ` +
+      'earlier weeks stay as history.',
+    changedDays: 'Days changed',
+    keptDays: 'Days kept as they were',
+    reasons: {
+      past: 'past',
+      recorded: 'logged',
+      pinned: 'pinned',
+      approved: 'approved time exception',
+      edited: 'manual edit',
+      budget: 'over its time budget',
+    },
+    loadKept: (km: number, date: string) =>
+      `Kept the approved baseline of ${n(km)} km/week from ${date} (adapt). ` +
+      'Changing athlete.recentWeeklyKm in trainctl.yaml overrides it.',
+    loadCleared: (km: number) =>
+      `athlete.recentWeeklyKm changed since the approved baseline of ${n(km)} km/week — the profile wins.`,
+    droppedWeeks: (weeks: string) => `Weeks no longer in the plan: ${weeks} (the previous version is in git).`,
+    moreLines: (count: number) => `… and ${count} more — trainctl diff lists every difference.`,
+    upToDate: 'Plan is current — trainctl.yaml produces the same future days; nothing written.',
+    freshDropped: (items: string) => `Regenerated from scratch (--fresh), discarding: ${items}. The previous plan is in git.`,
+    freshItems: {
+      loadState: (km: number) => `the approved baseline (${n(km)} km/week)`,
+      pinned: (count: number) => `${count} pinned ${pluralEn(count, { one: 'day', other: 'days' })}`,
+      budgets: (count: number) => `${count} time ${pluralEn(count, { one: 'budget', other: 'budgets' })}`,
+      approved: (count: number) => `${count} approved time ${pluralEn(count, { one: 'exception', other: 'exceptions' })}`,
+      edited: (count: number) => `${count} manually edited ${pluralEn(count, { one: 'day', other: 'days' })}`,
+      history: (count: number) => `${count} change-log ${pluralEn(count, { one: 'entry', other: 'entries' })}`,
+    },
   },
 
   today: {
@@ -149,6 +195,8 @@ export const cliEn = {
     restDayBody: 'Rest is part of the plan — adaptation happens in recovery.',
     logged: (status: string) => `Logged: ${status}`,
     whyHint: (date: string) => `why this session: trainctl why --date ${date}`,
+    estimate: (minutes: number) => `about ${minutes} min including preparation`,
+    next: (date: string, weekday: string, kind: string, km: number) => `next: ${weekday} ${date} · ${kind} · ${n(km)} km`,
     strengthTitle: (minutes: number) => `Strength · ~${n(minutes)} min`,
     strengthAloneDay: 'No running today — a clean day for the gym (no clash with running).',
     strengthWithEasy:
@@ -185,6 +233,21 @@ export const cliEn = {
     recorded: 'Recorded',
     testTime: (time: string) => `test segment ${time}`,
     unplanned: 'The plan had a rest day here — the entry counts as an unplanned run.',
+    prompt: {
+      which: 'Which session?',
+      status: 'Status',
+      statusHint: 'done / skipped / modified',
+      km: 'Kilometres',
+      time: 'Time',
+      timeHint: 'MM:SS or H:MM:SS, Enter skips',
+      testTime: 'Time of the measured segment only',
+      rpe: 'Effort 1–10 (RPE)',
+      rpeHint: 'Enter skips',
+      note: 'Note',
+      noteHint: 'how it went, conditions — Enter skips',
+      badStatus: 'Use done, skipped or modified (d / s / m).',
+      logged: 'logged',
+    },
   },
 
   shift: {
@@ -311,7 +374,8 @@ export const cliEn = {
   diff: {
     title: 'Differences: saved plan → plan from current trainctl.yaml',
     upToDate: 'Plan is current — no differences against a regeneration from trainctl.yaml.',
-    manualShifts: 'the plan contains manual shifts — they will show up as differences',
+    manualShifts: 'the plan contains manual changes — regeneration keeps those days as they are',
+    metadataOnly: 'no day changes; plan metadata would be refreshed (engine version, calibration, approved baseline)',
     weekGone: (weekStart: string) => `- week ${weekStart}: disappears from the plan`,
     weekVolume: (weekStart: string, before: number, after: number) =>
       `~ week ${weekStart}: volume ${n(before)} → ${n(after)} km`,
@@ -328,7 +392,7 @@ export const cliEn = {
     strengthDuration: (date: string, before: number, after: number) =>
       `~ ${date}: strength ${before} → ${after} min`,
     weekNew: (weekStart: string, km: number) => `+ week ${weekStart}: new (${n(km)} km)`,
-    applyHint: 'to apply: trainctl plan (overwrites plan/ — you have it in git)',
+    applyHint: 'to apply: trainctl plan — past, logged, pinned and approved days stay; --fresh starts over',
     localeChanged: (planLocale: string, current: string) =>
       `the plan was generated in "${planLocale}", you are running in "${current}" — ` +
       'run trainctl plan to regenerate the descriptions',
@@ -607,6 +671,130 @@ export const cliEn = {
     strengthSummary: (minutes: number) => `strength ~${n(minutes)} min`,
   },
 
+  clock: {
+    simulated: (env: string, date: string) =>
+      `simulated date ${date} (${env}) — "today", past-day protection and proposal expiry follow it`,
+    badSimulatedDate: (env: string, value: string) => `${env}="${value}" is not a date — use YYYY-MM-DD or unset it.`,
+  },
+
+  dates: {
+    badInput: (input: string) =>
+      `"${input}" is not a date — use YYYY-MM-DD, today/tomorrow/yesterday, +N/-N or a weekday (mon…sun)`,
+  },
+
+  commit: {
+    done: (sha: string, files: string) => `Committed ${sha}: ${files}`,
+    noGit: 'Not a git repository — nothing committed (the change itself is saved).',
+    nothing: 'Nothing to commit — the files are unchanged.',
+    failed: (detail: string) => `The change is saved, but git commit failed: ${detail}`,
+    init: 'trainctl init: profile and coach instructions',
+    plan: (goal: string, date: string) => `trainctl plan: ${goal} (${date})`,
+    log: (date: string, status: string) => `trainctl log: ${date} ${status}`,
+    shift: (from: string, to: string) => `trainctl shift: ${from} ↔ ${to}`,
+    reschedule: (weekStart: string) => `trainctl reschedule: week of ${weekStart}`,
+    apply: (id: string) => `trainctl: apply reviewed proposal ${id}`,
+  },
+
+  status: {
+    title: 'Training directory',
+    profile: 'Profile',
+    language: 'Language',
+    ok: 'valid',
+    missing: 'missing — trainctl init',
+    invalid: 'has errors (below)',
+    plan: 'Plan',
+    goal: 'Goal',
+    toRace: 'To race day',
+    daysToRace: (days: number) => (days >= 0 ? `${days} ${pluralEn(days, { one: 'day', other: 'days' })}` : `${-days} ${pluralEn(-days, { one: 'day', other: 'days' })} ago`),
+    weeks: 'This cycle',
+    weeksSessions: (weeks: number, sessions: number) => `${weeks} ${pluralEn(weeks, { one: 'week', other: 'weeks' })}, ${sessions} ${pluralEn(sessions, { one: 'session', other: 'sessions' })}`,
+    generated: 'Phases anchored to',
+    engine: 'Engine',
+    engineOther: (planVersion: string, current: string) => `${planVersion} (running ${current} — see trainctl diff)`,
+    engineOld: (current: string) => `before 0.2.0 (running ${current})`,
+    loadState: 'Approved baseline',
+    loadStateValue: (km: number, date: string) => `${n(km)} km/week since ${date}`,
+    noPlan: 'No plan yet.',
+    planUnusable: (file: string) => `${file} is not a usable plan — trainctl check shows what is broken.`,
+    calibration: 'Zone calibration',
+    calibrationSelected: (date: string, km: number, ageDays: number, vdot: number) =>
+      `${date} · ${n(km)} km · ${ageDays} ${pluralEn(ageDays, { one: 'day', other: 'days' })} old · VDOT ${n(vdot)}`,
+    calibrationFromGoal: (vdot: number) => `from the goal time (VDOT ${n(vdot)}) — add a race result to athlete.results`,
+    calibrationNone: 'no result recorded in the plan',
+    data: 'Data',
+    key: 'intervals.icu key',
+    keyFromEnv: 'environment variable',
+    keyNone: 'none — offline mode (export works without it)',
+    envProtected: 'ignored by git',
+    envUnprotected: 'NOT ignored by git',
+    never: 'never pulled',
+    syncValue: (pulledAt: string, activities: number, withheld: number) =>
+      `pulled ${pulledAt}, ${activities} ${pluralEn(activities, { one: 'activity', other: 'activities' })}` +
+      (withheld ? `, ${withheld} without data (Strava)` : ''),
+    empty: 'empty',
+    logValue: (entries: number, date: string, status: string) =>
+      `${entries} ${pluralEn(entries, { one: 'entry', other: 'entries' })}, last ${date} (${status})`,
+    unconfirmed: (dates: string) => `Unconfirmed sessions this week: ${dates} — trainctl log or trainctl pull.`,
+    proposals: 'Proposals',
+    columns: { id: 'id', kind: 'kind', for: 'for', state: 'state', changes: 'changes' },
+    state: {
+      valid: 'valid today',
+      expired: 'expired — prepare again',
+      stale: 'inputs changed — prepare again',
+      invalid: 'unreadable',
+    },
+    git: 'Git',
+    noGit: 'Not a git repository — the history of your training lives nowhere. git init is enough.',
+    clean: 'Everything committed.',
+    dirty: (files: string) => `Uncommitted: ${files}`,
+    next: (steps: string) => `next: ${steps}`,
+  },
+
+  examples: {
+    plan: [
+      'trainctl plan                 # regenerate the future, keep the past and approvals',
+      'trainctl diff                 # the same changes, without saving',
+      'trainctl plan --fresh         # start over (the old plan stays in git)',
+    ],
+    log: [
+      'trainctl log                  # in a terminal: pick the session and answer a few questions',
+      'trainctl log --km 8 --time 41:20 --rpe 4 --note "felt good"',
+      'trainctl log --date yesterday --status skipped --note "work"',
+    ],
+    shorten: [
+      'trainctl shorten --minutes 40           # today, as a proposal',
+      'trainctl shorten --minutes 30 --date thu',
+      'trainctl shorten --apply <id> --commit  # approve what you reviewed',
+    ],
+    adapt: [
+      'trainctl adapt                # proposals only',
+      'trainctl adapt --prepare      # a concrete patch to review',
+      'trainctl adapt --apply <id>   # apply exactly what you reviewed',
+    ],
+    review: [
+      'trainctl review               # the last seven days and the week ahead',
+      'trainctl review --date sun    # the week that ended last Sunday',
+      'trainctl review --prepare     # with exact changes for approval',
+    ],
+    reschedule: [
+      'trainctl reschedule --block thu sat           # preview',
+      'trainctl reschedule --time tue=40 --pin sun   # 40 minutes on Tuesday, keep Sunday',
+      'trainctl reschedule --block thu --apply --commit',
+    ],
+    export: [
+      'trainctl export --what plan                  # .fit workouts for the watch',
+      'trainctl export --what workout --date tomorrow',
+      'trainctl export --what calendar              # .ics',
+    ],
+    diff: [
+      'trainctl diff                                # what trainctl plan would change',
+      'git show what-if:plan/plan.yaml > /tmp/s.yaml && trainctl diff --plan /tmp/s.yaml',
+    ],
+    push: ['trainctl push --days 7', 'trainctl push --from mon --to sun'],
+    pull: ['trainctl pull --days 28', 'trainctl pull --date -7   # a range ending a week ago'],
+    status: ['trainctl status', 'trainctl status --json | jq .proposals'],
+  },
+
   envFile: {
     unprotected: (envFile: string, ignoreFile: string) =>
       `${envFile} is loaded and this directory is a git repository, but no ${ignoreFile} ` +
@@ -769,7 +957,10 @@ export const cliEn = {
     plan:
       'Generate the training plan from trainctl.yaml → plan/plan.yaml + plan/PLAN.md. ' +
       'Returns a summary: volume peak, predicted finish (a range) and how realistic the goal is. ' +
-      'OVERWRITES an existing plan — when in doubt run trainctl_diff first.',
+      'On an existing plan it regenerates the FUTURE only: past, logged, pinned, hand-edited and approved days ' +
+      'stay, and an approved baseline from adapt is kept. fresh=true starts over. Ask before calling it; ' +
+      'trainctl_diff shows exactly the same changes without saving.',
+    planFresh: 'true = regenerate from scratch, discarding kept days and approvals (ask the user first)',
     planDate: '“today” (defaults to the current date)',
     today: 'The session for today (or a given date): description, distance, status from the journal.',
     week:
@@ -850,6 +1041,14 @@ export const cliEn = {
       'plan/plan.yaml is internally inconsistent (usually a manual edit); WARNINGS mean a rule ' +
       'deviation someone may have chosen. Run it after hand-editing the plan file. Changes nothing.',
     checkStrict: 'true = warnings also count as failures',
+    status:
+      'State of the training directory in one call: whether trainctl.yaml validates, which engine version ' +
+      'generated the plan, where the API key comes from and whether .env is protected, when data was last pulled, ' +
+      'the journal, saved proposals with their validity today, and uncommitted files. Read-only — start here ' +
+      'when something looks off.',
+    commit:
+      'true = after a successful write, git-commit exactly the files this tool changed (never secrets). ' +
+      'This writes to the user’s git history — use it only when they asked for commits.',
   },
 
   /** AGENTS.md — the coach persona dropped into the training directory by `trainctl init`. */
@@ -865,6 +1064,9 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
 - **Review and propose changes** → \`trainctl_review(prepare=true)\`. Show execution gaps and the saved changes. Approve with \`trainctl_adapt(apply=ID)\`; do not regenerate or sync between preview and approval.
 - **Start of the week** → \`trainctl_review\`. One call instead of pull + adapt +
   week. Relay the result in plain language and propose at most two things to do.
+- **Something looks off** (a proposal will not apply, data seems missing, the
+  plan reads oddly) → \`trainctl_status\` first: config, engine version, key,
+  last pull, proposals with their validity, uncommitted files.
 - **Before any change to the week** → \`trainctl_week\` first, to see the context.
   “Move the intervals” without looking at the week is guesswork.
 - **After a race or a time trial** → ask for the time and propose an entry in
@@ -883,8 +1085,9 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
 
 ## Rules
 
-1. **Do not regenerate the plan without asking.** \`trainctl_plan\` overwrites the
-   existing plan. When in doubt: \`trainctl_diff\` (shows the differences, saves nothing).
+1. **Do not regenerate the plan without asking.** \`trainctl_plan\` rewrites the future
+   weeks (past, logged, pinned and approved days stay; fresh=true starts over).
+   When in doubt: \`trainctl_diff\` (the same changes, saves nothing).
 2. **Adaptation proposes, it does not rewrite.** \`trainctl_adapt\` returns proposals;
    use prepare=true for a concrete patch. Show its session changes and warnings, then ask\n   for approval before calling apply with that ID. If inputs changed, prepare a new proposal.\n   Missing execution data is unknown, not proof of a skipped session.
 3. **Ask for context before you start computing.** A missed week means one thing

@@ -77,6 +77,22 @@ function insideGitRepo(cwd: string): boolean {
 }
 
 /**
+ * Stan `.env` bez wczytywania — dla `trainctl status`. Klucz rozpoznajemy po
+ * NAZWIE zmiennej, nigdy nie czytając ani nie zwracając jej wartości.
+ */
+export function inspectEnvFile(cwd: string, keyName: string): { exists: boolean; unprotected: boolean; hasKey: boolean } {
+  const path = join(cwd, ENV_FILE)
+  if (!existsSync(path)) return { exists: false, unprotected: false, hasKey: false }
+  let hasKey = false
+  try {
+    hasKey = readFileSync(path, 'utf-8').split('\n').some((l) => new RegExp(`^\\s*(export\\s+)?${keyName}\\s*=\\s*\\S`).test(l))
+  } catch {
+    hasKey = false
+  }
+  return { exists: true, unprotected: insideGitRepo(cwd) && !isIgnored(cwd), hasKey }
+}
+
+/**
  * Wczytuje `.env` z katalogu, jeśli istnieje. Brak pliku to normalna sytuacja,
  * nie błąd — większość użytkowników trzyma klucz w zmiennej środowiskowej.
  */

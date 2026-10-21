@@ -132,7 +132,7 @@ export function toYaml(a: WizardAnswers): string {
   ].join('\n')
 }
 
-async function ask<T>(
+export async function ask<T>(
   rl: Interface,
   theme: Theme,
   question: string,

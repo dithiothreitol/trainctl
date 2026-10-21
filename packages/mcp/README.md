@@ -18,7 +18,7 @@ terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
 `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
 `trainctl_adapt`, `trainctl_desk`, `trainctl_reschedule`, `trainctl_export`,
-`trainctl_review`, `trainctl_shorten`.
+`trainctl_review`, `trainctl_shorten`, `trainctl_status`.
 
 For “only 40 minutes today”, use `trainctl_shorten({minutes: 40})`; it saves a
 proposal and explains any lost purpose. `trainctl_why` explains the actual

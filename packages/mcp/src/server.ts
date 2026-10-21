@@ -23,10 +23,12 @@ import {
   cmdReview,
   cmdShift,
   cmdShorten,
+  cmdStatus,
   cmdToday,
   cmdWeek,
   cmdWhy,
   defaultProviderFactory,
+  simulationNotice,
   type CmdResult,
   type ProviderFactory,
 } from 'trainctl'
@@ -34,11 +36,16 @@ import {
 const isoDate = () => z.string().regex(/^\d{4}-\d{2}-\d{2}$/, ui().mcp.isoDate)
 
 const toolOutputSchema = { code: z.number(), output: z.string(), data: z.record(z.string(), z.unknown()) }
+/** `commit` na narzędziach, które zapisują plan albo dziennik (ADR-040). */
+const commitParam = () => z.boolean().optional().describe(ui().mcp.commit)
 
 function toTool(r: CmdResult) {
+  // Symulowana data (TRAINCTL_TODAY) nigdy nie jest cicha — także dla agenta (ADR-034).
+  const notice = simulationNotice()
+  const output = notice ? `${notice}\n\n${r.output}` : r.output
   return {
-    content: [{ type: 'text' as const, text: r.output }, { type: 'text' as const, text: JSON.stringify(r.data ?? {}) }],
-    structuredContent: { code: r.code, output: r.output, data: r.data ?? {} },
+    content: [{ type: 'text' as const, text: output }, { type: 'text' as const, text: JSON.stringify(r.data ?? {}) }],
+    structuredContent: { code: r.code, output, data: r.data ?? {} },
     ...(r.code !== 0 ? { isError: true } : {}),
   }
 }
@@ -58,10 +65,11 @@ export function createTrainctlServer(
       annotations: { readOnlyHint: false, openWorldHint: true },
       inputSchema: {
         fromIntervals: z.boolean().optional().describe(t.initFromIntervals),
+        commit: commitParam(),
       },
     },
     async (args) =>
-      toTool(args?.fromIntervals === true ? await cmdInitFromIntervals(dir, {}, factory) : cmdInit(dir)),
+      toTool(args?.fromIntervals === true ? await cmdInitFromIntervals(dir, {}, factory) : cmdInit(dir, undefined, { commit: args?.commit })),
   )
 
   server.registerTool(
@@ -70,7 +78,7 @@ export function createTrainctlServer(
       description: t.plan,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: false, openWorldHint: false },
-      inputSchema: { date: isoDate().optional().describe(t.planDate) },
+      inputSchema: { date: isoDate().optional().describe(t.planDate), fresh: z.boolean().optional().describe(t.planFresh), commit: commitParam() },
     },
     async (args) => toTool(cmdPlan(dir, args)),
   )
@@ -111,6 +119,7 @@ export function createTrainctlServer(
         testTime: z.string().optional().describe(ui().improve.testTime),
         rpe: z.string().optional().describe(t.logRpe),
         note: z.string().optional().describe(t.logNote),
+        commit: commitParam(),
       },
     },
     async (args) => toTool(cmdLog(dir, args)),
@@ -125,6 +134,7 @@ export function createTrainctlServer(
       inputSchema: {
         from: isoDate().describe(t.shiftFrom),
         to: isoDate().describe(t.shiftTo),
+        commit: commitParam(),
       },
     },
     async (args) => toTool(cmdShift(dir, args)),
@@ -151,6 +161,7 @@ export function createTrainctlServer(
         date: isoDate().optional().describe(t.adaptDate),
         prepare: z.boolean().optional().describe(ui().improve.prepare),
         apply: z.string().optional().describe(ui().improve.apply),
+        commit: commitParam(),
       },
     },
     async (args) => toTool(cmdAdapt(dir, args)),
@@ -180,6 +191,7 @@ export function createTrainctlServer(
         date: isoDate().optional(),
         minutes: z.number().int().min(0).max(1440).optional().describe(ui().coach.minutes),
         apply: z.string().optional().describe(ui().improve.apply),
+        commit: commitParam(),
       },
     },
     async (args) => toTool(cmdShorten(dir, args)),
@@ -213,6 +225,7 @@ export function createTrainctlServer(
         strategy: z.enum(['long', 'quality']).optional().describe(ui().improve.strategy),
         date: isoDate().optional().describe(t.rescheduleDate),
         apply: z.boolean().optional().describe(t.rescheduleApply),
+        commit: commitParam(),
       },
     },
     async (args) => toTool(cmdReschedule(dir, args)),
@@ -270,6 +283,17 @@ export function createTrainctlServer(
       },
     },
     async (args) => toTool(cmdDiff(dir, args)),
+  )
+
+  server.registerTool(
+    'trainctl_status',
+    {
+      description: t.status,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
+      inputSchema: {},
+    },
+    async () => toTool(cmdStatus(dir)),
   )
 
   server.registerTool(

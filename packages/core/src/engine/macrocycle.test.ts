@@ -153,3 +153,21 @@ describe('planMacrocycle — przypadki brzegowe', () => {
     ).toThrow()
   })
 })
+
+describe('planMacrocycle — rytm kalibracji liczy wyniki z horyzontu planu (W-12)', () => {
+  const athlete: AthleteProfile = {
+    recentWeeklyKm: 55,
+    daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'],
+    results: [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580 }],
+  }
+  const goal: RaceGoal = { name: 'HM', date: '2026-11-29', distanceKm: 21.0975, priority: 'A' }
+  const tests = (a: AthleteProfile) => planMacrocycle({ today: '2026-08-03', goal, athlete: a }).weeks.filter((w) => w.testPlanned).map((w) => w.weekStart)
+
+  it('wynik wpisany w trakcie planu przesuwa kolejny sprawdzian o pełny odstęp od siebie', () => {
+    const withResult = tests({ ...athlete, results: [...athlete.results, { date: '2026-09-05', distanceKm: 10, timeSec: 2400 }] })
+    // żaden sprawdzian w ciągu pięciu tygodni po świeżym wyniku
+    expect(withResult.filter((w) => w > '2026-08-31' && w < '2026-10-05')).toEqual([])
+    // przed wynikiem rytm liczy się od starszego wyniku, jak w planie bez nowego wpisu
+    expect(withResult.filter((w) => w < '2026-08-31')).toEqual(tests(athlete).filter((w) => w < '2026-08-31'))
+  })
+})

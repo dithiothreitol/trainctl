@@ -71,14 +71,34 @@ describe('serwer MCP trainctl', () => {
     expect(data.budgetRows.find((row) => row.date === '2026-08-27')!.minutes).toBeLessThanOrEqual(35)
   })
 
-  it('wystawia komplet 17 narzędzi', async () => {
+  it('wystawia komplet narzędzi', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual([
       'trainctl_adapt', 'trainctl_check', 'trainctl_desk', 'trainctl_diff', 'trainctl_export', 'trainctl_init', 'trainctl_log',
       'trainctl_plan', 'trainctl_pull', 'trainctl_push', 'trainctl_reschedule', 'trainctl_review', 'trainctl_shift', 'trainctl_shorten',
-      'trainctl_today', 'trainctl_week', 'trainctl_why',
+      'trainctl_status', 'trainctl_today', 'trainctl_week', 'trainctl_why',
     ])
+  })
+
+  it('status: stan katalogu tylko do odczytu, z danymi strukturalnymi', async () => {
+    await call('trainctl_plan', { date: '2026-08-05' })
+    const { tools } = await client.listTools()
+    expect(tools.find((tool) => tool.name === 'trainctl_status')?.annotations?.readOnlyHint).toBe(true)
+    const result = await client.callTool({ name: 'trainctl_status', arguments: {} })
+    expect(result.isError).not.toBe(true)
+    expect(result.structuredContent).toMatchObject({ code: 0, data: { config: { exists: true, valid: true }, plan: { goal: { distanceKm: 42.195 } } } })
+  })
+
+  it('symulowana data jest ogłoszona w wyniku narzędzia', async () => {
+    process.env['TRAINCTL_TODAY'] = '2026-08-11'
+    try {
+      const result = await client.callTool({ name: 'trainctl_today', arguments: {} })
+      expect((result.structuredContent as { output: string }).output).toMatch(/^(simulated date|data symulowana) 2026-08-11/)
+      expect(result.structuredContent).toMatchObject({ data: { date: '2026-08-11' } })
+    } finally {
+      delete process.env['TRAINCTL_TODAY']
+    }
   })
 
   it('prepares a 40-minute variant, explains its tradeoff and applies its exact ID', async () => {

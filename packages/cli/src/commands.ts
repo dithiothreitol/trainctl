@@ -32,13 +32,17 @@ import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from
 import { appendLog, logFor, parseTime, readLog, type LogEntry } from './logfile.ts'
 import {
   computePlan,
+  cycleWeeksOf,
+  dayFingerprint,
   findDay,
   fmtTime,
   loadPlan,
   loadPlanFile,
+  loadPlanIfUsable,
   readPlanDocument,
   shiftWorkout,
   workoutText,
+  weekPosition,
   writePlan,
   PLAN_MD,
   PLAN_YAML,
@@ -46,12 +50,20 @@ import {
 } from './planfile.ts'
 import { foundationsUrl, kindPurpose, ruleExplain, ruleEvidence } from './rules-explain.ts'
 import { packageVersion } from './version.ts'
+import { clockToday } from './clock.ts'
+import { rebuildPlan, type Regeneration } from './regenerate.ts'
+import { commitFiles } from './git.ts'
+import { LOG_FILE } from './logfile.ts'
+export { cmdStatus } from './status.ts'
+export { resolveDateInput, type DateDirection } from './date-input.ts'
+export { completionScript, SHELLS, type CompletionSpec, type Shell } from './completion.ts'
+export { simulationNotice, simulatedToday, SIMULATED_TODAY_ENV } from './clock.ts'
 import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 import { buildExecution, isRunningActivity } from './execution.ts'
 import { resultKey } from './calibration.ts'
-import { applyProposal, prepareProposal, prepareShortening, type PlanProposal } from './proposals.ts'
+import { applyProposal, prepareProposal, prepareShortening, recordedDates, type PlanProposal } from './proposals.ts'
 import { explainSession } from './explain-session.ts'
 export { buildExecution } from './execution.ts'
 
@@ -112,6 +124,34 @@ const fail = (e: unknown): CmdResult => {
   return { output: message, code: 1, blocks: [b.error(message)] }
 }
 
+/** Wartość flagi `--commit`: brak, `true` (domyślna wiadomość) albo własna wiadomość. */
+export type CommitOption = boolean | string | undefined
+
+const PLAN_FILES = [PLAN_YAML, PLAN_MD]
+
+/**
+ * `--commit` po udanym zapisie (ADR-040) — nigdy zamiast niego: brak gita albo
+ * brak zmian to informacja, nieudany commit to ostrzeżenie, a zapis zostaje.
+ */
+function commitBlocks(cwd: string, commit: CommitOption, files: string[], message: string): { blocks: Block[]; outcome: unknown } {
+  if (commit === undefined || commit === false) return { blocks: [], outcome: null }
+  const outcome = commitFiles(cwd, files, typeof commit === 'string' && commit.trim() ? commit.trim() : message)
+  const t = ui().commit
+  const block = outcome.status === 'committed' ? b.success(t.done(outcome.sha, outcome.files.join(', ')))
+    : outcome.status === 'no-git' ? b.info(t.noGit)
+      : outcome.status === 'nothing' ? b.info(t.nothing)
+        : b.warn(t.failed(outcome.detail))
+  return { blocks: [block], outcome }
+}
+
+/** Dokłada wynik commita do gotowego wyniku komendy (bloki i dane). */
+function withCommit(result: CmdResult, cwd: string, commit: CommitOption, files: string[], message: string): CmdResult {
+  if (result.code !== 0 || commit === undefined || commit === false) return result
+  const { blocks, outcome } = commitBlocks(cwd, commit, files, message)
+  const all = [...(result.blocks ?? []), ...blocks]
+  return { ...result, blocks: all, output: renderPlain(all), data: { ...(result.data ?? {}), commit: outcome } }
+}
+
 /**
  * Plan z innego minora silnika nadal działa, ale poniżej 1.0 regeneracja może dać
  * inne tygodnie (CHANGELOG). Mówimy o tym przy czytaniu planu — nie blokujemy.
@@ -123,11 +163,8 @@ export function compatibilityNotes(plan: StoredPlan): Block[] {
   return minor(plan.engineVersion) === minor(current) ? [] : [b.info(ui().common.planFromOtherEngine(plan.engineVersion, current))]
 }
 
-export function localToday(): string {
-  const d = new Date()
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
+/** „Dziś" komend: lokalny kalendarz albo jawna symulacja TRAINCTL_TODAY (ADR-034). */
+export const localToday = (): string => clockToday()
 
 const weekdayName = (day: Weekday): string => messages().weekday[day]
 /** Skróty jak w planach trenera (korpus) — po angielsku Mon/Tue/… */
@@ -242,7 +279,11 @@ function protectSecrets(cwd: string): string[] {
   return missing
 }
 
-export function cmdInit(cwd: string, content?: string): CmdResult {
+export function cmdInit(cwd: string, content?: string, opts: { commit?: CommitOption } = {}): CmdResult {
+  return withCommit(initImpl(cwd, content), cwd, opts.commit, [CONFIG_FILE, AGENTS_FILE, '.gitignore'], ui().commit.init)
+}
+
+function initImpl(cwd: string, content?: string): CmdResult {
   try {
     writeConfigTemplate(cwd, content)
     const agents = writeAgentsFile(cwd)
@@ -263,16 +304,29 @@ export function cmdInit(cwd: string, content?: string): CmdResult {
   }
 }
 
-export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
+export function cmdPlan(cwd: string, opts: { date?: string | undefined; fresh?: boolean | undefined; commit?: CommitOption } = {}): CmdResult {
+  const result = planImpl(cwd, opts)
+  const goal = (result.data?.['plan'] as StoredPlan | undefined)?.goal
+  return withCommit(result, cwd, opts.commit, PLAN_FILES, ui().commit.plan(goal?.name ?? '', goal?.date ?? ''))
+}
+
+function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolean | undefined }): CmdResult {
   try {
     const today = opts.date ?? localToday()
     const config = loadConfig(cwd)
-    const plan = computePlan(config, today)
+    // Istniejący plan regenerujemy z ochroną przeszłości i zatwierdzonych decyzji
+    // (ADR-033); od zera wyłącznie na jawne --fresh albo gdy pliku nie da się użyć.
+    const existing = loadPlanIfUsable(cwd)
+    const rebuild = existing && opts.fresh !== true
+      ? rebuildPlan(existing, config, { today, recorded: recordedDates(cwd) })
+      : undefined
+    const plan = rebuild ? rebuild.plan : computePlan(config, today)
     const issues = validatePlan(plan)
     if (issues.some(issue => issue.severity === 'error')) throw new Error(issues.map(describeIssue).join('\n'))
-    writePlan(cwd, plan)
+    if (rebuild?.upToDate !== true) writePlan(cwd, plan)
 
-    const weeksToRace = plan.weeks.length
+    const cycle = cycleWeeksOf(plan)
+    const weeksToRace = cycle.length
     const blocks: Block[] = [
       b.title(
         `${plan.goal.name} · ${plan.goal.distanceKm} km`,
@@ -321,7 +375,7 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
     const phases: string[] = []
     let current = ''
     let from = 0
-    plan.weeks.forEach((w, i) => {
+    cycle.forEach((w, i) => {
       const label = phaseLabel(w.skeleton.phase)
       if (label !== current) {
         if (current) phases.push(ui().plan.phaseSpan(current, from + 1, i))
@@ -329,8 +383,13 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
         from = i
       }
     })
-    if (current) phases.push(ui().plan.phaseSpan(current, from + 1, plan.weeks.length))
+    if (current) phases.push(ui().plan.phaseSpan(current, from + 1, cycle.length))
     blocks.push(b.section(ui().plan.structure), b.bullets(phases))
+    if (rebuild && existing && !rebuild.upToDate) blocks.push(...regenerationBlocks(existing, rebuild))
+    if (opts.fresh === true && existing) {
+      const dropped = freshDropped(existing)
+      if (dropped) blocks.push(b.blank(), b.warn(ui().plan.freshDropped(dropped)))
+    }
 
     if (plan.feasibilityWarnings.length) {
       blocks.push(b.blank())
@@ -339,13 +398,58 @@ export function cmdPlan(cwd: string, opts: { date?: string | undefined } = {}): 
     for (const issue of issues) blocks.push(b.warn(describeIssue(issue)))
     blocks.push(
       b.blank(),
-      b.success(ui().common.saved(`${PLAN_YAML} + ${PLAN_MD}`)),
+      rebuild?.upToDate ? b.success(ui().plan.upToDate) : b.success(ui().common.saved(`${PLAN_YAML} + ${PLAN_MD}`)),
       b.hint('trainctl today · trainctl week · trainctl why'),
     )
-    return okDoc(blocks, { plan, issues })
+    return okDoc(blocks, { plan, issues, regeneration: rebuild ? regenerationData(rebuild) : null })
   } catch (e) {
     return fail(e)
   }
+}
+
+const regenerationData = (r: Regeneration) => ({
+  mode: r.mode, changedDates: r.changedDates, protectedDays: r.protectedDays,
+  loadState: r.loadState, droppedWeeks: r.droppedWeeks, upToDate: r.upToDate,
+})
+
+/** Co regeneracja zmienia, czego nie rusza i dlaczego — jedno źródło dla `plan` i `diff`. */
+function regenerationBlocks(existing: StoredPlan, r: Regeneration, opts: { diffLines?: boolean } = {}): Block[] {
+  const t = ui().plan
+  const blocks: Block[] = [b.section(t.regenSection)]
+  blocks.push(b.text(r.mode === 'same-cycle'
+    ? t.sameCycle(r.plan.generatedAt)
+    : t.newCycle(r.plan.cycleStart ?? r.plan.weeks[0]?.weekStart ?? r.plan.generatedAt)))
+  const counts = new Map<string, number>()
+  for (const p of r.protectedDays) counts.set(p.reason, (counts.get(p.reason) ?? 0) + 1)
+  const reasons = [...counts].map(([reason, count]) => `${t.reasons[reason as keyof typeof t.reasons]} ${count}`).join(', ')
+  blocks.push(b.kv([
+    [t.changedDays, String(r.changedDates.length)],
+    ...(r.protectedDays.length ? ([[t.keptDays, reasons]] as [string, string][]) : []),
+  ]))
+  if (r.loadState === 'kept' && r.plan.loadState) blocks.push(b.info(t.loadKept(r.plan.loadState.baselineWeeklyKm, r.plan.loadState.effectiveFrom)))
+  if (r.loadState === 'cleared' && existing.loadState) blocks.push(b.info(t.loadCleared(existing.loadState.baselineWeeklyKm)))
+  if (r.droppedWeeks.length) blocks.push(b.warn(t.droppedWeeks(r.droppedWeeks.join(', '))))
+  if (opts.diffLines !== false) {
+    const lines = diffWeeks(existing.weeks, r.plan.weeks)
+    if (lines.length) blocks.push(b.bullets(lines.slice(0, 12)))
+    if (lines.length > 12) blocks.push(b.text(t.moreLines(lines.length - 12), 'muted'))
+  }
+  return blocks
+}
+
+/** Czego `--fresh` się pozbywa — mówimy przed faktem dokonanym, nie po nim. */
+function freshDropped(existing: StoredPlan): string {
+  const t = ui().plan.freshItems
+  const days = existing.weeks.flatMap((w) => w.days)
+  const edited = existing.generatedDays ? days.filter((d) => existing.generatedDays![d.date] !== undefined && existing.generatedDays![d.date] !== dayFingerprint(d)).length : 0
+  return [
+    ...(existing.loadState ? [t.loadState(existing.loadState.baselineWeeklyKm)] : []),
+    ...(days.some((d) => d.pinned) ? [t.pinned(days.filter((d) => d.pinned).length)] : []),
+    ...(Object.keys(existing.timeBudgets ?? {}).length ? [t.budgets(Object.keys(existing.timeBudgets!).length)] : []),
+    ...(days.some((d) => d.timeAdjustment) ? [t.approved(days.filter((d) => d.timeAdjustment).length)] : []),
+    ...(edited ? [t.edited(edited)] : []),
+    ...(existing.changes.length ? [t.history(existing.changes.length)] : []),
+  ].join(', ')
 }
 
 export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
@@ -364,7 +468,7 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
     const blocks: Block[] = [
       b.title(
         `${date} · ${weekdayName(day.weekday)}`,
-        `${ui().today.weekOf(sk.index + 1, plan.weeks.length)} · ${phaseLabel(sk.phase)}` +
+        `${ui().today.weekOf(weekPosition(plan, week).index + 1, weekPosition(plan, week).total)} · ${phaseLabel(sk.phase)}` +
           `${sk.deload ? ` · ${ui().today.deload}` : ''} · ${ui().today.daysToRace(toRace)}`,
       ),
       ...compatibilityNotes(plan),
@@ -408,9 +512,15 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
         ),
       )
     }
+    const estimatedMinutes = (day.workout ? estimateWorkoutMinutes(day.workout, plan.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
+    // Dla biegacza zza biurka dwie najważniejsze liczby dnia: ile to potrwa i co dalej.
+    if ((day.workout || day.strength) && Number.isFinite(estimatedMinutes)) blocks.push(b.text(ui().today.estimate(estimatedMinutes), 'muted'))
+    const next = plan.weeks.flatMap((w) => w.days).find((d) => d.date > date && d.workout)
+    if (next?.workout) {
+      blocks.push(b.text(ui().today.next(next.date, weekdayName(next.weekday), kindLabel(next.workout.kind), next.workout.raceDistanceKm ?? next.workout.distanceKm), 'muted'))
+    }
     if (day.workout) blocks.push(b.hint(ui().today.whyHint(date)))
-    const estimatedMinutes = (day.workout ? estimateWorkoutMinutes(day.workout) : 0) + (day.strength?.durationMin ?? 0)
-    return okDoc(blocks, { date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null, estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : null })
+    return okDoc(blocks, { date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null, estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : null, next: next ? { date: next.date, kind: next.workout!.kind, distanceKm: next.workout!.raceDistanceKm ?? next.workout!.distanceKm } : null })
   } catch (e) {
     return fail(e)
   }
@@ -443,7 +553,7 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
     }
     const blocks: Block[] = [
       b.title(
-        ui().week.title(sk.index + 1, plan.weeks.length, week.weekStart),
+        ui().week.title(weekPosition(plan, week).index + 1, weekPosition(plan, week).total, week.weekStart),
         ui().week.subtitle(phaseLabel(sk.phase), model, sk.targetKm, week.totalKm) +
           (sk.deload ? ` · ${ui().week.deloadUpper}` : ''),
       ),
@@ -460,18 +570,23 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
   }
 }
 
-export function cmdLog(
-  cwd: string,
-  opts: {
-    date?: string | undefined
-    status?: string | undefined
-    km?: string | undefined
-    time?: string | undefined
-    testTime?: string | undefined
-    rpe?: string | undefined
-    note?: string | undefined
-  } = {},
-): CmdResult {
+type LogOptions = {
+  date?: string | undefined
+  status?: string | undefined
+  km?: string | undefined
+  time?: string | undefined
+  testTime?: string | undefined
+  rpe?: string | undefined
+  note?: string | undefined
+}
+
+export function cmdLog(cwd: string, opts: LogOptions & { commit?: CommitOption } = {}): CmdResult {
+  const result = logImpl(cwd, opts)
+  const entry = result.data?.['entry'] as LogEntry | undefined
+  return withCommit(result, cwd, opts.commit, [LOG_FILE], ui().commit.log(entry?.date ?? '', entry?.status ?? ''))
+}
+
+function logImpl(cwd: string, opts: LogOptions): CmdResult {
   try {
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
@@ -533,7 +648,11 @@ export function cmdLog(
   }
 }
 
-export function cmdShift(cwd: string, opts: { from: string; to: string }): CmdResult {
+export function cmdShift(cwd: string, opts: { from: string; to: string; commit?: CommitOption }): CmdResult {
+  return withCommit(shiftImpl(cwd, opts), cwd, opts.commit, PLAN_FILES, ui().commit.shift(opts.from, opts.to))
+}
+
+function shiftImpl(cwd: string, opts: { from: string; to: string }): CmdResult {
   try {
     if (opts.from < localToday() || opts.to < localToday()) throw new Error(ui().improve.pastWrite)
     const plan = loadPlan(cwd)
@@ -827,7 +946,12 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
   }
 }
 
-export function cmdAdapt(cwd: string, opts: { date?: string | undefined; prepare?: boolean | undefined; apply?: string | undefined } = {}): CmdResult {
+export function cmdAdapt(cwd: string, opts: { date?: string | undefined; prepare?: boolean | undefined; apply?: string | undefined; commit?: CommitOption } = {}): CmdResult {
+  const result = adaptImpl(cwd, opts)
+  return opts.apply ? withCommit(result, cwd, opts.commit, PLAN_FILES, ui().commit.apply(opts.apply)) : result
+}
+
+function adaptImpl(cwd: string, opts: { date?: string | undefined; prepare?: boolean | undefined; apply?: string | undefined }): CmdResult {
   try {
     if (opts.prepare && opts.apply) throw new Error(ui().improve.proposalOptions)
     if (opts.apply) {
@@ -854,11 +978,11 @@ function proposalBlocks(saved: PlanProposal): Block[] {
   ]
 }
 
-export function cmdShorten(cwd: string, opts: { date?: string | undefined; minutes?: string | number | undefined; apply?: string | undefined } = {}): CmdResult {
+export function cmdShorten(cwd: string, opts: { date?: string | undefined; minutes?: string | number | undefined; apply?: string | undefined; commit?: CommitOption } = {}): CmdResult {
   try {
     if (opts.apply) {
       if (opts.minutes !== undefined || opts.date !== undefined) throw new Error(ui().coach.options)
-      return cmdAdapt(cwd, { apply: opts.apply })
+      return cmdAdapt(cwd, { apply: opts.apply, commit: opts.commit })
     }
     if (opts.minutes === undefined || String(opts.minutes).trim() === '') throw new Error(ui().coach.options)
     const date = opts.date ?? localToday()
@@ -941,12 +1065,19 @@ export function cmdDesk(
   }
 }
 
-export function cmdReschedule(
-  cwd: string,
-  opts: { block?: string[] | undefined; date?: string | undefined; apply?: boolean | undefined;
-    time?: string[] | undefined; pin?: string[] | undefined; preparation?: string | undefined;
-    strategy?: string | undefined } = {},
-): CmdResult {
+type RescheduleOptions = { block?: string[] | undefined; date?: string | undefined; apply?: boolean | undefined;
+  time?: string[] | undefined; pin?: string[] | undefined; preparation?: string | undefined;
+  strategy?: string | undefined }
+
+export function cmdReschedule(cwd: string, opts: RescheduleOptions & { commit?: CommitOption } = {}): CmdResult {
+  const result = rescheduleImpl(cwd, opts)
+  const weekStart = mondayOf(opts.date ?? opts.block?.[0] ?? localToday())
+  return opts.apply === true && result.data?.['applied'] === true && (result.data?.['result'] as { changed?: boolean } | undefined)?.changed !== false
+    ? withCommit(result, cwd, opts.commit, PLAN_FILES, ui().commit.reschedule(weekStart))
+    : result
+}
+
+function rescheduleImpl(cwd: string, opts: RescheduleOptions): CmdResult {
   try {
     const date = opts.date ?? opts.block?.[0] ?? localToday()
     const plan = loadPlan(cwd)
@@ -1549,9 +1680,12 @@ export function cmdDiff(cwd: string, opts: { plan?: string | undefined } = {}): 
       return diffAgainstPlanFile(stored, isAbsolute(opts.plan) ? opts.plan : join(cwd, opts.plan))
     }
     const config = loadConfig(cwd)
-    const fresh = computePlan(config, stored.generatedAt)
+    // Dry-run dokładnie tej regeneracji, którą wykona `plan` (ADR-033) — inaczej
+    // diff pokazywałby zmiany dni, których plan i tak nie ruszy.
+    const rebuild = rebuildPlan(stored, config, { today: localToday(), recorded: recordedDates(cwd) })
+    const fresh = rebuild.plan
     const lines: string[] = []
-    if (stored.changes.length) {
+    if (rebuild.protectedDays.some((p) => p.reason === 'edited')) {
       lines.push(ui().diff.manualShifts)
     }
     // Sam `diff` porównuje rodzaje jednostek (klucze), więc zmiana języka go nie
@@ -1563,16 +1697,17 @@ export function cmdDiff(cwd: string, opts: { plan?: string | undefined } = {}): 
     const localeNote = staleLocale
       ? [b.warn(ui().diff.localeChanged(stored.locale!, current))]
       : []
-    if (lines.length === 0) {
-      return okDoc([b.success(ui().diff.upToDate), ...localeNote])
+    if (lines.length === 0 && rebuild.upToDate) {
+      return okDoc([b.success(ui().diff.upToDate), ...localeNote], { regeneration: regenerationData(rebuild) })
     }
     return okDoc([
       b.title(ui().diff.title),
-      b.bullets(lines),
+      b.bullets(lines.length ? lines : [ui().diff.metadataOnly]),
+      ...regenerationBlocks(stored, rebuild, { diffLines: false }),
       ...localeNote,
       b.blank(),
       b.hint(ui().diff.applyHint),
-    ])
+    ], { regeneration: regenerationData(rebuild) })
   } catch (e) {
     return fail(e)
   }

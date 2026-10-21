@@ -74,9 +74,16 @@ export interface MacrocycleInput {
   athlete: AthleteProfile
 }
 
-/** Data ostatniego wyniku startowego — punkt zerowy rytmu kalibracji (W-12). */
-function lastResultDate(athlete: AthleteProfile): string | undefined {
-  return athlete.results.map((r) => r.date).sort().at(-1)
+/**
+ * Data ostatniego wyniku startowego PRZED początkiem planu — punkt zerowy rytmu
+ * kalibracji (W-12). Wyniki z horyzontu planu zerują rytm w swoim tygodniu
+ * (pętla w `planMacrocycle`); wcześniej liczył się tylko najświeższy wynik, a jego
+ * data spoza początku planu dawała ujemny odstęp przycięty do zera — i sprawdzian
+ * lądował tydzień po świeżym wyniku na 10 km (regeneracja liczona od pierwotnej
+ * daty startu planu, ADR-033).
+ */
+function lastResultBefore(athlete: AthleteProfile, firstWeek: string): string | undefined {
+  return athlete.results.map((r) => r.date).filter((d) => d < firstWeek).sort().at(-1)
 }
 
 export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
@@ -136,12 +143,15 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   let loadTarget = start
   let sinceDeload = 0
   // rytm kalibracji: liczony od ostatniego wyniku, resetowany startem kontrolnym (W-12)
-  const lastResult = lastResultDate(athlete)
+  const lastResult = lastResultBefore(athlete, firstWeek)
+  const resultDates = athlete.results.map((r) => r.date)
   let weeksSinceCalibration = lastResult
     ? Math.max(0, Math.floor(diffDays(mondayOf(lastResult), firstWeek) / 7))
     : CALIBRATION_GAP_WEEKS
   for (let i = 0; i < totalWeeks; i++) {
     const weekStart = addDays(firstWeek, i * 7)
+    // wynik w tym tygodniu to kalibracja tak samo jak start kontrolny (W-12)
+    if (resultDates.some((d) => d >= weekStart && d < addDays(weekStart, 7))) weeksSinceCalibration = 0
     const inTaper = i >= loadWeeks
     let phase: MacroPhase
     let intensityModel: IntensityModel

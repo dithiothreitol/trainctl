@@ -42,7 +42,14 @@ export interface PlanChange {
 }
 
 export interface StoredPlan {
-  loadState?: { baselineWeeklyKm: number; effectiveFrom: string }
+  /**
+   * Zatwierdzona baza objętości (adapt --apply). `profileWeeklyKm` to wartość
+   * `athlete.recentWeeklyKm` z chwili decyzji: gdy profil się od niej różni,
+   * użytkownik świadomie zmienił bazę i regeneracja słucha profilu (ADR-033).
+   */
+  loadState?: { baselineWeeklyKm: number; effectiveFrom: string; profileWeeklyKm?: number }
+  /** Pierwszy tydzień bieżącego cyklu, gdy wcześniejsze tygodnie to historia poprzedniego. */
+  cycleStart?: string
   schemaVersion?: number
   engineVersion?: string
   calibration?: Calibration
@@ -207,6 +214,30 @@ export function loadPlanFile(path: string): StoredPlan {
   return doc
 }
 
+/** Plik planu, jeśli da się go użyć; połamany albo brakujący = undefined, nowszy schemat = błąd. */
+export function loadPlanIfUsable(cwd: string): StoredPlan | undefined {
+  if (!existsSync(join(cwd, PLAN_YAML))) return undefined
+  const doc = parse(readFileSync(join(cwd, PLAN_YAML), 'utf-8'))
+  if (!looksLikePlan(doc)) return undefined
+  return loadPlan(cwd)
+}
+
+/** Tygodnie bieżącego cyklu — bez historii poprzedniego, która została w pliku. */
+export const cycleWeeksOf = (plan: StoredPlan): Microcycle[] =>
+  plan.cycleStart ? plan.weeks.filter((w) => w.weekStart >= plan.cycleStart!) : plan.weeks
+
+/**
+ * Położenie tygodnia w jego cyklu — „tydzień 3/14" liczy tygodnie tego cyklu,
+ * a nie historię poprzedniego, która została w pliku.
+ */
+export function weekPosition(plan: StoredPlan, week: Microcycle): { index: number; total: number } {
+  const start = plan.cycleStart
+  if (!start) return { index: plan.weeks.indexOf(week), total: plan.weeks.length }
+  const inCycle = week.weekStart >= start
+  const group = plan.weeks.filter((w) => (w.weekStart >= start) === inCycle)
+  return { index: group.indexOf(week), total: group.length }
+}
+
 export function findDay(
   plan: StoredPlan,
   date: string,
@@ -278,7 +309,7 @@ export function renderMarkdown(plan: StoredPlan): string {
       `${week.totalKm} km`,
       ...(sk.deload ? [m.deload] : []),
     ].join(' · ')
-    lines.push('', `## ${m.weekHeading(sk.index + 1, week.weekStart, label)}`, '')
+    lines.push('', `## ${m.weekHeading(weekPosition(plan, week).index + 1, week.weekStart, label)}`, '')
     lines.push(
       `| ${m.columns.day} | ${m.columns.date} | ${m.columns.workout} |`,
       '|---|---|---|',

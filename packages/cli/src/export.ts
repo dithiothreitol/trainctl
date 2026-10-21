@@ -19,7 +19,7 @@ import {
   type RaceScenario,
 } from 'trainctl-export'
 import { ui } from './i18n/index.ts'
-import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
+import { cycleWeeksOf, findDay, loadPlan, weekPosition, workoutText, type StoredPlan } from './planfile.ts'
 import { kindPurpose, ruleExplain, ruleEvidence } from './rules-explain.ts'
 
 /**
@@ -257,8 +257,10 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   // rozpiska do wydruku
   const core = messages()
   const p = ui().print
-  const weeks: PrintWeek[] = plan.weeks.map((w) => ({
-    index: w.skeleton.index,
+  // Kartka na lodówkę to bieżący cykl — historia poprzedniego zostaje w pliku i w gicie.
+  const cycle = cycleWeeksOf(plan)
+  const weeks: PrintWeek[] = cycle.map((w) => ({
+    index: weekPosition(plan, w).index,
     weekStart: w.weekStart,
     phase: core.phase[w.skeleton.phase] ?? w.skeleton.phase,
     targetKm: w.skeleton.targetKm,
@@ -276,7 +278,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   }))
   const html = toPrintableHtml({
     title: `${plan.goal.name} — ${plan.goal.date}`,
-    subtitle: p.subtitle(plan.weeks.length, plan.peakKmPlanned, plan.vdot, plan.generatedAt),
+    subtitle: p.subtitle(cycle.length, plan.peakKmPlanned, plan.vdot, plan.generatedAt),
     weeks,
     footer: p.footer,
     labels: { lang: getLocale(), ...p },
@@ -286,7 +288,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   files.push({
     path: file,
     bytes: Buffer.byteLength(html),
-    description: t.printedWeeks(plan.weeks.length),
+    description: t.printedWeeks(cycle.length),
   })
   return files
 }

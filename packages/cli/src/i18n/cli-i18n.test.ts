@@ -94,6 +94,11 @@ describe('polski nie jest kalką', () => {
         'planMd.rest',
         'configFile.templateAthlete.sex',
         'configFile.templateDeskPrefer',
+        'log.prompt.status',
+        'log.prompt.statusHint',
+        'status.columns.id',
+        'status.git',
+        'status.plan',
       ].sort(),
     )
   })

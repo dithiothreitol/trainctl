@@ -1,5 +1,11 @@
 # Reviewed adaptation and time budgets
 
+> **Since 0.4.0, `trainctl plan` keeps what you approved here.** Regenerating an
+> existing plan changes only future days that are not logged, pinned, hand-edited,
+> shortened by an approved proposal or over a saved time budget, and it keeps the
+> approved volume baseline until you change `athlete.recentWeeklyKm` (ADR-033).
+> `trainctl diff` shows the same regeneration without saving.
+
 The CLI and MCP use the same operations. The examples below use a training
 directory containing `trainctl.yaml` and a generated plan.
 

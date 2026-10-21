@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { estimateWorkoutMinutes, validatePlan, weekTotals, withLocale, generateMicrocycle, paceZones, recalibrateWorkout, testDistanceKm, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
@@ -8,6 +8,7 @@ import { computePlan, dayFingerprint, loadPlan, PLAN_YAML, writePlan, workoutTex
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
 import { isRunningActivity } from './execution.ts'
+import { clockToday } from './clock.ts'
 import { resultKey } from './calibration.ts'
 
 export interface PlanProposal {
@@ -27,10 +28,8 @@ export interface PlanProposal {
 }
 
 const hash = (text: string): string => createHash('sha256').update(text).digest('hex')
-export function calendarToday(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+/** Prawdziwy (albo jawnie symulowany) dzień kalendarzowy — granica ochrony przeszłości. */
+export const calendarToday = (): string => clockToday()
 export function workspaceHash(cwd: string): string {
   return hash(JSON.stringify([PLAN_YAML, CONFIG_FILE, LOG_FILE, 'sync.json'].map((name) => {
     const path = join(cwd, name)
@@ -48,7 +47,8 @@ function saveProposal(cwd: string, body: Omit<PlanProposal, 'id'>): PlanProposal
   return proposal
 }
 
-function recordedDates(cwd: string): Set<string> {
+/** Daty z zapisem wykonania (dziennik albo bieg z synchronizacji) — nienaruszalne dla zmian planu. */
+export function recordedDates(cwd: string): Set<string> {
   const dates = new Set(readLog(cwd).map(entry => entry.date))
   for (const a of readSnapshot(cwd)?.activities ?? []) if (isRunningActivity(a) && (a.distanceKm ?? 0) > 0) dates.add(a.date)
   return dates
@@ -159,7 +159,7 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
     }
   }
   next.calibration = candidate.calibration!
-  if (volume) next.loadState = { baselineWeeklyKm: volume.suggestedWeeklyKm!, effectiveFrom: today }
+  if (volume) next.loadState = { baselineWeeklyKm: volume.suggestedWeeklyKm!, effectiveFrom: today, profileWeeklyKm: config.athlete.recentWeeklyKm }
   next.vdot = candidate.vdot
   next.vdotSource = candidate.vdotSource
   if (candidate.prediction) next.prediction = candidate.prediction
@@ -172,6 +172,36 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   if (errors.length) throw new Error(ui().improve.invalidProposal)
   if (!changes.length && JSON.stringify(next.calibration) === JSON.stringify(plan.calibration)) throw new Error(ui().improve.noPatch)
   return saveProposal(cwd, { schemaVersion: 1, kind: 'adaptation', preparedOn: calendarToday(), baseHash, createdFor: today, analysis, vdotBefore: plan.vdot, changes, protectedDates, plan: next })
+}
+
+export type ProposalState = 'valid' | 'expired' | 'stale' | 'invalid'
+
+/**
+ * Zapisane propozycje z ich stanem na dziś — te same warunki, które sprawdza
+ * `applyProposal`, w tej samej kolejności. Dziś nic ich nie listowało, więc
+ * zgubiony ID trzeba było szukać w `plan/proposals/`.
+ */
+export function listProposals(cwd: string): { id: string; kind: string; createdFor: string; preparedOn: string | null; changes: number; firstDate: string | null; state: ProposalState }[] {
+  const dir = join(cwd, 'plan', 'proposals')
+  if (!existsSync(dir)) return []
+  const base = workspaceHash(cwd)
+  const today = calendarToday()
+  return readdirSync(dir).filter((f) => /^[a-f0-9]{24}\.json$/.test(f)).sort().map((file) => {
+    const id = file.slice(0, 24)
+    try {
+      const proposal = JSON.parse(readFileSync(join(dir, file), 'utf-8')) as PlanProposal
+      const { id: storedId, ...body } = proposal
+      const state: ProposalState =
+        storedId !== id || proposalId(body) !== id || proposal.schemaVersion !== 1 ? 'invalid'
+          : proposal.baseHash !== base ? 'stale'
+            : !proposal.preparedOn || proposal.preparedOn !== today || proposal.changes.some((c) => c.date < today) ? 'expired'
+              : 'valid'
+      return { id, kind: proposal.kind ?? 'adaptation', createdFor: proposal.createdFor, preparedOn: proposal.preparedOn ?? null,
+        changes: proposal.changes.length, firstDate: proposal.changes[0]?.date ?? null, state }
+    } catch {
+      return { id, kind: '?', createdFor: '', preparedOn: null, changes: 0, firstDate: null, state: 'invalid' as const }
+    }
+  })
 }
 
 /** Apply exactly the reviewed bytes; do not recompute using new data. */

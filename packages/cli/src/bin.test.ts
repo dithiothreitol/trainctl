@@ -80,7 +80,8 @@ describe('binarka CLI pod natywnym Node', () => {
   }, 20_000)
 
   it('pełna ścieżka plan → today (ładuje core, sync, yaml)', () => {
-    expect(run(['plan', '--date', '2026-08-05'])).toContain('Zapisano')
+    // katalog bywa już z planem z poprzedniego testu: wtedy regeneracja mówi „aktualny” (ADR-033)
+    expect(run(['plan', '--date', '2026-08-05'])).toMatch(/Zapisano|Plan aktualny/)
     expect(run(['today', '--date', '2026-08-04'])).toMatch(/tydzień \d+\/\d+/)
   }, 20_000) // dwa starty realnej binarki — domyślne 5 s bywa ciasne na obciążonej maszynie
 

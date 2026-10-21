@@ -26,6 +26,45 @@ change between minor versions — a regenerated plan can differ.
   release tag — the file is not part of the npm package, so the relative path
   in `why`, `desk` and `AGENTS.md` led nowhere after installation.
 
+### Changed — `trainctl plan` keeps what you decided (ADR-033)
+
+- On an existing plan, `plan` regenerates **only the future**. Past and logged
+  days, pinned days, hand edits, approved shortenings and days whose new session
+  would exceed a saved time budget stay as they are. An approved volume baseline
+  from `adapt --apply` is kept until you change `athlete.recentWeeklyKm`.
+  Previously every regeneration silently discarded all of that — including on
+  the documented path "add a race result → `trainctl plan`".
+- The same training cycle keeps its phase boundaries; a different goal distance,
+  or a new goal after the race, starts a new cycle and keeps the earlier weeks
+  as history ("week 2/12" counts the current cycle).
+- `trainctl diff` shows exactly the regeneration `plan` would perform.
+  `plan --fresh` (MCP `fresh`) starts over and lists what it discards.
+- Fixed: a race result recorded inside the plan's horizon did not reset the
+  calibration rhythm (W-12), so a regeneration could schedule a time trial a
+  week after a fresh 10 km result.
+
+### Added — a CLI you can script
+
+- `--json` on every command prints `{ code, data, output }` — the same data the
+  MCP tools return (ADR-035).
+- `-C <dir>` / `TRAINCTL_DIR` for the CLI, as the MCP server already had.
+- `TRAINCTL_TODAY=YYYY-MM-DD` simulates the date; every CLI and MCP output
+  announces it, and past-day protection and proposal expiry follow it (ADR-034).
+- Relative dates in the CLI: `today`, `tomorrow`, `yesterday`, `+N`/`-N`,
+  weekday names in English and Polish. MCP tools stay ISO-only.
+- `trainctl log` without flags in a terminal asks: pick a session from the last
+  week, then status, distance, time, RPE and a note.
+- `trainctl status` / `trainctl_status`: profile validity, engine version,
+  calibration, key source (never its value), `.env` protection, last pull,
+  journal, saved proposals with their validity today, uncommitted files.
+- `--commit [message]` on `init`, `plan`, `log`, `shift`, `reschedule --apply`,
+  `adapt --apply` and `shorten --apply` (MCP `commit`) commits exactly the files
+  the command changed — never secrets, `sync.json` or other staged changes
+  (ADR-040).
+- `today` shows the estimated duration and the next session.
+- `trainctl completion bash|zsh|fish|pwsh`, examples under `trainctl help <command>`.
+- Usage errors (unknown command or flag, a date that is not a date) exit with 2.
+
 ### Docs
 
 - README command tables list `shorten` and the missing flags; tool lists no

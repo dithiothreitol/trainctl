@@ -4,14 +4,17 @@
  * w funkcjach `*Choices` — pętla wejścia jest cienka i wymaga TTY.
  */
 import { emitKeypressEvents } from 'node:readline'
-import { messages, type Microcycle, type PlannedDay } from 'trainctl-core'
-import { cmdShift, cmdWeek } from './commands.ts'
+import { createInterface } from 'node:readline/promises'
+import { addDays, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
+import { cmdLog, cmdShift, cmdWeek, kindLabel } from './commands.ts'
 import { ui } from './i18n/index.ts'
-import { loadPlan, workoutText, type StoredPlan } from './planfile.ts'
+import { parseTime, readLog } from './logfile.ts'
+import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 import { renderAnsi } from './ui/blocks.ts'
 import { clampIndex, keyAction, type KeyEvent } from './ui/keys.ts'
 import { canPrompt, select, type Choice } from './ui/select.ts'
 import { Theme } from './ui/theme.ts'
+import { ask } from './ui/wizard.ts'
 
 /** Pozycje listy dla dni tygodnia; dzień startu jest zablokowany (nie ruszamy go). */
 export function dayChoices(week: Microcycle, exclude?: string): Choice<string>[] {
@@ -81,6 +84,89 @@ export async function runShiftPicker(
       '\n\n' +
       renderAnsi(cmdWeek(cwd, { date: week.weekStart }).blocks ?? [], theme),
   }
+}
+
+/** Ostatnie siedem dni planu, od dziś wstecz — wybór przy `trainctl log` bez flag. */
+export function logChoices(plan: StoredPlan, today: string, logged: Map<string, string>): Choice<string>[] {
+  const from = addDays(today, -6)
+  return plan.weeks
+    .flatMap((w) => w.days)
+    .filter((d) => d.date >= from && d.date <= today)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map((day) => ({
+      label: `${messages().weekdayShort[day.weekday]} ${day.date.slice(5)}`,
+      value: day.date,
+      hint: [
+        day.workout ? `${kindLabel(day.workout.kind)} · ${day.workout.raceDistanceKm ?? day.workout.distanceKm} km` : ui().week.rest,
+        logged.has(day.date) ? `[${ui().log.prompt.logged}: ${logged.get(day.date)}]` : '',
+      ].filter(Boolean).join(' '),
+    }))
+}
+
+/** „d", „done", „S" → kanoniczny status dziennika. */
+export function parseLogStatus(text: string): 'done' | 'skipped' | 'modified' {
+  const key = text.trim().toLowerCase()
+  if (key === 'd' || key === 'done') return 'done'
+  if (key === 's' || key === 'skipped') return 'skipped'
+  if (key === 'm' || key === 'modified') return 'modified'
+  throw new Error(ui().log.prompt.badStatus)
+}
+
+const parseKmText = (text: string): string => {
+  const value = Number(text.trim().replace(',', '.'))
+  if (!Number.isFinite(value) || value < 0) throw new Error(ui().improve.badDistance)
+  return String(value)
+}
+const parseTimeText = (text: string): string => {
+  parseTime(text.trim())
+  return text.trim()
+}
+const parseRpeText = (text: string): string => {
+  const value = Number(text.trim())
+  if (!Number.isInteger(value) || value < 1 || value > 10) throw new Error(ui().log.badRpe(text))
+  return String(value)
+}
+
+/**
+ * `trainctl log` bez flag w terminalu: wybierz trening z ostatniego tygodnia
+ * i odpowiedz na kilka pytań (Enter = wartość z planu albo pominięcie).
+ * Ta sama walidacja i zapis co z flag — pytania tylko zbierają argumenty.
+ */
+export async function runLogPrompt(cwd: string, today: string, theme = new Theme()): Promise<InteractiveResult> {
+  if (!canPrompt()) return { code: 1, output: ui().common.needsTerminal('trainctl log --km … --time …') }
+  let plan: StoredPlan
+  try {
+    plan = loadPlan(cwd)
+  } catch (e) {
+    return { code: 1, output: e instanceof Error ? e.message : String(e) }
+  }
+  const q = ui().log.prompt
+  const logged = new Map(readLog(cwd).map((e) => [e.date, e.status] as const))
+  const choices = logChoices(plan, today, logged)
+  if (choices.length === 0) return { code: 1, output: ui().log.outsidePlan(today) }
+  const date = await select(q.which, choices, theme)
+  if (!date) return { code: 0, output: theme.dim(ui().common.cancelled) }
+  const day = findDay(plan, date)!.day
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  const opts: Parameters<typeof cmdLog>[1] = { date }
+  try {
+    const status = await ask(rl, theme, q.status, parseLogStatus, { hint: q.statusHint, default: 'done' })
+    opts.status = status ?? 'done'
+    if (opts.status !== 'skipped') {
+      const planned = day.workout ? String(day.workout.raceDistanceKm ?? day.workout.distanceKm) : undefined
+      opts.km = await ask(rl, theme, q.km, parseKmText, planned ? { default: planned } : { optional: true })
+      opts.time = await ask(rl, theme, q.time, parseTimeText, { hint: q.timeHint, optional: true })
+      if (['test', 'race'].includes(day.workout?.kind ?? '')) {
+        opts.testTime = await ask(rl, theme, q.testTime, parseTimeText, { hint: q.timeHint, optional: true })
+      }
+      opts.rpe = await ask(rl, theme, q.rpe, parseRpeText, { hint: q.rpeHint, optional: true })
+    }
+    opts.note = await ask(rl, theme, q.note, (text) => text.trim(), { hint: q.noteHint, optional: true })
+  } finally {
+    rl.close()
+  }
+  const result = cmdLog(cwd, opts)
+  return { code: result.code, output: result.blocks ? renderAnsi(result.blocks, theme) : result.output }
 }
 
 /** `trainctl export` bez argumentów: pyta, co wyeksportować (i który trening). */
