@@ -65,7 +65,7 @@ export const corePl: CoreMessages = {
     peak: 'szczyt',
     taper: 'taper',
     race: 'tydzień startowy',
-    transition: 'po starcie',
+    transition: 'okres przejściowy',
   },
 
   intensityModel: {

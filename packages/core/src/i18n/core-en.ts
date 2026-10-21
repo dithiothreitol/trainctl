@@ -54,7 +54,7 @@ export const coreEn = {
     peak: 'peak',
     taper: 'taper',
     race: 'race week',
-    transition: 'after the race',
+    transition: 'transition',
   },
 
   intensityModel: {
