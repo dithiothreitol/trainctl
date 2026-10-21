@@ -26,11 +26,12 @@ import {
   addDays,
   estimateWorkoutMinutes,
   mondayOf,
+  weekTotals,
   type Microcycle,
   type PlannedDay,
 } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
-import { computePlan, dayFingerprint, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
+import { budgetWarnings, computePlan, dayFingerprint, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
 export type ProtectionReason = 'past' | 'recorded' | 'pinned' | 'baseline' | 'approved' | 'edited' | 'budget'
@@ -100,8 +101,10 @@ export function rebuildPlan(
   // to, więc regeneracja tuż po `adapt --apply` odtwarza zatwierdzone dni.
   // Bez budżetu czasu tygodnie przed hakiem są tym samym planem (bez drugiego przebiegu).
   const unscaled = loadState && config.time ? computePlan(config, macroStart, today) : undefined
+  // ostrzeżenia budżetu liczymy niżej, na planie złożonym z dni chronionych
   const fresh = computePlan(config, macroStart, today, loadState
     ? {
+        budgetWarnings: false,
         budgetFrom: mondayOf(loadState.effectiveFrom),
         beforeTimeBudget: (plan) => {
           plan.weeks = scaleToBaseline(plan.weeks, {
@@ -110,7 +113,7 @@ export function rebuildPlan(
           })
         },
       }
-    : {})
+    : { budgetWarnings: false })
 
   const minutesOf = (day: PlannedDay) =>
     (day.workout ? estimateWorkoutMinutes(day.workout, existing.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
@@ -145,6 +148,7 @@ export function rebuildPlan(
   const changedDates: string[] = []
   const protectedDays: Regeneration['protectedDays'] = []
   const kept = new Set<string>()
+  const keptFor = new Map<string, ProtectionReason>()
   const weeks: Microcycle[] = history.map((w) => structuredClone(w))
   for (const fw of fresh.weeks) {
     const ew = existing.weeks.find((w) => w.weekStart === fw.weekStart)
@@ -159,6 +163,7 @@ export function rebuildPlan(
       const reason = protection(ed, fd)
       if (reason) {
         kept.add(fd.date)
+        keptFor.set(fd.date, reason)
         if (differs) protectedDays.push({ date: fd.date, reason })
         return structuredClone(ed)
       }
@@ -175,7 +180,12 @@ export function rebuildPlan(
       continue
     }
     const week: Microcycle = { ...fw, days }
-    settleMixedWeek(week)
+    // Tydzień zmieszany przez czas (przeszłe, zalogowane, dzień decyzji) domykamy jak
+    // w propozycji; z ręcznymi zmianami (edycja, przypięcie, zatwierdzone skrócenie,
+    // budżet dnia) — nie, żeby lint nadal pokazał, że dni nie sumują się do tygodnia.
+    const userKept = days.some((d) => ['edited', 'pinned', 'approved', 'budget'].includes(keptFor.get(d.date) ?? ''))
+    if (userKept) Object.assign(week, weekTotals(days))
+    else settleMixedWeek(week)
     weeks.push(week)
   }
 
@@ -200,6 +210,9 @@ export function rebuildPlan(
   }
   if (cycleStart) plan.cycleStart = cycleStart
   else delete plan.cycleStart
+  // ostrzeżenia budżetu na tym, co zapiszemy (bieżący cykl), i tylko dla dni, które
+  // da się jeszcze zmienić
+  plan.feasibilityWarnings = [...fresh.feasibilityWarnings, ...budgetWarnings(plan, config, now)]
   if (loadState) plan.loadState = loadState
   else delete plan.loadState
   if (Object.keys(timeBudgets).length) plan.timeBudgets = timeBudgets

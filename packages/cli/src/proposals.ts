@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { addDays, estimateWorkoutMinutes, mondayOf, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
 import { logFor, readLog, LOG_FILE } from './logfile.ts'
-import { computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, scaleToBaseline, settleMixedWeek, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
+import { budgetWarnings, computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, scaleToBaseline, settleMixedWeek, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
 import { runningKmByDate } from './execution.ts'
@@ -129,10 +129,11 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
     // potem computePlan (E-2) od tygodnia decyzji, a siła zostaje na swoich dniach.
     // Rekalibracja zmienia tylko tempa: w bieżącym tygodniu limit dnia skraca za
     // długie dni, całe tygodnie budżet przycina od następnego poniedziałku, a poziom
-    // bez budżetu tygodnie niosą z zapisanego planu (`uncappedKm`). Dni do dziś
-    // włącznie zostają, więc limit dnia ich nie skraca ani nie zgłasza.
+    // bez budżetu tygodnie niosą z zapisanego planu (`uncappedKm`). Ostrzeżenia
+    // budżetu liczy budgetWarnings na planie po złożeniu, od pierwszego dnia, który
+    // propozycja może zmienić.
     budgetFrom: mondayOf(today),
-    daysFrom: addDays(today, 1),
+    budgetWarnings: false,
     ...(volume ? {} : { weeklyBudgetFrom: addDays(mondayOf(today), 7) }),
     beforeTimeBudget: (metadata) => {
       // Metadane kalibracji liczy computePlan; nowa baza nie sięga wstecz (tygodnie
@@ -190,7 +191,10 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   if (candidate.prediction) next.prediction = candidate.prediction
   else delete next.prediction
   next.peakKmPlanned = Math.max(...cycleWeeksOf(next).map((w) => w.totalKm))
-  next.feasibilityWarnings = candidate.feasibilityWarnings
+  // ostrzeżenia budżetu na tym, co propozycja zapisze, i tylko dla dni, które może zmienić
+  const firstChangeable = [addDays(today, 1), calendarToday()].sort().at(-1)!
+  next.feasibilityWarnings = [...candidate.feasibilityWarnings,
+    ...withLocale(plan.locale === 'pl' ? 'pl' : 'en', () => budgetWarnings(next, nextConfig, firstChangeable))]
   next.changes.push({ at: today, action: 'adapt', detail: analysis.actions.map((a) => a.type).join(', ') })
   // Lint remains visible in the preview; broken file invariants never reach disk.
   const errors = validatePlan(next).filter((issue) => issue.severity === 'error')

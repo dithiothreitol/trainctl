@@ -91,6 +91,9 @@ describe('trainctl plan na istniejącym planie', () => {
     const future = reduced.plan.weeks.filter((w) => w.weekStart > '2026-09-06' && w.skeleton.uncappedKm !== undefined)
     expect(future.length).toBeGreaterThan(0)
     for (const week of future) expect(week.skeleton.uncappedKm!).toBeLessThanOrEqual(31)
+    const warning = reduced.plan.feasibilityWarnings.find((w) => w.includes('time budget caps'))
+    expect(warning).toBeDefined()
+    expect(Number(warning!.match(/would reach ([\d.]+) km\/week/)![1])).toBeLessThanOrEqual(30.5)
   })
   it('redukcja mieszcząca się w budżecie tygodnia: bez ostrzeżenia o budżecie', () => {
     config.time = { weeklyMinutes: 240 }
@@ -179,6 +182,22 @@ describe('trainctl plan na istniejącym planie', () => {
     saveConfig()
     const recalibrated = prepareProposal(dir, '2026-09-12', { ...reduction, actions: [{ type: 'recalibrate-zones' as const, detail: 'recalibrate', ruleRefs: [] }] })
     expect(recalibrated.plan.feasibilityWarnings.join(' ')).not.toMatch(/2026-09-(0[7-9]|1[0-2])/)
+  })
+  it('ręczna zmiana w tygodniu przyciętym budżetem: regeneracja jej nie wchłania, lint nadal ją pokazuje (P-3)', () => {
+    config.time = { weeklyMinutes: 240 }
+    initialize()
+    const plan = loadPlan(dir)
+    const week = plan.weeks.find((w) => w.weekStart > '2026-09-07' && w.skeleton.timeCappedKm !== undefined && w.days.some((d) => d.workout?.kind === 'long'))!
+    const long = week.days.find((d) => d.workout?.kind === 'long')!
+    long.workout!.distanceKm += 5
+    const segment = long.workout!.segments.find((x) => x.distanceKm !== undefined)!
+    segment.distanceKm = segment.distanceKm! + 5
+    writePlan(dir, plan)
+    config.athlete.results.push({ date: '2026-08-30', distanceKm: 5, timeSec: 1250 })
+    saveConfig()
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(validatePlan(loadPlan(dir)).some((i) => i.code === 'targetKmMismatch' && i.date === week.weekStart)).toBe(true)
   })
   it('rekalibracja w ostatnim tygodniu planu: bez ostrzeżenia o „0 km/tydz."', () => {
     vi.setSystemTime(new Date('2026-12-09T12:00:00Z'))
