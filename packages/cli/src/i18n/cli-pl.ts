@@ -162,7 +162,7 @@ export const cliPl: CliMessages = {
     agentCodexNext: 'Codex: zaufaj projektowi; Codex czyta AGENTS.md i uruchamia serwer MCP trainctl z .codex/config.toml.',
     agentQuestion: 'Którego agenta tu używasz?',
     agentNone: 'żadnego / później',
-    gitignoreNotCommitted: '.gitignore już istniał, więc nie trafił do commita — przejrzyj go i zacommituj sam.',
+    gitignoreNotCommitted: '.gitignore miał Twoje niezacommitowane zmiany, więc nie trafił do commita — przejrzyj go i zacommituj sam.',
   },
 
   plan: {
@@ -210,7 +210,7 @@ export const cliPl: CliMessages = {
     upToDate: 'Plan aktualny — trainctl.yaml daje te same przyszłe dni; nic nie zapisano.',
     unreadable: (file: string, reason: string) =>
       `Nie da się użyć ${file} (${reason}) — popraw go (konflikt merge'a?) albo uruchom trainctl plan --fresh, żeby zacząć od zera; poprzednia wersja jest w gicie.`,
-    unreadableReason: { parse: 'to nie jest poprawny YAML', shape: 'brak celu albo tygodni', schema: 'nowszy schemat planu' },
+    unreadableReason: { parse: 'to nie jest poprawny YAML', shape: 'brak celu albo tygodni' },
     overwroteUnreadable: (file: string) => `Poprzedni ${file} był nieużyteczny i został zastąpiony — jest w gicie, gdyby był potrzebny.`,
     freshDropped: (items: string) => `Regeneracja od zera (--fresh); porzucono: ${items}. Poprzedni plan jest w gicie.`,
     freshItems: {
@@ -795,7 +795,6 @@ export const cliPl: CliMessages = {
     loadState: 'Zatwierdzona baza',
     loadStateValue: (km: number, date: string) => `${n(km)} km/tydz. od ${date}`,
     noPlan: 'Jeszcze nie ma planu.',
-    planUnusable: (file: string) => `${file} to nie jest użyteczny plan — trainctl check pokaże, co jest połamane.`,
     calibration: 'Kalibracja stref',
     calibrationSelected: (date: string, km: number, ageDays: number, vdot: number) =>
       `${date} · ${n(km)} km · sprzed ${dni(ageDays)} · VDOT ${n(vdot)}`,

@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { estimateWorkoutMinutes, getLocale, heatLadder, messages, type PlannedDay } from 'trainctl-core'
+import { estimateWorkoutMinutes, getLocale, heatLadder, messages, plannedWeekKm, type PlannedDay } from 'trainctl-core'
 import {
   encodeWorkoutFit,
   fmtClock,
@@ -264,7 +264,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
     index: weekPosition(plan, w).index,
     weekStart: w.weekStart,
     phase: core.phase[w.skeleton.phase] ?? w.skeleton.phase,
-    targetKm: w.skeleton.targetKm,
+    targetKm: plannedWeekKm(w.skeleton),
     totalKm: w.totalKm,
     deload: w.skeleton.deload,
     days: w.days.map((d) => ({

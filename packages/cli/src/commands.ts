@@ -13,6 +13,7 @@ import {
   mondayOf,
   parseIso,
   planDeskDay,
+  plannedWeekKm,
   reschedule,
   validatePlan,
   weekTotals,
@@ -43,6 +44,7 @@ import {
   readExistingPlan,
   readPlanDocument,
   shiftWorkout,
+  unusablePlanMessage,
   workoutText,
   weekPosition,
   writePlan,
@@ -54,7 +56,7 @@ import { foundationsUrl, kindPurpose, ruleExplain, ruleEvidence } from './rules-
 import { packageVersion } from './version.ts'
 import { clockToday } from './clock.ts'
 import { rebuildPlan, type Regeneration } from './regenerate.ts'
-import { commitFiles } from './git.ts'
+import { commitFiles, uncommitted, type CommitOutcome } from './git.ts'
 import { LOG_FILE } from './logfile.ts'
 export { cmdStatus } from './status.ts'
 export { pluginSkills, renderSkill, type Skill } from './plugin-skills.ts'
@@ -69,7 +71,7 @@ import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 import { buildExecution, isRunningActivity } from './execution.ts'
 import { resultKey } from './calibration.ts'
-import { applyProposal, prepareProposal, prepareShortening, recordedDates, type PlanProposal } from './proposals.ts'
+import { applyProposal, prepareProposal, prepareShortening, raceDayKm, recordedDates, type PlanProposal } from './proposals.ts'
 import { explainSession } from './explain-session.ts'
 export { buildExecution } from './execution.ts'
 
@@ -295,7 +297,10 @@ export function cmdInit(cwd: string, content?: string, opts: { commit?: CommitOp
   // tylko pliki, które init faktycznie zapisał — cudze zmiany w AGENTS.md czy
   // .gitignore nie trafiają do commita „trainctl init"
   const committed = withCommit(result, cwd, opts.commit, (result.data?.['written'] as string[] | undefined) ?? [], ui().commit.init)
-  if (opts.commit && result.data?.['gitignoreAppended'] && committed.blocks) {
+  // nota tylko wtedy, gdy commit naprawdę był (nie przy braku gita) — ta sama
+  // reguła co w withCommit: każda wartość poza undefined/false to prośba o commit
+  const outcome = committed.data?.['commit'] as CommitOutcome | null | undefined
+  if (outcome && outcome.status !== 'no-git' && result.data?.['gitignoreAppended'] && committed.blocks) {
     const blocks = [...committed.blocks, b.info(ui().init.gitignoreNotCommitted)]
     return { ...committed, blocks, output: renderPlain(blocks) }
   }
@@ -320,9 +325,11 @@ function initImpl(cwd: string, content: string | undefined, agent: AgentChoice |
   try {
     writeConfigTemplate(cwd, content)
     const agents = writeAgentsFile(cwd)
-    // .gitignore zapisany od zera trafia do commita; dopisany do istniejącego — nie,
-    // bo `git add` wziąłby z nim cudze, niezacommitowane zmiany
+    // .gitignore zapisany od zera albo czysty (zacommitowany, bez zmian) trafia do
+    // commita także po dopisaniu wzorców — inaczej inne klony repo zostają bez
+    // ochrony .env. Z cudzymi, niezacommitowanymi zmianami — nie: `git add` wziąłby je.
     const hadGitignore = existsSync(join(cwd, '.gitignore'))
+    const gitignoreClean = hadGitignore && uncommitted(cwd, ['.gitignore'])?.length === 0
     const ignored = protectSecrets(cwd)
     const integration = agentBlocks(cwd, agent)
     return okDoc([
@@ -338,8 +345,8 @@ function initImpl(cwd: string, content: string | undefined, agent: AgentChoice |
       b.hint(ui().common.nextStep('trainctl plan')),
     ], {
       agentFiles: integration.files,
-      written: [CONFIG_FILE, ...(agents ? [AGENTS_FILE] : []), ...(ignored.length && !hadGitignore ? ['.gitignore'] : []), ...integration.files],
-      gitignoreAppended: ignored.length > 0 && hadGitignore,
+      written: [CONFIG_FILE, ...(agents ? [AGENTS_FILE] : []), ...(ignored.length && (!hadGitignore || gitignoreClean) ? ['.gitignore'] : []), ...integration.files],
+      gitignoreAppended: ignored.length > 0 && hadGitignore && !gitignoreClean,
     })
   } catch (e) {
     return fail(e)
@@ -359,10 +366,10 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
     // Istniejący plan regenerujemy z ochroną przeszłości i zatwierdzonych decyzji
     // (ADR-033); od zera wyłącznie na jawne --fresh albo gdy pliku nie da się użyć.
     const found = readExistingPlan(cwd)
-    if (found.status === 'unreadable' && opts.fresh !== true) throw new Error(ui().plan.unreadable(PLAN_YAML, ui().plan.unreadableReason[found.reason]))
+    if (found.status === 'unreadable' && opts.fresh !== true) throw new Error(unusablePlanMessage(found))
     const existing = found.status === 'ok' ? found.plan : undefined
     const rebuild = existing && opts.fresh !== true
-      ? rebuildPlan(existing, config, { today, recorded: recordedDates(cwd) })
+      ? rebuildPlan(existing, config, { today, recorded: recordedDates(cwd), raceDayKm: raceDayKm(cwd, existing) })
       : undefined
     const plan = rebuild ? rebuild.plan : computePlan(config, today)
     const issues = validatePlan(plan)
@@ -464,7 +471,7 @@ function regenerationBlocks(existing: StoredPlan, r: Regeneration, opts: { diffL
   blocks.push(b.text(r.mode === 'same-cycle'
     ? t.sameCycle(r.plan.generatedAt)
     : t.newCycle(r.plan.cycleStart ?? r.plan.weeks[0]?.weekStart ?? r.plan.generatedAt)))
-  if (r.mode === 'new-cycle') blocks.push(b.info(t.newCycleVolume(r.plan.loadState?.baselineWeeklyKm ?? cycleWeeksOf(r.plan)[0]?.skeleton.targetKm ?? 0)))
+  if (r.mode === 'new-cycle') blocks.push(b.info(t.newCycleVolume(r.plan.loadState?.baselineWeeklyKm ?? plannedWeekKm(cycleWeeksOf(r.plan)[0]?.skeleton ?? { targetKm: 0 }))))
   const counts = new Map<string, number>()
   for (const p of r.protectedDays) counts.set(p.reason, (counts.get(p.reason) ?? 0) + 1)
   const reasons = [...counts].map(([reason, count]) => `${t.reasons[reason as keyof typeof t.reasons]} ${count}`).join(', ')
@@ -602,7 +609,7 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
     const blocks: Block[] = [
       b.title(
         ui().week.title(weekPosition(plan, week).index + 1, weekPosition(plan, week).total, week.weekStart),
-        ui().week.subtitle(phaseLabel(sk.phase), model, sk.targetKm, week.totalKm) +
+        ui().week.subtitle(phaseLabel(sk.phase), model, plannedWeekKm(sk), week.totalKm) +
           (sk.deload ? ` · ${ui().week.deloadUpper}` : ''),
       ),
       ...compatibilityNotes(plan),
@@ -947,7 +954,8 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     const execution = buildExecution(plan, snapshot?.activities ?? [], logs, today)
 
     const currentWeek = plan.weeks.find((w) => w.days.some((d) => d.date === today))
-    const currentWeeklyKm = currentWeek?.skeleton.targetKm ?? plan.peakKmPlanned
+    // objętość, którą biegacz faktycznie dostał (po budżecie czasu) — od niej liczą się sugestie
+    const currentWeeklyKm = currentWeek ? plannedWeekKm(currentWeek.skeleton) : plan.peakKmPlanned
     const known = new Set((plan.calibration?.results ?? []).map(resultKey))
     const newResults = config.athlete.results.filter(
       (r) => !r.excluded && r.date <= today && (plan.calibration ? !known.has(resultKey(r)) : r.date > plan.generatedAt),
@@ -1743,10 +1751,10 @@ function diffWeeks(from: StoredPlan['weeks'], to: StoredPlan['weeks']): string[]
       lines.push(t.weekGone(week.weekStart))
       continue
     }
-    if (f.skeleton.targetKm !== week.skeleton.targetKm) {
-      lines.push(t.weekVolume(week.weekStart, week.skeleton.targetKm, f.skeleton.targetKm))
+    if (plannedWeekKm(f.skeleton) !== plannedWeekKm(week.skeleton)) {
+      lines.push(t.weekVolume(week.weekStart, plannedWeekKm(week.skeleton), plannedWeekKm(f.skeleton)))
     }
-    // targetKm to zamiar szkieletu, totalKm — plan faktycznie rozpisany na dni.
+    // cel tygodnia to zamiar szkieletu (po budżecie czasu), totalKm — plan faktycznie rozpisany na dni.
     // Scenariusz bywa zmianą wyłącznie tego drugiego (skrócone jednostki).
     if (kmDiffers(week.totalKm, f.totalKm)) {
       lines.push(t.weekTotalKm(week.weekStart, week.totalKm ?? 0, f.totalKm ?? 0))
@@ -1781,7 +1789,7 @@ function diffWeeks(from: StoredPlan['weeks'], to: StoredPlan['weeks']): string[]
   }
   for (const w of to) {
     if (!from.some((s) => s.weekStart === w.weekStart)) {
-      lines.push(t.weekNew(w.weekStart, w.skeleton.targetKm))
+      lines.push(t.weekNew(w.weekStart, plannedWeekKm(w.skeleton)))
     }
   }
   return lines
@@ -1829,7 +1837,7 @@ export function cmdDiff(cwd: string, opts: { plan?: string | undefined } = {}): 
     const config = loadConfig(cwd)
     // Dry-run dokładnie tej regeneracji, którą wykona `plan` (ADR-033) — inaczej
     // diff pokazywałby zmiany dni, których plan i tak nie ruszy.
-    const rebuild = rebuildPlan(stored, config, { today: localToday(), recorded: recordedDates(cwd) })
+    const rebuild = rebuildPlan(stored, config, { today: localToday(), recorded: recordedDates(cwd), raceDayKm: raceDayKm(cwd, stored) })
     const fresh = rebuild.plan
     const lines: string[] = []
     if (rebuild.protectedDays.some((p) => p.reason === 'edited')) {

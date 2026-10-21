@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale, validatePlan } from 'trainctl-core'
 import { cmdCheck, cmdExport, cmdLog, cmdPlan, cmdReview, cmdToday, cmdWhy } from './commands.ts'
 import { cycleWeeksOf, loadPlan } from './planfile.ts'
+import { applyProposal, prepareProposal } from './proposals.ts'
 
 setLocale('en')
 
@@ -91,6 +92,25 @@ describe('po starcie: blok przejściowy w planie i w tym, co widać', () => {
     expect(r.data).toMatchObject({ regeneration: { mode: 'same-cycle' } })
     expect(loadPlan(dir).weeks.find((w) => w.skeleton.raceDate)!.skeleton.raceDate).toBe('2026-12-06')
   })
+  it('rozruch rano w dniu startu i przełożenie startu: ten sam cykl, nie „start za nami"', () => {
+    write(RACE)
+    cmdPlan(dir, { date: '2026-08-08' })
+    process.env['TRAINCTL_TODAY'] = '2026-11-29'
+    expect(cmdLog(dir, { date: '2026-11-29', km: '3' }).code).toBe(0)
+    write(RACE.replace('2026-11-29', '2026-12-06'))
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(r.data).toMatchObject({ regeneration: { mode: 'same-cycle' } })
+  })
+  it('start zalogowany, cel bez zmian: plan w dniu startu działa jak zwykła regeneracja', () => {
+    write(RACE)
+    cmdPlan(dir, { date: '2026-08-08' })
+    process.env['TRAINCTL_TODAY'] = '2026-11-29'
+    expect(cmdLog(dir, { date: '2026-11-29', km: '21.1', time: '1:35:10' }).code).toBe(0)
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(r.data).toMatchObject({ regeneration: { mode: 'same-cycle' } })
+  })
   it('w dniu startu ten sam cel to nadal ten sam cykl', () => {
     write(RACE)
     cmdPlan(dir, { date: '2026-08-08' })
@@ -112,6 +132,22 @@ describe('po starcie: blok przejściowy w planie i w tym, co widać', () => {
     expect(cycleWeeksOf(plan)[0]!.weekStart).toBe('2026-12-14')
     expect(validatePlan(plan).filter((i) => i.severity === 'error')).toEqual([])
   })
+})
+
+describe('regeneracja po zatwierdzonej propozycji', () => {
+  const reduction = { dataStatus: 'complete' as const, unknownSessions: 0, windowDays: 21, complianceKm: 0.5, missedSessions: 0,
+    diagnosis: [], warnings: [], actions: [{ type: 'reduce-volume' as const, detail: 'reduce', suggestedWeeklyKm: 40, ruleRefs: [] }] }
+  for (const day of ['2026-08-08', '2026-09-06']) {
+    it(`z siłą i budżetem tygodnia, w dniu decyzji (${day}): plan odtwarza zatwierdzone dni`, () => {
+      write(`${RACE}time:\n  weeklyMinutes: 240\n`)
+      process.env['TRAINCTL_TODAY'] = day
+      expect(cmdPlan(dir, { date: '2026-08-08' }).code).toBe(0)
+      applyProposal(dir, prepareProposal(dir, day, reduction).id)
+      const r = cmdPlan(dir, { date: day })
+      expect(r.code, r.output).toBe(0)
+      expect(r.data).toMatchObject({ regeneration: { changedDates: [], upToDate: true } })
+    })
+  }
 })
 
 describe('plan bez startu (goal.kind: base)', () => {

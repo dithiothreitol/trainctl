@@ -79,10 +79,13 @@ function insideGitRepo(cwd: string): boolean {
 /** Klucze środowiska sprzed wczytania `.env` — jawny `export` wygrywa nad plikiem. */
 let shellKeys: Set<string> | undefined
 
-/** Czy wartość zmiennej pochodzi z `.env` (a nie z eksportu w powłoce). */
-export function cameFromEnvFile(cwd: string, name: string): boolean {
+/**
+ * Czy wartość zmiennej pochodzi z `.env` (a nie z eksportu w powłoce).
+ * `inspected` — wynik `inspectEnvFile`, jeśli wołający już go ma (bez drugiego odczytu).
+ */
+export function cameFromEnvFile(cwd: string, name: string, inspected?: { hasKey: boolean }): boolean {
   if (shellKeys?.has(name)) return false
-  return inspectEnvFile(cwd, name).hasKey
+  return (inspected ?? inspectEnvFile(cwd, name)).hasKey
 }
 
 /**

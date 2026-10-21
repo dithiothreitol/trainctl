@@ -141,7 +141,7 @@ function withKeyEnv(value: string | undefined, fn: () => void): void {
 
 describe('status', () => {
   it('pusty katalog: profil jest, planu nie ma — podpowiada plan', () => {
-    let r = cmdStatus(dir)
+    let r!: ReturnType<typeof cmdStatus>
     withKeyEnv(undefined, () => { r = cmdStatus(dir) })
     expect(r.code).toBe(0)
     expect(r.output).toContain('No plan yet.')
@@ -190,7 +190,48 @@ describe('status', () => {
     execFileSync('git', ['init', '-q'], { cwd: dir })
     const out = cmdStatus(dir).output
     expect(out).not.toContain('git add -A')
-    expect(out).toMatch(/git add .*trainctl\.yaml.* && git commit/)
+    expect(out).toMatch(/git add -- .*trainctl\.yaml.* && git commit/)
+  })
+  it('podpowiedź commita: usunięty plik wchodzi, ignorowany nie; ścieżki względem katalogu treningowego', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trainctl-040-repo-'))
+    try {
+      const training = join(root, 'training')
+      mkdirSync(training)
+      writeFileSync(join(training, 'trainctl.yaml'), CONFIG, 'utf-8')
+      writeFileSync(join(training, 'AGENTS.md'), '# coach\n', 'utf-8')
+      writeFileSync(join(training, '.gitignore'), 'log.jsonl\n', 'utf-8')
+      const git = (args: string[]) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.test', ...args], { cwd: training, encoding: 'utf-8' })
+      execFileSync('git', ['init', '-q'], { cwd: root })
+      git(['add', '-A'])
+      git(['commit', '-qm', 'init'])
+      rmSync(join(training, 'AGENTS.md'))
+      writeFileSync(join(training, 'trainctl.yaml'), `${CONFIG}# edited\n`, 'utf-8')
+      writeFileSync(join(training, 'log.jsonl'), '', 'utf-8')
+      const r = cmdStatus(training)
+      expect(r.data).toMatchObject({ git: { uncommitted: ['AGENTS.md', 'trainctl.yaml'] } })
+      const paths = r.output.match(/git add -- (.*?) && git commit/)![1]!.split(' ')
+      expect(paths).toEqual(['AGENTS.md', 'trainctl.yaml'])
+      // komenda z podpowiedzi działa i zapisuje także usunięcie
+      git(['add', '--', ...paths])
+      expect(git(['status', '--porcelain'])).toContain('D  training/AGENTS.md')
+    } finally {
+      rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    }
+  })
+  it('plik planu, którego nie da się użyć: status nie podpowiada trainctl plan (plan by odmówił)', () => {
+    mkdirSync(join(dir, 'plan'), { recursive: true })
+    writeFileSync(join(dir, 'plan', 'plan.yaml'), '<<<<<<< HEAD\nweeks: [\n', 'utf-8')
+    const r = cmdStatus(dir)
+    expect(r.output).toContain('not valid YAML')
+    expect(r.output).not.toContain('next: trainctl plan')
+  })
+  it('plan z nowszego schematu: status radzi aktualizację trainctl', () => {
+    cmdPlan(dir, { date: '2026-08-08' })
+    const yaml = join(dir, 'plan', 'plan.yaml')
+    writeFileSync(yaml, readFileSync(yaml, 'utf-8').replace('schemaVersion: 1', 'schemaVersion: 2'), 'utf-8')
+    const r = cmdStatus(dir)
+    expect(r.output).toContain('upgrade trainctl')
+    expect(r.output).not.toContain('next: trainctl plan')
   })
 })
 
@@ -232,6 +273,34 @@ describe('--commit', () => {
     const r = cmdInit(dir, undefined, { commit: true })
     expect(r.code).toBe(0)
     expect(gitOut(['show', '--name-only', '--format=', 'HEAD']).trim().split('\n')).toEqual(['trainctl.yaml'])
+  })
+  it('init --commit: czysty, zacommitowany .gitignore po dopisaniu wzorców trafia do commita', () => {
+    rmSync(join(dir, 'trainctl.yaml'))
+    execFileSync('git', ['init', '-q'], { cwd: dir })
+    writeFileSync(join(dir, '.gitignore'), 'node_modules/\n', 'utf-8')
+    gitOut(['add', '.gitignore'])
+    gitOut(['commit', '-qm', 'ignore'])
+    const r = cmdInit(dir, undefined, { commit: true })
+    expect(r.code).toBe(0)
+    expect(gitOut(['show', '--name-only', '--format=', 'HEAD']).trim().split('\n').sort()).toEqual(['.gitignore', 'AGENTS.md', 'trainctl.yaml'])
+    expect(gitOut(['show', 'HEAD:.gitignore'])).toContain('.env')
+    expect(r.output).not.toContain('commit it yourself')
+  })
+  it('init --commit: .gitignore z cudzymi, niezacommitowanymi zmianami zostaje poza commitem — z notą', () => {
+    rmSync(join(dir, 'trainctl.yaml'))
+    execFileSync('git', ['init', '-q'], { cwd: dir })
+    writeFileSync(join(dir, '.gitignore'), 'node_modules/\n', 'utf-8')
+    const r = cmdInit(dir, undefined, { commit: true })
+    expect(r.code).toBe(0)
+    expect(gitOut(['show', '--name-only', '--format=', 'HEAD'])).not.toContain('.gitignore')
+    expect(r.output).toContain('commit it yourself')
+  })
+  it('init --commit poza repozytorium: bez noty o .gitignore, która nie ma sensu bez gita', () => {
+    rmSync(join(dir, 'trainctl.yaml'))
+    writeFileSync(join(dir, '.gitignore'), 'node_modules/\n', 'utf-8')
+    const r = cmdInit(dir, undefined, { commit: true })
+    expect(r.output).toContain('Not a git repository')
+    expect(r.output).not.toContain('commit it yourself')
   })
   it('odmowa zapisu nie commituje niczego', () => {
     cmdPlan(dir, { date: '2026-08-08' })

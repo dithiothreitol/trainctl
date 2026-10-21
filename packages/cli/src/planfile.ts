@@ -143,12 +143,16 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   if (trailOnly) plan.feasibilityWarnings.push(ui().planMd.trailOnlyCalibration)
   opts.beforeTimeBudget?.(plan)
   if (config.time) {
-    const macroPeak = plan.peakKmPlanned
+    // szczyt przed budżetem liczony z tygodni, które budżet dostaje — także po ich
+    // podmianie w haku (propozycja), inaczej redukcja objętości wyglądałaby na budżet
+    const macroPeak = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
     const budget = fitTimeBudget(plan.weeks, config, zones, testDistanceKm(goal), opts.budgetStrength ?? 'reapply')
     plan.feasibilityWarnings.push(...budget.warnings)
     plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
-    // ostrzeżenie tylko wtedy, gdy to budżet obniżył szczyt — nie przy każdej sekcji `time`
-    if (budget.capped && plan.peakKmPlanned < plan.peakKmRecommended && plan.peakKmPlanned < macroPeak) {
+    // ostrzeżenie tylko wtedy, gdy to budżet spycha szczyt poniżej rekomendacji: bez
+    // niego plan by ją osiągnął. Szczyt niski już przed budżetem (baza biegacza,
+    // zatwierdzona redukcja) to nie skutek budżetu — „więcej minut" by go nie podniosło.
+    if (budget.capped && plan.peakKmPlanned < plan.peakKmRecommended && macroPeak >= plan.peakKmRecommended) {
       plan.feasibilityWarnings.push(ui().planMd.timeCapsVolume(plan.peakKmPlanned, plan.peakKmRecommended))
     }
   }
@@ -169,6 +173,9 @@ export function writePlan(cwd: string, plan: StoredPlan): void {
 const PREPARATION_MINUTES = 15
 
 const isWeekend = (wd: string) => wd === 'sat' || wd === 'sun'
+
+/** Plik planu czyta i edytuje człowiek — bez szumu zmiennoprzecinkowego (25.000000000000004). */
+const roundKm = (km: number) => Math.round(km * 10) / 10
 
 /**
  * Budżet czasu z profilu (E-2, wartość inżynierska) — dwa kroki:
@@ -201,8 +208,9 @@ function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: Retur
         const target = Math.max(5, Math.floor(current - (minutes - time.weeklyMinutes) / easyMinPerKm))
         if (target >= current) break
         const regenerated = generateMicrocycle({ skeleton: { ...week.skeleton, targetKm: target }, athlete: config.athlete, zones, goal: config.goal, testDistanceKm: testKm })
-        // zamiar makrocyklu zostaje w targetKm; budżet zapisuje swoją objętość obok
-        regenerated.skeleton = { ...week.skeleton, timeCappedKm: target }
+        // zamiar makrocyklu zostaje w targetKm; budżet zapisuje obok objętość, którą
+        // generator faktycznie rozpisał (bywa wyżej niż cel), bo z nią lint porównuje sumy (P-3)
+        regenerated.skeleton = { ...week.skeleton, timeCappedKm: roundKm(regenerated.totalKm) }
         for (const day of regenerated.days) {
           const session = week.days.find((d) => d.date === day.date)?.strength
           if (session) day.strength = structuredClone(session)
@@ -246,7 +254,7 @@ function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: Retur
     // Skrócone dni obniżają objętość tygodnia — zapisujemy ją obok zamiaru (targetKm),
     // inaczej lint zgłaszałby P-3 na świeżo wygenerowanym planie.
     if (shortened) {
-      week.skeleton = { ...week.skeleton, timeCappedKm: week.totalKm }
+      week.skeleton = { ...week.skeleton, timeCappedKm: roundKm(week.totalKm) }
       capped = true
     }
   }
@@ -350,7 +358,19 @@ export function loadPlanFile(path: string): StoredPlan {
 export type ExistingPlan =
   | { status: 'missing' }
   | { status: 'ok'; plan: StoredPlan }
-  | { status: 'unreadable'; reason: 'parse' | 'shape' | 'schema' }
+  | { status: 'unreadable'; reason: 'parse' | 'shape' }
+  | { status: 'unreadable'; reason: 'schema'; version: number }
+
+/**
+ * Co powiedzieć o pliku planu, którego nie da się użyć. Nowszy schemat to plan
+ * z nowszego trainctl (np. od drugiej osoby z repo) — rada to aktualizacja, nie
+ * `--fresh`, które porzuciłoby poprawny plan z przypięciami i historią.
+ */
+export function unusablePlanMessage(found: Extract<ExistingPlan, { status: 'unreadable' }>): string {
+  return found.reason === 'schema'
+    ? ui().common.planSchemaNewer(PLAN_YAML, found.version)
+    : ui().plan.unreadable(PLAN_YAML, ui().plan.unreadableReason[found.reason])
+}
 
 /**
  * Istniejący plik planu i to, czy da się go użyć. Niesparsowalny (znaczniki
@@ -367,7 +387,7 @@ export function readExistingPlan(cwd: string): ExistingPlan {
     return { status: 'unreadable', reason: 'parse' }
   }
   if (!looksLikePlan(doc)) return { status: 'unreadable', reason: 'shape' }
-  if (typeof doc.schemaVersion === 'number' && doc.schemaVersion > PLAN_SCHEMA_VERSION) return { status: 'unreadable', reason: 'schema' }
+  if (typeof doc.schemaVersion === 'number' && doc.schemaVersion > PLAN_SCHEMA_VERSION) return { status: 'unreadable', reason: 'schema', version: doc.schemaVersion }
   return { status: 'ok', plan: doc }
 }
 

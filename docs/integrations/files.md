@@ -51,6 +51,9 @@ come from race results in `athlete.results`.
   Log the effort with `trainctl log --rpe`.
 - TCX and GPX carry UTC times; the local date uses this machine's time zone.
 - Files that are not activities, are unreadable or larger than 50 MB are skipped
-  and named in the output; the same activity exported twice counts once.
+  and named in the output; the same activity exported twice counts once. That
+  includes two formats of one run: a start within 60 s and a distance within 10%
+  (at least 500 m) mean the same run, and the richest file is kept — FIT, then
+  TCX, then GPX (engineering choices). The other file is listed as a duplicate.
 - `init` adds `activities/` to `.gitignore`. GPS tracks show where you live —
   keep them out of a repository you might publish.

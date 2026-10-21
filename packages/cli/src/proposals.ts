@@ -7,7 +7,7 @@ import { readLog, LOG_FILE } from './logfile.ts'
 import { computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
-import { isRunningActivity } from './execution.ts'
+import { buildExecution, isRunningActivity } from './execution.ts'
 import { clockToday } from './clock.ts'
 import { resultKey } from './calibration.ts'
 
@@ -52,6 +52,17 @@ export function recordedDates(cwd: string): Set<string> {
   const dates = new Set(readLog(cwd).map(entry => entry.date))
   for (const a of readSnapshot(cwd)?.activities ?? []) if (isRunningActivity(a) && (a.distanceKm ?? 0) > 0) dates.add(a.date)
   return dates
+}
+
+/**
+ * Kilometry zapisane w dniu startu celu (dziennik albo synchronizacja). Sygnał
+ * dla regeneracji, czy start się odbył — sama obecność wpisu (rozruch, „pominięte")
+ * tego nie mówi.
+ */
+export function raceDayKm(cwd: string, plan: StoredPlan): number {
+  const date = plan.goal.date
+  const record = buildExecution(plan, readSnapshot(cwd)?.activities ?? [], readLog(cwd), date).find((e) => e.date === date)
+  return record && record.status !== 'missed' ? record.actualKm ?? 0 : 0
 }
 
 const describeDay = (day: PlannedDay): string => [workoutText(day), ...(day.strength ? [ui().today.strengthTitle(day.strength.durationMin) + ': ' + day.strength.description] : [])].join(' + ')

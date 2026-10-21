@@ -26,8 +26,10 @@ export interface SyncSnapshot {
   wellness: SyncedWellness[]
 }
 
+export const API_KEY_ENV = 'TRAINCTL_INTERVALS_API_KEY'
+
 export function readApiKey(cwd: string): string {
-  const fromEnv = process.env['TRAINCTL_INTERVALS_API_KEY']?.trim()
+  const fromEnv = process.env[API_KEY_ENV]?.trim()
   if (fromEnv) return fromEnv
   const path = join(cwd, SECRET_FILE)
   if (existsSync(path)) {
@@ -37,14 +39,12 @@ export function readApiKey(cwd: string): string {
   throw new Error(ui().sync.missingKey(SECRET_FILE))
 }
 
-export const API_KEY_ENV = 'TRAINCTL_INTERVALS_API_KEY'
-
 /**
  * Skąd przyjdzie klucz — ta sama kolejność co `readApiKey` (zmienna środowiskowa,
  * także z `.env`, potem niepusty `.trainctl-secret`). Wartości nigdy nie zwraca.
  */
-export function apiKeySource(cwd: string): 'environment' | '.env' | '.trainctl-secret' | undefined {
-  if (process.env[API_KEY_ENV]?.trim()) return cameFromEnvFile(cwd, API_KEY_ENV) ? '.env' : 'environment'
+export function apiKeySource(cwd: string, inspected?: { hasKey: boolean }): 'environment' | '.env' | '.trainctl-secret' | undefined {
+  if (process.env[API_KEY_ENV]?.trim()) return cameFromEnvFile(cwd, API_KEY_ENV, inspected) ? '.env' : 'environment'
   const path = join(cwd, SECRET_FILE)
   return existsSync(path) && readFileSync(path, 'utf-8').trim() ? '.trainctl-secret' : undefined
 }

@@ -149,7 +149,7 @@ export const cliEn = {
     agentCodexNext: 'Codex: trust this project; it reads AGENTS.md and starts the trainctl MCP server from .codex/config.toml.',
     agentQuestion: 'Which agent do you use here?',
     agentNone: 'none / later',
-    gitignoreNotCommitted: '.gitignore already existed, so it was not committed — review and commit it yourself.',
+    gitignoreNotCommitted: '.gitignore had uncommitted changes of yours, so it was left out of the commit — review and commit it yourself.',
   },
 
   plan: {
@@ -197,7 +197,7 @@ export const cliEn = {
     upToDate: 'Plan is current — trainctl.yaml produces the same future days; nothing written.',
     unreadable: (file: string, reason: string) =>
       `${file} cannot be used (${reason}) — fix it (a merge conflict?) or run trainctl plan --fresh to start over; the previous version is in git.`,
-    unreadableReason: { parse: 'not valid YAML', shape: 'no goal or weeks', schema: 'a newer plan schema' },
+    unreadableReason: { parse: 'not valid YAML', shape: 'no goal or weeks' },
     overwroteUnreadable: (file: string) => `The previous ${file} could not be used and was replaced — it is in git if you need it.`,
     freshDropped: (items: string) => `Regenerated from scratch (--fresh), discarding: ${items}. The previous plan is in git.`,
     freshItems: {
@@ -771,7 +771,6 @@ export const cliEn = {
     loadState: 'Approved baseline',
     loadStateValue: (km: number, date: string) => `${n(km)} km/week since ${date}`,
     noPlan: 'No plan yet.',
-    planUnusable: (file: string) => `${file} is not a usable plan — trainctl check shows what is broken.`,
     calibration: 'Zone calibration',
     calibrationSelected: (date: string, km: number, ageDays: number, vdot: number) =>
       `${date} · ${n(km)} km · ${ageDays} ${pluralEn(ageDays, { one: 'day', other: 'days' })} old · VDOT ${n(vdot)}`,

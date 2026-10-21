@@ -221,3 +221,49 @@ describe('bieg w terenie i na szosie to jedna rodzina', () => {
     }
   })
 })
+
+/** Bieg w GPX: `km` na północ, punkt co 10 s. */
+const gpxTrack = (type: string, start: string, km: number) => {
+  const points = Array.from({ length: 301 }, (_, i) =>
+    `<trkpt lat="${(52 + (km / 111.195) * (i / 300)).toFixed(6)}" lon="21"><time>${new Date(Date.parse(start) + i * 10_000).toISOString()}</time></trkpt>`)
+  return `<?xml version="1.0"?><gpx version="1.1"><trk><type>${type}</type><trkseg>${points.join('')}</trkseg></trk></gpx>`
+}
+const tcxRun = (start: string, meters: number) => `<?xml version="1.0" encoding="UTF-8"?>
+<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"><Activities>
+  <Activity Sport="Running"><Id>${start}</Id>
+    <Lap StartTime="${start}"><TotalTimeSeconds>3000</TotalTimeSeconds><DistanceMeters>${meters}</DistanceMeters></Lap>
+  </Activity>
+</Activities></TrainingCenterDatabase>`
+
+describe('duplikaty: okno po starcie i dystans', () => {
+  const scanOf = (files: Record<string, string>) => {
+    const d = mkdtempSync(join(tmpdir(), 'trainctl-sync-files-dup-'))
+    try {
+      for (const [name, content] of Object.entries(files)) writeFileSync(join(d, name), content)
+      const scan = scanActivityFiles(d)
+      return { activities: scan.activities, skipped: scan.skipped.map((s) => ({ file: basename(s.file), reason: s.reason })) }
+    } finally {
+      rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    }
+  }
+  it('łańcuch kopii przeplecionych innym sportem: bieg liczy się raz', () => {
+    const scan = scanOf({
+      'a-run.gpx': gpxTrack('running', '2026-09-14T05:00:00Z', 10),
+      'x-ride.gpx': gpxTrack('cycling', '2026-09-14T05:00:10Z', 10),
+      'b-run.tcx': tcxRun('2026-09-14T05:00:55Z', 10000),
+      'c-run.gpx': gpxTrack('running', '2026-09-14T05:01:40Z', 10),
+    })
+    expect(scan.activities.filter((a) => a.type === 'Run')).toHaveLength(1)
+    expect(scan.activities.find((a) => a.type === 'Run')!.name).toBe('b-run')
+    expect(scan.activities.filter((a) => a.type === 'Ride')).toHaveLength(1)
+    expect(scan.skipped.map((s) => s.file).sort()).toEqual(['a-run.gpx', 'c-run.gpx'])
+  })
+  it('przypadkowy start zegarka 40 s przed biegiem to osobny plik, nie kopia biegu', () => {
+    const scan = scanOf({
+      'oops.tcx': tcxRun('2026-09-14T05:00:00Z', 50),
+      'real.tcx': tcxRun('2026-09-14T05:00:40Z', 10000),
+    })
+    expect(scan.activities.map((a) => a.distanceKm).sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual([0.05, 10])
+    expect(scan.skipped).toEqual([])
+  })
+})

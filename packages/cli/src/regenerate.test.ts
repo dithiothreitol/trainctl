@@ -73,6 +73,13 @@ describe('trainctl plan na istniejącym planie', () => {
     for (const date of ['2026-08-04', '2026-09-01', '2026-09-05']) expect(dayOf(plan, date)).toEqual(dayOf(reduced.plan, date))
   })
 
+  it('redukcja objętości przy budżecie dnia nie udaje, że to budżet obciął szczyt', () => {
+    config.time = { weekdayMinutes: 60 }
+    const fresh = initialize()
+    expect(fresh.feasibilityWarnings.join('\n')).not.toContain('time budget caps')
+    const reduced = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 30 }] })
+    expect(reduced.plan.feasibilityWarnings.join('\n')).not.toContain('time budget caps')
+  })
   it('zmiana athlete.recentWeeklyKm po redukcji: wygrywa profil, baza znika', () => {
     initialize()
     applyProposal(dir, prepareProposal(dir, '2026-09-06', reduction).id)

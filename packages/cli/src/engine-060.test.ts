@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { estimateWorkoutMinutes, setLocale, validatePlan } from 'trainctl-core'
-import { cmdCheck, cmdLog, cmdPlan, cmdReview, cmdToday, cmdWhy } from './commands.ts'
+import { cmdCheck, cmdLog, cmdPlan, cmdReview, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { loadPlan, writePlan, PLAN_YAML, type StoredPlan } from './planfile.ts'
 import { readLog, readStrengthLog } from './logfile.ts'
 
@@ -77,6 +77,21 @@ describe('E-2 · budżet czasu z profilu', () => {
       expect(w.skeleton.targetKm).toBe(f.skeleton.targetKm)
       expect(w.totalKm).toBeCloseTo(w.skeleton.timeCappedKm!, 0)
     }
+  })
+  it('tydzień przycięty budżetem tygodnia przechodzi własny lint (P-3); liczby w pliku bez szumu', () => {
+    const capped = plan(`${BASE}time:\n  weeklyMinutes: 200\n`)
+    expect(capped.weeks.some((w) => w.skeleton.timeCappedKm !== undefined)).toBe(true)
+    expect(validatePlan(capped).filter((i) => i.code === 'targetKmMismatch')).toEqual([])
+    // bez budżetu plan sięgnąłby rekomendacji — to budżet go zatrzymuje, więc ostrzeżenie jest
+    expect(capped.feasibilityWarnings.join(' ')).toContain('time budget caps')
+    expect(readFileSync(join(dir, PLAN_YAML), 'utf-8')).not.toMatch(/timeCappedKm: \d+\.\d{2,}/)
+  })
+  it('week pokazuje cel po budżecie czasu, nie zamiar makrocyklu', () => {
+    const capped = plan(`${BASE}time:\n  weeklyMinutes: 200\n`)
+    const week = capped.weeks.find((w) => w.skeleton.timeCappedKm !== undefined && w.skeleton.timeCappedKm < w.skeleton.targetKm - 5)!
+    const out = cmdWeek(dir, { date: week.days[0]!.date }).output
+    expect(out).toContain('target ')
+    expect(out).not.toContain(`target ${week.skeleton.targetKm} km`)
   })
   it('plan z budżetem wygenerowany drugi raz bez zmian na wejściu jest „aktualny"', () => {
     plan(`${BASE}time:\n  weeklyMinutes: 240\n  weekdayMinutes: 50\n`)
@@ -156,7 +171,9 @@ describe('plan.yaml, którego nie da się użyć', () => {
     writeFileSync(join(dir, PLAN_YAML), raw, 'utf-8')
     const refused = cmdPlan(dir, { date: '2026-08-08' })
     expect(refused.code).toBe(1)
-    expect(refused.output).toContain('a newer plan schema')
+    // plan z nowszego trainctl: rada to aktualizacja, nie --fresh (porzuciłoby poprawny plan)
+    expect(refused.output).toContain('upgrade trainctl')
+    expect(refused.output).not.toContain('--fresh')
     expect(cmdPlan(dir, { date: '2026-08-08', fresh: true }).code).toBe(0)
   })
 })

@@ -15,14 +15,15 @@ import { buildExecution } from './execution.ts'
 import { uncommitted } from './git.ts'
 import { ui } from './i18n/index.ts'
 import { LOG_FILE, readLog } from './logfile.ts'
-import { cycleWeeksOf, readExistingPlan, PLAN_DIR, PLAN_YAML, type StoredPlan } from './planfile.ts'
+import { cycleWeeksOf, readExistingPlan, unusablePlanMessage, PLAN_DIR, type StoredPlan } from './planfile.ts'
 import { listProposals } from './proposals.ts'
-import { apiKeySource, readSnapshot, SYNC_FILE } from './sync.ts'
+import { API_KEY_ENV, apiKeySource, readSnapshot, SYNC_FILE } from './sync.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import { clockToday } from './clock.ts'
 import { packageVersion } from './version.ts'
 
-const KEY_ENV = 'TRAINCTL_INTERVALS_API_KEY'
+/** Ścieżka w podpowiedzi komendy — cudzysłów tylko, gdy jest potrzebny. */
+const shellArg = (path: string) => (/^[\w./-]+$/.test(path) ? path : JSON.stringify(path))
 
 export interface StatusResult {
   output: string
@@ -69,7 +70,7 @@ function statusImpl(cwd: string): StatusResult {
   // plan
   const found = readExistingPlan(cwd)
   const plan: StoredPlan | undefined = found.status === 'ok' ? found.plan : undefined
-  const planError = found.status === 'unreadable' ? ui().plan.unreadable(PLAN_YAML, ui().plan.unreadableReason[found.reason]) : undefined
+  const planError = found.status === 'unreadable' ? unusablePlanMessage(found) : undefined
   const current = packageVersion()
   if (plan) {
     const cycle = cycleWeeksOf(plan)
@@ -90,13 +91,15 @@ function statusImpl(cwd: string): StatusResult {
       ? t.calibrationSelected(selected.date, selected.distanceKm, diffDays(selected.date, today), plan.vdot)
       : plan.vdotSource === 'goal-target' ? t.calibrationFromGoal(plan.vdot) : t.calibrationNone))
   } else {
-    blocks.push(b.section(t.plan), b.text(planError ?? (existsSync(join(cwd, PLAN_YAML)) ? t.planUnusable(PLAN_YAML) : t.noPlan)))
-    if (hasConfig && !configErrors) next.push('trainctl plan')
+    blocks.push(b.section(t.plan), b.text(planError ?? t.noPlan))
+    // plik, którego nie da się użyć, czeka na decyzję (naprawa, aktualizacja albo
+    // --fresh), którą opisuje komunikat — samo `trainctl plan` by odmówiło
+    if (hasConfig && !configErrors && !planError) next.push('trainctl plan')
   }
 
   // dane: klucz, synchronizacja, dziennik
-  const env = inspectEnvFile(cwd, KEY_ENV)
-  const source = apiKeySource(cwd)
+  const env = inspectEnvFile(cwd, API_KEY_ENV)
+  const source = apiKeySource(cwd, env)
   const keySource = source === 'environment' ? t.keyFromEnv : source
   const snapshot = readSnapshot(cwd)
   const logs = readLog(cwd)
@@ -133,7 +136,9 @@ function statusImpl(cwd: string): StatusResult {
   const TRACKED = [CONFIG_FILE, PLAN_DIR, LOG_FILE, 'AGENTS.md']
   const dirty = uncommitted(cwd, TRACKED)
   blocks.push(b.section(t.git), b.text(dirty === undefined ? t.noGit : dirty.length ? t.dirty(dirty.join(', ')) : t.clean))
-  if (dirty?.length) next.push(`git add ${TRACKED.filter((p) => existsSync(join(cwd, p))).join(' ')} && git commit`)
+  // dokładnie zmienione ścieżki (względem katalogu treningowego); `git add` ze
+  // ścieżką zapisuje też usunięcie pliku, a ignorowanych porcelain nie zwraca
+  if (dirty?.length) next.push(`git add -- ${dirty.map(shellArg).join(' ')} && git commit`)
 
   if (next.length) blocks.push(b.blank(), b.hint(t.next(next.join(' · '))))
   return {

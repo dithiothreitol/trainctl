@@ -1,4 +1,4 @@
-import { diffDays, estimateWorkoutMinutes, fmtPace, messages, type ExecutionRecord, type Microcycle, type PlannedDay } from 'trainctl-core'
+import { diffDays, estimateWorkoutMinutes, fmtPace, messages, plannedWeekKm, type ExecutionRecord, type Microcycle, type PlannedDay } from 'trainctl-core'
 import { dayFingerprint, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { kindPurpose } from './rules-explain.ts'
@@ -17,7 +17,7 @@ export function explainSession(plan: StoredPlan, week: Microcycle, day: PlannedD
   const context = [plan.goal.kind === 'base' ? t.goalBase(plan.goal.name, plan.goal.date)
     : toGoal >= 0 ? t.goal(plan.goal.name, plan.goal.distanceKm, plan.goal.date, toGoal)
       : t.goalBehind(plan.goal.name, plan.goal.distanceKm, plan.goal.date, -toGoal),
-    t.weekContext(messages().phase[week.skeleton.phase], week.totalKm, week.skeleton.targetKm, Math.round(week.easyShare * 100))]
+    t.weekContext(messages().phase[week.skeleton.phase], week.totalKm, plannedWeekKm(week.skeleton), Math.round(week.easyShare * 100))]
   if (week.skeleton.deload) context.push(t.deload)
   if (week.skeleton.keepIntensity || week.skeleton.keepFrequency) context.push(t.taper)
   if (placement.previous) context.push(t.previous(placement.previous.date, kindLabel(placement.previous.kind), placement.previous.gapDays))

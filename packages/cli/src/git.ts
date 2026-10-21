@@ -48,11 +48,27 @@ export function commitFiles(cwd: string, files: string[], message: string): Comm
   return { status: 'committed', sha, files: present }
 }
 
-/** Niezacommitowane zmiany w plikach katalogu treningowego (dla `status`). */
+/**
+ * Niezacommitowane zmiany w plikach katalogu treningowego (dla `status`) —
+ * ścieżki względem `cwd`, gotowe do `git add`, także gdy katalog treningowy jest
+ * podkatalogiem repozytorium (porcelain podaje je od korzenia repo). Pliki
+ * ignorowane się tu nie pojawiają, usunięte — tak.
+ */
 export function uncommitted(cwd: string, paths: string[]): string[] | undefined {
   if (!insideGitRepo(cwd)) return undefined
-  const r = git(cwd, ['status', '--porcelain', '--', ...paths])
-  if (r.status !== 0) return undefined
-  // `R  stary -> nowy` (rename w indeksie) pokazujemy jako nową ścieżkę
-  return r.stdout.split('\n').map((l) => l.slice(3).trim().split(' -> ').at(-1)!).filter(Boolean)
+  const prefix = git(cwd, ['rev-parse', '--show-prefix'])
+  const r = git(cwd, ['status', '--porcelain', '-z', '--', ...paths])
+  if (r.status !== 0 || prefix.status !== 0) return undefined
+  const root = prefix.stdout.trim()
+  const entries = r.stdout.split('\0')
+  const out: string[] = []
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i]!
+    if (entry.length < 4) continue
+    // `R  nowy\0stary` (rename albo kopia w indeksie): liczy się nowa ścieżka
+    if (entry[0] === 'R' || entry[0] === 'C') i++
+    const path = entry.slice(3)
+    out.push(path.startsWith(root) ? path.slice(root.length) : path)
+  }
+  return out
 }

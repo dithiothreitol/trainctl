@@ -337,6 +337,15 @@ export function generateMicrocycle(input: MicrocycleInput): Microcycle {
 }
 
 /**
+ * Objętość tygodnia, którą biegacz faktycznie ma: po budżecie czasu z profilu
+ * (`timeCappedKm`, E-2), bez budżetu — zamiar makrocyklu (`targetKm`). Co pokazuje
+ * albo skaluje „bieżącą objętość", czyta ją stąd; samo `targetKm` jest wejściem
+ * skalowania bazy, nie tym, co rozpisano na dni.
+ */
+export const plannedWeekKm = (skeleton: Pick<WeekSkeleton, 'targetKm' | 'timeCappedKm'>): number =>
+  skeleton.timeCappedKm ?? skeleton.targetKm
+
+/**
  * Sumy tygodnia liczone z dni — jedno źródło dla generatora, walidatora
  * (`trainctl check`) i `reschedule --apply`, który po przestawieniu tygodnia
  * musi je przeliczyć, inaczej zapisany plan kłamie w totalKm po odpuszczonej sesji.

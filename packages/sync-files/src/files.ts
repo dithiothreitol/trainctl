@@ -160,12 +160,22 @@ function toSynced(parsed: ParsedActivity, externalId: string, fallbackName: stri
  * Ten sam bieg w dwóch formatach (eksport Garmina .fit i Stravy .gpx) ma inne
  * bajty, ale ten sam start. Ta sama rodzina aktywności (bieg po szosie, trailu
  * i bieżni to jedna rodzina) i start w ±60 s = duplikat; zostaje plik najbogatszy
- * w dane (FIT > TCX > GPX). 60 s to wartość inżynierska — znaczniki czasu formatów
- * różnią się zaokrągleniem, dwa różne biegi nie.
+ * w dane (FIT > TCX > GPX). Do tego podobny dystans: przypadkowy start zegarka
+ * 40 s przed właściwym biegiem to osobny, krótki plik, nie kopia biegu.
+ * Wartości inżynierskie: 60 s (znaczniki czasu formatów różnią się zaokrągleniem,
+ * dwa różne biegi nie) i 10% albo 500 m różnicy dystansu (GPS różnych eksportów).
  */
 const DUPLICATE_WINDOW_MS = 60_000
+const DUPLICATE_DISTANCE_SHARE = 0.1
+const DUPLICATE_DISTANCE_MIN_M = 500
 const FORMAT_RANK: Record<string, number> = { fit: 0, tcx: 1, gpx: 2 }
 const sameFamily = (a: ParsedActivity['type'], b: ParsedActivity['type']) => a === b || (isRunType(a) && isRunType(b))
+/** Dystans podobny albo nieznany w którymś pliku (wtedy rozstrzygają start i rodzina). */
+function similarDistance(a: ParsedActivity, b: ParsedActivity): boolean {
+  if (a.distanceM === undefined || b.distanceM === undefined) return true
+  const tolerance = Math.max(DUPLICATE_DISTANCE_MIN_M, DUPLICATE_DISTANCE_SHARE * Math.max(a.distanceM, b.distanceM))
+  return Math.abs(a.distanceM - b.distanceM) <= tolerance
+}
 
 /**
  * Katalog (rekurencyjnie) albo pojedynczy plik → aktywności posortowane po dacie.
@@ -208,7 +218,7 @@ export function scanActivityFiles(path: string): ScanResult {
   for (const f of timed) {
     let twin = -1
     for (let k = kept.length - 1; k >= 0 && f.at - kept[k]!.at <= DUPLICATE_WINDOW_MS; k--) {
-      if (sameFamily(kept[k]!.parsed.type, f.parsed.type)) {
+      if (sameFamily(kept[k]!.parsed.type, f.parsed.type) && similarDistance(kept[k]!.parsed, f.parsed)) {
         twin = k
         break
       }
@@ -220,7 +230,10 @@ export function scanActivityFiles(path: string): ScanResult {
     // zostaje bogatszy format; drugi plik jest wymieniony w pominiętych, nie znika po cichu
     if ((FORMAT_RANK[f.format] ?? 9) < (FORMAT_RANK[kept[twin]!.format] ?? 9)) {
       skipped.push({ file: kept[twin]!.file, reason: 'duplicate' })
-      kept[twin] = f
+      // na koniec, nie w miejsce bliźniaka: `kept` musi zostać posortowane po
+      // starcie, bo okno wyżej przerywa skan na pierwszym wpisie spoza 60 s
+      kept.splice(twin, 1)
+      kept.push(f)
     } else {
       skipped.push({ file: f.file, reason: 'duplicate' })
     }
