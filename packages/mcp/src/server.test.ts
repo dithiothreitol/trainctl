@@ -76,9 +76,34 @@ describe('serwer MCP trainctl', () => {
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual([
       'trainctl_adapt', 'trainctl_check', 'trainctl_desk', 'trainctl_diff', 'trainctl_export', 'trainctl_init', 'trainctl_log',
-      'trainctl_plan', 'trainctl_pull', 'trainctl_push', 'trainctl_reschedule', 'trainctl_review', 'trainctl_shift', 'trainctl_shorten',
+      'trainctl_plan', 'trainctl_pull', 'trainctl_push', 'trainctl_reschedule', 'trainctl_review', 'trainctl_rule', 'trainctl_shift', 'trainctl_shorten',
       'trainctl_status', 'trainctl_today', 'trainctl_week', 'trainctl_why',
     ])
+  })
+
+  it('zasoby: plan, profil i AGENTS.md do czytania; reguły z szablonu', async () => {
+    await call('trainctl_plan', { date: '2026-08-05' })
+    const { resources } = await client.listResources()
+    expect(resources.map((r) => r.uri)).toEqual(expect.arrayContaining(['trainctl://plan', 'trainctl://config', 'trainctl://agents', 'trainctl://rules/I-7']))
+    const plan = await client.readResource({ uri: 'trainctl://plan' })
+    expect((plan.contents[0] as { text: string }).text).toBe(readFileSync(join(dir, 'plan/PLAN.md'), 'utf8'))
+    const rule = await client.readResource({ uri: 'trainctl://rules/I-7' })
+    expect((rule.contents[0] as { text: string }).text).toContain('48')
+    await expect(client.readResource({ uri: 'trainctl://agents' })).rejects.toThrow()
+  })
+
+  it('prompty: przegląd tygodnia i odprawa jako gotowe polecenia', async () => {
+    const { prompts } = await client.listPrompts()
+    expect(prompts.map((p) => p.name).sort()).toEqual(['debrief', 'weekly-review'])
+    const review = await client.getPrompt({ name: 'weekly-review', arguments: { date: '2026-08-16' } })
+    expect((review.messages[0]!.content as { text: string }).text).toContain('trainctl_review')
+    expect((review.messages[0]!.content as { text: string }).text).toContain('2026-08-16')
+  })
+
+  it('trainctl_rule: reguła po ID z pochodzeniem i linkiem do FOUNDATIONS', async () => {
+    const result = await client.callTool({ name: 'trainctl_rule', arguments: { id: 'T-10' } })
+    expect(result.structuredContent).toMatchObject({ code: 0, data: { id: 'T-10', origin: 'corpus', source: expect.stringContaining('FOUNDATIONS.md') } })
+    expect((await call('trainctl_rule', { id: 'Q-1' })).isError).toBe(true)
   })
 
   it('status: stan katalogu tylko do odczytu, z danymi strukturalnymi', async () => {

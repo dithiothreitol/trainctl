@@ -3,7 +3,9 @@
  * Cienki adapter: handlery z trainctl są warstwą use-case'ów (ADR-008);
  * tu tylko schematy wejść i mapowanie CmdResult → wynik narzędzia MCP.
  */
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import { packageVersion } from './version.ts'
 import { ui } from 'trainctl'
@@ -21,12 +23,14 @@ import {
   cmdPush,
   cmdReschedule,
   cmdReview,
+  cmdRules,
   cmdShift,
   cmdShorten,
   cmdStatus,
   cmdToday,
   cmdWeek,
   cmdWhy,
+  AGENTS,
   defaultProviderFactory,
   simulationNotice,
   type CmdResult,
@@ -65,11 +69,12 @@ export function createTrainctlServer(
       annotations: { readOnlyHint: false, openWorldHint: true },
       inputSchema: {
         fromIntervals: z.boolean().optional().describe(t.initFromIntervals),
+        agent: z.enum(AGENTS).optional().describe(t.initAgent),
         commit: commitParam(),
       },
     },
     async (args) =>
-      toTool(args?.fromIntervals === true ? await cmdInitFromIntervals(dir, {}, factory) : cmdInit(dir, undefined, { commit: args?.commit })),
+      toTool(args?.fromIntervals === true ? await cmdInitFromIntervals(dir, {}, factory) : cmdInit(dir, undefined, { commit: args?.commit, agent: args?.agent })),
   )
 
   server.registerTool(
@@ -283,6 +288,55 @@ export function createTrainctlServer(
       },
     },
     async (args) => toTool(cmdDiff(dir, args)),
+  )
+
+  server.registerTool(
+    'trainctl_rule',
+    {
+      description: t.rule,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
+      inputSchema: { id: z.string().optional().describe(t.ruleId) },
+    },
+    async (args) => toTool(cmdRules({ id: args?.id })),
+  )
+
+  // --- zasoby: pliki katalogu treningowego do czytania bez wywoływania narzędzia
+  const fileResource = (name: string, file: string, description: string, mimeType: string) =>
+    server.registerResource(name, `trainctl://${name}`, { title: file, description, mimeType }, async (uri) => {
+      const path = join(dir, file)
+      if (!existsSync(path)) throw new Error(t.resourceMissing(file))
+      return { contents: [{ uri: uri.href, mimeType, text: readFileSync(path, 'utf-8') }] }
+    })
+  fileResource('plan', 'plan/PLAN.md', t.resourcePlan, 'text/markdown')
+  fileResource('config', 'trainctl.yaml', t.resourceConfig, 'application/yaml')
+  fileResource('agents', 'AGENTS.md', t.resourceAgents, 'text/markdown')
+  server.registerResource(
+    'rule',
+    new ResourceTemplate('trainctl://rules/{id}', {
+      list: async () => ({
+        resources: ((cmdRules().data?.['rules'] as { id: string }[] | undefined) ?? [])
+          .map((r) => ({ uri: `trainctl://rules/${r.id}`, name: r.id })),
+      }),
+    }),
+    { description: t.resourceRule, mimeType: 'text/plain' },
+    async (uri, variables) => {
+      const r = cmdRules({ id: String(variables['id'] ?? '') })
+      if (r.code !== 0) throw new Error(r.output)
+      return { contents: [{ uri: uri.href, mimeType: 'text/plain', text: r.output }] }
+    },
+  )
+
+  // --- prompty: rytuały trenera jako gotowe polecenia dla klienta
+  server.registerPrompt(
+    'weekly-review',
+    { title: 'trainctl · weekly review', description: t.promptReview, argsSchema: { date: z.string().optional().describe(t.promptDate) } },
+    (args) => ({ messages: [{ role: 'user' as const, content: { type: 'text' as const, text: t.promptReviewText(args.date ?? '') } }] }),
+  )
+  server.registerPrompt(
+    'debrief',
+    { title: 'trainctl · debrief', description: t.promptDebrief, argsSchema: { date: z.string().optional().describe(t.promptDate) } },
+    (args) => ({ messages: [{ role: 'user' as const, content: { type: 'text' as const, text: t.promptDebriefText(args.date ?? '') } }] }),
   )
 
   server.registerTool(

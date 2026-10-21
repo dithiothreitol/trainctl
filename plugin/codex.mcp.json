@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "trainctl": {
+      "command": "npx",
+      "args": ["-y", "trainctl-mcp@0.3.0"]
+    }
+  }
+}

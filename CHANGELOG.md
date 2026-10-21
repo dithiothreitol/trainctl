@@ -65,6 +65,28 @@ change between minor versions — a regenerated plan can differ.
 - `trainctl completion bash|zsh|fish|pwsh`, examples under `trainctl help <command>`.
 - Usage errors (unknown command or flag, a date that is not a date) exit with 2.
 
+### Added — trainctl in Claude Code and Codex (ADR-036)
+
+- A plugin in `plugin/`, with this repository as its marketplace for both agents:
+  `/plugin marketplace add dithiothreitol/trainctl` + `/plugin install trainctl@trainctl`
+  in Claude Code, `codex plugin marketplace add dithiothreitol/trainctl` in Codex.
+  It bundles the MCP server, the coach persona and four task skills
+  (`review`, `debrief`, `shorten`, `what-if`), and in Claude Code two hooks: the
+  coach instructions at session start in a training directory, and
+  `trainctl check` after an edit of `plan/plan.yaml`.
+- Skills are generated from the same text as `AGENTS.md`
+  (`node tools/plugin/render-skills.ts`); `plugin.test.ts` fails on drift.
+- `trainctl init --agent claude|codex|all` (MCP `agent`) writes
+  `.claude/settings.json` or `.codex/config.toml`; existing files are never
+  overwritten.
+- MCP: `trainctl_rule` explains a rule by ID with its source class and a link to
+  FOUNDATIONS for this version; resources `trainctl://plan`, `trainctl://config`,
+  `trainctl://agents`, `trainctl://rules/{id}`; prompts `weekly-review` and
+  `debrief`. CLI: `trainctl rules [id]`.
+- `trainctl check` returns its findings as `data` (`--json`, MCP, the hook).
+- `tools/release/bump-version.mjs` moves every pinned version together: packages,
+  plugin manifests, MCP configs, the hook and the CI examples.
+
 ### Docs
 
 - README command tables list `shorten` and the missing flags; tool lists no

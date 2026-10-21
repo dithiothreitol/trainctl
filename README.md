@@ -242,7 +242,7 @@ a key is configured). `trainctl adapt` compares execution with the plan and
 
 | command | what it does | key flags |
 |---|---|---|
-| `init` | profile wizard | `--template`, `--from-intervals`, `--commit` |
+| `init` | profile wizard | `--template`, `--from-intervals`, `--agent claude\|codex\|all`, `--commit` |
 | `plan` | generate the plan; on an existing plan regenerate only the future | `--date`, `--fresh`, `--commit` |
 | `today` | the session for today | `--date` |
 | `week` | the week, with journal status | `--date`, `-i` (arrow-key browsing) |
@@ -260,6 +260,7 @@ a key is configured). `trainctl adapt` compares execution with the plan and
 | `diff` | what a regeneration would change | `--plan <file>` |
 | `check` | lint the plan; fails the exit code | `--strict` |
 | `status` | the directory at a glance: profile, plan, key, data, proposals, git | |
+| `rules` | every engine rule with its source class, or one in full | `[id]` |
 | `completion` | shell completion script | `bash`, `zsh`, `fish`, `pwsh` |
 
 Every command takes `--lang en|pl`, `--json` (prints `{ code, data, output }` —
@@ -394,6 +395,27 @@ The same engine as tools for an agent, so the interface becomes conversation:
 *"what am I running today?"*, *"release on Thursday — move the intervals"*,
 *"how did last week go?"*
 
+**Claude Code — as a plugin.** The plugin brings the MCP tools, five coach skills
+(`/trainctl:review`, `/trainctl:debrief`, `/trainctl:shorten`, `/trainctl:what-if`
+and the coach persona) and two hooks: the coach instructions at session start in
+a training directory, and `trainctl check` after an edit of `plan/plan.yaml`.
+
+```text
+/plugin marketplace add dithiothreitol/trainctl
+/plugin install trainctl@trainctl
+```
+
+`trainctl init --agent claude` writes `.claude/settings.json` into the training
+directory, so the plugin is enabled there for anyone who clones it.
+
+**Codex** reads `AGENTS.md` on its own. `trainctl init --agent codex` adds the MCP
+server in `.codex/config.toml` (loaded once you trust the project); or install
+the plugin with `codex plugin marketplace add dithiothreitol/trainctl` and
+`/plugins`. Use one of the two, not both. Details and limits:
+[docs/integrations/agents.md](docs/integrations/agents.md).
+
+**Without the plugin** — Claude Code:
+
 ```bash
 claude mcp add trainctl --env TRAINCTL_DIR="/path/to/my-training" \
   -- npx -y trainctl-mcp
@@ -418,7 +440,10 @@ terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
 `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
 `trainctl_adapt`, `trainctl_shorten`, `trainctl_desk`, `trainctl_reschedule`,
-`trainctl_export`, `trainctl_review`, `trainctl_status`.
+`trainctl_export`, `trainctl_review`, `trainctl_status`, `trainctl_rule`. The
+server also exposes `plan/PLAN.md`, `trainctl.yaml`, `AGENTS.md` and every rule as
+resources (`trainctl://plan`, `trainctl://rules/I-7`, …), and the weekly review
+and the post-run debrief as prompts.
 
 The `AGENTS.md` written by `trainctl init` turns the agent into a coach rather
 than a command runner: ask before regenerating a plan, ask for context when a

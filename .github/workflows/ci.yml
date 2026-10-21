@@ -43,6 +43,10 @@ jobs:
       # repository, so the seven backtest cases skip here by design.
       - run: pnpm test
 
+      # The plugin's skills are generated from the AGENTS.md text; a stale copy
+      # would give the agent a different coach than `trainctl init` writes.
+      - run: node tools/plugin/render-skills.ts --check
+
   # What the repository cannot see about itself: the published packages run from
   # node_modules, where Node refuses to strip TypeScript types. 0.1.0 shipped
   # broken because every other check runs from the source tree.

@@ -41,6 +41,16 @@ MCP server imports only from `trainctl`. A command handler that formats its own
 output with colours is a bug — handlers return semantic blocks
 (`packages/cli/src/ui/blocks.ts`) and the CLI renderer adds the colour.
 
+## The agent plugin
+
+`plugin/` packages the MCP server for Claude Code and Codex (see
+[docs/integrations/agents.md](docs/integrations/agents.md)). Its skills are
+generated: after changing the `AGENTS.md` text in the CLI catalogues or
+`packages/cli/src/plugin-skills.ts`, run `node tools/plugin/render-skills.ts`.
+Versions are pinned in several places (packages, plugin manifests, MCP configs,
+the check hook, CI examples); `node tools/release/bump-version.mjs <x.y.z>` moves
+them together, and the tests fail when one is left behind.
+
 ## What a change needs
 
 **Engine rules need a source.** Every rule carries an ID from

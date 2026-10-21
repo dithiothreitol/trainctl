@@ -1,0 +1,15 @@
+{
+  "name": "trainctl",
+  "owner": { "name": "Dariusz Tyszka" },
+  "description": "trainctl: a running coach in your terminal and in your agent — training plan as code, MCP tools, coach skills",
+  "plugins": [
+    {
+      "name": "trainctl",
+      "source": "./plugin",
+      "description": "Running coach as your agent's tool: training plan as code, MCP tools, coach skills and a lint after plan edits",
+      "version": "0.3.0",
+      "category": "productivity",
+      "keywords": ["running", "training-plan", "coach", "mcp"]
+    }
+  ]
+}

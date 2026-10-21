@@ -245,7 +245,7 @@ Twoimi plecami.
 
 | komenda | co robi | ważniejsze flagi |
 |---|---|---|
-| `init` | kreator profilu | `--template`, `--from-intervals`, `--commit` |
+| `init` | kreator profilu | `--template`, `--from-intervals`, `--agent claude\|codex\|all`, `--commit` |
 | `plan` | generuje plan; na istniejącym regeneruje tylko przyszłość | `--date`, `--fresh`, `--commit` |
 | `today` | trening na dziś | `--date` |
 | `week` | tydzień ze statusem z dziennika | `--date`, `-i` (przeglądanie strzałkami) |
@@ -263,6 +263,7 @@ Twoimi plecami.
 | `diff` | co zmieniłaby regeneracja planu | `--plan <plik>` |
 | `check` | lint planu; psuje kod wyjścia | `--strict` |
 | `status` | stan katalogu na jednym ekranie: profil, plan, klucz, dane, propozycje, git | |
+| `rules` | wszystkie reguły silnika z klasą źródła albo jedna w całości | `[id]` |
 | `completion` | skrypt uzupełniania dla powłoki | `bash`, `zsh`, `fish`, `pwsh` |
 
 Każda komenda przyjmuje `--lang en|pl`, `--json` (wypisuje `{ code, data,
@@ -400,6 +401,27 @@ Ten sam silnik jako narzędzia agenta — interfejsem staje się rozmowa: „co 
 dziś wybiegać?", „w czwartek release, przesuń interwały", „jak mi poszedł
 tydzień?".
 
+**Claude Code — jako plugin.** Plugin daje narzędzia MCP, pięć skilli trenera
+(`/trainctl:review`, `/trainctl:debrief`, `/trainctl:shorten`, `/trainctl:what-if`
+i personę trenera) oraz dwa hooki: instrukcję trenera na starcie sesji w katalogu
+treningowym i `trainctl check` po edycji `plan/plan.yaml`.
+
+```text
+/plugin marketplace add dithiothreitol/trainctl
+/plugin install trainctl@trainctl
+```
+
+`trainctl init --agent claude` zapisuje `.claude/settings.json` w katalogu
+treningowym, więc plugin jest tam włączony dla każdego, kto sklonuje repo.
+
+**Codex** sam czyta `AGENTS.md`. `trainctl init --agent codex` dodaje serwer MCP
+w `.codex/config.toml` (ładowany, gdy zaufasz projektowi); albo zainstaluj plugin
+przez `codex plugin marketplace add dithiothreitol/trainctl` i `/plugins`. Jedno
+z dwóch, nie oba naraz. Szczegóły i ograniczenia:
+[docs/integrations/agents.md](docs/integrations/agents.md).
+
+**Bez pluginu** — Claude Code:
+
 ```bash
 claude mcp add trainctl --env TRAINCTL_DIR="C:\sciezka\do\mojego-treningu" ^
   -- npx -y trainctl-mcp
@@ -424,7 +446,10 @@ agent i terminal nie mogą się rozjechać: `trainctl_plan`, `trainctl_today`,
 `trainctl_week`, `trainctl_log`, `trainctl_shift`, `trainctl_why`,
 `trainctl_diff`, `trainctl_check`, `trainctl_init`, `trainctl_push`,
 `trainctl_pull`, `trainctl_adapt`, `trainctl_shorten`, `trainctl_desk`,
-`trainctl_reschedule`, `trainctl_export`, `trainctl_review`, `trainctl_status`.
+`trainctl_reschedule`, `trainctl_export`, `trainctl_review`, `trainctl_status`,
+`trainctl_rule`. Serwer wystawia też `plan/PLAN.md`, `trainctl.yaml`, `AGENTS.md`
+i każdą regułę jako zasoby (`trainctl://plan`, `trainctl://rules/I-7`, …), a
+przegląd tygodnia i odprawę po treningu jako prompty.
 
 `AGENTS.md`, który zostawia `trainctl init`, robi z agenta trenera, a nie
 wykonawcę komend: pyta przed regeneracją planu, dopytuje o kontekst przy

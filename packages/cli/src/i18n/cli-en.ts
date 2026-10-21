@@ -39,6 +39,8 @@ export const cliEn = {
     check: 'lint the plan: engine invariants + file integrity; errors fail the exit code (CI)',
     optStrict: 'warnings also fail the exit code (for CI)',
     optDiffPlan: 'compare with another plan file instead (a scenario branch or worktree)',
+    optAgent: 'also write agent integration files: claude | codex | all',
+    rules: 'the engine rules by ID, with their source class; one rule in full',
     optFresh: 'regenerate from scratch: discard kept past days, approvals, pins and budgets (they stay in git)',
     optDate: 'date (defaults to today)',
     optDateOther: 'a date other than today',
@@ -134,6 +136,16 @@ export const cliEn = {
     gitignoreUpdated: (patterns: string) =>
       `Added to .gitignore: ${patterns} — that is where the intervals.icu key goes`,
     unnamed: 'unnamed',
+    agentUnknown: (agent: string, allowed: string) => `Unknown agent "${agent}" — use one of: ${allowed}.`,
+    agentHint: 'using Claude Code or Codex? trainctl init --agent claude|codex adds the integration files',
+    agentCreated: (file: string) => `Created ${file} — agent integration for this directory`,
+    agentExists: (file: string) => `${file} already exists — not changed. Merge this into it:`,
+    agentClaudeNext:
+      'Claude Code: trust this folder, then run /plugin install trainctl@trainctl once ' +
+      '(the plugin brings the MCP tools, the coach skills and a check after plan edits).',
+    agentCodexNext: 'Codex: trust this project; it reads AGENTS.md and starts the trainctl MCP server from .codex/config.toml.',
+    agentQuestion: 'Which agent do you use here?',
+    agentNone: 'none / later',
   },
 
   plan: {
@@ -677,6 +689,12 @@ export const cliEn = {
     badSimulatedDate: (env: string, value: string) => `${env}="${value}" is not a date — use YYYY-MM-DD or unset it.`,
   },
 
+  rulesCmd: {
+    title: 'Engine rules',
+    subtitle: (count: number) => `${count} rules · ID — what it says · where it comes from`,
+    unknown: (id: string, known: string) => `No rule "${id}". Known IDs: ${known}`,
+  },
+
   dates: {
     badInput: (input: string) =>
       `"${input}" is not a date — use YYYY-MM-DD, today/tomorrow/yesterday, +N/-N or a weekday (mon…sun)`,
@@ -1041,6 +1059,28 @@ export const cliEn = {
       'plan/plan.yaml is internally inconsistent (usually a manual edit); WARNINGS mean a rule ' +
       'deviation someone may have chosen. Run it after hand-editing the plan file. Changes nothing.',
     checkStrict: 'true = warnings also count as failures',
+    rule:
+      'Explain one engine rule by its ID (as cited in trainctl_why, trainctl_check or plan ruleRefs): what it says, ' +
+      'whether it comes from published research, the coaching corpus or an engineering choice, and the link to ' +
+      'FOUNDATIONS.md for this engine version. Without an id it lists every rule. Read-only.',
+    ruleId: 'rule ID, e.g. I-7 or T-10; omit to list all',
+    initAgent: 'also write agent integration files: claude → .claude/settings.json, codex → .codex/config.toml, all → both.',
+    promptReview: 'Weekly review with the trainctl coach: what happened, what it means, what is ahead.',
+    promptReviewText: (date: string) =>
+      `Run trainctl_review${date ? ` with date=${date}` : ''}. Relay it in plain language: the days behind against the plan, ` +
+      'the signals worth acting on and the key session ahead. Quote RPE and notes verbatim, propose at most two things, ' +
+      'and ask before treating unknown sessions as missed. Do not change the plan without my explicit yes.',
+    promptDebrief: 'Debrief after a run: record how it went.',
+    promptDebriefText: (date: string) =>
+      `I finished a session${date ? ` on ${date}` : ' today'}. Check what was planned (trainctl_today), ask me for distance, ` +
+      'time, effort 1–10 and one sentence of notes, then record it with trainctl_log. If the feeling clashes with the ' +
+      'session’s role, ask one question about context instead of drawing conclusions.',
+    promptDate: 'YYYY-MM-DD (optional)',
+    resourcePlan: 'The training plan rendered for reading (plan/PLAN.md).',
+    resourceConfig: 'The athlete profile and goal (trainctl.yaml).',
+    resourceAgents: 'Coach instructions for the agent in this directory (AGENTS.md).',
+    resourceRule: 'One engine rule by ID, with its source class.',
+    resourceMissing: (file: string) => `${file} does not exist in the training directory yet.`,
     status:
       'State of the training directory in one call: whether trainctl.yaml validates, which engine version ' +
       'generated the plan, where the API key comes from and whether .env is protected, when data was last pulled, ' +

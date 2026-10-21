@@ -18,7 +18,13 @@ terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
 `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
 `trainctl_adapt`, `trainctl_desk`, `trainctl_reschedule`, `trainctl_export`,
-`trainctl_review`, `trainctl_shorten`, `trainctl_status`.
+`trainctl_review`, `trainctl_shorten`, `trainctl_status`, `trainctl_rule`.
+Resources: `trainctl://plan`, `trainctl://config`, `trainctl://agents`,
+`trainctl://rules/{id}`. Prompts: `weekly-review`, `debrief`.
+
+In Claude Code the easiest route is the plugin, which wraps this server with the
+coach skills and hooks: `/plugin marketplace add dithiothreitol/trainctl`, then
+`/plugin install trainctl@trainctl`.
 
 For “only 40 minutes today”, use `trainctl_shorten({minutes: 40})`; it saves a
 proposal and explains any lost purpose. `trainctl_why` explains the actual

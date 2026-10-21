@@ -53,6 +53,8 @@ export const cliPl: CliMessages = {
     check: 'sprawdź plan: inwarianty silnika + integralność pliku; błędy psują kod wyjścia (CI)',
     optStrict: 'ostrzeżenia też psują kod wyjścia (do CI)',
     optDiffPlan: 'porównaj z innym plikiem planu (gałąź scenariusza albo worktree)',
+    optAgent: 'dopisz też pliki integracji agenta: claude | codex | all',
+    rules: 'reguły silnika po ID, z klasą źródła; jedna reguła w całości',
     optFresh: 'regeneracja od zera: porzuca chronione dni, zatwierdzenia, przypięcia i budżety (zostają w gicie)',
     optDate: 'data (domyślnie: dziś)',
     optDateOther: 'inna data niż dziś',
@@ -147,6 +149,16 @@ export const cliPl: CliMessages = {
     gitignoreUpdated: (patterns: string) =>
       `Dopisano do .gitignore: ${patterns} — tam trafia klucz do intervals.icu`,
     unnamed: 'bez nazwy',
+    agentUnknown: (agent: string, allowed: string) => `Nieznany agent „${agent}” — użyj jednego z: ${allowed}.`,
+    agentHint: 'używasz Claude Code albo Codex? trainctl init --agent claude|codex dodaje pliki integracji',
+    agentCreated: (file: string) => `Utworzono ${file} — integracja agenta w tym katalogu`,
+    agentExists: (file: string) => `${file} już istnieje — bez zmian. Dopisz do niego:`,
+    agentClaudeNext:
+      'Claude Code: zaufaj temu katalogowi, potem raz uruchom /plugin install trainctl@trainctl ' +
+      '(plugin daje narzędzia MCP, skille trenera i kontrolę po edycji planu).',
+    agentCodexNext: 'Codex: zaufaj projektowi; Codex czyta AGENTS.md i uruchamia serwer MCP trainctl z .codex/config.toml.',
+    agentQuestion: 'Którego agenta tu używasz?',
+    agentNone: 'żadnego / później',
   },
 
   plan: {
@@ -701,6 +713,12 @@ export const cliPl: CliMessages = {
     badSimulatedDate: (env: string, value: string) => `${env}=„${value}” to nie data — użyj RRRR-MM-DD albo usuń zmienną.`,
   },
 
+  rulesCmd: {
+    title: 'Reguły silnika',
+    subtitle: (count: number) => `${count} ${pluralPl(count, { one: 'reguła', few: 'reguły', other: 'reguł' })} · ID — co mówi · skąd pochodzi`,
+    unknown: (id: string, known: string) => `Nie ma reguły „${id}”. Znane ID: ${known}`,
+  },
+
   dates: {
     badInput: (input: string) =>
       `„${input}” to nie data — użyj RRRR-MM-DD, dziś/jutro/wczoraj, +N/-N albo dnia tygodnia (pn…nd)`,
@@ -1064,6 +1082,28 @@ export const cliPl: CliMessages = {
       'to odstępstwa od reguł, które ktoś mógł wybrać świadomie. Uruchamiaj po ręcznej edycji ' +
       'pliku planu. Nic nie zmienia.',
     checkStrict: 'true = ostrzeżenia też liczą się jak błędy',
+    rule:
+      'Wyjaśnij jedną regułę silnika po ID (tak, jak cytują ją trainctl_why, trainctl_check albo ruleRefs w planie): ' +
+      'co mówi, czy pochodzi z opublikowanych badań, korpusu trenerskiego czy z wyboru inżynierskiego, oraz link do ' +
+      'FOUNDATIONS.md dla tej wersji silnika. Bez id wypisuje wszystkie reguły. Tylko odczyt.',
+    ruleId: 'ID reguły, np. I-7 albo T-10; pomiń, żeby wypisać wszystkie',
+    initAgent: 'dopisz też pliki integracji agenta: claude → .claude/settings.json, codex → .codex/config.toml, all → oba.',
+    promptReview: 'Przegląd tygodnia z trenerem trainctl: co było, co to znaczy, co przed nami.',
+    promptReviewText: (date: string) =>
+      `Uruchom trainctl_review${date ? ` z date=${date}` : ''}. Zrelacjonuj po ludzku: dni za nami wobec planu, sygnały ` +
+      'warte działania i kluczową jednostkę przed nami. Przytocz RPE i notatki dosłownie, zaproponuj najwyżej dwie rzeczy ' +
+      'i zapytaj, zanim uznasz niepotwierdzone sesje za pominięte. Nie zmieniaj planu bez mojego wyraźnego „tak”.',
+    promptDebrief: 'Odprawa po treningu: zapisz, jak poszło.',
+    promptDebriefText: (date: string) =>
+      `Skończyłem trening${date ? ` ${date}` : ' dzisiaj'}. Sprawdź, co było w planie (trainctl_today), zapytaj mnie o dystans, ` +
+      'czas, wysiłek 1–10 i jedno zdanie notatki, potem zapisz to przez trainctl_log. Jeśli odczucie kłóci się z rolą ' +
+      'jednostki, zadaj jedno pytanie o kontekst zamiast wyciągać wnioski.',
+    promptDate: 'RRRR-MM-DD (opcjonalnie)',
+    resourcePlan: 'Plan treningowy w wersji do czytania (plan/PLAN.md).',
+    resourceConfig: 'Profil zawodnika i cel (trainctl.yaml).',
+    resourceAgents: 'Instrukcja trenera dla agenta w tym katalogu (AGENTS.md).',
+    resourceRule: 'Jedna reguła silnika po ID, z klasą źródła.',
+    resourceMissing: (file: string) => `${file} jeszcze nie istnieje w katalogu treningowym.`,
     status:
       'Stan katalogu treningowego w jednym wywołaniu: czy trainctl.yaml się waliduje, która wersja silnika ' +
       'wygenerowała plan, skąd jest klucz API i czy .env jest chroniony, kiedy ostatnio pobrano dane, dziennik, ' +

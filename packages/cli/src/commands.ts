@@ -55,6 +55,10 @@ import { rebuildPlan, type Regeneration } from './regenerate.ts'
 import { commitFiles } from './git.ts'
 import { LOG_FILE } from './logfile.ts'
 export { cmdStatus } from './status.ts'
+export { pluginSkills, renderSkill, type Skill } from './plugin-skills.ts'
+export { AGENTS, type AgentChoice } from './agent-setup.ts'
+export { foundationsUrl } from './rules-explain.ts'
+import { AGENTS, writeAgentSetup, type AgentChoice } from './agent-setup.ts'
 export { resolveDateInput, type DateDirection } from './date-input.ts'
 export { completionScript, SHELLS, type CompletionSpec, type Shell } from './completion.ts'
 export { simulationNotice, simulatedToday, SIMULATED_TODAY_ENV } from './clock.ts'
@@ -279,26 +283,47 @@ function protectSecrets(cwd: string): string[] {
   return missing
 }
 
-export function cmdInit(cwd: string, content?: string, opts: { commit?: CommitOption } = {}): CmdResult {
-  return withCommit(initImpl(cwd, content), cwd, opts.commit, [CONFIG_FILE, AGENTS_FILE, '.gitignore'], ui().commit.init)
+export function cmdInit(cwd: string, content?: string, opts: { commit?: CommitOption; agent?: string | undefined } = {}): CmdResult {
+  if (opts.agent !== undefined && !(AGENTS as readonly string[]).includes(opts.agent)) {
+    return fail(new Error(ui().init.agentUnknown(opts.agent, AGENTS.join(', '))))
+  }
+  const result = initImpl(cwd, content, opts.agent as AgentChoice | undefined)
+  const extra = (result.data?.['agentFiles'] as string[] | undefined) ?? []
+  return withCommit(result, cwd, opts.commit, [CONFIG_FILE, AGENTS_FILE, '.gitignore', ...extra], ui().commit.init)
 }
 
-function initImpl(cwd: string, content?: string): CmdResult {
+/**
+ * Pliki integracji agenta — tylko na jawne `--agent` (ADR-036). Istniejących
+ * nie nadpisujemy: pokazujemy, co do nich dopisać.
+ */
+function agentBlocks(cwd: string, agent: AgentChoice | undefined): { blocks: Block[]; files: string[] } {
+  if (!agent) return { blocks: [b.hint(ui().init.agentHint)], files: [] }
+  const setup = writeAgentSetup(cwd, agent)
+  const blocks: Block[] = setup.created.map((file) => b.success(ui().init.agentCreated(file)))
+  for (const e of setup.existing) blocks.push(b.warn(ui().init.agentExists(e.file)), b.text(e.content, 'muted'))
+  if (agent === 'claude' || agent === 'all') blocks.push(b.info(ui().init.agentClaudeNext))
+  if (agent === 'codex' || agent === 'all') blocks.push(b.info(ui().init.agentCodexNext))
+  return { blocks, files: setup.created }
+}
+
+function initImpl(cwd: string, content: string | undefined, agent: AgentChoice | undefined): CmdResult {
   try {
     writeConfigTemplate(cwd, content)
     const agents = writeAgentsFile(cwd)
     const ignored = protectSecrets(cwd)
+    const integration = agentBlocks(cwd, agent)
     return okDoc([
       b.success(ui().init.created(CONFIG_FILE)),
       ...(agents ? [b.success(ui().init.createdAgents(AGENTS_FILE))] : []),
       ...(ignored.length ? [b.success(ui().init.gitignoreUpdated(ignored.join(', ')))] : []),
+      ...integration.blocks,
       ...(content
         ? []
         : [
             b.text(ui().init.fillProfile),
           ]),
       b.hint(ui().common.nextStep('trainctl plan')),
-    ])
+    ], { agentFiles: integration.files })
   } catch (e) {
     return fail(e)
   }
@@ -1544,7 +1569,7 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
     if (issues.length === 0) {
       const weeks = plan.weeks ?? []
       const sessions = weeks.reduce((sum, w) => sum + w.days.filter((d) => d.workout).length, 0)
-      return okDoc([b.success(t.passed(weeks.length, sessions)), ...versionNotes])
+      return okDoc([b.success(t.passed(weeks.length, sessions)), ...versionNotes], { issues: [], errors: 0, warnings: 0 })
     }
 
     const blocks: Block[] = [b.title(t.title, t.subtitle(PLAN_YAML)), ...versionNotes]
@@ -1563,7 +1588,39 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
     } else if (!failed && warns.length > 0) {
       blocks.push(b.hint(t.strictHint))
     }
-    return { output: renderPlain(blocks), code: failed ? 1 : 0, blocks }
+    return { output: renderPlain(blocks), code: failed ? 1 : 0, blocks, data: { issues, errors: errors.length, warnings: warns.length } }
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+/**
+ * Reguły silnika po ID — dla agenta, który nie ma FOUNDATIONS na dysku, i dla
+ * człowieka, który chce zobaczyć całą listę (`trainctl rules`).
+ */
+export function cmdRules(opts: { id?: string | undefined } = {}): CmdResult {
+  try {
+    const t = ui().rulesCmd
+    const ids = [...Object.keys(ui().rules), 'E-1'].sort((a, z) => a.localeCompare(z, 'en', { numeric: true }))
+    const url = foundationsUrl()
+    if (!opts.id) {
+      return okDoc([
+        b.title(t.title, t.subtitle(ids.length)),
+        b.bullets(ids.map((id) => ui().why.ruleLine(id, ruleExplain(id), ui().improve[ruleEvidence(id)]))),
+        b.blank(),
+        b.hint(ui().why.sourcesHint(url, '§10')),
+      ], { rules: ids.map((id) => ({ id, explanation: ruleExplain(id), origin: ruleEvidence(id) })), source: url })
+    }
+    const id = opts.id.trim().toUpperCase()
+    const explanation = ruleExplain(id)
+    if (!explanation) throw new Error(t.unknown(opts.id, ids.join(', ')))
+    const origin = ruleEvidence(id)
+    return okDoc([
+      b.title(id, ui().improve[origin]),
+      b.text(explanation),
+      b.blank(),
+      b.hint(ui().why.sourcesHint(url, '§10')),
+    ], { id, explanation, origin, source: url })
   } catch (e) {
     return fail(e)
   }

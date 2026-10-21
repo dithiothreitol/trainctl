@@ -25,6 +25,7 @@ import {
   cmdPush,
   cmdReschedule,
   cmdReview,
+  cmdRules,
   cmdShift,
   cmdShorten,
   cmdStatus,
@@ -48,6 +49,7 @@ import { b, renderAnsi, renderPlain } from './ui/blocks.ts'
 import { Theme } from './ui/theme.ts'
 import { withSpinner } from './ui/spinner.ts'
 import { runWizard, toYaml } from './ui/wizard.ts'
+import { select } from './ui/select.ts'
 import { packageVersion } from './version.ts'
 
 /** Wartość globalnej opcji czytana z argv PRZED zbudowaniem drzewa komend. */
@@ -191,14 +193,15 @@ commitOption(
     .command('init')
     .description(ui().cmd.init)
     .option('--template', ui().cmd.initTemplate)
-    .option('--from-intervals', ui().cmd.initFromIntervals),
+    .option('--from-intervals', ui().cmd.initFromIntervals)
+    .option('--agent <name>', ui().cmd.optAgent),
 ).action(async (opts) => {
   const interactive = opts.template !== true && tty
   if (!interactive) {
     if (opts.fromIntervals === true) {
       return print(await spin(ui().cmd.spinnerInit, () => cmdInitFromIntervals(cwd)))
     }
-    return print(cmdInit(cwd, undefined, { commit: opts.commit }))
+    return print(cmdInit(cwd, undefined, { commit: opts.commit, agent: opts.agent }))
   }
   try {
     const answers = await runWizard(theme, {
@@ -206,7 +209,14 @@ commitOption(
       force: opts.fromIntervals === true,
       fetch: () => fetchInferredProfile(cwd, localToday()),
     })
-    print(cmdInit(cwd, toYaml(answers), { commit: opts.commit }))
+    // Pliki agenta tylko na wyraźną odpowiedź — „żadnego" to pełnoprawny wybór.
+    const agent = opts.agent ?? await select(ui().init.agentQuestion, [
+      { label: 'Claude Code', value: 'claude' },
+      { label: 'Codex', value: 'codex' },
+      { label: 'Claude Code + Codex', value: 'all' },
+      { label: ui().init.agentNone, value: 'none' },
+    ], theme)
+    print(cmdInit(cwd, toYaml(answers), { commit: opts.commit, agent: agent === 'none' ? undefined : agent }))
   } catch (e) {
     // Ctrl+C w kreatorze nie powinno zostawiać stack trace'u
     console.log(theme.dim(`\n${ui().common.interrupted}`))
@@ -394,6 +404,12 @@ program
   .description(ui().cmd.check)
   .option('--strict', ui().cmd.optStrict)
   .action((opts) => print(cmdCheck(cwd, opts)))
+
+program
+  .command('rules')
+  .description(ui().cmd.rules)
+  .argument('[id]', 'I-7, T-10, …')
+  .action((id?: string) => print(cmdRules({ id })))
 
 withExamples(
   program

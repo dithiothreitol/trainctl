@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "trainctl": {
+      "command": "npx",
+      "args": ["-y", "trainctl-mcp@0.3.0"],
+      "env": { "TRAINCTL_DIR": "${CLAUDE_PROJECT_DIR}" }
+    }
+  }
+}
