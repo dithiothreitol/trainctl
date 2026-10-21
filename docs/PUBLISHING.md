@@ -121,11 +121,20 @@ deklaracjami i mapami źródeł; `publishConfig` przestawia wejścia paczki na
 `dist/*.js`, a w repozytorium nic się nie zmienia — dalej jedziemy na natywnym
 type-strippingu Node ≥ 22.18, którego wymaga `engines`.
 
+## Szósta paczka (od 0.5.0)
+
+`trainctl-sync-files` dołącza do pięciu paczek z tą samą wersją. Pierwsza
+publikacja nowej nazwy na npm wymaga tego samego tokenu co reszta; job `dist`
+w CI pakuje i instaluje ją razem z pozostałymi. Wersje wszystkich paczek,
+pluginu i przykładów przesuwa razem `node tools/release/bump-version.mjs <x.y.z>`.
+
 ## Czego NIE publikować nigdy
 
 - `corpus/` w jakiejkolwiek postaci (PII trenera i zawodnika).
 - `corpus/parsed/BACKTEST.md` i `long-run-profile.json` — generowane lokalnie,
   zawierają daty startów użytkownika; są w .gitignore razem z resztą korpusu.
 - Wyników `trainctl init --from-intervals` z realnego konta w przykładach docs.
+- Prawdziwych plików aktywności (FIT/TCX/GPX) w testach i przykładach — ślady
+  GPS; testy `trainctl-sync-files` generują wyłącznie syntetyczne pliki.
 - `.env`, `.trainctl-secret` — w .gitignore, weryfikowane przy każdym
   uruchomieniu CLI (ostrzeżenie, gdy sekret leży w repo bez ochrony).

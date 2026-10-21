@@ -341,7 +341,8 @@ withExamples(
     .command('pull')
     .description(ui().cmd.pull)
     .option('--date <iso>', ui().cmd.optDate, back)
-    .option('--days <n>', ui().cmd.optDaysBack),
+    .option('--days <n>', ui().cmd.optDaysBack)
+    .option('--from <path>', ui().cmd.optPullFrom),
   'pull',
 ).action(async (opts) => print(await spin(ui().cmd.spinnerPull, () => cmdPull(cwd, opts))))
 

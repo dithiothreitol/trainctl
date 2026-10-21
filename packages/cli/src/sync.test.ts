@@ -89,11 +89,14 @@ describe('trainctl push', () => {
     expect(pushed.some((w) => w.date === '2026-08-03')).toBe(false)
   })
 
-  it('tydzień startowy: start nie jest wypychany jako trening', () => {
+  it('tydzień startowy: start idzie jako zawody (ranga A), nie jako trening z krokami', () => {
     const plan = loadPlan(dir)
     const raceWeek = plan.weeks.at(-1)!
     const ws = workoutsToPush(plan, raceWeek.weekStart, plan.goal.date)
-    expect(ws.some((w) => w.date === plan.goal.date)).toBe(false)
+    const race = ws.filter((w) => w.date === plan.goal.date)
+    expect(race).toHaveLength(1)
+    expect(race[0]).toMatchObject({ race: { priority: 'A' }, sport: 'run' })
+    expect(race[0]!.description).not.toMatch(/Pace/)
   })
 
   it('usuwa nieaktualne wpisy po przesunięciu treningu (duch na zegarku)', async () => {

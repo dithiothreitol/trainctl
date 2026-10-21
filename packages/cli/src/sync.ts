@@ -4,9 +4,11 @@
  * czytamy z env TRAINCTL_INTERVALS_API_KEY albo z .trainctl-secret (gitignore).
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { addDays, type SyncProvider, type SyncedActivity, type SyncedWellness } from 'trainctl-core'
-import { IntervalsIcuProvider, toPushableWorkout } from 'trainctl-sync-intervalsicu'
+import { join, relative, resolve } from 'node:path'
+import { FileActivitySource } from 'trainctl-sync-files'
+import { readSyncFiles } from './config.ts'
+import { addDays, type ActivitySource, type PushableWorkout, type SyncProvider, type SyncedActivity, type SyncedWellness } from 'trainctl-core'
+import { IntervalsIcuProvider, toPushableRace, toPushableStrength, toPushableWorkout } from 'trainctl-sync-intervalsicu'
 import { buildExecution } from './execution.ts'
 import type { LogEntry } from './logfile.ts'
 import { ui } from './i18n/index.ts'
@@ -49,13 +51,60 @@ export type ProviderFactory = (cwd: string) => SyncProvider
 export const defaultProviderFactory: ProviderFactory = (cwd) =>
   new IntervalsIcuProvider({ apiKey: readApiKey(cwd) })
 
-/** Treningi z planu w zakresie dat — do wypchnięcia na zegarek. */
-export function workoutsToPush(plan: StoredPlan, from: string, to: string) {
-  return plan.weeks
-    .flatMap((w) => w.days)
-    .filter((d) => d.date >= from && d.date <= to)
-    .map((d) => toPushableWorkout(d, plan.goal.name))
-    .filter((w): w is NonNullable<typeof w> => w !== undefined)
+/** Źródło wykonania wybrane dla `pull`/`review` i to, co o nim powiedzieć użytkownikowi. */
+export interface SourceChoice {
+  source: ActivitySource
+  kind: 'hub' | 'files'
+  /** Nazwa do nagłówka: serwis albo ścieżka eksportu. */
+  label: string
+  /** Pliki pominięte w ostatnim odczycie (tylko źródło plikowe). */
+  skipped: () => readonly { file: string; reason: string }[]
+}
+
+function filesSource(cwd: string, path: string): SourceChoice {
+  const full = resolve(cwd, path)
+  if (!existsSync(full)) throw new Error(ui().pull.filesMissing(path))
+  const source = new FileActivitySource({ path: full })
+  const shown = relative(cwd, full) || '.'
+  return { source, kind: 'files', label: ui().pull.filesLabel(shown.startsWith('..') ? full : shown), skipped: () => source.lastSkipped }
+}
+
+/**
+ * Kolejność: jawne `--from` → hub, gdy jest klucz → `sync.files` z profilu.
+ * Bez żadnego z nich undefined — wołający decyduje, czy to błąd (`pull`), czy
+ * praca na dzienniku i ostatniej migawce (`review`).
+ */
+export function chooseSource(cwd: string, from: string | undefined, factory: ProviderFactory): SourceChoice | undefined {
+  if (from) return filesSource(cwd, from)
+  if (hasApiKey(cwd)) {
+    const provider = factory(cwd)
+    return { source: provider, kind: 'hub', label: provider.name, skipped: () => [] }
+  }
+  const configured = readSyncFiles(cwd)
+  return configured ? filesSource(cwd, configured) : undefined
+}
+
+/** Treningi, starty i siła z planu w zakresie dat — do wypchnięcia do kalendarza. */
+export function workoutsToPush(plan: StoredPlan, from: string, to: string): PushableWorkout[] {
+  const out: PushableWorkout[] = []
+  for (const week of plan.weeks) {
+    for (const d of week.days) {
+      if (d.date < from || d.date > to) continue
+      const run = toPushableWorkout(d, plan.goal.name)
+      if (run) out.push(run)
+      if (d.workout?.kind === 'race') {
+        // cel A albo start kontrolny B/C z tygodnia — nazwa i ranga z planu
+        const tuneUp = week.skeleton.tuneUp?.date === d.date ? week.skeleton.tuneUp : undefined
+        const race = d.date === plan.goal.date
+          ? toPushableRace(d, plan.goal.name, plan.goal.priority)
+          : toPushableRace(d, tuneUp?.name ?? plan.goal.name, tuneUp?.priority ?? 'B')
+        if (race) out.push(race)
+      }
+      const strength = toPushableStrength(d, plan.goal.name)
+      if (strength) out.push(strength)
+    }
+  }
+  return out
 }
 
 export function writeSnapshot(cwd: string, snapshot: SyncSnapshot): void {

@@ -47,13 +47,21 @@ export interface PushableWorkout {
   name: string
   /** Opis w formacie docelowego serwisu (np. składnia „steps" intervals.icu). */
   description: string
-  sport: 'run'
+  /** Siła to osobny tor (ADR-023): w kalendarzu osobny wpis, nigdy trening biegowy. */
+  sport: 'run' | 'strength'
   distanceKm?: number
+  /** Start (A/B/C) zamiast treningu — serwis może go pokazać jako zawody. */
+  race?: { priority: 'A' | 'B' | 'C' }
 }
 
 export interface PushResult {
   pushed: number
   externalIds: string[]
+  /**
+   * Wpisy dodatkowe (starty, siła), których serwis nie przyjął w docelowej
+   * postaci — treningi biegowe i tak zostały wypchnięte.
+   */
+  warnings?: string[]
 }
 
 /** Zaplanowany trening już obecny w serwisie (do sprzątania po renegocjacji). */

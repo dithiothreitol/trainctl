@@ -174,6 +174,15 @@ szczegóły i linki: `docs/integrations/intervalsicu.md`). Stan po weryfikacji:
 Bezpośrednia integracja Strava — potwierdzona jako pole minowe (od VI 2026
 dodatkowo płatny tier deweloperski). Garmin developer program — omijamy hubem.
 
+**Druga droga wykonania: pliki aktywności** (ADR-037, 0.5.0). `trainctl-sync-files`
+czyta eksport FIT/TCX/GPX z dysku jako źródło pull-only — mitygacja ryzyka
+zależności od jednoosobowego huba (§9) i obejście blokady danych Stravy (eksport
+zbiorczy Stravy i Garmina to te same pliki). Port rozdzielony na `ActivitySource`
+(pull) i `SyncProvider` (pull + push), więc adapter plikowy nie udaje, że umie
+wysyłać treningi. Push startów (RACE_A/B/C) i siły (WeightTraining) idzie
+osobnymi żądaniami z wycofaniem — **ta postać nie była jeszcze sprawdzona na
+żywym koncie** (docs/integrations/intervalsicu.md, §2c do uzupełnienia).
+
 ## 8. Fazy
 
 Każda faza kończy się: testami, aktualizacją SPEC/planu, wpisem do pamięci,
@@ -330,4 +339,5 @@ dane strukturalne MCP i samodzielny eksport mobilny. Opis poleceń i granic:
 | 034 | 2026-10-21 | Zegar symulacji `TRAINCTL_TODAY` jest **jawny**: każde wyjście CLI i MCP zaczyna się od informacji o nim, ochrona przeszłości i ważność propozycji idą za datą symulowaną | A05 słusznie oddzielił wybór tygodnia od zegara, ale bez sankcjonowanej symulacji dokumentacja i próby ręczne stały się niemożliwe; cicha symulacja byłaby powtórką A05 |
 | 035 | 2026-10-21 | `--json` zwraca `CmdResult.data` — te same dane, które dostaje MCP; stabilność kształtu do 1.0 tylko w polach używanych przez MCP | jedno źródło danych dla agenta i skryptów, bez drugiej logiki wyjścia (ADR-013) |
 | 036 | 2026-10-21 | Plugin Claude Code/Codex to **kanał dystrybucji, nie nowa logika**: repozytorium jest marketplace’em (`.claude-plugin/`, `.agents/plugins/`), plugin pakuje serwer MCP, personę (generowaną z tego samego tekstu co AGENTS.md) i skille zadaniowe; hooki tylko w Claude Code; `init --agent` zapisuje pliki agenta wyłącznie na jawną flagę i nigdy nie nadpisuje istniejących | dryf między AGENTS.md a skillami dałby dwóch różnych trenerów; plugin i projektowy `.mcp.json` naraz uruchomiłyby dwa serwery; cicha konfiguracja agenta w repo użytkownika łamie zasadę „nic bez pytania" (ADR-019) |
+| 037 | 2026-10-21 | Port sync rozdzielony na `ActivitySource` (pull) i `SyncProvider` (pull + push); pliki FIT/TCX/GPX jako druga implementacja źródła (`trainctl-sync-files`), bez zależności; starty i siła w push osobnymi żądaniami, które nie mogą wywrócić pushu treningów | zapowiedziana w §9 mitygacja zależności od huba; adapter pull-only w porcie z metodami push byłby kłamstwem typów; postać startów i siły w intervals.icu nie była sprawdzona na żywym koncie, więc jej odrzucenie musi być ostrzeżeniem, nie awarią |
 | 040 | 2026-10-21 | `--commit` commituje wyłącznie pliki zmienione przez komendę (pathspec przy `git commit`), nigdy sekretów ani `sync.json`; brak gita to informacja, nie błąd | AGENTS.md każe commitować po każdej zmianie planu — flaga robi to, co i tak jest zalecane, bez stawania się klientem gita i bez zabierania cudzych zmian z indeksu |

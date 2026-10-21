@@ -87,6 +87,26 @@ change between minor versions — a regenerated plan can differ.
 - `tools/release/bump-version.mjs` moves every pinned version together: packages,
   plugin manifests, MCP configs, the hook and the CI examples.
 
+### Added — execution without a hub, a fuller calendar, context from the watch (ADR-037)
+
+- New package `trainctl-sync-files`: reads exported FIT, TCX and GPX files
+  (also `.gz`, as in Strava and Garmin bulk exports) as a pull-only source, with
+  no dependencies. `trainctl pull --from <folder>` (MCP `from`) and
+  `sync.files` in `trainctl.yaml` for `review` without an API key. Skipped files
+  are named; duplicates count once. `init` adds `activities/` to `.gitignore`.
+- The sync port is split into `ActivitySource` (pull) and `SyncProvider`
+  (pull + push).
+- `push` sends races as race events (`RACE_A`/`B`/`C`) and strength sessions as
+  separate `WeightTraining` entries, in their own requests: if intervals.icu
+  refuses either form, a race falls back to an ordinary entry, a warning says
+  so, and the running sessions are pushed regardless. Cleanup of stale entries
+  now covers every `trainctl-` entry, not only workouts. **Not yet verified on a
+  live intervals.icu account.**
+- `review` quotes resting heart rate, sleep and weight from the synced wellness
+  data, and RPE recorded in the hub where the journal has none — verbatim, with
+  the source, never averaged or turned into a verdict. HRV and CTL/ATL are
+  deliberately left out (H-1, P-4).
+
 ### Docs
 
 - README command tables list `shorten` and the missing flags; tool lists no

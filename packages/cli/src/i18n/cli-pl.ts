@@ -70,6 +70,7 @@ export const cliPl: CliMessages = {
     optToRange: 'koniec zakresu',
     optDaysAhead: 'ile dni do przodu (domyślnie 14)',
     optDaysBack: 'ile dni wstecz (domyślnie 28)',
+    optPullFrom: 'czytaj eksport plików FIT/TCX/GPX z tego katalogu (albo pliku) zamiast z intervals.icu',
     optReviewDays: 'ile dni wstecz podsumować (domyślnie 7)',
     optHeavy: 'dziś ciężki dzień kognitywny (długie sesje z agentami)',
     optBlock: 'dni, w których nie możesz trenować',
@@ -145,9 +146,9 @@ export const cliPl: CliMessages = {
     raceCandidates: 'Możliwe starty do kalibracji stref (potwierdź, zanim dopiszesz!)',
     noRaceCandidates: 'Nie znalazłem kandydatów na starty — wynik do kalibracji dopisz ręcznie.',
     fillGoal: 'uzupełnij sekcję goal w trainctl.yaml → trainctl plan',
-    gitignoreHeader: 'trainctl — sekrety, nigdy ich nie commituj',
+    gitignoreHeader: 'trainctl — sekrety i ślady GPS, nigdy ich nie commituj',
     gitignoreUpdated: (patterns: string) =>
-      `Dopisano do .gitignore: ${patterns} — tam trafia klucz do intervals.icu`,
+      `Dopisano do .gitignore: ${patterns} — klucz do intervals.icu i eksportowane ślady GPS nie trafią do gita`,
     unnamed: 'bez nazwy',
     agentUnknown: (agent: string, allowed: string) => `Nieznany agent „${agent}” — użyj jednego z: ${allowed}.`,
     agentHint: 'używasz Claude Code albo Codex? trainctl init --agent claude|codex dodaje pliki integracji',
@@ -328,6 +329,10 @@ export const cliPl: CliMessages = {
 
   pull: {
     title: (provider: string) => `Pobrano z ${provider}`,
+    filesLabel: (path: string) => `plików aktywności (${path})`,
+    filesMissing: (path: string) => `Brak eksportu aktywności w ${path} — wskaż przez --from (albo sync.files w trainctl.yaml) katalog z plikami FIT, TCX lub GPX.`,
+    filesSkipped: (count: number, sample: string) =>
+      `Pominięto ${count} ${pluralPl(count, { one: 'plik', few: 'pliki', other: 'plików' })} (to nie aktywność, nieczytelny albo nieobsługiwany): ${sample}`,
     activities: 'Aktywności',
     activitiesValue: (total: number, runs: number, km: number) =>
       `${total} (biegowych: ${runs}, ${n(km)} km)`,
@@ -564,7 +569,18 @@ export const cliPl: CliMessages = {
     refreshFailed: (error: string) =>
       `Nie udało się odświeżyć danych (${error}) — przegląd na ostatniej migawce.`,
     noKey:
-      'Bez klucza API — przegląd z dziennika i ostatniej migawki (trainctl pull, gdy będzie klucz).',
+      'Bez klucza API — przegląd z dziennika i ostatniej migawki (trainctl pull, gdy będzie klucz, albo trainctl pull --from <katalog eksportu>).',
+    fromFiles: (label: string) => `Odświeżono z ${label}.`,
+    feelFromHub: (date: string, rpe: number, source: string) => `${date} · RPE ${n(rpe)} · z ${source}`,
+    wellness: 'Z zegarka (cytowane, nie interpretowane)',
+    wellnessLine: (date: string, restingHr?: number, sleepSec?: number, weightKg?: number) => {
+      const parts = [
+        ...(restingHr !== undefined ? [`tętno spoczynkowe ${n(restingHr)}`] : []),
+        ...(sleepSec !== undefined ? [`sen ${Math.floor(Math.round(sleepSec / 60) / 60)}:${String(Math.round(sleepSec / 60) % 60).padStart(2, '0')}`] : []),
+        ...(weightKg !== undefined ? [`${n(weightKg)} kg`] : []),
+      ]
+      return parts.length ? `${date} · ${parts.join(' · ')}` : undefined
+    },
     doneSessions: 'Wykonane sesje',
     volume: 'Objętość',
     volumeValue: (actualKm: number, plannedKm: number) =>
@@ -833,7 +849,7 @@ export const cliPl: CliMessages = {
       'git show co-jesli:plan/plan.yaml > /tmp/s.yaml && trainctl diff --plan /tmp/s.yaml',
     ],
     push: ['trainctl push --days 7', 'trainctl push --from pn --to nd'],
-    pull: ['trainctl pull --days 28', 'trainctl pull --date -7   # zakres kończący się tydzień temu'],
+    pull: ['trainctl pull --days 28', 'trainctl pull --date -7   # zakres kończący się tydzień temu', 'trainctl pull --from ./activities   # eksport FIT/TCX/GPX, bez konta'],
     status: ['trainctl status', 'trainctl status --json | jq .proposals'],
   },
 
@@ -896,6 +912,10 @@ export const cliPl: CliMessages = {
     },
     templateDesk: 'tryb biurkowy (trainctl desk) — opcjonalny',
     templateDeskPrefer: 'morning | lunch | evening',
+    templateSync: {
+      section: 'wykonanie bez konta w intervals.icu (opcjonalnie)',
+      files: 'katalog z eksportem plików FIT/TCX/GPX — czytają go trainctl pull i review',
+    },
     templateStrength: {
       section: 'siła 2×/tydz. obok biegania (opt-in; wymaga ciężarów)',
       enabled: 'cel: ekonomia biegu (F-8) — NIE „ochrona przed urazami” (F-9)',
@@ -1058,6 +1078,7 @@ export const cliPl: CliMessages = {
       'Pobierz wykonane aktywności i dane wellness z intervals.icu, zapisz migawkę (sync.json) ' +
       'i porównaj wykonanie z planem (rozjazdy: krótsze/dłuższe/brak wykonania/nieplanowane).',
     pullDays: 'ile dni wstecz, domyślnie 28',
+    pullFrom: 'ścieżka (względem katalogu treningowego) do katalogu albo pliku z eksportem aktywności FIT/TCX/GPX; czytana zamiast intervals.icu.',
     review:
       'Przegląd tygodnia w jednym wywołaniu: wykonanie minionych dni vs plan, sygnały ' +
       'do korekty, nadchodzący tydzień (faza, objętość, kluczowa jednostka, starty/sprawdziany) ' +

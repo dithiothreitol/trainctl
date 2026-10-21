@@ -129,6 +129,36 @@ export function toWorkoutSyntax(segments: PlannedSegment[]): string {
 const kindName = (kind: string): string =>
   (messages().syncName as Record<string, string>)[kind] ?? kind
 
+/**
+ * Start → wpis zawodów w kalendarzu. Bez kroków i celu tempa: zawody biegnie się
+ * według planu na dzień startu (pakiet startowy), nie według zegarka.
+ */
+export function toPushableRace(day: PlannedDay, name: string, priority: 'A' | 'B' | 'C'): PushableWorkout | undefined {
+  const w = day.workout
+  if (!w || w.kind !== 'race') return undefined
+  return {
+    externalId: `trainctl-${day.date}`,
+    date: day.date,
+    name: `${kindName('race')} — ${name}`,
+    description: w.segments.map((s) => s.description).join('\n'),
+    sport: 'run',
+    ...(w.raceDistanceKm ? { distanceKm: w.raceDistanceKm } : {}),
+    race: { priority },
+  }
+}
+
+/** Sesja siłowa → osobny wpis (ADR-023): nie trafia na zegarek jako trening biegowy. */
+export function toPushableStrength(day: PlannedDay, goalName: string): PushableWorkout | undefined {
+  if (!day.strength) return undefined
+  return {
+    externalId: `trainctl-${day.date}-strength`,
+    date: day.date,
+    name: `${kindName('strength')} — ${goalName}`,
+    description: day.strength.description,
+    sport: 'strength',
+  }
+}
+
 /** Dzień planu → event do wypchnięcia. Dni wolne i starty pomijamy (undefined). */
 export function toPushableWorkout(day: PlannedDay, goalName: string): PushableWorkout | undefined {
   const w = day.workout

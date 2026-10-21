@@ -3,6 +3,7 @@
  * Mapowanie pól jest defensywne: dokumentacja pokazuje niespójny casing
  * (`restingHR` vs `resting_hr`) — czytamy oba warianty.
  */
+import { messages } from 'trainctl-core'
 import type {
   PushResult,
   PushableWorkout,
@@ -120,10 +121,14 @@ export class IntervalsIcuProvider implements SyncProvider {
     })
   }
 
-  /** Nasze wpisy w kalendarzu — rozpoznajemy po prefiksie `external_id`. */
+  /**
+   * Nasze wpisy w kalendarzu — rozpoznajemy po prefiksie `external_id`, nie po
+   * kategorii: od 0.5.0 wypychamy też starty (RACE_*) i to one mają zniknąć
+   * po zmianie daty tak samo jak treningi.
+   */
   async listPlannedWorkouts(oldest: string, newest: string): Promise<RemotePlannedWorkout[]> {
     const raw = await this.client.request<RawEvent[]>(
-      this.client.athletePath(`/events?oldest=${oldest}&newest=${newest}&category=WORKOUT`),
+      this.client.athletePath(`/events?oldest=${oldest}&newest=${newest}`),
     )
     return (raw ?? [])
       .filter((e) => e.external_id?.startsWith(EXTERNAL_ID_PREFIX))
@@ -139,22 +144,65 @@ export class IntervalsIcuProvider implements SyncProvider {
     await this.client.request(this.client.athletePath(`/events/${id}`), { method: 'DELETE' })
   }
 
-  /** Upsert po `external_id` — ponowny push tego samego dnia nadpisuje, nie duplikuje. */
-  async pushWorkouts(workouts: PushableWorkout[]): Promise<PushResult> {
-    if (workouts.length === 0) return { pushed: 0, externalIds: [] }
+  private async bulk(workouts: PushableWorkout[], category: (w: PushableWorkout) => string): Promise<void> {
     const payload = workouts.map((w) => ({
-      category: 'WORKOUT',
+      category: category(w),
       start_date_local: `${w.date}T00:00:00`,
-      type: 'Run',
+      type: w.sport === 'strength' ? 'WeightTraining' : 'Run',
       name: w.name,
       description: w.description,
       external_id: w.externalId,
-      ...(w.distanceKm ? { distance_target: Math.round(w.distanceKm * 1000) } : {}),
+      ...(w.distanceKm && !w.race && w.sport === 'run' ? { distance_target: Math.round(w.distanceKm * 1000) } : {}),
     }))
     await this.client.request(this.client.athletePath('/events/bulk?upsert=true'), {
       method: 'POST',
       body: JSON.stringify(payload),
     })
-    return { pushed: workouts.length, externalIds: workouts.map((w) => w.externalId) }
+  }
+
+  /**
+   * Upsert po `external_id` — ponowny push tego samego dnia nadpisuje, nie duplikuje.
+   *
+   * Treningi biegowe idą pierwsze i jak dotąd: błąd = wyjątek. Starty i siła
+   * idą osobnymi żądaniami, bo ich postać (kategoria RACE_A/B/C, typ
+   * WeightTraining) nie była sprawdzona na żywym koncie — odrzucone nie mogą
+   * wywrócić pushu treningów. Start, którego serwis nie przyjmie jako zawodów,
+   * trafia do kalendarza jako zwykły wpis; o obu przypadkach mówi `warnings`.
+   */
+  async pushWorkouts(workouts: PushableWorkout[]): Promise<PushResult> {
+    if (workouts.length === 0) return { pushed: 0, externalIds: [] }
+    const runs = workouts.filter((w) => w.sport === 'run' && !w.race)
+    const races = workouts.filter((w) => w.race)
+    const strength = workouts.filter((w) => w.sport === 'strength')
+    const pushed: PushableWorkout[] = []
+    const warnings: string[] = []
+    if (runs.length) {
+      await this.bulk(runs, () => 'WORKOUT')
+      pushed.push(...runs)
+    }
+    const dates = (list: PushableWorkout[]) => list.map((w) => w.date).join(', ')
+    if (races.length) {
+      try {
+        await this.bulk(races, (w) => `RACE_${w.race!.priority}`)
+        pushed.push(...races)
+      } catch {
+        try {
+          await this.bulk(races, () => 'WORKOUT')
+          pushed.push(...races)
+          warnings.push(messages().syncNotice.raceFallback(dates(races)))
+        } catch {
+          warnings.push(messages().syncNotice.raceFallback(dates(races)))
+        }
+      }
+    }
+    if (strength.length) {
+      try {
+        await this.bulk(strength, () => 'WORKOUT')
+        pushed.push(...strength)
+      } catch {
+        warnings.push(messages().syncNotice.strengthRejected(dates(strength)))
+      }
+    }
+    return { pushed: pushed.length, externalIds: pushed.map((w) => w.externalId), ...(warnings.length ? { warnings } : {}) }
   }
 }

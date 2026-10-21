@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..')
-const PACKAGES = ['core', 'export', 'sync-intervalsicu', 'cli', 'mcp']
+const PACKAGES = ['core', 'export', 'sync-intervalsicu', 'sync-files', 'cli', 'mcp']
 
 interface Manifest {
   name: string

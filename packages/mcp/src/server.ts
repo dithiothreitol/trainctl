@@ -257,7 +257,7 @@ export function createTrainctlServer(
       description: t.pull,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: false, openWorldHint: true },
-      inputSchema: { days: z.string().optional().describe(t.pullDays), date: isoDate().optional() },
+      inputSchema: { days: z.string().optional().describe(t.pullDays), date: isoDate().optional(), from: z.string().optional().describe(t.pullFrom) },
     },
     async (args) => toTool(await cmdPull(dir, args, factory)),
   )

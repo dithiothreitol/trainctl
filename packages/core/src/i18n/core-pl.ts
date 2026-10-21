@@ -128,6 +128,12 @@ export const corePl: CoreMessages = {
     sharpener: 'Rozruch przedstartowy',
     test: 'Sprawdzian na czas',
     race: 'START',
+    strength: 'Siła',
+  },
+
+  syncNotice: {
+    strengthRejected: (dates: string) => `intervals.icu nie przyjęło sesji siłowych (${dates}); treningi biegowe są wypchnięte.`,
+    raceFallback: (dates: string) => `intervals.icu nie przyjęło startów jako zawodów (${dates}); trafiły do kalendarza jako zwykłe wpisy.`,
   },
 
   syncError: {

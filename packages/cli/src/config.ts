@@ -24,11 +24,18 @@ export interface StrengthConfig {
   days?: Weekday[]
 }
 
+/** Źródła wykonania inne niż hub (ADR-037). */
+export interface SyncConfig {
+  /** Katalog (albo plik) z eksportem FIT/TCX/GPX — względem katalogu treningowego. */
+  files?: string
+}
+
 export interface TrainctlConfig {
   athlete: AthleteProfile
   goal: RaceGoal
   desk?: DeskConfig
   strength?: StrengthConfig
+  sync?: SyncConfig
   /** Język interfejsu i opisów planu: 'en' (domyślny) albo 'pl'. */
   language?: string
 }
@@ -96,6 +103,8 @@ export function configTemplate(): string {
     pad('# strength:', t.templateStrength.section),
     pad('#   enabled: true', t.templateStrength.enabled),
     pad('#   days: [mon, fri]', t.templateStrength.days),
+    pad('# sync:', t.templateSync.section),
+    pad('#   files: ./activities', t.templateSync.files),
     '',
   ].join('\n')
 }
@@ -179,6 +188,10 @@ export function loadConfig(cwd: string): TrainctlConfig {
     }
     if (errs.length) fail(errs)
   }
+  const sync = raw?.sync
+  if (sync !== undefined && (typeof sync !== 'object' || sync === null || (sync.files !== undefined && (typeof sync.files !== 'string' || !sync.files.trim())))) {
+    fail([v.required('sync.files')])
+  }
   const athlete = a as AthleteProfile
   return {
     athlete: {
@@ -192,6 +205,22 @@ export function loadConfig(cwd: string): TrainctlConfig {
     goal: { ...goal, priority: goal.priority ?? 'A' },
     ...(desk ? { desk } : {}),
     ...(strength ? { strength } : {}),
+    ...(sync?.files ? { sync: { files: sync.files } } : {}),
+  }
+}
+
+/**
+ * `sync.files` bez pełnej walidacji profilu — `review` i `status` mają działać
+ * także wtedy, gdy profil ma błąd gdzie indziej.
+ */
+export function readSyncFiles(cwd: string): string | undefined {
+  const path = join(cwd, CONFIG_FILE)
+  if (!existsSync(path)) return undefined
+  try {
+    const raw = parse(readFileSync(path, 'utf-8')) as { sync?: { files?: unknown } } | null
+    return typeof raw?.sync?.files === 'string' && raw.sync.files.trim() ? raw.sync.files : undefined
+  } catch {
+    return undefined
   }
 }
 

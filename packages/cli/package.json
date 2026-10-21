@@ -55,6 +55,7 @@
     "trainctl-core": "workspace:*",
     "trainctl-export": "workspace:*",
     "trainctl-sync-intervalsicu": "workspace:*",
+    "trainctl-sync-files": "workspace:*",
     "commander": "^14.0.0",
     "yaml": "^2.6.0"
   },

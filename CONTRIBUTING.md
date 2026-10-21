@@ -35,6 +35,7 @@ visible rather than silent.
 | `trainctl-mcp` | the MCP server — 17 tools over those same handlers |
 | `trainctl-export` | `.fit`, `.ics`, printable HTML, race-day pack |
 | `trainctl-sync-intervalsicu` | the intervals.icu adapter |
+| `trainctl-sync-files` | exported activity files (FIT, TCX, GPX) as a pull-only source |
 
 The dependency arrow points one way: `core` knows nothing about the CLI, and the
 MCP server imports only from `trainctl`. A command handler that formats its own

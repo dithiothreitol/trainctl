@@ -123,6 +123,12 @@ export const coreEn = {
     sharpener: 'Pre-race sharpener',
     test: 'Time trial',
     race: 'RACE',
+    strength: 'Strength',
+  },
+
+  syncNotice: {
+    strengthRejected: (dates: string) => `intervals.icu did not accept the strength sessions (${dates}); the running sessions are pushed.`,
+    raceFallback: (dates: string) => `intervals.icu did not accept race events (${dates}); they were pushed as ordinary calendar entries.`,
   },
 
   syncError: {

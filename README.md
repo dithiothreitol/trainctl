@@ -255,7 +255,7 @@ a key is configured). `trainctl adapt` compares execution with the plan and
 | `review` | pull + adapt + week in one call | `--days`, `--date`, `--prepare` |
 | `desk` | training windows around office hours | `--heavy` |
 | `push` | send planned sessions to intervals.icu | `--days`, `--from`, `--to` |
-| `pull` | fetch activities and wellness, compare | `--days`, `--date` |
+| `pull` | fetch activities and wellness, compare | `--days`, `--date`, `--from <export folder>` |
 | `export` | `.fit`, `.ics`, printout, race pack | `--what`, `--date` |
 | `diff` | what a regeneration would change | `--plan <file>` |
 | `check` | lint the plan; fails the exit code | `--strict` |
@@ -462,7 +462,27 @@ trainctl pull --days 28                 # execution + wellness → compared with
 ```
 
 `push` only ever touches entries it created itself (they carry a `trainctl-`
-external id), so your own calendar entries stay yours.
+external id), so your own calendar entries stay yours. Races go in as race
+events (A/B/C) and strength sessions as separate entries; if intervals.icu
+refuses either form, `push` says so and the running sessions are pushed anyway.
+
+**No account? Use the files your watch already exports.** `pull --from` reads
+FIT, TCX and GPX files (also `.gz`, as in a Strava or Garmin bulk export), so
+execution can be compared with the plan without intervals.icu — and without the
+Strava restriction below:
+
+```bash
+trainctl pull --from ./activities   # once
+```
+
+```yaml
+sync:
+  files: ./activities               # in trainctl.yaml: review and pull read it
+```
+
+The files stay on your disk; `init` adds `activities/` to `.gitignore`, because
+GPS tracks give away where you live. Details:
+[docs/integrations/files.md](docs/integrations/files.md).
 
 > **Connect your watch to intervals.icu directly** (Settings → Connections), not
 > through Strava. Since December 2024 intervals.icu does not pass Strava-sourced
@@ -558,8 +578,9 @@ over (the old plan is in git).
 Run `trainctl check` afterwards; it verifies the invariants the generator
 guarantees and tells you what a hand edit broke.
 
-**Do I need intervals.icu?** No. Everything except `push`/`pull`/`review` works
-offline; export covers watch, calendar and paper.
+**Do I need intervals.icu?** No. Everything except `push` works without it:
+`pull --from` and `review` read exported activity files, and export covers
+watch, calendar and paper.
 
 **Does it support cycling, swimming, triathlon?** No. The engine is built for
 running; the domain model was designed with other sports in mind, but nothing
@@ -582,8 +603,9 @@ pnpm check       # typecheck + tests — what CI runs
 is not distributed; without it that suite reports itself as one skipped test
 rather than quietly disappearing.
 
-Five packages: `trainctl` (CLI), `trainctl-core` (engine), `trainctl-mcp`,
-`trainctl-export`, `trainctl-sync-intervalsicu`. Development runs straight from
+Six packages: `trainctl` (CLI), `trainctl-core` (engine), `trainctl-mcp`,
+`trainctl-export`, `trainctl-sync-intervalsicu`, `trainctl-sync-files`; the
+agent plugin lives in `plugin/`. Development runs straight from
 TypeScript (Node's type stripping); `pnpm build` emits the `dist/` that gets
 published.
 

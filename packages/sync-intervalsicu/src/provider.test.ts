@@ -205,4 +205,49 @@ describe('push treningów', () => {
     expect(res.pushed).toBe(0)
     expect(calls).toHaveLength(0)
   })
+
+  const race = { externalId: 'trainctl-2026-11-29', date: '2026-11-29', name: 'START — Maraton', description: 'Maraton',
+    sport: 'run' as const, distanceKm: 42.195, race: { priority: 'A' as const } }
+  const strength = { externalId: 'trainctl-2026-08-07-strength', date: '2026-08-07', name: 'Siła — Maraton', description: 'Siła ciężka',
+    sport: 'strength' as const }
+  const bodies = (calls: Recorded[]) => calls.map((c) => JSON.parse(String(c.init!.body)) as Record<string, unknown>[])
+
+  it('starty i siła: osobne żądania, kategoria RACE_A i typ WeightTraining, bez celu dystansu', async () => {
+    const { provider: p, calls } = provider(() => ({ body: {} }))
+    const res = await p.pushWorkouts([workout, race, strength])
+    expect(res).toEqual({ pushed: 3, externalIds: ['trainctl-2026-08-04', 'trainctl-2026-11-29', 'trainctl-2026-08-07-strength'] })
+    const [runs, races, gym] = bodies(calls)
+    expect(runs!.map((e) => e['category'])).toEqual(['WORKOUT'])
+    expect(races![0]).toMatchObject({ category: 'RACE_A', type: 'Run', external_id: 'trainctl-2026-11-29' })
+    expect(races![0]).not.toHaveProperty('distance_target')
+    expect(gym![0]).toMatchObject({ category: 'WORKOUT', type: 'WeightTraining', external_id: 'trainctl-2026-08-07-strength' })
+  })
+
+  it('odrzucona kategoria startu: wpis wraca jako zwykły, z ostrzeżeniem; odrzucona siła nie psuje pushu', async () => {
+    const { provider: p, calls } = provider((_url, init) => {
+      const body = String(init?.body ?? '')
+      return body.includes('RACE_A') || body.includes('WeightTraining') ? { status: 422, body: { error: 'nope' } } : { body: {} }
+    })
+    const res = await p.pushWorkouts([workout, race, strength])
+    expect(res.externalIds).toEqual(['trainctl-2026-08-04', 'trainctl-2026-11-29'])
+    expect(res.warnings).toHaveLength(2)
+    expect(res.warnings!.join(' ')).toMatch(/2026-11-29/)
+    expect(res.warnings!.join(' ')).toMatch(/2026-08-07/)
+    expect(bodies(calls).map((b) => b[0]!['category'])).toEqual(['WORKOUT', 'RACE_A', 'WORKOUT', 'WORKOUT'])
+  })
+
+  it('błąd pushu treningów biegowych nadal jest błędem', async () => {
+    const { provider: p } = provider(() => ({ status: 500, body: {} }))
+    await expect(p.pushWorkouts([workout, race])).rejects.toThrow()
+  })
+
+  it('sprzątanie listuje wszystkie nasze wpisy, także starty — bez filtra kategorii', async () => {
+    const { provider: p, calls } = provider(() => ({ body: [
+      { id: 1, start_date_local: '2026-11-29T00:00:00', external_id: 'trainctl-2026-11-29', category: 'RACE_A' },
+      { id: 2, start_date_local: '2026-11-28T00:00:00', external_id: 'moj-wpis', category: 'NOTE' },
+    ] }))
+    const remote = await p.listPlannedWorkouts('2026-11-23', '2026-11-29')
+    expect(calls[0]!.url).not.toContain('category=')
+    expect(remote).toEqual([{ id: '1', date: '2026-11-29', externalId: 'trainctl-2026-11-29' }])
+  })
 })

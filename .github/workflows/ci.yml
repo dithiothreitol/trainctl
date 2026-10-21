@@ -68,7 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/tgz
-          for p in core export sync-intervalsicu cli mcp; do
+          for p in core export sync-intervalsicu sync-files cli mcp; do
             (cd "packages/$p" && pnpm pack --pack-destination /tmp/tgz)
           done
           ls -1 /tmp/tgz
@@ -79,12 +79,14 @@ jobs:
           cd /tmp/tgz
           npm init -y > /dev/null
           npm install ./trainctl-core-*.tgz ./trainctl-export-*.tgz \
-                      ./trainctl-sync-intervalsicu-*.tgz ./trainctl-mcp-*.tgz \
+                      ./trainctl-sync-intervalsicu-*.tgz ./trainctl-sync-files-*.tgz ./trainctl-mcp-*.tgz \
                       ./trainctl-[0-9]*.tgz
           ./node_modules/.bin/trainctl --version
           ./node_modules/.bin/trainctl init --template
           ./node_modules/.bin/trainctl plan --date 2026-08-08 | grep -q 'weeks of plan'
           ./node_modules/.bin/trainctl check
+          ./node_modules/.bin/trainctl status --json | grep -q '"code": 0'
+          node --input-type=module -e "import('trainctl-sync-files').then((m) => { if (typeof m.FileActivitySource !== 'function') process.exit(1) })"
           echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
             | TRAINCTL_DIR=/tmp/tgz timeout 30 ./node_modules/.bin/trainctl-mcp \
             | grep -q '"serverInfo"'

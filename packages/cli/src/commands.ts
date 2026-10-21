@@ -19,6 +19,7 @@ import {
   COACH_STYLE,
   INFER_WINDOW_WEEKS,
   type ExecutionRecord,
+  type ActivitySource,
   type InferenceOutcome,
   type PlanIssue,
   type PlannedWorkout,
@@ -92,6 +93,7 @@ export const kindLabel = (kind: string): string =>
 export const phaseLabel = (phase: string): string =>
   (messages().phase as Record<string, string>)[phase] ?? phase
 import {
+  chooseSource,
   compare,
   defaultProviderFactory,
   defaultRange,
@@ -263,7 +265,8 @@ function writeAgentsFile(cwd: string): boolean {
 }
 
 /** Pliki z sekretami, które nigdy nie mogą trafić do repozytorium (ADR-009). */
-const SECRET_PATTERNS = [ENV_FILE, '.env.*', SECRET_FILE]
+// `activities/` to domyślny katalog eksportu FIT/TCX/GPX — ślady GPS zdradzają adres domu.
+const SECRET_PATTERNS = [ENV_FILE, '.env.*', SECRET_FILE, 'activities/']
 
 /**
  * Ochrona sekretów w katalogu treningowym. Katalog jest repozytorium gita,
@@ -795,6 +798,7 @@ export async function cmdPush(
 
     return okDoc([
       b.success(ui().push.pushed(res.pushed, provider.name, from, to)),
+      ...(res.warnings ?? []).map((w) => b.warn(w)),
       ...(stale.length
         ? [b.info(ui().push.removedStale(stale.length, stale.join(', ')))]
         : []),
@@ -813,18 +817,21 @@ export async function cmdPush(
 
 export async function cmdPull(
   cwd: string,
-  opts: { days?: string | undefined; date?: string | undefined } = {},
+  opts: { days?: string | undefined; date?: string | undefined; from?: string | undefined } = {},
   factory: ProviderFactory = defaultProviderFactory,
 ): Promise<CmdResult> {
   try {
     const today = opts.date ?? localToday()
     const days = Number(opts.days ?? 28)
     const { from, to } = defaultRange(today, -(Number.isFinite(days) ? Math.abs(days) : 28))
-    const provider = factory(cwd)
+    // `--from <eksport>` albo hub; bez obu `factory` zgłosi brak klucza jak dotąd
+    const choice = chooseSource(cwd, opts.from, factory)
+    const provider = choice ? { name: choice.label, ...pick(choice.source) } : factory(cwd)
     const [activities, wellness] = await Promise.all([
       provider.listActivities(from, to),
       provider.listWellness(from, to).catch(() => []),
     ])
+    const skipped = choice?.skipped() ?? []
     writeSnapshot(cwd, { pulledAt: today, from, to: today, activities, wellness })
     const runs = activities.filter((a) => /run/i.test(a.type))
     const km = Math.round(runs.reduce((s, a) => s + (a.distanceKm ?? 0), 0))
@@ -843,6 +850,9 @@ export async function cmdPull(
     if (withheld.length > 0) {
       const sources = [...new Set(withheld.map((a) => a.source ?? '?'))].sort().join(', ')
       blocks.push(b.warn(ui().pull.dataWithheld(withheld.length, sources)))
+    }
+    if (skipped.length) {
+      blocks.push(b.info(ui().pull.filesSkipped(skipped.length, skipped.slice(0, 3).map((s) => s.file).join(', '))))
     }
     try {
       const plan = loadPlan(cwd)
@@ -869,7 +879,7 @@ export async function cmdPull(
     } catch {
       blocks.push(b.info(ui().pull.noPlanSkipped))
     }
-    return okDoc(blocks, { activities, wellness, from, to })
+    return okDoc(blocks, { activities, wellness, from, to, source: choice?.kind ?? 'hub', skipped })
   } catch (e) {
     return fail(e)
   }
@@ -1293,18 +1303,25 @@ export async function cmdReview(
 
     // 1) świeże dane, jeśli klucz jest pod ręką; inaczej pracujemy na migawce
     const notes: string[] = []
-    if (hasApiKey(cwd)) {
+    let choice: ReturnType<typeof chooseSource>
+    try {
+      choice = chooseSource(cwd, undefined, factory)
+    } catch (e) {
+      notes.push(ui().review.refreshFailed(e instanceof Error ? e.message : String(e)))
+    }
+    if (choice) {
       try {
-        const provider = factory(cwd)
+        const provider = choice.source
         const [activities, wellness] = await Promise.all([
           provider.listActivities(syncFrom, today),
           provider.listWellness(syncFrom, today).catch(() => []),
         ])
         writeSnapshot(cwd, { pulledAt: today, from: syncFrom, to: today, activities, wellness })
+        if (choice.kind === 'files') notes.push(ui().review.fromFiles(choice.label))
       } catch (e) {
         notes.push(ui().review.refreshFailed(e instanceof Error ? e.message : String(e)))
       }
-    } else {
+    } else if (!notes.length) {
       notes.push(ui().review.noKey)
     }
 
@@ -1351,12 +1368,29 @@ export async function cmdReview(
     const feel = [...latestByDate.values()]
       .filter((l) => l.rpe !== undefined || l.note)
       .sort((a, z) => a.date.localeCompare(z.date))
-    if (feel.length) {
-      blocks.push(
-        b.section(ui().review.feel),
-        b.bullets(feel.map((l) => ui().review.feelLine(l.date, l.rpe, l.note))),
-      )
+    // RPE wpisane w hubie (zegarek, aplikacja) — tylko tam, gdzie dziennik go nie ma:
+    // własny wpis biegacza ma pierwszeństwo, a źródło jest nazwane wprost.
+    const hubFeel = (snapshot?.activities ?? [])
+      .filter((a) => a.rpe !== undefined && a.date >= from && a.date <= today && isRunningActivity(a) && latestByDate.get(a.date)?.rpe === undefined)
+      .sort((a, z) => a.date.localeCompare(z.date))
+    if (feel.length || hubFeel.length) {
+      const lines = [
+        ...feel.map((l) => ({ date: l.date, text: ui().review.feelLine(l.date, l.rpe, l.note) })),
+        ...hubFeel.map((a) => ({ date: a.date, text: ui().review.feelFromHub(a.date, a.rpe!, a.source ?? 'intervals.icu') })),
+      ].sort((a, z) => a.date.localeCompare(z.date))
+      blocks.push(b.section(ui().review.feel), b.bullets(lines.map((l) => l.text)))
     }
+
+    // 2c) kontekst z zegarka — cytowany jak odczucia: bez średnich, progów i
+    // wniosków (ADR-027). HRV i CTL/ATL świadomie pomijamy: gotowości z HRV silnik
+    // odmawia (H-1), a obciążenia z huba to deskryptory, nie wskazówki (P-4) —
+    // pokazane obok planu zaczęłyby sterować decyzjami.
+    const wellnessLines = (snapshot?.wellness ?? [])
+      .filter((w) => w.date >= from && w.date <= today)
+      .sort((a, z) => a.date.localeCompare(z.date))
+      .map((w) => ui().review.wellnessLine(w.date, w.restingHr, w.sleepSec, w.weightKg))
+      .filter((line): line is string => line !== undefined)
+    if (wellnessLines.length) blocks.push(b.section(ui().review.wellness), b.bullets(wellnessLines))
 
     // 3) sygnały adaptacji — sekcja pojawia się tylko wtedy, gdy jest co powiedzieć
     const adapt = cmdAdapt(cwd, { date: today })
@@ -1422,7 +1456,7 @@ export async function cmdReview(
     // sprawiłby, że ta gałąź milczy w angielskim interfejsie.
     if (adaptation?.actions.some((a) => a.type === 'recalibrate-zones')) todo.push(ui().review.todoWriteResult)
     if (meaningful) todo.push(ui().review.todoSeeAdapt)
-    if (hasApiKey(cwd)) todo.push(ui().review.todoPush)
+    if (choice?.kind === 'hub') todo.push(ui().review.todoPush)
     else todo.push(ui().review.todoPrint)
     if (missed.length >= 2) todo.push(ui().review.todoReschedule)
     const nextRace = (config.athlete.tuneUpRaces ?? []).find((r) => r.date > today)
@@ -1767,6 +1801,14 @@ export function cmdDiff(cwd: string, opts: { plan?: string | undefined } = {}): 
     ], { regeneration: regenerationData(rebuild) })
   } catch (e) {
     return fail(e)
+  }
+}
+
+/** Metody źródła jako zwykłe funkcje — `this` klasy zostaje przy nich. */
+function pick(source: ActivitySource): Pick<ActivitySource, 'listActivities' | 'listWellness'> {
+  return {
+    listActivities: (a, z) => source.listActivities(a, z),
+    listWellness: (a, z) => source.listWellness(a, z),
   }
 }
 

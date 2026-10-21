@@ -56,6 +56,7 @@ export const cliEn = {
     optToRange: 'range end',
     optDaysAhead: 'how many days ahead (default 14)',
     optDaysBack: 'how many days back (default 28)',
+    optPullFrom: 'read exported FIT/TCX/GPX files from this folder (or file) instead of intervals.icu',
     optReviewDays: 'how many days back to review (default 7)',
     optHeavy: 'today was cognitively heavy (long sessions with agents)',
     optBlock: 'days you cannot train on',
@@ -132,9 +133,9 @@ export const cliEn = {
     raceCandidates: 'Possible races for zone calibration (confirm before adding!)',
     noRaceCandidates: 'I found no race candidates — add a calibration result by hand.',
     fillGoal: 'fill in the goal section in trainctl.yaml → trainctl plan',
-    gitignoreHeader: 'trainctl — secrets, never commit these',
+    gitignoreHeader: 'trainctl — secrets and GPS tracks, never commit these',
     gitignoreUpdated: (patterns: string) =>
-      `Added to .gitignore: ${patterns} — that is where the intervals.icu key goes`,
+      `Added to .gitignore: ${patterns} — the intervals.icu key and exported GPS tracks stay out of git`,
     unnamed: 'unnamed',
     agentUnknown: (agent: string, allowed: string) => `Unknown agent "${agent}" — use one of: ${allowed}.`,
     agentHint: 'using Claude Code or Codex? trainctl init --agent claude|codex adds the integration files',
@@ -313,6 +314,10 @@ export const cliEn = {
 
   pull: {
     title: (provider: string) => `Pulled from ${provider}`,
+    filesLabel: (path: string) => `activity files (${path})`,
+    filesMissing: (path: string) => `No activity export at ${path} — point --from (or sync.files in trainctl.yaml) at a folder of FIT, TCX or GPX files.`,
+    filesSkipped: (count: number, sample: string) =>
+      `${count} ${pluralEn(count, { one: 'file was', other: 'files were' })} skipped (not an activity, unreadable or unsupported): ${sample}`,
     activities: 'Activities',
     activitiesValue: (total: number, runs: number, km: number) =>
       `${total} (running: ${runs}, ${n(km)} km)`,
@@ -544,7 +549,18 @@ export const cliEn = {
       `${from} → ${today} · ${goalName} (${goalDate})`,
     refreshFailed: (error: string) =>
       `Could not refresh the data (${error}) — reviewing the last snapshot.`,
-    noKey: 'No API key — reviewing from the journal and the last snapshot (trainctl pull once you have one).',
+    noKey: 'No API key — reviewing from the journal and the last snapshot (trainctl pull once you have one, or trainctl pull --from <export folder>).',
+    fromFiles: (label: string) => `Refreshed from ${label}.`,
+    feelFromHub: (date: string, rpe: number, source: string) => `${date} · RPE ${n(rpe)} · from ${source}`,
+    wellness: 'From your watch (quoted, not interpreted)',
+    wellnessLine: (date: string, restingHr?: number, sleepSec?: number, weightKg?: number) => {
+      const parts = [
+        ...(restingHr !== undefined ? [`resting HR ${n(restingHr)}`] : []),
+        ...(sleepSec !== undefined ? [`sleep ${Math.floor(Math.round(sleepSec / 60) / 60)}:${String(Math.round(sleepSec / 60) % 60).padStart(2, '0')}`] : []),
+        ...(weightKg !== undefined ? [`${n(weightKg)} kg`] : []),
+      ]
+      return parts.length ? `${date} · ${parts.join(' · ')}` : undefined
+    },
     doneSessions: 'Sessions done',
     volume: 'Volume',
     volumeValue: (actualKm: number, plannedKm: number) =>
@@ -809,7 +825,7 @@ export const cliEn = {
       'git show what-if:plan/plan.yaml > /tmp/s.yaml && trainctl diff --plan /tmp/s.yaml',
     ],
     push: ['trainctl push --days 7', 'trainctl push --from mon --to sun'],
-    pull: ['trainctl pull --days 28', 'trainctl pull --date -7   # a range ending a week ago'],
+    pull: ['trainctl pull --days 28', 'trainctl pull --date -7   # a range ending a week ago', 'trainctl pull --from ./activities   # exported FIT/TCX/GPX, no account'],
     status: ['trainctl status', 'trainctl status --json | jq .proposals'],
   },
 
@@ -874,6 +890,10 @@ export const cliEn = {
     },
     templateDesk: 'desk mode (trainctl desk) — optional',
     templateDeskPrefer: 'morning | lunch | evening',
+    templateSync: {
+      section: 'execution without an intervals.icu account (optional)',
+      files: 'folder of exported FIT/TCX/GPX files — trainctl pull and review read it',
+    },
     templateStrength: {
       section: 'strength 2×/week alongside running (opt-in; needs access to weights)',
       enabled: 'the point is running economy (F-8) — NOT "injury protection" (F-9)',
@@ -1037,6 +1057,7 @@ export const cliEn = {
       'Fetch completed activities and wellness data from intervals.icu, save a snapshot (sync.json) ' +
       'and compare execution with the plan (mismatches: shorter/longer/not done/unplanned).',
     pullDays: 'how many days back, default 28',
+    pullFrom: 'path (relative to the training directory) of a folder or file with exported FIT/TCX/GPX activities; read instead of intervals.icu.',
     review:
       'The whole weekly review in one call: the days behind vs the plan, signals worth acting on, ' +
       'the week ahead (phase, volume, key session, races/time trials) and a list of concrete ' +

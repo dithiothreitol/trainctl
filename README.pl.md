@@ -258,7 +258,7 @@ Twoimi plecami.
 | `review` | pull + adapt + week w jednym | `--days`, `--date`, `--prepare` |
 | `desk` | okna treningowe wokół godzin pracy | `--heavy` |
 | `push` | wysyła treningi do intervals.icu | `--days`, `--from`, `--to` |
-| `pull` | pobiera aktywności i wellness, porównuje | `--days`, `--date` |
+| `pull` | pobiera aktywności i wellness, porównuje | `--days`, `--date`, `--from <katalog eksportu>` |
 | `export` | `.fit`, `.ics`, rozpiska, pakiet startowy | `--what`, `--date` |
 | `diff` | co zmieniłaby regeneracja planu | `--plan <plik>` |
 | `check` | lint planu; psuje kod wyjścia | `--strict` |
@@ -471,7 +471,27 @@ trainctl pull --days 28                 # wykonanie + wellness → porównanie z
 ```
 
 `push` rusza wyłącznie wpisy, które sam utworzył (mają prefiks `trainctl-`
-w external id), więc Twoje własne wpisy w kalendarzu zostają Twoje.
+w external id), więc Twoje własne wpisy w kalendarzu zostają Twoje. Starty
+trafiają jako zawody (A/B/C), a siła jako osobne wpisy; jeśli intervals.icu
+odrzuci którąś z tych postaci, `push` to powie, a treningi biegowe i tak pójdą.
+
+**Bez konta? Użyj plików, które zegarek i tak eksportuje.** `pull --from` czyta
+pliki FIT, TCX i GPX (także `.gz`, jak w zbiorczym eksporcie Stravy czy Garmina),
+więc wykonanie da się porównać z planem bez intervals.icu — i bez ograniczenia
+Stravy opisanego niżej:
+
+```bash
+trainctl pull --from ./activities   # jednorazowo
+```
+
+```yaml
+sync:
+  files: ./activities               # w trainctl.yaml: czytają go review i pull
+```
+
+Pliki zostają na Twoim dysku; `init` dopisuje `activities/` do `.gitignore`, bo
+ślady GPS zdradzają, gdzie mieszkasz. Szczegóły:
+[docs/integrations/files.md](docs/integrations/files.md).
 
 > **Zegarek musi być podpięty do intervals.icu bezpośrednio** (Settings →
 > Connections), nie przez Stravę: od grudnia 2024 hub nie przepuszcza danych ze
@@ -566,8 +586,9 @@ zapisu; `--fresh` zaczyna od zera (stary plan jest w gicie).
 Uruchom potem `trainctl check`: sprawdza inwarianty, które gwarantuje generator,
 i mówi, co ręczna edycja zepsuła.
 
-**Czy potrzebuję intervals.icu?** Nie. Wszystko poza `push`/`pull`/`review`
-działa offline; eksport obsługuje zegarek, kalendarz i papier.
+**Czy potrzebuję intervals.icu?** Nie. Wszystko poza `push` działa bez niego:
+`pull --from` i `review` czytają wyeksportowane pliki aktywności, a eksport
+obsługuje zegarek, kalendarz i papier.
 
 **Rower, pływanie, triathlon?** Nie. Silnik jest zbudowany pod bieganie; model
 domeny projektowano z myślą o innych sportach, ale nic poza bieganiem nie jest
@@ -591,8 +612,9 @@ pnpm check       # typecheck + testy — to samo, co robi CI
 nie jest dystrybuowany; bez niego ten zestaw zgłasza się jako jeden pominięty
 test, zamiast po cichu zniknąć.
 
-Pięć pakietów: `trainctl` (CLI), `trainctl-core` (silnik), `trainctl-mcp`,
-`trainctl-export`, `trainctl-sync-intervalsicu`. Rozwój idzie prosto z
+Sześć pakietów: `trainctl` (CLI), `trainctl-core` (silnik), `trainctl-mcp`,
+`trainctl-export`, `trainctl-sync-intervalsicu`, `trainctl-sync-files`; plugin
+dla agentów leży w `plugin/`. Rozwój idzie prosto z
 TypeScriptu (type-stripping Node), a `pnpm build` produkuje `dist/`, które
 trafia do rejestru.
 

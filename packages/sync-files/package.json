@@ -1,0 +1,55 @@
+{
+  "name": "trainctl-sync-files",
+  "version": "0.3.0",
+  "description": "trainctl adapter for exported activity files (FIT, TCX, GPX): compare what you ran with the plan, no account needed",
+  "keywords": [
+    "fit",
+    "tcx",
+    "gpx",
+    "garmin",
+    "strava",
+    "training-plan"
+  ],
+  "license": "MIT",
+  "author": "Dariusz Tyszka",
+  "homepage": "https://github.com/dithiothreitol/trainctl",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dithiothreitol/trainctl.git",
+    "directory": "packages/sync-files"
+  },
+  "bugs": {
+    "url": "https://github.com/dithiothreitol/trainctl/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist",
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "!src/fit-fixture.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "dependencies": {
+    "trainctl-core": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  }
+}

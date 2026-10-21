@@ -28,7 +28,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/sync-intervalsicu && tsc --noEmit -p packages/export && tsc --noEmit -p packages/cli && tsc --noEmit -p packages/mcp",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/sync-intervalsicu && tsc --noEmit -p packages/sync-files && tsc --noEmit -p packages/export && tsc --noEmit -p packages/cli && tsc --noEmit -p packages/mcp",
     "check": "pnpm typecheck && pnpm test",
     "trainctl": "node packages/cli/src/bin.ts",
     "release:dry": "pnpm publish -r --dry-run --no-git-checks",

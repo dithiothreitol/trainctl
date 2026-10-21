@@ -29,6 +29,9 @@ importers:
       trainctl-export:
         specifier: workspace:*
         version: link:../export
+      trainctl-sync-files:
+        specifier: workspace:*
+        version: link:../sync-files
       trainctl-sync-intervalsicu:
         specifier: workspace:*
         version: link:../sync-intervalsicu
@@ -56,6 +59,12 @@ importers:
         specifier: ^3.24.0
         version: 3.25.76
     devDependencies:
+      trainctl-core:
+        specifier: workspace:*
+        version: link:../core
+
+  packages/sync-files:
+    dependencies:
       trainctl-core:
         specifier: workspace:*
         version: link:../core

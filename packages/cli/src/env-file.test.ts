@@ -126,7 +126,7 @@ describe('init domyka lukę', () => {
 
   it('uruchomiony dwa razy nie duplikuje wpisów', () => {
     gitRepo()
-    writeFileSync(join(dir, '.gitignore'), '.env\n.env.*\n.trainctl-secret\n', 'utf-8')
+    writeFileSync(join(dir, '.gitignore'), '.env\n.env.*\n.trainctl-secret\nactivities/\n', 'utf-8')
     const before = require('node:fs').readFileSync(join(dir, '.gitignore'), 'utf-8') as string
     cmdInit(dir)
     const after = require('node:fs').readFileSync(join(dir, '.gitignore'), 'utf-8') as string
