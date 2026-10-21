@@ -53,5 +53,6 @@ export function uncommitted(cwd: string, paths: string[]): string[] | undefined 
   if (!insideGitRepo(cwd)) return undefined
   const r = git(cwd, ['status', '--porcelain', '--', ...paths])
   if (r.status !== 0) return undefined
-  return r.stdout.split('\n').map((l) => l.slice(3).trim()).filter(Boolean)
+  // `R  stary -> nowy` (rename w indeksie) pokazujemy jako nową ścieżkę
+  return r.stdout.split('\n').map((l) => l.slice(3).trim().split(' -> ').at(-1)!).filter(Boolean)
 }

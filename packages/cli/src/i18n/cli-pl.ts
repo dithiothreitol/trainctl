@@ -162,6 +162,7 @@ export const cliPl: CliMessages = {
     agentCodexNext: 'Codex: zaufaj projektowi; Codex czyta AGENTS.md i uruchamia serwer MCP trainctl z .codex/config.toml.',
     agentQuestion: 'Którego agenta tu używasz?',
     agentNone: 'żadnego / później',
+    gitignoreNotCommitted: '.gitignore już istniał, więc nie trafił do commita — przejrzyj go i zacommituj sam.',
   },
 
   plan: {
@@ -207,6 +208,10 @@ export const cliPl: CliMessages = {
     droppedWeeks: (weeks: string) => `Tygodnie, których nie ma już w planie: ${weeks} (poprzednia wersja jest w gicie).`,
     moreLines: (count: number) => `… i ${count} więcej — trainctl diff wypisze wszystkie różnice.`,
     upToDate: 'Plan aktualny — trainctl.yaml daje te same przyszłe dni; nic nie zapisano.',
+    unreadable: (file: string, reason: string) =>
+      `Nie da się użyć ${file} (${reason}) — popraw go (konflikt merge'a?) albo uruchom trainctl plan --fresh, żeby zacząć od zera; poprzednia wersja jest w gicie.`,
+    unreadableReason: { parse: 'to nie jest poprawny YAML', shape: 'brak celu albo tygodni', schema: 'nowszy schemat planu' },
+    overwroteUnreadable: (file: string) => `Poprzedni ${file} był nieużyteczny i został zastąpiony — jest w gicie, gdyby był potrzebny.`,
     freshDropped: (items: string) => `Regeneracja od zera (--fresh); porzucono: ${items}. Poprzedni plan jest w gicie.`,
     freshItems: {
       loadState: (km: number) => `zatwierdzoną bazę (${n(km)} km/tydz.)`,
@@ -344,7 +349,7 @@ export const cliPl: CliMessages = {
     filesLabel: (path: string) => `plików aktywności (${path})`,
     filesMissing: (path: string) => `Brak eksportu aktywności w ${path} — wskaż przez --from (albo sync.files w trainctl.yaml) katalog z plikami FIT, TCX lub GPX.`,
     filesSkipped: (count: number, sample: string) =>
-      `Pominięto ${count} ${pluralPl(count, { one: 'plik', few: 'pliki', other: 'plików' })} (to nie aktywność, nieczytelny albo nieobsługiwany): ${sample}`,
+      `Pominięto ${count} ${pluralPl(count, { one: 'plik', few: 'pliki', other: 'plików' })} (duplikat, to nie aktywność, nieczytelny albo nieobsługiwany): ${sample}`,
     activities: 'Aktywności',
     activitiesValue: (total: number, runs: number, km: number) =>
       `${total} (biegowych: ${runs}, ${n(km)} km)`,

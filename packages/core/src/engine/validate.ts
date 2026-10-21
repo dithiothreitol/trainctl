@@ -313,8 +313,10 @@ export function validatePlan(input: ValidatePlanInput): PlanIssue[] {
   for (const { week, days } of cleanWeeks) {
     const target = week.skeleton?.targetKm
     const totals = recomputed.get(week.weekStart)!
-    if (typeof target === 'number' && week.skeleton?.phase !== 'race' && Math.abs(totals.totalKm - target) > 0.5) {
-      warn({ code: 'targetKmMismatch', ruleRefs: ['P-3'], date: week.weekStart, expected: target, actual: totals.totalKm })
+    // budżet czasu z profilu (E-2) świadomie obniża objętość — porównujemy z tym, co zostawił
+    const expected = week.skeleton?.timeCappedKm ?? target
+    if (typeof expected === 'number' && week.skeleton?.phase !== 'race' && Math.abs(totals.totalKm - expected) > 0.5) {
+      warn({ code: 'targetKmMismatch', ruleRefs: ['P-3'], date: week.weekStart, expected, actual: totals.totalKm })
     }
     const desired = week.skeleton?.sessionCount
     const actual = days.filter(d => d.workout).length

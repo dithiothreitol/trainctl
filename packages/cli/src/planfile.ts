@@ -73,7 +73,19 @@ export interface StoredPlan {
   weeks: Microcycle[]
 }
 
-export function computePlan(config: TrainctlConfig, today: string, calibrationDate = today): StoredPlan {
+export interface ComputePlanOptions {
+  /**
+   * Zmiana tygodni PRZED budżetem czasu — skalowanie bazy (regeneracja) albo
+   * podmiana tygodni na tygodnie zapisanego planu (propozycja adapt). Budżet
+   * działa potem raz, tymi samymi strefami — dlatego regeneracja bez zmian na
+   * wejściu daje bajt w bajt ten sam plan.
+   */
+  beforeTimeBudget?: (plan: StoredPlan) => void
+  /** 'keep' = siła zostaje tam, gdzie była (plan z historią); 'reapply' = świeży plan. */
+  budgetStrength?: 'reapply' | 'keep'
+}
+
+export function computePlan(config: TrainctlConfig, today: string, calibrationDate = today, opts: ComputePlanOptions = {}): StoredPlan {
   const { athlete, goal } = config
   const recent = athlete.results.filter(
     (r) => !r.excluded && r.date <= calibrationDate && diffDays(r.date, calibrationDate) <= 540,
@@ -105,9 +117,6 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     return week
   })
   if (config.strength?.enabled) applyStrength(weeks, config.strength)
-  const budget = config.time
-    ? fitTimeBudget(weeks, config, zones, testDistanceKm(goal))
-    : { warnings: [], capped: false }
   const plan: StoredPlan = {
     schemaVersion: PLAN_SCHEMA_VERSION,
     engineVersion: packageVersion(),
@@ -119,17 +128,11 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     goal,
     peakKmPlanned: macro.peakKmPlanned,
     peakKmRecommended: macro.peakKmRecommended,
-    feasibilityWarnings: [...macro.feasibilityWarnings, ...budget.warnings],
+    feasibilityWarnings: [...macro.feasibilityWarnings],
     changes: [],
     weeks,
   }
-  if (config.time) {
-    plan.peakKmPlanned = Math.max(...weeks.map((w) => w.totalKm))
-    // ostrzeżenie tylko wtedy, gdy to budżet obniżył szczyt — nie przy każdej sekcji `time`
-    if (budget.capped && plan.peakKmPlanned < macro.peakKmRecommended && plan.peakKmPlanned < macro.peakKmPlanned) {
-      plan.feasibilityWarnings.push(ui().planMd.timeCapsVolume(plan.peakKmPlanned, macro.peakKmRecommended))
-    }
-  }
+
   // plan bazowy nie ma dystansu docelowego, więc i predykcji (P-11)
   if (usable.length > 0 && goal.kind !== 'base') {
     plan.prediction = predictRace(usable, goal.distanceKm, { today: calibrationDate })
@@ -138,6 +141,17 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     plan.feasibilityWarnings.push(ui().planMd.zonesFromGoal)
   }
   if (trailOnly) plan.feasibilityWarnings.push(ui().planMd.trailOnlyCalibration)
+  opts.beforeTimeBudget?.(plan)
+  if (config.time) {
+    const macroPeak = plan.peakKmPlanned
+    const budget = fitTimeBudget(plan.weeks, config, zones, testDistanceKm(goal), opts.budgetStrength ?? 'reapply')
+    plan.feasibilityWarnings.push(...budget.warnings)
+    plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
+    // ostrzeżenie tylko wtedy, gdy to budżet obniżył szczyt — nie przy każdej sekcji `time`
+    if (budget.capped && plan.peakKmPlanned < plan.peakKmRecommended && plan.peakKmPlanned < macroPeak) {
+      plan.feasibilityWarnings.push(ui().planMd.timeCapsVolume(plan.peakKmPlanned, plan.peakKmRecommended))
+    }
+  }
   plan.generatedDays = Object.fromEntries(plan.weeks.flatMap((w) => w.days).map((d) => [d.date, dayFingerprint(d)]))
   return plan
 }
@@ -165,7 +179,7 @@ const isWeekend = (wd: string) => wd === 'sat' || wd === 'sun'
  *     (E-1), z jawnym `timeAdjustment` i utratą celu, gdy wariant jej wymaga.
  * Starty i sprawdziany nie są skracane; co się nie mieści, zostaje ostrzeżeniem.
  */
-export function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: ReturnType<typeof paceZones>, testKm: number): { warnings: string[]; capped: boolean } {
+function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: ReturnType<typeof paceZones>, testKm: number, strength: 'reapply' | 'keep'): { warnings: string[]; capped: boolean } {
   const time = config.time!
   const minutesOf = (d: PlannedDay) =>
     (d.workout ? estimateWorkoutMinutes(d.workout, PREPARATION_MINUTES) : 0) + (d.strength?.durationMin ?? 0)
@@ -183,13 +197,23 @@ export function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones
         if (week.skeleton.raceDate) break
         const minutes = runMinutes(week) + strengthMinutes
         if (minutes <= time.weeklyMinutes) break
-        const target = Math.max(5, Math.floor(week.skeleton.targetKm - (minutes - time.weeklyMinutes) / easyMinPerKm))
-        if (target >= week.skeleton.targetKm) break
-        weeks[i] = generateMicrocycle({ skeleton: { ...week.skeleton, targetKm: target }, athlete: config.athlete, zones, goal: config.goal, testDistanceKm: testKm })
+        const current = week.skeleton.timeCappedKm ?? week.skeleton.targetKm
+        const target = Math.max(5, Math.floor(current - (minutes - time.weeklyMinutes) / easyMinPerKm))
+        if (target >= current) break
+        const regenerated = generateMicrocycle({ skeleton: { ...week.skeleton, targetKm: target }, athlete: config.athlete, zones, goal: config.goal, testDistanceKm: testKm })
+        // zamiar makrocyklu zostaje w targetKm; budżet zapisuje swoją objętość obok
+        regenerated.skeleton = { ...week.skeleton, timeCappedKm: target }
+        for (const day of regenerated.days) {
+          const session = week.days.find((d) => d.date === day.date)?.strength
+          if (session) day.strength = structuredClone(session)
+        }
+        weeks[i] = regenerated
         capped = true
       }
     }
-    if (capped && config.strength?.enabled) applyStrength(weeks, config.strength)
+    // świeży plan: siła rozstawiona od nowa pod nowe dni biegowe; plan z historią
+    // (propozycja) — siła zostaje, korekta objętości jej nie przestawia
+    if (capped && strength === 'reapply' && config.strength?.enabled) applyStrength(weeks, config.strength)
   }
   const tooLong: string[] = []
   for (const week of weeks) {
@@ -203,7 +227,15 @@ export function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones
       }
       const result = shortenWorkout(day.workout, cap, { preparationMinutes: PREPARATION_MINUTES, strengthMinutes: day.strength?.durationMin ?? 0 })
       if (result.workout && (result.status === 'shortened' || result.status === 'easy-alternative')) {
-        day.timeAdjustment = { originalKind: day.workout.kind, originalDistanceKm: day.workout.distanceKm, budgetMinutes: cap, status: result.status, origin: 'profile' }
+        // ponowne skrócenie (np. po rekalibracji) nie gubi pierwotnej jednostki ani utraty celu
+        const earlier = day.timeAdjustment
+        day.timeAdjustment = {
+          originalKind: earlier?.originalKind ?? day.workout.kind,
+          originalDistanceKm: earlier?.originalDistanceKm ?? day.workout.distanceKm,
+          budgetMinutes: cap,
+          status: earlier?.status === 'easy-alternative' ? 'easy-alternative' : result.status,
+          origin: 'profile',
+        }
         day.workout = result.workout
         shortened = true
       } else {
@@ -211,10 +243,10 @@ export function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones
       }
     }
     Object.assign(week, weekTotals(week.days))
-    // Cel tygodnia idzie za skróconymi dniami: to profil go obniżył, nie odstępstwo
-    // od planu — inaczej lint zgłaszałby P-3 na świeżo wygenerowanym planie.
+    // Skrócone dni obniżają objętość tygodnia — zapisujemy ją obok zamiaru (targetKm),
+    // inaczej lint zgłaszałby P-3 na świeżo wygenerowanym planie.
     if (shortened) {
-      week.skeleton = { ...week.skeleton, targetKm: Math.round(week.totalKm) }
+      week.skeleton = { ...week.skeleton, timeCappedKm: week.totalKm }
       capped = true
     }
   }
@@ -315,27 +347,32 @@ export function loadPlanFile(path: string): StoredPlan {
   return doc
 }
 
+export type ExistingPlan =
+  | { status: 'missing' }
+  | { status: 'ok'; plan: StoredPlan }
+  | { status: 'unreadable'; reason: 'parse' | 'shape' | 'schema' }
+
 /**
- * Plik planu, jeśli da się go użyć. Brakujący, niesparsowalny (np. znaczniki
- * konfliktu merge'a) albo bez celu i tygodni = undefined — `plan` liczy wtedy
- * od zera, jak przed 0.4.0. Nowszy schemat = błąd, chyba że `allowNewerSchema`
- * (jawne `--fresh`): starsza wersja nie nadpisze po cichu pliku, którego nie rozumie.
+ * Istniejący plik planu i to, czy da się go użyć. Niesparsowalny (znaczniki
+ * konfliktu merge'a), bez celu i tygodni albo z nowszym schematem to
+ * `unreadable` — `plan` odmawia wtedy cichego nadpisania (historia, przypięcia
+ * i zatwierdzona baza zginęłyby bez słowa) i nadpisuje dopiero na jawne `--fresh`.
  */
-export function loadPlanIfUsable(cwd: string, opts: { allowNewerSchema?: boolean } = {}): StoredPlan | undefined {
-  if (!existsSync(join(cwd, PLAN_YAML))) return undefined
+export function readExistingPlan(cwd: string): ExistingPlan {
+  if (!existsSync(join(cwd, PLAN_YAML))) return { status: 'missing' }
   let doc: unknown
   try {
     doc = parse(readFileSync(join(cwd, PLAN_YAML), 'utf-8'))
   } catch {
-    return undefined
+    return { status: 'unreadable', reason: 'parse' }
   }
-  if (!looksLikePlan(doc)) return undefined
-  if (typeof doc.schemaVersion === 'number' && doc.schemaVersion > PLAN_SCHEMA_VERSION) {
-    if (opts.allowNewerSchema) return undefined
-    throw new Error(ui().common.planSchemaNewer(PLAN_YAML, doc.schemaVersion))
-  }
-  return doc
+  if (!looksLikePlan(doc)) return { status: 'unreadable', reason: 'shape' }
+  if (typeof doc.schemaVersion === 'number' && doc.schemaVersion > PLAN_SCHEMA_VERSION) return { status: 'unreadable', reason: 'schema' }
+  return { status: 'ok', plan: doc }
 }
+
+/** Ostatni dzień planu — po starcie plan trwa dalej blokiem przejściowym (R-8). */
+export const planEnd = (plan: StoredPlan): string => plan.weeks.at(-1)?.days.at(-1)?.date ?? plan.goal.date
 
 /** Tygodnie bieżącego cyklu — bez historii poprzedniego, która została w pliku. */
 export const cycleWeeksOf = (plan: StoredPlan): Microcycle[] =>

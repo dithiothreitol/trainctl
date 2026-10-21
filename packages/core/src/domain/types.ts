@@ -98,6 +98,12 @@ export interface WeekSkeleton {
   testPlanned?: boolean
   /** Najwcześniejszy dzień biegu w tygodniu — po starcie (R-1: 48 h ciszy po maratonie). */
   earliestRun?: string
+  /**
+   * Objętość po budżecie czasu z profilu (E-2). `targetKm` zostaje zamiarem
+   * makrocyklu — od niego liczy się skalowanie bazy (adapt, regeneracja), a lint
+   * porównuje sumy dni z tym, co budżet faktycznie zostawił.
+   */
+  timeCappedKm?: number
   flags: string[]
   ruleRefs: string[]
 }

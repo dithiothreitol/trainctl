@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale, validatePlan } from 'trainctl-core'
-import { cmdCheck, cmdExport, cmdPlan, cmdReview, cmdToday, cmdWhy } from './commands.ts'
+import { cmdCheck, cmdExport, cmdLog, cmdPlan, cmdReview, cmdToday, cmdWhy } from './commands.ts'
 import { cycleWeeksOf, loadPlan } from './planfile.ts'
 
 setLocale('en')
@@ -71,14 +71,25 @@ describe('po starcie: blok przejściowy w planie i w tym, co widać', () => {
     cmdPlan(dir, { date: '2026-08-08' })
     expect(cmdToday(dir, { date: '2027-01-20' }).output).toContain('2026-08-03 → 2026-12-13')
   })
-  it('w dniu startu nowy cel tego samego dystansu otwiera nowy cykl, nie rozciąga starego', () => {
+  it('w dniu startu, po zalogowaniu startu, nowy cel tego samego dystansu otwiera nowy cykl', () => {
     write(RACE)
     cmdPlan(dir, { date: '2026-08-08' })
     process.env['TRAINCTL_TODAY'] = '2026-11-29'
+    expect(cmdLog(dir, { date: '2026-11-29', km: '21.1', time: '1:35:10' }).code).toBe(0)
     write(RACE.replace('2026-11-29', '2027-04-11'))
     const r = cmdPlan(dir)
     expect(r.code, r.output).toBe(0)
     expect(r.data).toMatchObject({ regeneration: { mode: 'new-cycle' } })
+  })
+  it('start przełożony rano w dniu zawodów to ten sam cykl — taper się wydłuża, bez bloku po starcie', () => {
+    write(RACE)
+    cmdPlan(dir, { date: '2026-08-08' })
+    process.env['TRAINCTL_TODAY'] = '2026-11-29'
+    write(RACE.replace('2026-11-29', '2026-12-06'))
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(r.data).toMatchObject({ regeneration: { mode: 'same-cycle' } })
+    expect(loadPlan(dir).weeks.find((w) => w.skeleton.raceDate)!.skeleton.raceDate).toBe('2026-12-06')
   })
   it('w dniu startu ten sam cel to nadal ten sam cykl', () => {
     write(RACE)

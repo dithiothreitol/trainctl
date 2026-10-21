@@ -76,6 +76,15 @@ function insideGitRepo(cwd: string): boolean {
   }
 }
 
+/** Klucze środowiska sprzed wczytania `.env` — jawny `export` wygrywa nad plikiem. */
+let shellKeys: Set<string> | undefined
+
+/** Czy wartość zmiennej pochodzi z `.env` (a nie z eksportu w powłoce). */
+export function cameFromEnvFile(cwd: string, name: string): boolean {
+  if (shellKeys?.has(name)) return false
+  return inspectEnvFile(cwd, name).hasKey
+}
+
 /**
  * Stan `.env` bez wczytywania — dla `trainctl status`. Klucz rozpoznajemy po
  * NAZWIE zmiennej, nigdy nie czytając ani nie zwracając jej wartości.
@@ -98,6 +107,7 @@ export function inspectEnvFile(cwd: string, keyName: string): { exists: boolean;
  */
 export function loadEnvFile(cwd: string): EnvFileOutcome {
   const path = join(cwd, ENV_FILE)
+  shellKeys = new Set(Object.keys(process.env))
   if (!existsSync(path)) return { loaded: false, unprotected: false }
   try {
     process.loadEnvFile(path)

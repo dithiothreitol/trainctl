@@ -33,7 +33,7 @@ import {
   type PlannedDay,
 } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
-import { computePlan, dayFingerprint, fitTimeBudget, type StoredPlan } from './planfile.ts'
+import { computePlan, dayFingerprint, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
 export type ProtectionReason = 'past' | 'recorded' | 'pinned' | 'approved' | 'edited' | 'budget'
@@ -74,6 +74,7 @@ function scaleFrom(fresh: StoredPlan, config: TrainctlConfig, baseline: number, 
   fresh.weeks = fresh.weeks.map((week) => {
     if (week.weekStart < from) return week
     const skeleton = structuredClone(week.skeleton)
+    delete skeleton.timeCappedKm // budżet zastosuje computePlan po skalowaniu
     skeleton.targetKm = Math.round((baseline * skeleton.targetKm) / Math.max(1, anchor?.skeleton.targetKm ?? skeleton.targetKm))
     const generated = generateMicrocycle({ skeleton, athlete: config.athlete, goal: fresh.goal, zones, testDistanceKm: testDistanceKm(fresh.goal) })
     for (const day of generated.days) {
@@ -92,8 +93,9 @@ export function rebuildPlan(
 ): Regeneration {
   const now = clockToday()
   const today = opts.today
-  // Dzień startu: ten sam cel to jeszcze ten cykl; nowy cel wpisany tego dnia — już nowy.
-  const raceBehind = existing.goal.date < now || (existing.goal.date === now && config.goal.date !== existing.goal.date)
+  // Dzień startu jest „za nami" dopiero, gdy start jest zapisany (dziennik albo
+  // synchronizacja) — przełożony rano start to nadal ten sam cykl, nie nowy.
+  const raceBehind = existing.goal.date < now || (existing.goal.date === now && opts.recorded.has(existing.goal.date))
   const mode: RegenerationMode =
     !raceBehind && sameDistance(existing.goal.distanceKm, config.goal.distanceKm) ? 'same-cycle' : 'new-cycle'
 
@@ -106,15 +108,14 @@ export function rebuildPlan(
     ? addDays(lastTransition.weekStart, 7)
     : undefined
   const macroStart = mode === 'same-cycle' ? existing.generatedAt : afterTransition ?? today
-  const fresh = computePlan(config, macroStart, today)
   const loadState = keepLoad
     ? { ...ls!, effectiveFrom: mode === 'same-cycle' ? ls!.effectiveFrom : today, profileWeeklyKm: config.athlete.recentWeeklyKm }
     : undefined
-  if (loadState) {
-    scaleFrom(fresh, config, loadState.baselineWeeklyKm, loadState.effectiveFrom)
-    // skalowanie generuje tygodnie od nowa — budżet czasu z profilu obowiązuje dalej (E-2)
-    if (config.time) fitTimeBudget(fresh.weeks, config, paceZones(fresh.vdot), testDistanceKm(fresh.goal))
-  }
+  // skalowanie do zatwierdzonej bazy idzie PRZED budżetem czasu, który computePlan
+  // stosuje raz, tymi samymi strefami co przy pierwszym planie (E-2)
+  const fresh = computePlan(config, macroStart, today, loadState
+    ? { beforeTimeBudget: (plan) => scaleFrom(plan, config, loadState.baselineWeeklyKm, loadState.effectiveFrom) }
+    : {})
 
   const existingDays = new Map(existing.weeks.flatMap((w) => w.days).map((d) => [d.date, d]))
   const minutesOf = (day: PlannedDay) =>

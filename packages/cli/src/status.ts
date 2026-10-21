@@ -6,7 +6,7 @@
  * plan, skąd jest klucz i czy `.env` jest chroniony, kiedy był ostatni pull,
  * które propozycje są jeszcze ważne i co nie trafiło do gita.
  */
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { diffDays, messages, mondayOf } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig, readConfigLanguage } from './config.ts'
@@ -15,9 +15,9 @@ import { buildExecution } from './execution.ts'
 import { uncommitted } from './git.ts'
 import { ui } from './i18n/index.ts'
 import { LOG_FILE, readLog } from './logfile.ts'
-import { cycleWeeksOf, loadPlanIfUsable, PLAN_DIR, PLAN_YAML, type StoredPlan } from './planfile.ts'
+import { cycleWeeksOf, readExistingPlan, PLAN_DIR, PLAN_YAML, type StoredPlan } from './planfile.ts'
 import { listProposals } from './proposals.ts'
-import { readSnapshot, SECRET_FILE, SYNC_FILE } from './sync.ts'
+import { apiKeySource, readSnapshot, SYNC_FILE } from './sync.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import { clockToday } from './clock.ts'
 import { packageVersion } from './version.ts'
@@ -67,13 +67,9 @@ function statusImpl(cwd: string): StatusResult {
   if (!hasConfig) next.push('trainctl init')
 
   // plan
-  let plan: StoredPlan | undefined
-  let planError: string | undefined
-  try {
-    plan = loadPlanIfUsable(cwd)
-  } catch (e) {
-    planError = e instanceof Error ? e.message : String(e)
-  }
+  const found = readExistingPlan(cwd)
+  const plan: StoredPlan | undefined = found.status === 'ok' ? found.plan : undefined
+  const planError = found.status === 'unreadable' ? ui().plan.unreadable(PLAN_YAML, ui().plan.unreadableReason[found.reason]) : undefined
   const current = packageVersion()
   if (plan) {
     const cycle = cycleWeeksOf(plan)
@@ -100,11 +96,8 @@ function statusImpl(cwd: string): StatusResult {
 
   // dane: klucz, synchronizacja, dziennik
   const env = inspectEnvFile(cwd, KEY_ENV)
-  // ta sama kolejność co readApiKey: zmienna środowiskowa (także z .env), potem niepusty plik
-  const secretPath = join(cwd, SECRET_FILE)
-  const keySource = process.env[KEY_ENV]?.trim()
-    ? env.hasKey ? ENV_FILE : t.keyFromEnv
-    : existsSync(secretPath) && readFileSync(secretPath, 'utf-8').trim() ? SECRET_FILE : undefined
+  const source = apiKeySource(cwd)
+  const keySource = source === 'environment' ? t.keyFromEnv : source
   const snapshot = readSnapshot(cwd)
   const logs = readLog(cwd)
   const last = logs.at(-1)
@@ -137,9 +130,10 @@ function statusImpl(cwd: string): StatusResult {
   }
 
   // git
-  const dirty = uncommitted(cwd, [CONFIG_FILE, PLAN_DIR, LOG_FILE, 'AGENTS.md'])
+  const TRACKED = [CONFIG_FILE, PLAN_DIR, LOG_FILE, 'AGENTS.md']
+  const dirty = uncommitted(cwd, TRACKED)
   blocks.push(b.section(t.git), b.text(dirty === undefined ? t.noGit : dirty.length ? t.dirty(dirty.join(', ')) : t.clean))
-  if (dirty?.length) next.push(`git add ${dirty.join(' ')} && git commit`)
+  if (dirty?.length) next.push(`git add ${TRACKED.filter((p) => existsSync(join(cwd, p))).join(' ')} && git commit`)
 
   if (next.length) blocks.push(b.blank(), b.hint(t.next(next.join(' · '))))
   return {

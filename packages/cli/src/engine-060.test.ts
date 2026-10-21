@@ -68,6 +68,20 @@ describe('E-2 · budżet czasu z profilu', () => {
     const p = plan(`${BASE}time:\n  weeklyMinutes: 2000\n  weekendMinutes: 600\n`)
     expect(p.feasibilityWarnings.join(' ')).not.toContain('time budget caps')
   })
+  it('cel tygodnia zostaje zamiarem makrocyklu; budżet zapisuje swoją objętość obok (timeCappedKm)', () => {
+    const free = plan(BASE)
+    const capped = plan(`${BASE}time:\n  weeklyMinutes: 240\n  weekdayMinutes: 50\n`)
+    const pairs = capped.weeks.map((w, i) => [w, free.weeks[i]!] as const).filter(([w]) => w.skeleton.timeCappedKm !== undefined)
+    expect(pairs.length).toBeGreaterThan(0)
+    for (const [w, f] of pairs) {
+      expect(w.skeleton.targetKm).toBe(f.skeleton.targetKm)
+      expect(w.totalKm).toBeCloseTo(w.skeleton.timeCappedKm!, 0)
+    }
+  })
+  it('plan z budżetem wygenerowany drugi raz bez zmian na wejściu jest „aktualny"', () => {
+    plan(`${BASE}time:\n  weeklyMinutes: 240\n  weekdayMinutes: 50\n`)
+    expect(cmdPlan(dir, { date: '2026-08-08' }).data).toMatchObject({ regeneration: { upToDate: true } })
+  })
   it('regeneracja po zatwierdzonej bazie nadal trzyma budżet dnia (E-2)', () => {
     plan(`${BASE}time:\n  weekdayMinutes: 50\n`)
     const stored = loadPlan(dir)
@@ -123,18 +137,26 @@ describe('siła: warianty i dziennik', () => {
 })
 
 describe('plan.yaml, którego nie da się użyć', () => {
-  it('znaczniki konfliktu w pliku: plan liczy od zera zamiast rzucać błędem YAML (także z --fresh)', () => {
+  it('znaczniki konfliktu w pliku: bez --fresh odmowa z instrukcją (nic nie ginie po cichu), z --fresh nadpisanie z ostrzeżeniem', () => {
     plan(BASE)
-    writeFileSync(join(dir, PLAN_YAML), '<<<<<<< HEAD\nweeks: [\n=======\n>>>>>>> other\n', 'utf-8')
-    expect(cmdPlan(dir, { date: '2026-08-08', fresh: true }).code).toBe(0)
-    writeFileSync(join(dir, PLAN_YAML), '<<<<<<< HEAD\nweeks: [\n', 'utf-8')
-    expect(cmdPlan(dir, { date: '2026-08-08' }).code).toBe(0)
+    const broken = '<<<<<<< HEAD\nweeks: [\n=======\n>>>>>>> other\n'
+    writeFileSync(join(dir, PLAN_YAML), broken, 'utf-8')
+    const refused = cmdPlan(dir, { date: '2026-08-08' })
+    expect(refused.code).toBe(1)
+    expect(refused.output).toContain('not valid YAML')
+    expect(refused.output).toContain('--fresh')
+    expect(readFileSync(join(dir, PLAN_YAML), 'utf-8')).toBe(broken)
+    const fresh = cmdPlan(dir, { date: '2026-08-08', fresh: true })
+    expect(fresh.code).toBe(0)
+    expect(fresh.output).toContain('could not be used and was replaced')
   })
   it('nowszy schemat: bez --fresh odmowa, z --fresh świadome nadpisanie', () => {
     plan(BASE)
     const raw = readFileSync(join(dir, PLAN_YAML), 'utf-8').replace('schemaVersion: 1', 'schemaVersion: 9')
     writeFileSync(join(dir, PLAN_YAML), raw, 'utf-8')
-    expect(cmdPlan(dir, { date: '2026-08-08' }).code).toBe(1)
+    const refused = cmdPlan(dir, { date: '2026-08-08' })
+    expect(refused.code).toBe(1)
+    expect(refused.output).toContain('a newer plan schema')
     expect(cmdPlan(dir, { date: '2026-08-08', fresh: true }).code).toBe(0)
   })
 })

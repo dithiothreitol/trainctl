@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { estimateWorkoutMinutes, validatePlan, weekTotals, withLocale, generateMicrocycle, paceZones, recalibrateWorkout, testDistanceKm, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
 import { readLog, LOG_FILE } from './logfile.ts'
-import { computePlan, cycleWeeksOf, dayFingerprint, fitTimeBudget, loadPlan, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
+import { computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
 import { isRunningActivity } from './execution.ts'
@@ -65,7 +65,7 @@ export function prepareShortening(cwd: string, date: string, minutes: number): {
   const plan = loadPlan(cwd)
   const week = plan.weeks.find(w => w.days.some(d => d.date === date))
   const day = week?.days.find(d => d.date === date)
-  if (!day) throw new Error(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', plan.goal.date))
+  if (!day) throw new Error(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', planEnd(plan)))
   if (day.pinned) throw new Error(ui().coach.pinned)
   if (!day.workout) return { adjustment: null }
   const before = structuredClone(day)
@@ -106,9 +106,12 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   if (!volume && JSON.stringify(config.athlete.results.map(resultKey).sort()) === JSON.stringify(plan.calibration.results.map(resultKey).sort()))
     throw new Error(ui().improve.noPatch)
   const nextConfig = structuredClone(config)
-  const candidate = withLocale(plan.locale === 'pl' ? 'pl' : 'en', () => {
+  const candidate = withLocale(plan.locale === 'pl' ? 'pl' : 'en', () => computePlan(nextConfig, plan.generatedAt, today, {
+    // Tygodnie zapisanego planu zamiast świeżych; budżet czasu z profilu stosuje
+    // potem computePlan (E-2), a siła zostaje na swoich dniach.
+    budgetStrength: 'keep',
+    beforeTimeBudget: (metadata) => {
     // Compute calibration metadata separately; never replay a new baseline from August.
-    const metadata = computePlan(nextConfig, plan.generatedAt, today)
     const zones = paceZones(metadata.vdot)
     const anchor = plan.weeks.find(w => w.weekStart > today && !w.skeleton.deload && !['taper', 'race'].includes(w.skeleton.phase))
       ?? plan.weeks.find(w => w.days.some(d => d.date > today))
@@ -119,6 +122,7 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
         return copy
       }
       const skeleton = structuredClone(week.skeleton)
+      delete skeleton.timeCappedKm // budżet zastosuje computePlan po skalowaniu
       skeleton.targetKm = Math.round(volume.suggestedWeeklyKm! * skeleton.targetKm / Math.max(1, anchor?.skeleton.targetKm ?? skeleton.targetKm))
       const generated = generateMicrocycle({ skeleton, athlete: nextConfig.athlete, goal: plan.goal, zones, testDistanceKm: testDistanceKm(plan.goal) })
       // Strength is an independent track; a volume correction does not reassign it.
@@ -128,10 +132,8 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
       }
       return generated
     })
-    // propozycja generuje tygodnie od nowa — budżet czasu z profilu obowiązuje dalej (E-2)
-    if (nextConfig.time) fitTimeBudget(metadata.weeks, nextConfig, zones, testDistanceKm(plan.goal))
-    return metadata
-  })
+    },
+  }))
   const candidateDays = new Map(candidate.weeks.flatMap((w) => w.days).map((day) => [day.date, day]))
   const recorded = recordedDates(cwd)
   const next = structuredClone(plan)

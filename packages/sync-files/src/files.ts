@@ -11,12 +11,12 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { gunzipSync } from 'node:zlib'
 import type { SyncedActivity } from 'trainctl-core'
-import type { ParsedActivity } from './activity.ts'
+import { isRunType, type ParsedActivity } from './activity.ts'
 import { parseFitActivity } from './fit.ts'
 import { parseGpxActivity } from './gpx.ts'
 import { parseTcxActivity } from './tcx.ts'
 
-export type SkipReason = 'unreadable' | 'not-an-activity' | 'unsupported'
+export type SkipReason = 'unreadable' | 'not-an-activity' | 'unsupported' | 'duplicate'
 
 export interface SkippedFile {
   file: string
@@ -157,14 +157,23 @@ function toSynced(parsed: ParsedActivity, externalId: string, fallbackName: stri
 }
 
 /**
+ * Ten sam bieg w dwóch formatach (eksport Garmina .fit i Stravy .gpx) ma inne
+ * bajty, ale ten sam start. Ta sama rodzina aktywności (bieg po szosie, trailu
+ * i bieżni to jedna rodzina) i start w ±60 s = duplikat; zostaje plik najbogatszy
+ * w dane (FIT > TCX > GPX). 60 s to wartość inżynierska — znaczniki czasu formatów
+ * różnią się zaokrągleniem, dwa różne biegi nie.
+ */
+const DUPLICATE_WINDOW_MS = 60_000
+const FORMAT_RANK: Record<string, number> = { fit: 0, tcx: 1, gpx: 2 }
+const sameFamily = (a: ParsedActivity['type'], b: ParsedActivity['type']) => a === b || (isRunType(a) && isRunType(b))
+
+/**
  * Katalog (rekurencyjnie) albo pojedynczy plik → aktywności posortowane po dacie.
  * Rozszerzenia: `.fit .tcx .gpx` i ich warianty `.gz`, bez względu na wielkość liter.
  * W katalogu inne pliki są ignorowane; wskazany wprost plik o innym
  * rozszerzeniu trafia do `skipped` jako `unsupported`.
  * Rzuca błąd systemu plików (np. `ENOENT`), gdy samej ścieżki nie ma.
  */
-const DUPLICATE_WINDOW_MS = 60_000
-
 export function scanActivityFiles(path: string): ScanResult {
   const skipped: SkippedFile[] = []
   const candidates: string[] = []
@@ -177,7 +186,7 @@ export function scanActivityFiles(path: string): ScanResult {
   }
 
   const seen = new Set<string>()
-  const found: { parsed: ParsedActivity; activity: SyncedActivity; format: string }[] = []
+  const found: { parsed: ParsedActivity; activity: SyncedActivity; format: string; file: string }[] = []
   for (const file of candidates) {
     const kind = activityFileKind(basename(file))
     if (!kind) continue
@@ -188,29 +197,40 @@ export function scanActivityFiles(path: string): ScanResult {
     }
     if (seen.has(outcome.externalId)) continue
     seen.add(outcome.externalId)
-    found.push({ parsed: outcome.parsed, activity: toSynced(outcome.parsed, outcome.externalId, kind.stem), format: kind.format })
+    found.push({ parsed: outcome.parsed, activity: toSynced(outcome.parsed, outcome.externalId, kind.stem), format: kind.format, file })
   }
 
-  // Ten sam bieg w dwóch formatach (eksport Garmina .fit i Stravy .gpx) ma inne
-  // bajty, ale ten sam start. Ten sam rodzaj i start w ±60 s = duplikat; zostaje
-  // plik najbogatszy w dane (FIT > TCX > GPX). 60 s to wartość inżynierska —
-  // znaczniki czasu formatów różnią się zaokrągleniem, dwa różne biegi nie.
-  const rank: Record<string, number> = { fit: 0, tcx: 1, gpx: 2 }
-  const byRichness = [...found].sort((a, b) => (rank[a.format] ?? 9) - (rank[b.format] ?? 9))
-  const unique: typeof found = []
-  for (const f of byRichness) {
-    const start = Date.parse(f.parsed.startTime)
-    const twin = unique.some((u) => u.parsed.type === f.parsed.type && Math.abs(Date.parse(u.parsed.startTime) - start) <= DUPLICATE_WINDOW_MS)
-    if (!twin) unique.push(f)
+  // duplikaty między formatami: po starcie w czasie, z przesuwanym oknem — O(n log n)
+  const timed = found
+    .map((f) => ({ ...f, at: Date.parse(f.parsed.startTime) }))
+    .sort((a, b) => a.at - b.at || (FORMAT_RANK[a.format] ?? 9) - (FORMAT_RANK[b.format] ?? 9))
+  const kept: typeof timed = []
+  for (const f of timed) {
+    let twin = -1
+    for (let k = kept.length - 1; k >= 0 && f.at - kept[k]!.at <= DUPLICATE_WINDOW_MS; k--) {
+      if (sameFamily(kept[k]!.parsed.type, f.parsed.type)) {
+        twin = k
+        break
+      }
+    }
+    if (twin === -1) {
+      kept.push(f)
+      continue
+    }
+    // zostaje bogatszy format; drugi plik jest wymieniony w pominiętych, nie znika po cichu
+    if ((FORMAT_RANK[f.format] ?? 9) < (FORMAT_RANK[kept[twin]!.format] ?? 9)) {
+      skipped.push({ file: kept[twin]!.file, reason: 'duplicate' })
+      kept[twin] = f
+    } else {
+      skipped.push({ file: f.file, reason: 'duplicate' })
+    }
   }
-  found.length = 0
-  found.push(...unique)
 
-  found.sort(
+  kept.sort(
     (a, b) =>
       compare(a.activity.date, b.activity.date) ||
       compare(a.parsed.startTime, b.parsed.startTime) ||
       compare(a.activity.externalId, b.activity.externalId),
   )
-  return { activities: found.map((f) => f.activity), skipped }
+  return { activities: kept.map((f) => f.activity), skipped }
 }

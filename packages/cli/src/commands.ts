@@ -39,7 +39,8 @@ import {
   fmtTime,
   loadPlan,
   loadPlanFile,
-  loadPlanIfUsable,
+  planEnd,
+  readExistingPlan,
   readPlanDocument,
   shiftWorkout,
   workoutText,
@@ -293,7 +294,12 @@ export function cmdInit(cwd: string, content?: string, opts: { commit?: CommitOp
   const result = initImpl(cwd, content, opts.agent as AgentChoice | undefined)
   // tylko pliki, które init faktycznie zapisał — cudze zmiany w AGENTS.md czy
   // .gitignore nie trafiają do commita „trainctl init"
-  return withCommit(result, cwd, opts.commit, (result.data?.['written'] as string[] | undefined) ?? [], ui().commit.init)
+  const committed = withCommit(result, cwd, opts.commit, (result.data?.['written'] as string[] | undefined) ?? [], ui().commit.init)
+  if (opts.commit && result.data?.['gitignoreAppended'] && committed.blocks) {
+    const blocks = [...committed.blocks, b.info(ui().init.gitignoreNotCommitted)]
+    return { ...committed, blocks, output: renderPlain(blocks) }
+  }
+  return committed
 }
 
 /**
@@ -314,6 +320,9 @@ function initImpl(cwd: string, content: string | undefined, agent: AgentChoice |
   try {
     writeConfigTemplate(cwd, content)
     const agents = writeAgentsFile(cwd)
+    // .gitignore zapisany od zera trafia do commita; dopisany do istniejącego — nie,
+    // bo `git add` wziąłby z nim cudze, niezacommitowane zmiany
+    const hadGitignore = existsSync(join(cwd, '.gitignore'))
     const ignored = protectSecrets(cwd)
     const integration = agentBlocks(cwd, agent)
     return okDoc([
@@ -329,7 +338,8 @@ function initImpl(cwd: string, content: string | undefined, agent: AgentChoice |
       b.hint(ui().common.nextStep('trainctl plan')),
     ], {
       agentFiles: integration.files,
-      written: [CONFIG_FILE, ...(agents ? [AGENTS_FILE] : []), ...(ignored.length ? ['.gitignore'] : []), ...integration.files],
+      written: [CONFIG_FILE, ...(agents ? [AGENTS_FILE] : []), ...(ignored.length && !hadGitignore ? ['.gitignore'] : []), ...integration.files],
+      gitignoreAppended: ignored.length > 0 && hadGitignore,
     })
   } catch (e) {
     return fail(e)
@@ -348,7 +358,9 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
     const config = loadConfig(cwd)
     // Istniejący plan regenerujemy z ochroną przeszłości i zatwierdzonych decyzji
     // (ADR-033); od zera wyłącznie na jawne --fresh albo gdy pliku nie da się użyć.
-    const existing = loadPlanIfUsable(cwd, { allowNewerSchema: opts.fresh === true })
+    const found = readExistingPlan(cwd)
+    if (found.status === 'unreadable' && opts.fresh !== true) throw new Error(ui().plan.unreadable(PLAN_YAML, ui().plan.unreadableReason[found.reason]))
+    const existing = found.status === 'ok' ? found.plan : undefined
     const rebuild = existing && opts.fresh !== true
       ? rebuildPlan(existing, config, { today, recorded: recordedDates(cwd) })
       : undefined
@@ -422,6 +434,7 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
       const dropped = freshDropped(existing)
       if (dropped) blocks.push(b.blank(), b.warn(ui().plan.freshDropped(dropped)))
     }
+    if (found.status === 'unreadable') blocks.push(b.blank(), b.warn(ui().plan.overwroteUnreadable(PLAN_YAML)))
 
     if (plan.feasibilityWarnings.length) {
       blocks.push(b.blank())
@@ -1860,9 +1873,6 @@ function strengthRow(plan: StoredPlan, entries: StrengthLogEntry[], from: string
   const skipped = [...latest.values()].filter((e) => e.status === 'skipped').length
   return [[ui().review.strength, ui().review.strengthValue(done, planned, skipped)]]
 }
-
-/** Ostatni dzień planu — po starcie plan trwa dalej blokiem przejściowym (R-8). */
-const planEnd = (plan: StoredPlan): string => plan.weeks.at(-1)?.days.at(-1)?.date ?? plan.goal.date
 
 /** „N dni do startu", „N dni po starcie" albo koniec planu bazowego (P-11). */
 function raceDistanceLine(plan: StoredPlan, toRace: number): string {

@@ -149,6 +149,7 @@ export const cliEn = {
     agentCodexNext: 'Codex: trust this project; it reads AGENTS.md and starts the trainctl MCP server from .codex/config.toml.',
     agentQuestion: 'Which agent do you use here?',
     agentNone: 'none / later',
+    gitignoreNotCommitted: '.gitignore already existed, so it was not committed — review and commit it yourself.',
   },
 
   plan: {
@@ -194,6 +195,10 @@ export const cliEn = {
     droppedWeeks: (weeks: string) => `Weeks no longer in the plan: ${weeks} (the previous version is in git).`,
     moreLines: (count: number) => `… and ${count} more — trainctl diff lists every difference.`,
     upToDate: 'Plan is current — trainctl.yaml produces the same future days; nothing written.',
+    unreadable: (file: string, reason: string) =>
+      `${file} cannot be used (${reason}) — fix it (a merge conflict?) or run trainctl plan --fresh to start over; the previous version is in git.`,
+    unreadableReason: { parse: 'not valid YAML', shape: 'no goal or weeks', schema: 'a newer plan schema' },
+    overwroteUnreadable: (file: string) => `The previous ${file} could not be used and was replaced — it is in git if you need it.`,
     freshDropped: (items: string) => `Regenerated from scratch (--fresh), discarding: ${items}. The previous plan is in git.`,
     freshItems: {
       loadState: (km: number) => `the approved baseline (${n(km)} km/week)`,
@@ -329,7 +334,7 @@ export const cliEn = {
     filesLabel: (path: string) => `activity files (${path})`,
     filesMissing: (path: string) => `No activity export at ${path} — point --from (or sync.files in trainctl.yaml) at a folder of FIT, TCX or GPX files.`,
     filesSkipped: (count: number, sample: string) =>
-      `${count} ${pluralEn(count, { one: 'file was', other: 'files were' })} skipped (not an activity, unreadable or unsupported): ${sample}`,
+      `${count} ${pluralEn(count, { one: 'file was', other: 'files were' })} skipped (duplicate, not an activity, unreadable or unsupported): ${sample}`,
     activities: 'Activities',
     activitiesValue: (total: number, runs: number, km: number) =>
       `${total} (running: ${runs}, ${n(km)} km)`,

@@ -7,6 +7,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { FileActivitySource } from 'trainctl-sync-files'
 import { readSyncFiles } from './config.ts'
+import { cameFromEnvFile } from './env-file.ts'
 import { addDays, type ActivitySource, type PushableWorkout, type SyncProvider, type SyncedActivity, type SyncedWellness } from 'trainctl-core'
 import { IntervalsIcuProvider, toPushableRace, toPushableStrength, toPushableWorkout } from 'trainctl-sync-intervalsicu'
 import { buildExecution } from './execution.ts'
@@ -34,6 +35,18 @@ export function readApiKey(cwd: string): string {
     if (key) return key
   }
   throw new Error(ui().sync.missingKey(SECRET_FILE))
+}
+
+export const API_KEY_ENV = 'TRAINCTL_INTERVALS_API_KEY'
+
+/**
+ * Skąd przyjdzie klucz — ta sama kolejność co `readApiKey` (zmienna środowiskowa,
+ * także z `.env`, potem niepusty `.trainctl-secret`). Wartości nigdy nie zwraca.
+ */
+export function apiKeySource(cwd: string): 'environment' | '.env' | '.trainctl-secret' | undefined {
+  if (process.env[API_KEY_ENV]?.trim()) return cameFromEnvFile(cwd, API_KEY_ENV) ? '.env' : 'environment'
+  const path = join(cwd, SECRET_FILE)
+  return existsSync(path) && readFileSync(path, 'utf-8').trim() ? '.trainctl-secret' : undefined
 }
 
 /** Czy klucz jest osiągalny — bez rzucania (kreator pyta o pobranie historii tylko wtedy). */

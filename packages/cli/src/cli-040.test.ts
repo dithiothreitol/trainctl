@@ -126,9 +126,23 @@ describe('binarka: --json, -C, TRAINCTL_TODAY, daty względne, kody wyjścia', (
   }, 30_000)
 })
 
+/** Zmienna klucza na czas testu — z przywróceniem wartości, którą miał programista. */
+function withKeyEnv(value: string | undefined, fn: () => void): void {
+  const previous = process.env['TRAINCTL_INTERVALS_API_KEY']
+  if (value === undefined) delete process.env['TRAINCTL_INTERVALS_API_KEY']
+  else process.env['TRAINCTL_INTERVALS_API_KEY'] = value
+  try {
+    fn()
+  } finally {
+    if (previous === undefined) delete process.env['TRAINCTL_INTERVALS_API_KEY']
+    else process.env['TRAINCTL_INTERVALS_API_KEY'] = previous
+  }
+}
+
 describe('status', () => {
   it('pusty katalog: profil jest, planu nie ma — podpowiada plan', () => {
-    const r = cmdStatus(dir)
+    let r = cmdStatus(dir)
+    withKeyEnv(undefined, () => { r = cmdStatus(dir) })
     expect(r.code).toBe(0)
     expect(r.output).toContain('No plan yet.')
     expect(r.output).toContain('next: trainctl plan')
@@ -146,27 +160,23 @@ describe('status', () => {
   it('nigdy nie ujawnia wartości klucza z .env', () => {
     writeFileSync(join(dir, '.env'), 'TRAINCTL_INTERVALS_API_KEY=super-secret-value\n', 'utf-8')
     // bin.ts wczytuje .env do środowiska przed komendą — tu robimy to samo
-    process.env['TRAINCTL_INTERVALS_API_KEY'] = 'super-secret-value'
-    try {
+    withKeyEnv('super-secret-value', () => {
       const r = cmdStatus(dir)
       expect(r.output).not.toContain('super-secret-value')
       expect(JSON.stringify(r.data)).not.toContain('super-secret-value')
       expect(r.data).toMatchObject({ key: { source: '.env' } })
-    } finally {
-      delete process.env['TRAINCTL_INTERVALS_API_KEY']
-    }
+    })
   })
   it('źródło klucza w tej samej kolejności co push: zmienna przed plikiem, pusty plik to brak klucza', () => {
-    writeFileSync(join(dir, '.trainctl-secret'), '   \n', 'utf-8')
-    expect(cmdStatus(dir).data).toMatchObject({ key: { source: null } })
-    writeFileSync(join(dir, '.trainctl-secret'), 'abc', 'utf-8')
-    expect(cmdStatus(dir).data).toMatchObject({ key: { source: '.trainctl-secret' } })
-    process.env['TRAINCTL_INTERVALS_API_KEY'] = 'from-env'
-    try {
+    withKeyEnv(undefined, () => {
+      writeFileSync(join(dir, '.trainctl-secret'), '   \n', 'utf-8')
+      expect(cmdStatus(dir).data).toMatchObject({ key: { source: null } })
+      writeFileSync(join(dir, '.trainctl-secret'), 'abc', 'utf-8')
+      expect(cmdStatus(dir).data).toMatchObject({ key: { source: '.trainctl-secret' } })
+    })
+    withKeyEnv('from-env', () => {
       expect(cmdStatus(dir).data).toMatchObject({ key: { source: 'environment variable' } })
-    } finally {
-      delete process.env['TRAINCTL_INTERVALS_API_KEY']
-    }
+    })
   })
   it('połamany log.jsonl: status mówi, co jest nie tak, zamiast rzucać wyjątkiem', () => {
     cmdPlan(dir, { date: '2026-08-08' })
