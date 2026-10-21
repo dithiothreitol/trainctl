@@ -185,3 +185,21 @@ describe('scanActivityFiles: pojedynczy plik', () => {
     expect(() => scanActivityFiles(join(dir, 'nie-ma-mnie'))).toThrow(/ENOENT/)
   })
 })
+
+describe('ten sam bieg w dwóch formatach', () => {
+  it('FIT i GPX z tym samym startem liczą się raz — zostaje FIT, bogatszy w dane', () => {
+    const twinDir = mkdtempSync(join(tmpdir(), 'trainctl-sync-files-twin-'))
+    try {
+      // GPX tego samego biegu co RUN_FIT: start 05:00Z, ~10 km na północ, punkt co 10 s
+      const points = Array.from({ length: 301 }, (_, i) =>
+        `<trkpt lat="${(52 + (10.0 / 111.195) * (i / 300)).toFixed(6)}" lon="21"><time>${new Date(Date.parse('2026-09-14T05:00:00Z') + i * 10_000).toISOString()}</time></trkpt>`)
+      writeFileSync(join(twinDir, 'strava.gpx'), `<?xml version="1.0"?><gpx version="1.1"><trk><type>running</type><trkseg>${points.join('')}</trkseg></trk></gpx>`)
+      writeFileSync(join(twinDir, 'garmin.fit'), RUN_FIT)
+      const scan = scanActivityFiles(twinDir)
+      expect(scan.activities).toHaveLength(1)
+      expect(scan.activities[0]!.name).toBe('garmin')
+    } finally {
+      rmSync(twinDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    }
+  })
+})

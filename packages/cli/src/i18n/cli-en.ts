@@ -1000,6 +1000,8 @@ export const cliEn = {
     'F-12': 'strength twice a week in the base, 0–1 a week in the competition period (Haugen 2022)',
     'F-14': 'one strength session a week keeps the gains of a block (Rønnestad 2010 — data from cyclists, an extrapolation)',
     'F-18': 'the first two weeks of a strength block learn the movement at ~75% 1RM before the heavy weeks — an engineering choice, no source',
+    'R-1': 'after a marathon, 48 h without running, then light running — 40 min easy at 48/96/144 h (Martínez-Navarro 2021)',
+    'R-2': 'running again 48 h after a marathon does not slow recovery (Martínez-Navarro 2021)',
     'R-8': 'after a race of half marathon or longer, two transition weeks: ~50% of the pre-race volume easy only, then ~100% with one accent (coaching corpus, n=3; Martínez-Navarro 2021)',
     'R-9': 'strength returns in the second week after the race, one lighter session — an engineering choice, no source',
     'R-10': 'after a shorter goal race, one transition week at ~70% — an engineering choice; no data behind it',

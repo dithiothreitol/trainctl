@@ -66,6 +66,26 @@ describe('po starcie: blok przejściowy w planie i w tym, co widać', () => {
     expect(today.output).toMatch(/\d+ days? after the race/)
     expect(cmdWhy(dir, { date: day.date }).output).toContain('Goal behind you')
   })
+  it('poza zakresem planu: koniec zakresu to koniec bloku przejściowego, nie dzień startu', () => {
+    write(RACE)
+    cmdPlan(dir, { date: '2026-08-08' })
+    expect(cmdToday(dir, { date: '2027-01-20' }).output).toContain('2026-08-03 → 2026-12-13')
+  })
+  it('w dniu startu nowy cel tego samego dystansu otwiera nowy cykl, nie rozciąga starego', () => {
+    write(RACE)
+    cmdPlan(dir, { date: '2026-08-08' })
+    process.env['TRAINCTL_TODAY'] = '2026-11-29'
+    write(RACE.replace('2026-11-29', '2027-04-11'))
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(r.data).toMatchObject({ regeneration: { mode: 'new-cycle' } })
+  })
+  it('w dniu startu ten sam cel to nadal ten sam cykl', () => {
+    write(RACE)
+    cmdPlan(dir, { date: '2026-08-08' })
+    process.env['TRAINCTL_TODAY'] = '2026-11-29'
+    expect(cmdPlan(dir).data).toMatchObject({ regeneration: { mode: 'same-cycle' } })
+  })
   it('nowy cel w trakcie bloku: nowy cykl zaczyna się PO bloku przejściowym, historia zostaje', () => {
     write(RACE)
     cmdPlan(dir, { date: '2026-08-08' })

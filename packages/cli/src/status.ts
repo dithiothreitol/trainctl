@@ -6,7 +6,7 @@
  * plan, skąd jest klucz i czy `.env` jest chroniony, kiedy był ostatni pull,
  * które propozycje są jeszcze ważne i co nie trafiło do gita.
  */
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { diffDays, messages, mondayOf } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig, readConfigLanguage } from './config.ts'
@@ -32,6 +32,18 @@ export interface StatusResult {
 }
 
 export function cmdStatus(cwd: string): StatusResult {
+  try {
+    return statusImpl(cwd)
+  } catch (e) {
+    // status jest diagnostyką — połamany log.jsonl czy zła data symulacji to
+    // wiadomość, nie stack trace
+    const message = e instanceof Error ? e.message : String(e)
+    const blocks: Block[] = [b.error(message)]
+    return { output: renderPlain(blocks), code: 1, blocks, data: { error: message } }
+  }
+}
+
+function statusImpl(cwd: string): StatusResult {
   const t = ui().status
   const today = clockToday()
   const blocks: Block[] = [b.title(t.title, cwd)]
@@ -88,9 +100,11 @@ export function cmdStatus(cwd: string): StatusResult {
 
   // dane: klucz, synchronizacja, dziennik
   const env = inspectEnvFile(cwd, KEY_ENV)
-  const keySource = existsSync(join(cwd, SECRET_FILE))
-    ? SECRET_FILE
-    : env.hasKey ? ENV_FILE : process.env[KEY_ENV]?.trim() ? t.keyFromEnv : undefined
+  // ta sama kolejność co readApiKey: zmienna środowiskowa (także z .env), potem niepusty plik
+  const secretPath = join(cwd, SECRET_FILE)
+  const keySource = process.env[KEY_ENV]?.trim()
+    ? env.hasKey ? ENV_FILE : t.keyFromEnv
+    : existsSync(secretPath) && readFileSync(secretPath, 'utf-8').trim() ? SECRET_FILE : undefined
   const snapshot = readSnapshot(cwd)
   const logs = readLog(cwd)
   const last = logs.at(-1)
@@ -125,7 +139,7 @@ export function cmdStatus(cwd: string): StatusResult {
   // git
   const dirty = uncommitted(cwd, [CONFIG_FILE, PLAN_DIR, LOG_FILE, 'AGENTS.md'])
   blocks.push(b.section(t.git), b.text(dirty === undefined ? t.noGit : dirty.length ? t.dirty(dirty.join(', ')) : t.clean))
-  if (dirty?.length) next.push('git add -A && git commit')
+  if (dirty?.length) next.push(`git add ${dirty.join(' ')} && git commit`)
 
   if (next.length) blocks.push(b.blank(), b.hint(t.next(next.join(' · '))))
   return {

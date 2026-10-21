@@ -236,6 +236,14 @@ describe('push treningów', () => {
     expect(bodies(calls).map((b) => b[0]!['category'])).toEqual(['WORKOUT', 'RACE_A', 'WORKOUT', 'WORKOUT'])
   })
 
+  it('start odrzucony w obu postaciach: ostrzeżenie mówi, że go nie ma — nie że jest zwykłym wpisem', async () => {
+    const { provider: p } = provider((_url, init) => (String(init?.body ?? '').includes('START') ? { status: 422, body: {} } : { body: {} }))
+    const res = await p.pushWorkouts([workout, race])
+    expect(res.externalIds).toEqual(['trainctl-2026-08-04'])
+    expect(res.warnings).toHaveLength(1)
+    expect(res.warnings![0]).toMatch(/nie ma ich w kalendarzu|not in the calendar/)
+  })
+
   it('błąd pushu treningów biegowych nadal jest błędem', async () => {
     const { provider: p } = provider(() => ({ status: 500, body: {} }))
     await expect(p.pushWorkouts([workout, race])).rejects.toThrow()

@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { estimateWorkoutMinutes, setLocale, validatePlan } from 'trainctl-core'
-import { cmdLog, cmdPlan, cmdReview, cmdToday, cmdWhy } from './commands.ts'
-import { loadPlan, type StoredPlan } from './planfile.ts'
+import { cmdCheck, cmdLog, cmdPlan, cmdReview, cmdToday, cmdWhy } from './commands.ts'
+import { loadPlan, writePlan, PLAN_YAML, type StoredPlan } from './planfile.ts'
 import { readLog, readStrengthLog } from './logfile.ts'
 
 setLocale('en')
@@ -59,6 +59,27 @@ describe('E-2 · budżet czasu z profilu', () => {
     }
     expect(cmdWhy(dir, { date: adjusted[0]!.date }).output).toMatch(/45 min/)
   })
+  it('świeży plan z budżetem dnia nie łamie własnego lintu (P-3) nawet w --strict', () => {
+    plan(`${BASE}time:\n  weekendMinutes: 90\n  weekdayMinutes: 60\n`)
+    expect(validatePlan(loadPlan(dir)).filter((i) => i.code === 'targetKmMismatch')).toEqual([])
+    expect(cmdCheck(dir).output).not.toContain('P-3')
+  })
+  it('hojny budżet niczego nie obcina — bez fałszywego ostrzeżenia o czasie', () => {
+    const p = plan(`${BASE}time:\n  weeklyMinutes: 2000\n  weekendMinutes: 600\n`)
+    expect(p.feasibilityWarnings.join(' ')).not.toContain('time budget caps')
+  })
+  it('regeneracja po zatwierdzonej bazie nadal trzyma budżet dnia (E-2)', () => {
+    plan(`${BASE}time:\n  weekdayMinutes: 50\n`)
+    const stored = loadPlan(dir)
+    stored.loadState = { baselineWeeklyKm: 45, effectiveFrom: '2026-08-08', profileWeeklyKm: 55 }
+    writePlan(dir, stored)
+    expect(cmdPlan(dir, { date: '2026-08-08' }).code).toBe(0)
+    const after = loadPlan(dir)
+    for (const d of after.weeks.flatMap((w) => w.days)) {
+      if (!d.workout || ['sat', 'sun'].includes(d.weekday) || ['race', 'test'].includes(d.workout.kind)) continue
+      expect(estimateWorkoutMinutes(d.workout, 15) + (d.strength?.durationMin ?? 0), d.date).toBeLessThanOrEqual(50)
+    }
+  })
   it('zła wartość budżetu: czytelny błąd profilu', () => {
     writeFileSync(join(dir, 'trainctl.yaml'), `${BASE}time:\n  weeklyMinutes: 5\n`, 'utf-8')
     const r = cmdPlan(dir, { date: '2026-08-08' })
@@ -98,6 +119,23 @@ describe('siła: warianty i dziennik', () => {
     expect(cmdLog(dir, { date: '2026-08-11', strength: 'done', km: '5' }).output).toContain('only --minutes and --note')
     expect(cmdLog(dir, { date: '2026-08-11', strength: 'maybe' }).code).toBe(1)
     expect(cmdLog(dir, { date: '2026-08-11', strength: 'done', minutes: '0' }).code).toBe(1)
+  })
+})
+
+describe('plan.yaml, którego nie da się użyć', () => {
+  it('znaczniki konfliktu w pliku: plan liczy od zera zamiast rzucać błędem YAML (także z --fresh)', () => {
+    plan(BASE)
+    writeFileSync(join(dir, PLAN_YAML), '<<<<<<< HEAD\nweeks: [\n=======\n>>>>>>> other\n', 'utf-8')
+    expect(cmdPlan(dir, { date: '2026-08-08', fresh: true }).code).toBe(0)
+    writeFileSync(join(dir, PLAN_YAML), '<<<<<<< HEAD\nweeks: [\n', 'utf-8')
+    expect(cmdPlan(dir, { date: '2026-08-08' }).code).toBe(0)
+  })
+  it('nowszy schemat: bez --fresh odmowa, z --fresh świadome nadpisanie', () => {
+    plan(BASE)
+    const raw = readFileSync(join(dir, PLAN_YAML), 'utf-8').replace('schemaVersion: 1', 'schemaVersion: 9')
+    writeFileSync(join(dir, PLAN_YAML), raw, 'utf-8')
+    expect(cmdPlan(dir, { date: '2026-08-08' }).code).toBe(1)
+    expect(cmdPlan(dir, { date: '2026-08-08', fresh: true }).code).toBe(0)
   })
 })
 

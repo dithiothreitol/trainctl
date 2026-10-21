@@ -105,9 +105,9 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     return week
   })
   if (config.strength?.enabled) applyStrength(weeks, config.strength)
-  const timeWarnings = config.time
+  const budget = config.time
     ? fitTimeBudget(weeks, config, zones, testDistanceKm(goal))
-    : []
+    : { warnings: [], capped: false }
   const plan: StoredPlan = {
     schemaVersion: PLAN_SCHEMA_VERSION,
     engineVersion: packageVersion(),
@@ -119,13 +119,14 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     goal,
     peakKmPlanned: macro.peakKmPlanned,
     peakKmRecommended: macro.peakKmRecommended,
-    feasibilityWarnings: [...macro.feasibilityWarnings, ...timeWarnings],
+    feasibilityWarnings: [...macro.feasibilityWarnings, ...budget.warnings],
     changes: [],
     weeks,
   }
   if (config.time) {
     plan.peakKmPlanned = Math.max(...weeks.map((w) => w.totalKm))
-    if (plan.peakKmPlanned < macro.peakKmRecommended) {
+    // ostrzeżenie tylko wtedy, gdy to budżet obniżył szczyt — nie przy każdej sekcji `time`
+    if (budget.capped && plan.peakKmPlanned < macro.peakKmRecommended && plan.peakKmPlanned < macro.peakKmPlanned) {
       plan.feasibilityWarnings.push(ui().planMd.timeCapsVolume(plan.peakKmPlanned, macro.peakKmRecommended))
     }
   }
@@ -164,28 +165,35 @@ const isWeekend = (wd: string) => wd === 'sat' || wd === 'sun'
  *     (E-1), z jawnym `timeAdjustment` i utratą celu, gdy wariant jej wymaga.
  * Starty i sprawdziany nie są skracane; co się nie mieści, zostaje ostrzeżeniem.
  */
-function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: ReturnType<typeof paceZones>, testKm: number): string[] {
+export function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: ReturnType<typeof paceZones>, testKm: number): { warnings: string[]; capped: boolean } {
   const time = config.time!
   const minutesOf = (d: PlannedDay) =>
     (d.workout ? estimateWorkoutMinutes(d.workout, PREPARATION_MINUTES) : 0) + (d.strength?.durationMin ?? 0)
+  const runMinutes = (w: Microcycle) => w.days.reduce((s, d) => s + (d.workout ? estimateWorkoutMinutes(d.workout, PREPARATION_MINUTES) : 0), 0)
   const weekMinutes = (w: Microcycle) => w.days.reduce((s, d) => s + (d.workout || d.strength ? minutesOf(d) : 0), 0)
   const easyMinPerKm = zones.easy.hiSecPerKm / 60
+  let capped = false
   if (time.weeklyMinutes) {
     for (let i = 0; i < weeks.length; i++) {
+      // Siła wraca dopiero po pętli (applyStrength) — jej minuty liczymy z tygodnia
+      // przed regeneracją, inaczej kolejny przebieg uznałby tydzień za zmieszczony.
+      const strengthMinutes = weeks[i]!.days.reduce((s, d) => s + (d.strength?.durationMin ?? 0), 0)
       for (let pass = 0; pass < 4; pass++) {
         const week = weeks[i]!
         if (week.skeleton.raceDate) break
-        const minutes = weekMinutes(week)
+        const minutes = runMinutes(week) + strengthMinutes
         if (minutes <= time.weeklyMinutes) break
         const target = Math.max(5, Math.floor(week.skeleton.targetKm - (minutes - time.weeklyMinutes) / easyMinPerKm))
         if (target >= week.skeleton.targetKm) break
         weeks[i] = generateMicrocycle({ skeleton: { ...week.skeleton, targetKm: target }, athlete: config.athlete, zones, goal: config.goal, testDistanceKm: testKm })
+        capped = true
       }
     }
-    if (config.strength?.enabled) applyStrength(weeks, config.strength)
+    if (capped && config.strength?.enabled) applyStrength(weeks, config.strength)
   }
   const tooLong: string[] = []
   for (const week of weeks) {
+    let shortened = false
     for (const day of week.days) {
       const cap = isWeekend(day.weekday) ? time.weekendMinutes : time.weekdayMinutes
       if (cap === undefined || !day.workout || minutesOf(day) <= cap) continue
@@ -197,17 +205,27 @@ function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: Retur
       if (result.workout && (result.status === 'shortened' || result.status === 'easy-alternative')) {
         day.timeAdjustment = { originalKind: day.workout.kind, originalDistanceKm: day.workout.distanceKm, budgetMinutes: cap, status: result.status, origin: 'profile' }
         day.workout = result.workout
+        shortened = true
       } else {
         tooLong.push(day.date)
       }
     }
     Object.assign(week, weekTotals(week.days))
+    // Cel tygodnia idzie za skróconymi dniami: to profil go obniżył, nie odstępstwo
+    // od planu — inaczej lint zgłaszałby P-3 na świeżo wygenerowanym planie.
+    if (shortened) {
+      week.skeleton = { ...week.skeleton, targetKm: Math.round(week.totalKm) }
+      capped = true
+    }
   }
   const overWeek = time.weeklyMinutes ? weeks.filter((w) => !w.skeleton.raceDate && weekMinutes(w) > time.weeklyMinutes!).map((w) => w.weekStart) : []
-  return [
-    ...(tooLong.length ? [ui().planMd.timeDayTooShort(tooLong.join(', '))] : []),
-    ...(overWeek.length ? [ui().planMd.timeWeekOver(overWeek.join(', '))] : []),
-  ]
+  return {
+    capped,
+    warnings: [
+      ...(tooLong.length ? [ui().planMd.timeDayTooShort(tooLong.join(', '))] : []),
+      ...(overWeek.length ? [ui().planMd.timeWeekOver(overWeek.join(', '))] : []),
+    ],
+  }
 }
 
 /**
@@ -297,12 +315,26 @@ export function loadPlanFile(path: string): StoredPlan {
   return doc
 }
 
-/** Plik planu, jeśli da się go użyć; połamany albo brakujący = undefined, nowszy schemat = błąd. */
-export function loadPlanIfUsable(cwd: string): StoredPlan | undefined {
+/**
+ * Plik planu, jeśli da się go użyć. Brakujący, niesparsowalny (np. znaczniki
+ * konfliktu merge'a) albo bez celu i tygodni = undefined — `plan` liczy wtedy
+ * od zera, jak przed 0.4.0. Nowszy schemat = błąd, chyba że `allowNewerSchema`
+ * (jawne `--fresh`): starsza wersja nie nadpisze po cichu pliku, którego nie rozumie.
+ */
+export function loadPlanIfUsable(cwd: string, opts: { allowNewerSchema?: boolean } = {}): StoredPlan | undefined {
   if (!existsSync(join(cwd, PLAN_YAML))) return undefined
-  const doc = parse(readFileSync(join(cwd, PLAN_YAML), 'utf-8'))
+  let doc: unknown
+  try {
+    doc = parse(readFileSync(join(cwd, PLAN_YAML), 'utf-8'))
+  } catch {
+    return undefined
+  }
   if (!looksLikePlan(doc)) return undefined
-  return loadPlan(cwd)
+  if (typeof doc.schemaVersion === 'number' && doc.schemaVersion > PLAN_SCHEMA_VERSION) {
+    if (opts.allowNewerSchema) return undefined
+    throw new Error(ui().common.planSchemaNewer(PLAN_YAML, doc.schemaVersion))
+  }
+  return doc
 }
 
 /** Tygodnie bieżącego cyklu — bez historii poprzedniego, która została w pliku. */

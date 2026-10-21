@@ -163,6 +163,8 @@ function toSynced(parsed: ParsedActivity, externalId: string, fallbackName: stri
  * rozszerzeniu trafia do `skipped` jako `unsupported`.
  * Rzuca błąd systemu plików (np. `ENOENT`), gdy samej ścieżki nie ma.
  */
+const DUPLICATE_WINDOW_MS = 60_000
+
 export function scanActivityFiles(path: string): ScanResult {
   const skipped: SkippedFile[] = []
   const candidates: string[] = []
@@ -175,7 +177,7 @@ export function scanActivityFiles(path: string): ScanResult {
   }
 
   const seen = new Set<string>()
-  const found: { parsed: ParsedActivity; activity: SyncedActivity }[] = []
+  const found: { parsed: ParsedActivity; activity: SyncedActivity; format: string }[] = []
   for (const file of candidates) {
     const kind = activityFileKind(basename(file))
     if (!kind) continue
@@ -186,8 +188,23 @@ export function scanActivityFiles(path: string): ScanResult {
     }
     if (seen.has(outcome.externalId)) continue
     seen.add(outcome.externalId)
-    found.push({ parsed: outcome.parsed, activity: toSynced(outcome.parsed, outcome.externalId, kind.stem) })
+    found.push({ parsed: outcome.parsed, activity: toSynced(outcome.parsed, outcome.externalId, kind.stem), format: kind.format })
   }
+
+  // Ten sam bieg w dwóch formatach (eksport Garmina .fit i Stravy .gpx) ma inne
+  // bajty, ale ten sam start. Ten sam rodzaj i start w ±60 s = duplikat; zostaje
+  // plik najbogatszy w dane (FIT > TCX > GPX). 60 s to wartość inżynierska —
+  // znaczniki czasu formatów różnią się zaokrągleniem, dwa różne biegi nie.
+  const rank: Record<string, number> = { fit: 0, tcx: 1, gpx: 2 }
+  const byRichness = [...found].sort((a, b) => (rank[a.format] ?? 9) - (rank[b.format] ?? 9))
+  const unique: typeof found = []
+  for (const f of byRichness) {
+    const start = Date.parse(f.parsed.startTime)
+    const twin = unique.some((u) => u.parsed.type === f.parsed.type && Math.abs(Date.parse(u.parsed.startTime) - start) <= DUPLICATE_WINDOW_MS)
+    if (!twin) unique.push(f)
+  }
+  found.length = 0
+  found.push(...unique)
 
   found.sort(
     (a, b) =>

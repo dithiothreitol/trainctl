@@ -128,6 +128,7 @@ export const coreEn = {
   },
 
   syncNotice: {
+    raceRejected: (dates: string) => `intervals.icu did not accept the races (${dates}) in any form; they are not in the calendar.`,
     strengthRejected: (dates: string) => `intervals.icu did not accept the strength sessions (${dates}); the running sessions are pushed.`,
     raceFallback: (dates: string) => `intervals.icu did not accept race events (${dates}); they were pushed as ordinary calendar entries.`,
   },

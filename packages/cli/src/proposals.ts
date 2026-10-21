@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { estimateWorkoutMinutes, validatePlan, weekTotals, withLocale, generateMicrocycle, paceZones, recalibrateWorkout, testDistanceKm, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
 import { readLog, LOG_FILE } from './logfile.ts'
-import { computePlan, dayFingerprint, loadPlan, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
+import { computePlan, cycleWeeksOf, dayFingerprint, fitTimeBudget, loadPlan, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
 import { isRunningActivity } from './execution.ts'
@@ -80,7 +80,7 @@ export function prepareShortening(cwd: string, date: string, minutes: number): {
   plan.timeBudgets = { ...plan.timeBudgets, [date]: budget }
   // Keep the generation fingerprint: an approved exception must survive adaptation.
   Object.assign(week!, weekTotals(week!.days))
-  plan.peakKmPlanned = Math.max(...plan.weeks.map(w => w.totalKm))
+  plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map(w => w.totalKm))
   plan.changes.push({ at: calendarToday(), action: 'shorten', detail: `${date}: ${before.workout!.distanceKm} → ${day.workout.distanceKm} km; ${budget} min; ${adjustment.status}` })
   const proposal = saveProposal(cwd, { schemaVersion: 1, kind: 'shorten', preparedOn: calendarToday(), createdFor: date, baseHash,
     adjustment, vdotBefore: plan.vdot, plan,
@@ -128,6 +128,8 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
       }
       return generated
     })
+    // propozycja generuje tygodnie od nowa — budżet czasu z profilu obowiązuje dalej (E-2)
+    if (nextConfig.time) fitTimeBudget(metadata.weeks, nextConfig, zones, testDistanceKm(plan.goal))
     return metadata
   })
   const candidateDays = new Map(candidate.weeks.flatMap((w) => w.days).map((day) => [day.date, day]))
@@ -164,7 +166,7 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   next.vdotSource = candidate.vdotSource
   if (candidate.prediction) next.prediction = candidate.prediction
   else delete next.prediction
-  next.peakKmPlanned = Math.max(...next.weeks.map((w) => w.totalKm))
+  next.peakKmPlanned = Math.max(...cycleWeeksOf(next).map((w) => w.totalKm))
   next.feasibilityWarnings = candidate.feasibilityWarnings
   next.changes.push({ at: today, action: 'adapt', detail: analysis.actions.map((a) => a.type).join(', ') })
   // Lint remains visible in the preview; broken file invariants never reach disk.

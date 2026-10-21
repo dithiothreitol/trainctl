@@ -133,6 +133,7 @@ export const corePl: CoreMessages = {
   },
 
   syncNotice: {
+    raceRejected: (dates: string) => `intervals.icu nie przyjęło startów (${dates}) w żadnej postaci; nie ma ich w kalendarzu.`,
     strengthRejected: (dates: string) => `intervals.icu nie przyjęło sesji siłowych (${dates}); treningi biegowe są wypchnięte.`,
     raceFallback: (dates: string) => `intervals.icu nie przyjęło startów jako zawodów (${dates}); trafiły do kalendarza jako zwykłe wpisy.`,
   },

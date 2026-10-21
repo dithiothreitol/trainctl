@@ -1020,6 +1020,8 @@ export const cliPl: CliMessages = {
     'F-12': 'siła 2× w tygodniu w bazie, 0–1× w okresie startowym (Haugen 2022)',
     'F-14': 'jedna sesja siły w tygodniu utrzymuje efekt bloku (Rønnestad 2010 — dane z kolarzy, ekstrapolacja)',
     'F-18': 'dwa pierwsze tygodnie bloku siły to nauka ruchu przy ~75% 1RM przed ciężkimi tygodniami — wybór inżynierski, bez źródła',
+    'R-1': 'po maratonie 48 h bez biegania, potem lekko — 40 min spokojnie po 48/96/144 h (Martínez-Navarro 2021)',
+    'R-2': 'powrót do biegania 48 h po maratonie nie spowalnia regeneracji (Martínez-Navarro 2021)',
     'R-8': 'po starcie na półmaraton i dłużej dwa tygodnie przejściowe: ~50% objętości sprzed startu wyłącznie spokojnie, potem ~100% z jednym akcentem (korpus trenerski, n=3; Martínez-Navarro 2021)',
     'R-9': 'siła wraca w drugim tygodniu po starcie, jedną lżejszą sesją — wybór inżynierski, bez źródła',
     'R-10': 'po krótszym starcie docelowym jeden tydzień przejściowy ~70% — wybór inżynierski; brak danych',

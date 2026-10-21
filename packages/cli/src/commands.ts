@@ -291,8 +291,9 @@ export function cmdInit(cwd: string, content?: string, opts: { commit?: CommitOp
     return fail(new Error(ui().init.agentUnknown(opts.agent, AGENTS.join(', '))))
   }
   const result = initImpl(cwd, content, opts.agent as AgentChoice | undefined)
-  const extra = (result.data?.['agentFiles'] as string[] | undefined) ?? []
-  return withCommit(result, cwd, opts.commit, [CONFIG_FILE, AGENTS_FILE, '.gitignore', ...extra], ui().commit.init)
+  // tylko pliki, które init faktycznie zapisał — cudze zmiany w AGENTS.md czy
+  // .gitignore nie trafiają do commita „trainctl init"
+  return withCommit(result, cwd, opts.commit, (result.data?.['written'] as string[] | undefined) ?? [], ui().commit.init)
 }
 
 /**
@@ -326,7 +327,10 @@ function initImpl(cwd: string, content: string | undefined, agent: AgentChoice |
             b.text(ui().init.fillProfile),
           ]),
       b.hint(ui().common.nextStep('trainctl plan')),
-    ], { agentFiles: integration.files })
+    ], {
+      agentFiles: integration.files,
+      written: [CONFIG_FILE, ...(agents ? [AGENTS_FILE] : []), ...(ignored.length ? ['.gitignore'] : []), ...integration.files],
+    })
   } catch (e) {
     return fail(e)
   }
@@ -344,7 +348,7 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
     const config = loadConfig(cwd)
     // Istniejący plan regenerujemy z ochroną przeszłości i zatwierdzonych decyzji
     // (ADR-033); od zera wyłącznie na jawne --fresh albo gdy pliku nie da się użyć.
-    const existing = loadPlanIfUsable(cwd)
+    const existing = loadPlanIfUsable(cwd, { allowNewerSchema: opts.fresh === true })
     const rebuild = existing && opts.fresh !== true
       ? rebuildPlan(existing, config, { today, recorded: recordedDates(cwd) })
       : undefined
@@ -488,7 +492,7 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
     const hit = findDay(plan, date)
     if (!hit) {
       return okDoc([
-        b.warn(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', plan.goal.date)),
+        b.warn(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', planEnd(plan))),
       ])
     }
     const { week, day } = hit
@@ -562,7 +566,7 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
     const hit = findDay(plan, date)
-    if (!hit) return ok(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', plan.goal.date))
+    if (!hit) return ok(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', planEnd(plan)))
     const { week } = hit
     const sk = week.skeleton
     const model = messages().intensityModel[sk.intensityModel]
@@ -747,7 +751,7 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
     parseIso(date)
     const plan = loadPlan(cwd)
     const hit = findDay(plan, date)
-    if (!hit) return ok(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', plan.goal.date))
+    if (!hit) return ok(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', planEnd(plan)))
     const { week, day } = hit
     const sk = week.skeleton
     const execution = buildExecution(plan, readSnapshot(cwd)?.activities ?? [], readLog(cwd), localToday()).find(e => e.date === date)
@@ -1141,6 +1145,7 @@ type RescheduleOptions = { block?: string[] | undefined; date?: string | undefin
 
 export function cmdReschedule(cwd: string, opts: RescheduleOptions & { commit?: CommitOption } = {}): CmdResult {
   const result = rescheduleImpl(cwd, opts)
+  if (result.code !== 0) return result
   const weekStart = mondayOf(opts.date ?? opts.block?.[0] ?? localToday())
   return opts.apply === true && result.data?.['applied'] === true && (result.data?.['result'] as { changed?: boolean } | undefined)?.changed !== false
     ? withCommit(result, cwd, opts.commit, PLAN_FILES, ui().commit.reschedule(weekStart))
@@ -1855,6 +1860,9 @@ function strengthRow(plan: StoredPlan, entries: StrengthLogEntry[], from: string
   const skipped = [...latest.values()].filter((e) => e.status === 'skipped').length
   return [[ui().review.strength, ui().review.strengthValue(done, planned, skipped)]]
 }
+
+/** Ostatni dzień planu — po starcie plan trwa dalej blokiem przejściowym (R-8). */
+const planEnd = (plan: StoredPlan): string => plan.weeks.at(-1)?.days.at(-1)?.date ?? plan.goal.date
 
 /** „N dni do startu", „N dni po starcie" albo koniec planu bazowego (P-11). */
 function raceDistanceLine(plan: StoredPlan, toRace: number): string {

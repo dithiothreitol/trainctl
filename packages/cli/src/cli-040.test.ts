@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
-import { cmdLog, cmdPlan, cmdShift, cmdStatus, cmdToday, completionScript, resolveDateInput } from './commands.ts'
+import { cmdInit, cmdLog, cmdPlan, cmdShift, cmdStatus, cmdToday, completionScript, resolveDateInput } from './commands.ts'
 import { logChoices, parseLogStatus } from './interactive.ts'
 import { loadPlan } from './planfile.ts'
 
@@ -145,10 +145,42 @@ describe('status', () => {
   })
   it('nigdy nie ujawnia wartości klucza z .env', () => {
     writeFileSync(join(dir, '.env'), 'TRAINCTL_INTERVALS_API_KEY=super-secret-value\n', 'utf-8')
+    // bin.ts wczytuje .env do środowiska przed komendą — tu robimy to samo
+    process.env['TRAINCTL_INTERVALS_API_KEY'] = 'super-secret-value'
+    try {
+      const r = cmdStatus(dir)
+      expect(r.output).not.toContain('super-secret-value')
+      expect(JSON.stringify(r.data)).not.toContain('super-secret-value')
+      expect(r.data).toMatchObject({ key: { source: '.env' } })
+    } finally {
+      delete process.env['TRAINCTL_INTERVALS_API_KEY']
+    }
+  })
+  it('źródło klucza w tej samej kolejności co push: zmienna przed plikiem, pusty plik to brak klucza', () => {
+    writeFileSync(join(dir, '.trainctl-secret'), '   \n', 'utf-8')
+    expect(cmdStatus(dir).data).toMatchObject({ key: { source: null } })
+    writeFileSync(join(dir, '.trainctl-secret'), 'abc', 'utf-8')
+    expect(cmdStatus(dir).data).toMatchObject({ key: { source: '.trainctl-secret' } })
+    process.env['TRAINCTL_INTERVALS_API_KEY'] = 'from-env'
+    try {
+      expect(cmdStatus(dir).data).toMatchObject({ key: { source: 'environment variable' } })
+    } finally {
+      delete process.env['TRAINCTL_INTERVALS_API_KEY']
+    }
+  })
+  it('połamany log.jsonl: status mówi, co jest nie tak, zamiast rzucać wyjątkiem', () => {
+    cmdPlan(dir, { date: '2026-08-08' })
+    writeFileSync(join(dir, 'log.jsonl'), '{"date":"2026-08-11"\n', 'utf-8')
     const r = cmdStatus(dir)
-    expect(r.output).not.toContain('super-secret-value')
-    expect(JSON.stringify(r.data)).not.toContain('super-secret-value')
-    expect(r.data).toMatchObject({ key: { source: '.env' } })
+    expect(r.code).toBe(1)
+    expect(r.data).toMatchObject({ error: expect.any(String) })
+  })
+  it('podpowiedź commita wymienia tylko pliki treningowe, nigdy git add -A', () => {
+    cmdPlan(dir, { date: '2026-08-08' })
+    execFileSync('git', ['init', '-q'], { cwd: dir })
+    const out = cmdStatus(dir).output
+    expect(out).not.toContain('git add -A')
+    expect(out).toMatch(/git add .*trainctl\.yaml.* && git commit/)
   })
 })
 
@@ -181,6 +213,15 @@ describe('--commit', () => {
     const r = cmdLog(dir, { date: '2026-08-13', km: '10', commit: 'easy run, legs fine' })
     expect(r.output).toMatch(/Committed [0-9a-f]+: log\.jsonl/)
     expect(gitOut(['log', '-1', '--format=%s']).trim()).toBe('easy run, legs fine')
+  })
+  it('init --commit commituje tylko to, co zapisał — nie cudze zmiany w AGENTS.md', () => {
+    rmSync(join(dir, 'trainctl.yaml'))
+    execFileSync('git', ['init', '-q'], { cwd: dir })
+    writeFileSync(join(dir, 'AGENTS.md'), '# my own coach notes\n', 'utf-8')
+    writeFileSync(join(dir, '.gitignore'), '.env\n.env.*\n.trainctl-secret\nactivities/\n', 'utf-8')
+    const r = cmdInit(dir, undefined, { commit: true })
+    expect(r.code).toBe(0)
+    expect(gitOut(['show', '--name-only', '--format=', 'HEAD']).trim().split('\n')).toEqual(['trainctl.yaml'])
   })
   it('odmowa zapisu nie commituje niczego', () => {
     cmdPlan(dir, { date: '2026-08-08' })

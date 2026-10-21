@@ -33,7 +33,7 @@ import {
   type PlannedDay,
 } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
-import { computePlan, dayFingerprint, type StoredPlan } from './planfile.ts'
+import { computePlan, dayFingerprint, fitTimeBudget, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
 export type ProtectionReason = 'past' | 'recorded' | 'pinned' | 'approved' | 'edited' | 'budget'
@@ -92,7 +92,8 @@ export function rebuildPlan(
 ): Regeneration {
   const now = clockToday()
   const today = opts.today
-  const raceBehind = existing.goal.date < now
+  // Dzień startu: ten sam cel to jeszcze ten cykl; nowy cel wpisany tego dnia — już nowy.
+  const raceBehind = existing.goal.date < now || (existing.goal.date === now && config.goal.date !== existing.goal.date)
   const mode: RegenerationMode =
     !raceBehind && sameDistance(existing.goal.distanceKm, config.goal.distanceKm) ? 'same-cycle' : 'new-cycle'
 
@@ -109,7 +110,11 @@ export function rebuildPlan(
   const loadState = keepLoad
     ? { ...ls!, effectiveFrom: mode === 'same-cycle' ? ls!.effectiveFrom : today, profileWeeklyKm: config.athlete.recentWeeklyKm }
     : undefined
-  if (loadState) scaleFrom(fresh, config, loadState.baselineWeeklyKm, loadState.effectiveFrom)
+  if (loadState) {
+    scaleFrom(fresh, config, loadState.baselineWeeklyKm, loadState.effectiveFrom)
+    // skalowanie generuje tygodnie od nowa — budżet czasu z profilu obowiązuje dalej (E-2)
+    if (config.time) fitTimeBudget(fresh.weeks, config, paceZones(fresh.vdot), testDistanceKm(fresh.goal))
+  }
 
   const existingDays = new Map(existing.weeks.flatMap((w) => w.days).map((d) => [d.date, d]))
   const minutesOf = (day: PlannedDay) =>

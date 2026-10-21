@@ -191,7 +191,7 @@ export class IntervalsIcuProvider implements SyncProvider {
           pushed.push(...races)
           warnings.push(messages().syncNotice.raceFallback(dates(races)))
         } catch {
-          warnings.push(messages().syncNotice.raceFallback(dates(races)))
+          warnings.push(messages().syncNotice.raceRejected(dates(races)))
         }
       }
     }
