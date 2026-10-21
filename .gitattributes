@@ -1,1 +1,4 @@
 * text=auto
+# Skrypty z shebangiem (hooki pluginu): vitest zdejmuje `#!` tylko przed LF —
+# z CRLF po checkoucie na Windows import kończy się SyntaxError.
+*.mjs text eol=lf

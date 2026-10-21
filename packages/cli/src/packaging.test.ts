@@ -10,6 +10,7 @@
  *
  * Stąd asercje na manifestach: do rejestru idą wyłącznie wejścia zbudowane.
  */
+import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -67,6 +68,17 @@ describe('manifesty paczek: do rejestru idzie build, nie źródło', () => {
       expect(description, `${name}: polskie słowo w opisie`).not.toMatch(
         /\b(silnik|trener|treningow\w*|plan\w*ow\w*|eksport|zegarek|kalendarz|wydruk|narzędzia|adapter intervals)\b/i,
       )
+    }
+  })
+})
+
+describe('skrypty hooków pluginu', () => {
+  // Z CRLF (checkout na Windows) vitest nie zdejmuje `#!` i plugin.test.ts pada na
+  // imporcie — tu widać przyczynę, a nie tylko SyntaxError bez wskazówki.
+  it('mają LF w każdym checkoucie (.gitattributes)', () => {
+    for (const script of ['plugin/scripts/check-plan.mjs', 'plugin/scripts/session-start.mjs']) {
+      const out = spawnSync('git', ['check-attr', 'eol', '--', script], { cwd: ROOT, encoding: 'utf-8' })
+      expect(out.stdout.trim(), script).toBe(`${script}: eol: lf`)
     }
   })
 })
