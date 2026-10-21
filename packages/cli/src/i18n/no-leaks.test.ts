@@ -196,6 +196,6 @@ describe('interfejs agenta nie przecieka polskim', () => {
       }
     }
     walk(cliEn)
-    expectEnglish('agentsMd', cliEn.agentsMd())
+    expectEnglish('agentsMd', cliEn.agentsMd('https://example.test/FOUNDATIONS.md'))
   })
 })

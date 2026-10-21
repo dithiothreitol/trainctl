@@ -245,14 +245,15 @@ Twoimi plecami.
 | `today` | trening na dziś | `--date` |
 | `week` | tydzień ze statusem z dziennika | `--date`, `-i` (przeglądanie strzałkami) |
 | `why` | cel jednostki + reguły z badań | `--date` |
-| `log` | zapis wykonania | `--status`, `--km`, `--time`, `--rpe`, `--note` |
+| `log` | zapis wykonania | `--status`, `--km`, `--time`, `--test-time`, `--rpe`, `--note` |
 | `shift` | zamiana dwóch jednostek w tygodniu | `--from`, `--to` (albo wybór z listy) |
 | `reschedule` | przestawia tydzień wokół zajętych dni | `--block`, `--time`, `--pin`, `--preparation`, `--strategy`, `--apply` |
 | `adapt` | analiza wykonania → propozycje korekt | `--date`, `--prepare`, `--apply <id>` |
-| `review` | pull + adapt + week w jednym | `--days` |
+| `shorten` | dopasowuje jednostkę do dostępnego czasu, jako propozycja | `--minutes`, `--date`, `--apply <id>` |
+| `review` | pull + adapt + week w jednym | `--days`, `--date`, `--prepare` |
 | `desk` | okna treningowe wokół godzin pracy | `--heavy` |
 | `push` | wysyła treningi do intervals.icu | `--days`, `--from`, `--to` |
-| `pull` | pobiera aktywności i wellness, porównuje | `--days` |
+| `pull` | pobiera aktywności i wellness, porównuje | `--days`, `--date` |
 | `export` | `.fit`, `.ics`, rozpiska, pakiet startowy | `--what`, `--date` |
 | `diff` | co zmieniłaby regeneracja planu | `--plan <plik>` |
 | `check` | lint planu; psuje kod wyjścia | `--strict` |
@@ -401,12 +402,12 @@ Dowolny klient MCP — postać ogólna:
 }
 ```
 
-Szesnaście narzędzi nad tymi samymi handlerami, z których korzysta CLI, więc
+Narzędzia działają nad tymi samymi handlerami, z których korzysta CLI, więc
 agent i terminal nie mogą się rozjechać: `trainctl_plan`, `trainctl_today`,
 `trainctl_week`, `trainctl_log`, `trainctl_shift`, `trainctl_why`,
 `trainctl_diff`, `trainctl_check`, `trainctl_init`, `trainctl_push`,
-`trainctl_pull`, `trainctl_adapt`, `trainctl_desk`, `trainctl_reschedule`,
-`trainctl_export`, `trainctl_review`.
+`trainctl_pull`, `trainctl_adapt`, `trainctl_shorten`, `trainctl_desk`,
+`trainctl_reschedule`, `trainctl_export`, `trainctl_review`.
 
 `AGENTS.md`, który zostawia `trainctl init`, robi z agenta trenera, a nie
 wykonawcę komend: pyta przed regeneracją planu, dopytuje o kontekst przy

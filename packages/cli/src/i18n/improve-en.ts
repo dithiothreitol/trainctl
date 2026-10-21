@@ -32,7 +32,6 @@ export const improveEn = {
   selected: 'Used for zones', 'lower-vdot': 'Lower VDOT', excluded: 'Excluded by you', future: 'Future result', stale: 'Older than 540 days',
   age: (days: number) => `${days} days old`,
   unclassified: 'See the source rule; provenance not classified',
-  evidence: 'Origin of the decision',
   research: 'Interpretation of published research', corpus: 'Coaching corpus', engineering: 'Engineering heuristic',
   minuteEstimate: (minutes: number) => `About ${minutes} minutes, including preparation; an estimate, not a guarantee.`,
   mobile: 'Workout for your phone', mobileExport: 'Export a standalone mobile workout page',

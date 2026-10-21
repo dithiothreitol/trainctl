@@ -8,6 +8,7 @@ import {
   getLocale,
   inferProfile,
   estimateWorkoutMinutes,
+  formatNumber,
   messages,
   mondayOf,
   parseIso,
@@ -43,7 +44,8 @@ import {
   PLAN_YAML,
   type StoredPlan,
 } from './planfile.ts'
-import { kindPurpose, ruleExplain, ruleEvidence } from './rules-explain.ts'
+import { foundationsUrl, kindPurpose, ruleExplain, ruleEvidence } from './rules-explain.ts'
+import { packageVersion } from './version.ts'
 import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
@@ -108,6 +110,17 @@ const okDoc = (blocks: Block[], data?: Record<string, unknown>): CmdResult => ({
 const fail = (e: unknown): CmdResult => {
   const message = e instanceof Error ? e.message : String(e)
   return { output: message, code: 1, blocks: [b.error(message)] }
+}
+
+/**
+ * Plan z innego minora silnika nadal działa, ale poniżej 1.0 regeneracja może dać
+ * inne tygodnie (CHANGELOG). Mówimy o tym przy czytaniu planu — nie blokujemy.
+ */
+export function compatibilityNotes(plan: StoredPlan): Block[] {
+  const current = packageVersion()
+  if (!plan.engineVersion) return [b.info(ui().common.planFromOldEngine(current))]
+  const minor = (v: string) => v.split('.').slice(0, 2).join('.')
+  return minor(plan.engineVersion) === minor(current) ? [] : [b.info(ui().common.planFromOtherEngine(plan.engineVersion, current))]
 }
 
 export function localToday(): string {
@@ -354,6 +367,7 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
         `${ui().today.weekOf(sk.index + 1, plan.weeks.length)} · ${phaseLabel(sk.phase)}` +
           `${sk.deload ? ` · ${ui().today.deload}` : ''} · ${ui().today.daysToRace(toRace)}`,
       ),
+      ...compatibilityNotes(plan),
     ]
 
     if (!day.workout) {
@@ -433,6 +447,7 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
         ui().week.subtitle(phaseLabel(sk.phase), model, sk.targetKm, week.totalKm) +
           (sk.deload ? ` · ${ui().week.deloadUpper}` : ''),
       ),
+      ...compatibilityNotes(plan),
       b.table([ui().week.columns.day, ui().week.columns.date, ui().week.columns.km, ui().week.columns.workout], rows, accents),
     ]
     if (sk.raceDate) blocks.push(b.info(ui().week.raceThisWeek(sk.raceDate)))
@@ -476,7 +491,7 @@ export function cmdLog(
     if (testTimeSec !== undefined && (status === 'skipped' || !['test', 'race'].includes(findDay(plan, date)?.day.workout?.kind ?? ''))) throw new Error(ui().improve.testTimeOnly)
     if (status === 'skipped' && ((Number(opts.km) || 0) > 0 || opts.time !== undefined)) throw new Error(ui().improve.skippedMetrics)
     if (testTimeSec !== undefined && opts.time && testTimeSec > parseTime(opts.time)) throw new Error(ui().improve.testTimeOnly)
-    appendLog(cwd, {
+    const entry: LogEntry = {
       date,
       status,
       ...(opts.km ? { km: Number(opts.km) } : {}),
@@ -485,8 +500,34 @@ export function cmdLog(
       ...(rpe !== undefined ? { rpe } : {}),
       ...(opts.note ? { note: opts.note } : {}),
       loggedAt: new Date().toISOString(),
+    }
+    appendLog(cwd, entry)
+    // Odpowiedź odbija plan obok zapisu: samo „zalogowano" nie mówi, że w planie
+    // był odpoczynek albo że zapis dotyczy innej jednostki niż zaplanowana.
+    const workout = findDay(plan, date)!.day.workout
+    const minutes = workout ? estimateWorkoutMinutes(workout, plan.preparationMinutes ?? 15) : undefined
+    const knownMinutes = minutes !== undefined && Number.isFinite(minutes) ? minutes : null
+    const planned = workout
+      ? [kindLabel(workout.kind), `${formatNumber(getLocale(), workout.raceDistanceKm ?? workout.distanceKm)} km`, ...(knownMinutes !== null ? [`~${knownMinutes} min`] : [])].join(' · ')
+      : ui().week.rest
+    const recorded = [
+      entry.status,
+      ...(entry.km !== undefined ? [`${formatNumber(getLocale(), entry.km)} km`] : []),
+      ...(entry.timeSec !== undefined ? [fmtTime(entry.timeSec)] : []),
+      ...(entry.testTimeSec !== undefined ? [ui().log.testTime(fmtTime(entry.testTimeSec))] : []),
+      ...(entry.rpe !== undefined ? [`RPE ${entry.rpe}`] : []),
+      ...(entry.note ? [`“${entry.note}”`] : []),
+    ].join(' · ')
+    const blocks: Block[] = [
+      b.success(ui().log.saved(date, status)),
+      b.kv([[ui().log.planned, planned], [ui().log.recorded, recorded]]),
+    ]
+    if (!workout && status !== 'skipped') blocks.push(b.info(ui().log.unplanned))
+    blocks.push(b.hint(ui().shift.weekHint(date)))
+    return okDoc(blocks, {
+      entry,
+      planned: workout ? { kind: workout.kind, distanceKm: workout.raceDistanceKm ?? workout.distanceKm, estimatedMinutes: knownMinutes } : null,
     })
-    return ok(ui().log.saved(date, status))
   } catch (e) {
     return fail(e)
   }
@@ -536,45 +577,32 @@ export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): C
           (sk.deload ? ` · ${ui().why.deloadWeek}` : ''),
       ),
     ]
+    blocks.push(...compatibilityNotes(plan))
     blocks.push(b.section(ui().coach.context), b.text(explanation.purpose), b.bullets(explanation.context))
     if (explanation.dose.length) blocks.push(b.section(ui().coach.dose), b.bullets(explanation.dose))
-    blocks.push(Number.isFinite(explanation.estimatedMinutes) && explanation.estimatedMinutes !== null
-      ? b.info(ui().improve.minuteEstimate(explanation.estimatedMinutes)) : b.info(ui().improve.unknownDuration))
+    // Szacunek czasu ma sens tylko wtedy, gdy jest co szacować — dzień wolny to nie „0 minut".
+    if (day.workout || day.strength) {
+      blocks.push(Number.isFinite(explanation.estimatedMinutes) && explanation.estimatedMinutes !== null
+        ? b.info(ui().improve.minuteEstimate(explanation.estimatedMinutes)) : b.info(ui().improve.unknownDuration))
+    }
+    if (day.strength) {
+      blocks.push(b.panel(ui().today.strengthTitle(day.strength.durationMin), [day.strength.description], 'accent'))
+      // Gdy siła jest jedyną aktywnością dnia, jej cel stoi już na górze jako cel dnia.
+      if (day.workout) blocks.push(b.section(ui().why.strengthPurposeTitle), b.text(ui().why.strengthPurpose))
+    }
+    if (!day.workout && !day.strength) blocks.push(b.text(ui().why.restDay))
     blocks.push(b.section(ui().improve.calibration))
     if (plan.calibration) {
       blocks.push(b.text(ui().improve.calibrationPolicy), b.bullets(plan.calibration.candidates.map((c) =>
         [c.result.date, c.result.name ?? String(c.result.distanceKm) + ' km', 'VDOT ' + c.vdot.toFixed(1), ui().improve[c.reason], ui().improve.age(c.ageDays), c.result.exclusionReason ?? ''].filter(Boolean).join(' · '))))
     } else blocks.push(b.info(ui().improve.calibrationMissing))
     const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...(day.strength?.ruleRefs ?? [])])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
-    blocks.push(b.section(ui().improve.evidence), b.bullets(evidence.map((e) => e.id + ': ' + ui().improve[e.origin])))
-    if (!day.workout && !day.strength) {
-      blocks.push(b.text(ui().why.restDay))
-      return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, evidence })
+    // Jedna lista reguł: ID, treść i pochodzenie razem. Wcześniej te same ID stały
+    // w dwóch sekcjach — raz z klasyfikacją, raz z treścią — a cel jednostki dwa razy.
+    if (evidence.length) {
+      blocks.push(b.section(ui().why.rules), b.bullets(evidence.map((e) => ui().why.ruleLine(e.id, ruleExplain(e.id), ui().improve[e.origin]))))
     }
-    if (day.strength) {
-      blocks.push(
-        b.panel(ui().today.strengthTitle(day.strength.durationMin), [day.strength.description], 'accent'),
-        b.section(ui().why.strengthPurposeTitle),
-        b.text(ui().why.strengthPurpose),
-      )
-      const refs = day.strength.ruleRefs.filter(ruleExplain).map((r) => `${r} — ${ruleExplain(r)}`)
-      if (refs.length) blocks.push(b.section(ui().why.strengthRules), b.bullets(refs))
-      if (!day.workout) {
-        blocks.push(b.blank(), b.hint(ui().why.sourcesHint('§10.8')))
-        return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, evidence })
-      }
-      blocks.push(b.blank())
-    }
-    const workout = day.workout
-    if (!workout) return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, evidence })
-    blocks.push(
-      b.panel(kindLabel(workout.kind), [kindPurpose(workout.kind)],
-        KIND_COLOR[workout.kind] ?? 'accent'),
-    )
-    const refs = [...new Set([...workout.ruleRefs, ...sk.ruleRefs])].sort()
-    const explained = refs.filter(ruleExplain).map((r) => `${r} — ${ruleExplain(r)}`)
-    if (explained.length) blocks.push(b.section(ui().why.rules), b.bullets(explained))
-    blocks.push(b.blank(), b.hint(ui().why.sourcesHint('§10')))
+    blocks.push(b.blank(), b.hint(ui().why.sourcesHint(foundationsUrl(), day.workout || !day.strength ? '§10' : '§10.8')))
     return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, evidence })
   } catch (e) {
     return fail(e)
@@ -906,7 +934,7 @@ export function cmdDesk(
       blocks.push(opts.heavy === true && isPaceRule ? b.warn(g) : b.text(g))
       blocks.push(b.blank())
     }
-    blocks.push(b.hint(ui().desk.rulesHint(day.ruleRefs.join(', '))))
+    blocks.push(b.hint(ui().desk.rulesHint(day.ruleRefs.join(', '), foundationsUrl())))
     return okDoc(blocks, { day })
   } catch (e) {
     return fail(e)
@@ -1133,6 +1161,7 @@ export async function cmdReview(
       ),
     ]
     for (const n of notes) blocks.push(b.info(n))
+    blocks.push(...compatibilityNotes(plan))
     blocks.push(b.info(ui().coach.reviewWindow(from, today, days)))
 
     // 2) co się wydarzyło — te same porównania co w trainctl pull
@@ -1207,7 +1236,8 @@ export async function cmdReview(
             ui().review.phase,
             `${phaseLabel(sk.phase)}${sk.deload ? ` · ${ui().today.deload}` : ''}`,
           ],
-          [ui().review.volume, ui().review.volumeAhead(week.totalKm, upcoming.length)],
+          // pozostałe km liczone tą samą miarą co totalKm (objętość treningowa, bez dystansu startu)
+          [ui().review.volume, ui().review.volumeAhead(Math.round(upcoming.reduce((s, d) => s + (d.workout?.distanceKm ?? 0), 0) * 10) / 10, week.totalKm, upcoming.length)],
           [ui().review.toRace, ui().review.toRaceValue(diffDays(today, plan.goal.date))],
         ]),
       )
@@ -1377,14 +1407,16 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
     const errors = issues.filter((i) => i.severity === 'error')
     const warns = issues.filter((i) => i.severity === 'warn')
     const t = ui().check
+    // Wersja silnika to informacja, nie ustalenie lintu: nie liczy się do --strict.
+    const versionNotes = plan.goal && Array.isArray(plan.weeks) ? compatibilityNotes(plan as StoredPlan) : []
 
     if (issues.length === 0) {
       const weeks = plan.weeks ?? []
       const sessions = weeks.reduce((sum, w) => sum + w.days.filter((d) => d.workout).length, 0)
-      return okDoc([b.success(t.passed(weeks.length, sessions))])
+      return okDoc([b.success(t.passed(weeks.length, sessions)), ...versionNotes])
     }
 
-    const blocks: Block[] = [b.title(t.title, t.subtitle(PLAN_YAML))]
+    const blocks: Block[] = [b.title(t.title, t.subtitle(PLAN_YAML)), ...versionNotes]
     if (errors.length) {
       blocks.push(b.section(t.errorsSection))
       for (const issue of errors) blocks.push(b.error(describeIssue(issue)))

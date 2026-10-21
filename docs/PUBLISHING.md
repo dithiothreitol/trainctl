@@ -109,7 +109,12 @@ npm config set //registry.npmjs.org/:_authToken <token>
 pnpm build && pnpm release:dry     # przeczytaj listę plików KAŻDEJ paczki
 pnpm publish -r --access public
 npx <paczka>@<wersja> --version    # z rejestru, w pustym katalogu
+gh release create v<wersja> --title "v<wersja> — <jedno zdanie>" --notes-file <sekcja CHANGELOG>
 ```
+
+**GitHub Release jest częścią wydania**, nie dodatkiem: tagi `v0.2.0` i `v0.3.0`
+powstały bez Release'ów, więc strona repozytorium pokazywała 0.1.1 jako
+najnowsze wydanie, choć npm miał już 0.3.0.
 
 **Build jest od 0.1.1 obowiązkowy** (ADR-026): `pnpm build` → `dist/` z JS,
 deklaracjami i mapami źródeł; `publishConfig` przestawia wejścia paczki na

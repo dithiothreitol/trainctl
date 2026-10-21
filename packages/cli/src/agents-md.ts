@@ -8,7 +8,8 @@
  * samym języku, co `plan/PLAN.md` i wyjście komend.
  */
 import { ui } from './i18n/index.ts'
+import { foundationsUrl } from './rules-explain.ts'
 
 export const AGENTS_FILE = 'AGENTS.md'
 
-export const agentsTemplate = (): string => ui().agentsMd()
+export const agentsTemplate = (): string => ui().agentsMd(foundationsUrl())

@@ -155,8 +155,8 @@ describe('reguły i cele jednostek', () => {
 })
 
 describe('instrukcja dla agenta (AGENTS.md)', () => {
-  const en = cliEn.agentsMd()
-  const pl = cliPl.agentsMd()
+  const en = cliEn.agentsMd('https://example.test/FOUNDATIONS.md')
+  const pl = cliPl.agentsMd('https://example.test/FOUNDATIONS.md')
 
   it('to dwa różne teksty, nie jeden skopiowany', () => {
     expect(en).not.toBe(pl)

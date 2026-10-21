@@ -5,6 +5,17 @@
  */
 import type { WorkoutKind } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
+import { packageVersion } from './version.ts'
+
+export const FOUNDATIONS_PATH = 'docs/science/FOUNDATIONS.md'
+
+/**
+ * FOUNDATIONS nie jedzie w paczce npm, więc ścieżka względna w podpowiedzi
+ * prowadziła donikąd. Link przypięty do tagu wydania nie dryfuje: reguły,
+ * które cytuje ten silnik, są tymi z jego własnej wersji.
+ */
+export const foundationsUrl = (): string =>
+  `https://github.com/dithiothreitol/trainctl/blob/v${packageVersion()}/${FOUNDATIONS_PATH}`
 
 /** Objaśnienie reguły po jej ID (np. `I-7`); undefined, gdy reguły nie opisano. */
 export const ruleExplain = (id: string): string | undefined =>

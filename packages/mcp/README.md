@@ -13,7 +13,7 @@ claude mcp add trainctl --env TRAINCTL_DIR="/path/to/my-training" \
 `trainctl.yaml`, `plan/`, `log.jsonl`); without it the server uses the current
 working directory.
 
-Seventeen tools over the same handlers the CLI uses, so the agent and your
+Tools over the same handlers the CLI uses, so the agent and your
 terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
 `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,

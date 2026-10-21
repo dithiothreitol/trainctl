@@ -40,26 +40,22 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: trainctl (silnik)
-        uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
         with:
-          repository: <twoje-konto>/trainctl
-          path: .trainctl-engine
+          node-version: '22.18'   # minimum z `engines` paczki trainctl
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '23'
-
-      - run: corepack enable && pnpm install --frozen-lockfile
-        working-directory: .trainctl-engine
-
+      # Wersja przypięta jak w README („pin the version in your training repo"):
+      # ten sam plan i ta sama wersja silnika dają ten sam wynik lintu.
       - name: trainctl check
         env:
           NO_COLOR: '1'
-        run: node .trainctl-engine/packages/cli/src/bin.ts check
+        run: npx --yes trainctl@0.3.0 check
 ```
+
+Zamiast `trainctl@0.3.0` wpisz wersję, której używasz lokalnie
+(`trainctl --version`) — i podnoś ją świadomie, razem z regeneracją planu.
 
 `check` niczego nie zapisuje i nie potrzebuje klucza API — czyta wyłącznie
 `plan/plan.yaml`, więc workflow działa też na publicznym repo bez sekretów.

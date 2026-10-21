@@ -51,12 +51,16 @@ describe('trainctl check', () => {
     expect(r.output).toContain('2026-11-23')
   })
 
-  it('brak planu: czytelny błąd', () => {
+  it('brak planu: czytelny błąd — pusty katalog odsyła do init, katalog z profilem do plan', () => {
     const empty = mkdtempSync(join(tmpdir(), 'trainctl-check-empty-'))
     try {
       const r = cmdCheck(empty)
       expect(r.code).toBe(1)
-      expect(r.output).toContain('Brak planu')
+      expect(r.output).toContain('trainctl init')
+      writeFileSync(join(empty, 'trainctl.yaml'), 'athlete: {}\n', 'utf-8')
+      const withConfig = cmdCheck(empty)
+      expect(withConfig.code).toBe(1)
+      expect(withConfig.output).toContain('Brak planu')
     } finally {
       rmSync(empty, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
     }

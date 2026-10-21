@@ -20,14 +20,18 @@ import {
   type RaceGoal,
   type RacePrediction,
 } from 'trainctl-core'
-import type { StrengthConfig, TrainctlConfig } from './config.ts'
+import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
 import { inspectCalibration, type Calibration } from './calibration.ts'
 import { packageVersion } from './version.ts'
 
 export const PLAN_DIR = 'plan'
-export const PLAN_YAML = join(PLAN_DIR, 'plan.yaml')
-export const PLAN_MD = join(PLAN_DIR, 'PLAN.md')
+// Ścieżki jako napisy POSIX: służą i do zapisu (`join(cwd, PLAN_YAML)` normalizuje
+// separator), i do komunikatów — a te mają wyglądać tak samo na każdym systemie.
+export const PLAN_YAML = `${PLAN_DIR}/plan.yaml`
+export const PLAN_MD = `${PLAN_DIR}/PLAN.md`
+/** Najnowsza wersja schematu `plan.yaml`, którą ten kod umie czytać. */
+export const PLAN_SCHEMA_VERSION = 1
 
 export const dayFingerprint = (day: PlannedDay): string => createHash('sha256').update(JSON.stringify(day)).digest('hex')
 
@@ -87,7 +91,7 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   })
   if (config.strength?.enabled) applyStrength(weeks, config.strength)
   const plan: StoredPlan = {
-    schemaVersion: 1,
+    schemaVersion: PLAN_SCHEMA_VERSION,
     engineVersion: packageVersion(),
     calibration: inspectCalibration(athlete.results, calibrationDate),
     generatedAt: today,
@@ -170,7 +174,9 @@ function looksLikePlan(value: unknown): value is StoredPlan {
 export function readPlanDocument(cwd: string): unknown {
   const path = join(cwd, PLAN_YAML)
   if (!existsSync(path)) {
-    throw new Error(ui().common.noPlan)
+    // Pusty katalog to krok `init`, nie `plan` — inaczej `today` odsyła do `plan`,
+    // a `plan` dopiero powie, że brakuje profilu.
+    throw new Error(existsSync(join(cwd, CONFIG_FILE)) ? ui().common.noPlan : ui().common.missingConfig(CONFIG_FILE))
   }
   return parse(readFileSync(path, 'utf-8'))
 }
@@ -179,6 +185,9 @@ export function loadPlan(cwd: string): StoredPlan {
   const doc = readPlanDocument(cwd)
   if (!looksLikePlan(doc)) {
     throw new Error(ui().common.planMalformed(PLAN_YAML))
+  }
+  if (typeof doc.schemaVersion === 'number' && doc.schemaVersion > PLAN_SCHEMA_VERSION) {
+    throw new Error(ui().common.planSchemaNewer(PLAN_YAML, doc.schemaVersion))
   }
   return doc
 }

@@ -95,6 +95,13 @@ export const cliPl: CliMessages = {
       `${file} to nie jest kompletny plan (brak goal/weeks) — uruchom trainctl check, ` +
       'żeby zobaczyć co jest połamane, albo trainctl plan, żeby przegenerować',
     missingConfig: (file: string) => `Brak ${file} — uruchom najpierw: trainctl init`,
+    planFromOldEngine: (current: string) =>
+      `Plan powstał silnikiem sprzed 0.2.0, działa ${current}. trainctl diff pokaże, co zmieniłaby regeneracja.`,
+    planFromOtherEngine: (planVersion: string, current: string) =>
+      `Plan wygenerował silnik ${planVersion}, działa ${current}. Przed 1.0 regeneracja może dać inne ` +
+      'tygodnie — trainctl diff pokaże różnice.',
+    planSchemaNewer: (file: string, version: number) =>
+      `${file} ma schemat planu ${version}, nowszy niż obsługiwany przez tę wersję (1) — zaktualizuj trainctl.`,
     configErrors: (file: string, errors: string) => `Błędy w ${file}:\n  - ${errors}`,
     cancelled: 'anulowano',
     interrupted: 'przerwano',
@@ -187,6 +194,10 @@ export const cliPl: CliMessages = {
     badRpe: (rpe: string) =>
       `RPE „${rpe}” wypada poza skalę — podaj liczbę całkowitą 1–10 (10 = wysiłek maksymalny).`,
     saved: (date: string, status: string) => `Zalogowano ${date}: ${status}.`,
+    planned: 'W planie',
+    recorded: 'Zapis',
+    testTime: (time: string) => `odcinek pomiarowy ${time}`,
+    unplanned: 'W planie był tu dzień wolny — wpis liczy się jako bieg poza planem.',
   },
 
   shift: {
@@ -215,7 +226,8 @@ export const cliPl: CliMessages = {
       'Dzień wolny. Adaptacja zachodzi w regeneracji — plan trenera zakładał ' +
       '2–3 dni wolne tygodniowo (korpus: PN 94%, PT 92%).',
     rules: 'Reguły',
-    strengthRules: 'Reguły siły',
+    ruleLine: (id: string, text: string | undefined, origin: string) =>
+      text ? `${id} — ${text} · ${origin}` : `${id} · ${origin}`,
     strengthPurposeTitle: 'Po co siła biegaczowi',
     strengthPurpose:
       'Cel: ekonomia biegu — mniejszy koszt tlenowy tej samej prędkości (F-8, efekt mały: ' +
@@ -223,7 +235,7 @@ export const cliPl: CliMessages = {
       'metaanaliza na biegaczach dała wynik nieistotny (F-9). Uczciwie: u biegaczy 34–45 lat ' +
       'efekt na ekonomię też wychodzi nieistotny (F-15), a dowody na wynik kończą się na ' +
       '1,5–10 km w laboratorium (F-17). W taperze siła znika z planu (F-13).',
-    sourcesHint: (section: string) => `źródła i parametry: docs/science/FOUNDATIONS.md ${section}`,
+    sourcesHint: (url: string, section: string) => `źródła i parametry: ${url} ${section}`,
   },
 
   push: {
@@ -296,7 +308,7 @@ export const cliPl: CliMessages = {
     breaksStay: 'Przerwy w siedzeniu zostają — to nie jest trening.',
     breaksCount: (count: number) => `Przerwy w siedzeniu (${przerwy(count)})`,
     notes: 'Uwagi',
-    rulesHint: (rules: string) => `reguły: ${rules} — docs/science/FOUNDATIONS.md §10.10`,
+    rulesHint: (rules: string, url: string) => `reguły: ${rules} — ${url} §10.10`,
   },
 
   reschedule: {
@@ -492,8 +504,10 @@ export const cliPl: CliMessages = {
     ahead: (weekStart: string) => `Przed nami · tydzień od ${weekStart}`,
     todo: 'Do zrobienia',
     phase: 'Faza',
-    volumeAhead: (km: number, sessions: number) =>
-      `${n(km)} km w ${sessions} ${pluralPl(sessions, { one: 'sesji', few: 'sesjach', other: 'sesjach' })}`,
+    volumeAhead: (remainingKm: number, totalKm: number, sessions: number) => {
+      const w = `w ${sessions} ${pluralPl(sessions, { one: 'sesji', few: 'sesjach', other: 'sesjach' })}`
+      return remainingKm === totalKm ? `${n(totalKm)} km ${w}` : `zostało ${n(remainingKm)} z ${n(totalKm)} km ${w}`
+    },
     toRace: 'Do startu',
     toRaceValue: (days: number) =>
       `${days} ${pluralPl(days, { one: 'dzień', few: 'dni', other: 'dni' })}`,
@@ -861,7 +875,7 @@ export const cliPl: CliMessages = {
     checkStrict: 'true = ostrzeżenia też liczą się jak błędy',
   },
 
-  agentsMd: (): string => `# Trener — instrukcja dla agenta
+  agentsMd: (foundationsUrl: string): string => `# Trener — instrukcja dla agenta
 
 Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
 (albo CLI \`trainctl\`) i pełnisz rolę trenera, nie tylko wykonawcy komend.
@@ -905,7 +919,7 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
 5. **Nie wymyślaj liczb.** Tempa, objętości i reguły pochodzą z silnika; jeśli
    czegoś nie ma w wyniku narzędzia, powiedz „nie wiem”, zamiast oszacować.
 6. **Cytuj powody, nie tylko polecenia.** \`trainctl_why\` podaje cel jednostki i
-   reguły z badań (ID z \`docs/science/FOUNDATIONS.md\`) — to jest wartość, którą
+   reguły z badań (ID z [docs/science/FOUNDATIONS.md](${foundationsUrl})) — to jest wartość, którą
    trener wnosi ponad listę treningów.
 7. **Pytanie „co jeśli” dostaje scenariusz, nie nadpisanie.** „Co jeśli przełożę
    start o trzy tygodnie?” → gałąź gita albo skopiowany katalog, zmiana

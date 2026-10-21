@@ -43,20 +43,11 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: trainctl (silnik)
-        uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
         with:
-          repository: <twoje-konto>/trainctl
-          path: .trainctl-engine
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '23'      # natywny type-stripping: bez kroku budowania
-
-      - run: corepack enable && pnpm install --frozen-lockfile
-        working-directory: .trainctl-engine
+          node-version: '22.18'   # minimum z `engines` paczki trainctl
 
       - name: Przegląd
         id: review
@@ -64,7 +55,7 @@ jobs:
           TRAINCTL_INTERVALS_API_KEY: ${{ secrets.TRAINCTL_INTERVALS_API_KEY }}
           NO_COLOR: '1'           # czysty tekst do komentarza
         run: |
-          node .trainctl-engine/packages/cli/src/bin.ts review --days 7 > review.txt
+          npx --yes trainctl@0.3.0 review --days 7 > review.txt   # wersja jak lokalnie
           {
             echo 'body<<EOF'
             cat review.txt

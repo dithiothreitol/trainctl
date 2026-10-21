@@ -63,12 +63,21 @@ export interface RemotePlannedWorkout {
   externalId?: string
 }
 
-export interface SyncProvider {
+/**
+ * Źródło wykonania (pull): hub online albo lokalny katalog plików aktywności.
+ * `review`, `pull` i `adapt` potrzebują wyłącznie tego — dlatego adapter
+ * plikowy (pull-only) nie musi udawać, że umie wysyłać treningi (ADR-037).
+ */
+export interface ActivitySource {
   readonly name: string
-  /** Sprawdzenie poświadczeń — zwraca identyfikator konta. */
-  verify(): Promise<{ athleteId: string; name?: string }>
   listActivities(oldest: string, newest: string): Promise<SyncedActivity[]>
   listWellness(oldest: string, newest: string): Promise<SyncedWellness[]>
+}
+
+/** Pełny hub: źródło wykonania + ujście zaplanowanych treningów (push). */
+export interface SyncProvider extends ActivitySource {
+  /** Sprawdzenie poświadczeń — zwraca identyfikator konta. */
+  verify(): Promise<{ athleteId: string; name?: string }>
   pushWorkouts(workouts: PushableWorkout[]): Promise<PushResult>
   /** Treningi wcześniej wypchnięte przez nas (po prefiksie `external_id`). */
   listPlannedWorkouts(oldest: string, newest: string): Promise<RemotePlannedWorkout[]>

@@ -242,14 +242,15 @@ a key is configured). `trainctl adapt` compares execution with the plan and
 | `today` | the session for today | `--date` |
 | `week` | the week, with journal status | `--date`, `-i` (arrow-key browsing) |
 | `why` | purpose + research rules behind a session | `--date` |
-| `log` | record a completed session | `--status`, `--km`, `--time`, `--rpe`, `--note` |
+| `log` | record a completed session | `--status`, `--km`, `--time`, `--test-time`, `--rpe`, `--note` |
 | `shift` | swap two sessions inside a week | `--from`, `--to` (or pick from a list) |
 | `reschedule` | re-solve the week around busy days | `--block`, `--time`, `--pin`, `--preparation`, `--strategy`, `--apply` |
 | `adapt` | analyse execution, propose corrections | `--date`, `--prepare`, `--apply <id>` |
-| `review` | pull + adapt + week in one call | `--days` |
+| `shorten` | fit one session into the time you have, as a proposal | `--minutes`, `--date`, `--apply <id>` |
+| `review` | pull + adapt + week in one call | `--days`, `--date`, `--prepare` |
 | `desk` | training windows around office hours | `--heavy` |
 | `push` | send planned sessions to intervals.icu | `--days`, `--from`, `--to` |
-| `pull` | fetch activities and wellness, compare | `--days` |
+| `pull` | fetch activities and wellness, compare | `--days`, `--date` |
 | `export` | `.fit`, `.ics`, printout, race pack | `--what`, `--date` |
 | `diff` | what a regeneration would change | `--plan <file>` |
 | `check` | lint the plan; fails the exit code | `--strict` |
@@ -396,12 +397,12 @@ Any MCP client works — the generic form:
 }
 ```
 
-Sixteen tools over the same handlers the CLI uses, so the agent and your
+The tools run over the same handlers the CLI uses, so the agent and your
 terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
 `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
-`trainctl_adapt`, `trainctl_desk`, `trainctl_reschedule`, `trainctl_export`,
-`trainctl_review`.
+`trainctl_adapt`, `trainctl_shorten`, `trainctl_desk`, `trainctl_reschedule`,
+`trainctl_export`, `trainctl_review`.
 
 The `AGENTS.md` written by `trainctl init` turns the agent into a coach rather
 than a command runner: ask before regenerating a plan, ask for context when a
