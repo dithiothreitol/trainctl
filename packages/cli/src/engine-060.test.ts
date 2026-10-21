@@ -98,6 +98,22 @@ describe('E-2 · budżet czasu z profilu', () => {
       totals[i]!.forEach((km, k) => expect(km).toBeLessThanOrEqual(totals[i - 1]![k]! + 0.5))
     }
   })
+  it('dwa dni biegowe: budżet liczony od tego, co generator rozpisał — tygodnie mieszczą się w budżecie', () => {
+    const config: TrainctlConfig = {
+      athlete: { recentWeeklyKm: 55, peakWeeklyKm: 80, daysAvailable: ['sat', 'sun'], results: [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580 }] },
+      goal: { name: 'Half marathon', date: '2026-11-29', distanceKm: 21.0975, priority: 'A' },
+      time: { weeklyMinutes: 200 },
+    }
+    expect(computePlan(config, '2026-08-08').feasibilityWarnings.join(' ')).not.toContain('stay over the weekly time budget')
+  })
+  it('cel szkieletu nieosiągalny przy dwóch dniach: bez fałszywego „to budżet obcina szczyt"', () => {
+    const config: TrainctlConfig = {
+      athlete: { recentWeeklyKm: 80, peakWeeklyKm: 100, daysAvailable: ['sat', 'sun'], results: [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580 }] },
+      goal: { name: 'Marathon', date: '2026-11-29', distanceKm: 42.195, priority: 'A' },
+      time: { weeklyMinutes: 300 },
+    }
+    expect(computePlan(config, '2026-08-08').feasibilityWarnings.join(' ')).not.toContain('time budget caps')
+  })
   it('diff tygodnia przyciętego budżetem: jedna linia objętości, bez echa sumy dni', () => {
     plan(`${BASE}time:\n  weeklyMinutes: 200\n`)
     writeFileSync(join(dir, 'trainctl.yaml'), `${BASE}time:\n  weeklyMinutes: 150\n`, 'utf-8')

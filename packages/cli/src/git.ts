@@ -62,16 +62,21 @@ export function uncommitted(cwd: string, paths: string[]): string[] | undefined 
   const r = git(cwd, ['status', '--porcelain', '-z', '--untracked-files=normal', '--', ...paths])
   if (r.status !== 0 || prefix.status !== 0) return undefined
   const root = prefix.stdout.trim()
+  const relative = (path: string) => (path.startsWith(root) ? path.slice(root.length) : path)
   const entries = r.stdout.split('\0')
   const out: string[] = []
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i]!
     if (entry.length < 4) continue
-    // `R  nowy\0stary` (rename albo kopia — w indeksie albo, przy `git add -N`,
-    // w drzewie roboczym): liczy się nowa ścieżka, stara to osobny token
-    if (/[RC]/.test(entry.slice(0, 2))) i++
-    const path = entry.slice(3)
-    out.push(path.startsWith(root) ? path.slice(root.length) : path)
+    const xy = entry.slice(0, 2)
+    out.push(relative(entry.slice(3)))
+    // `XY nowy\0stary` (rename albo kopia): stara ścieżka to osobny token. Rename
+    // w drzewie roboczym (Y, po `git add -N`) zostawia usunięcie starej poza
+    // indeksem — ona też musi trafić do `git add`; rename w indeksie (X) ma je zapisane.
+    if (/[RC]/.test(xy)) {
+      const origin = entries[++i]
+      if (xy[1] === 'R' && origin) out.push(relative(origin))
+    }
   }
   return out
 }

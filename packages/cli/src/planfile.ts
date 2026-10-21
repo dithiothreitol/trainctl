@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { parse, stringify } from 'yaml'
 import {
   diffDays,
+  mondayOf,
   estimateWorkoutMinutes,
   generateMicrocycle,
   shortenWorkout,
@@ -20,9 +21,7 @@ import {
   type Microcycle,
   type PlannedDay,
   type RaceGoal,
-  plannedWeekKm,
   type RacePrediction,
-  type StrengthSession,
 } from 'trainctl-core'
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
@@ -145,18 +144,20 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   if (trailOnly) plan.feasibilityWarnings.push(ui().planMd.trailOnlyCalibration)
   opts.beforeTimeBudget?.(plan)
   if (config.time) {
-    // szczyt przed budżetem: zamiar tygodni bieżącego cyklu, które budżet dostaje —
+    // szczyt przed budżetem: sumy dni tygodni bieżącego cyklu, które budżet dostaje —
     // także po ich podmianie w haku (propozycja), inaczej redukcja objętości
-    // wyglądałaby na budżet. Cel szkieletu, nie suma dni: zaokrąglenie generatora
-    // nie może schować ostrzeżenia, gdy szczyt trafia dokładnie w rekomendację.
-    const macroPeak = Math.max(...cycleWeeksOf(plan).map((w) => w.skeleton.targetKm))
+    // wyglądałaby na budżet. Suma dni, nie cel szkieletu: przy dwóch dniach
+    // biegowych cel bywa nieosiągalny i „więcej minut" by go nie dało.
+    const macroPeak = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
     const budget = fitTimeBudget(plan.weeks, config, zones, testDistanceKm(goal), opts.budgetStrength ?? 'reapply')
     plan.feasibilityWarnings.push(...budget.warnings)
     plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
     // ostrzeżenie tylko wtedy, gdy to budżet spycha szczyt poniżej rekomendacji: bez
     // niego plan by ją osiągnął. Szczyt niski już przed budżetem (baza biegacza,
     // zatwierdzona redukcja) to nie skutek budżetu — „więcej minut" by go nie podniosło.
-    if (budget.capped && plan.peakKmPlanned < plan.peakKmRecommended && macroPeak >= plan.peakKmRecommended) {
+    // tolerancja P-3 (0,5 km): zaokrąglenie generatora nie chowa ostrzeżenia, gdy
+    // szczyt trafia dokładnie w rekomendację
+    if (budget.capped && plan.peakKmPlanned < plan.peakKmRecommended && macroPeak + 0.5 >= plan.peakKmRecommended) {
       plan.feasibilityWarnings.push(ui().planMd.timeCapsVolume(plan.peakKmPlanned, plan.peakKmRecommended))
     }
   }
@@ -178,21 +179,39 @@ export function scaleToBaseline(weeks: Microcycle[], opts: {
   config: TrainctlConfig
   goal: RaceGoal
   vdot: number
-  strengthOf: (date: string) => StrengthSession | undefined
+  /**
+   * Plan bez bazy: tygodnie sprzed decyzji przechodzą z niego bez zmian, a siła
+   * (sesje dni i notatki tygodnia) — do tygodni skalowanych.
+   */
+  reference: Microcycle[]
 }): Microcycle[] {
   const zones = paceZones(opts.vdot)
+  // Kotwica to pełny tydzień budowania: nie odpoczynkowy, nie taper, start ani blok
+  // po starcie (połowa objętości) — inaczej „redukcja" podniosłaby resztę planu.
+  // Decyzja w taperze: ostatni taki tydzień przed nią.
+  const normal = (w: Microcycle) => !w.skeleton.deload && !['taper', 'race', 'transition'].includes(w.skeleton.phase)
   const anchor =
-    weeks.find((w) => w.weekStart > opts.decidedOn && !w.skeleton.deload && !['taper', 'race'].includes(w.skeleton.phase)) ??
+    weeks.find((w) => w.weekStart > opts.decidedOn && normal(w)) ??
+    [...weeks].reverse().find((w) => w.weekStart <= opts.decidedOn && normal(w)) ??
     weeks.find((w) => w.days.some((d) => d.date > opts.decidedOn))
+  const from = mondayOf(opts.decidedOn)
+  const strengthDays = new Map(opts.reference.flatMap((w) => w.days).map((d) => [d.date, d.strength]))
+  const referenceWeeks = new Map(opts.reference.map((w) => [w.weekStart, w]))
   return weeks.map((week) => {
+    // tygodnie przed decyzją to przeszłość, której decyzja nie dotyczy — takie, jak
+    // w planie bez bazy (kopia: computePlan zmienia tygodnie w miejscu, a to mogą
+    // być tygodnie zapisanego planu)
+    if (week.weekStart < from) return structuredClone(referenceWeeks.get(week.weekStart) ?? week)
     const skeleton = structuredClone(week.skeleton)
     delete skeleton.timeCappedKm
     skeleton.targetKm = Math.round((opts.baselineKm * skeleton.targetKm) / Math.max(1, anchor?.skeleton.targetKm ?? skeleton.targetKm))
     const generated = generateMicrocycle({ skeleton, athlete: opts.config.athlete, goal: opts.goal, zones, testDistanceKm: testDistanceKm(opts.goal) })
     for (const day of generated.days) {
-      const strength = opts.strengthOf(day.date)
+      const strength = strengthDays.get(day.date)
       if (strength) day.strength = structuredClone(strength)
     }
+    const notes = referenceWeeks.get(week.weekStart)?.strengthNotes
+    if (notes?.length) generated.strengthNotes = [...notes]
     return generated
   })
 }
@@ -233,18 +252,25 @@ function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: Retur
   let capped = false
   if (time.weeklyMinutes) {
     for (let i = 0; i < weeks.length; i++) {
+      // Tydzień już przycięty (np. przeszły tydzień planu bez bazy przy regeneracji)
+      // drugi raz nie przechodzi: przy małych celach generator nie jest monotoniczny,
+      // więc powtórka dałaby inne dni niż te, które biegacz miał w planie.
+      if (weeks[i]!.skeleton.timeCappedKm !== undefined) continue
       // Siła wraca dopiero po pętli (applyStrength) — jej minuty liczymy z tygodnia
       // przed regeneracją, inaczej kolejny przebieg uznałby tydzień za zmieszczony.
       const strengthMinutes = weeks[i]!.days.reduce((s, d) => s + (d.strength?.durationMin ?? 0), 0)
-      // Cel podawany generatorowi maleje z przebiegu na przebieg. Zapisana objętość
-      // (timeCappedKm) bywa wyższa od celu przez minima jednostek — liczona od niej
-      // kolejna redukcja mogłaby podnieść tydzień zamiast go obniżyć.
-      let requested = plannedWeekKm(weeks[i]!.skeleton)
+      // Cel podawany generatorowi maleje z przebiegu na przebieg i nie przekracza
+      // tego, co generator faktycznie rozpisał: rozpisana objętość bywa wyższa od celu
+      // (minima jednostek), a cel szkieletu — nieosiągalny (mało dni, limit długiego).
+      // Redukcja liczona od którejś z nich mogłaby tydzień podnieść albo nie zejść
+      // pod budżet w czterech przebiegach.
+      let requested = weeks[i]!.skeleton.targetKm
       for (let pass = 0; pass < 4; pass++) {
         const week = weeks[i]!
         if (week.skeleton.raceDate) break
         const minutes = runMinutes(week) + strengthMinutes
         if (minutes <= time.weeklyMinutes) break
+        requested = Math.min(requested, week.totalKm)
         const target = Math.max(5, Math.floor(requested - (minutes - time.weeklyMinutes) / easyMinPerKm))
         if (target >= requested) break
         requested = target
@@ -256,6 +282,9 @@ function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: Retur
           const session = week.days.find((d) => d.date === day.date)?.strength
           if (session) day.strength = structuredClone(session)
         }
+        // notatki siły tygodnia (PLAN.md) idą razem z sesjami — przy 'reapply' i tak
+        // ustawi je od nowa applyStrength, przy 'keep' nie ma kto
+        if (week.strengthNotes?.length) regenerated.strengthNotes = [...week.strengthNotes]
         weeks[i] = regenerated
         capped = true
       }

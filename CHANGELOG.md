@@ -38,8 +38,9 @@ change between minor versions — a regenerated plan can differ.
 - The same training cycle keeps its phase boundaries; a different goal distance,
   or a new goal after the race, starts a new cycle and keeps the earlier weeks
   as history ("week 2/12" counts the current cycle). On race day the race
-  counts as done only when most of its distance is logged or synced, so a
-  morning shakeout before a postponed race keeps the same cycle.
+  counts as done only when most of its distance is logged or synced (a day
+  logged as skipped never counts), so a morning shakeout before a postponed
+  race keeps the same cycle.
 - Right after `adapt --apply`, `plan` reproduces the approved days, including
   strength sessions, time-budget caps and the day of the decision. Later,
   strength follows the current phases and `strength.days`.

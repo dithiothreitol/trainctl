@@ -218,7 +218,7 @@ describe('status', () => {
       rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
     }
   })
-  it('rename w drzewie roboczym (git add -N): status podaje nową ścieżkę, bez śmieci ze starej', () => {
+  it('rename w drzewie roboczym (git add -N): nowa i stara ścieżka, podpowiedź zapisuje cały rename', () => {
     cmdPlan(dir, { date: '2026-08-08' })
     const git = (args: string[]) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.test', ...args], { cwd: dir, encoding: 'utf-8' })
     git(['init', '-q'])
@@ -226,7 +226,10 @@ describe('status', () => {
     git(['commit', '-qm', 'init'])
     renameSync(join(dir, 'plan', 'PLAN.md'), join(dir, 'plan', 'PLAN-old.md'))
     git(['add', '-N', 'plan/PLAN-old.md'])
-    expect(cmdStatus(dir).data).toMatchObject({ git: { uncommitted: ['plan/PLAN-old.md'] } })
+    const r = cmdStatus(dir)
+    expect(r.data).toMatchObject({ git: { uncommitted: ['plan/PLAN-old.md', 'plan/PLAN.md'] } })
+    git(['add', '--', ...r.output.match(/git add -- (.*?) && git commit/)![1]!.split(' ')])
+    expect(git(['status', '--porcelain'])).not.toMatch(/^ D/m)
   })
   it('plik planu, którego nie da się użyć: status nie podpowiada trainctl plan (plan by odmówił)', () => {
     mkdirSync(join(dir, 'plan'), { recursive: true })

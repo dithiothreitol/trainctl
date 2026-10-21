@@ -6,13 +6,19 @@ export const isRunningActivity = (activity: SyncedActivity): boolean =>
   /^(run|running|trailrun|trailrunning|virtualrun|treadmill|treadmillrunning)$/i.test(activity.type.replace(/[ _-]/g, '')) &&
   !activity.dataWithheld
 
-/** One interpretation for pull, review and adaptation. Latest journal entry wins. */
-export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], logs: LogEntry[], today: string): ExecutionRecord[] {
+/** Kilometry biegów z synchronizacji dzień po dniu — jedna reguła dla wykonania i wykrycia startu. */
+export function runningKmByDate(activities: SyncedActivity[]): Map<string, number> {
   const runs = new Map<string, number>()
   for (const a of activities) {
     if (!isRunningActivity(a) || a.distanceKm === undefined || !Number.isFinite(a.distanceKm) || a.distanceKm <= 0) continue
     runs.set(a.date, (runs.get(a.date) ?? 0) + a.distanceKm)
   }
+  return runs
+}
+
+/** One interpretation for pull, review and adaptation. Latest journal entry wins. */
+export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], logs: LogEntry[], today: string): ExecutionRecord[] {
+  const runs = runningKmByDate(activities)
   const journal = new Map(logs.map((entry) => [entry.date, entry]))
   const planned = new Map(plan.weeks.flatMap((week) => week.days).map((day) => [day.date, day]))
   const dates = [...new Set([...planned.keys(), ...runs.keys(), ...journal.keys()])].sort()

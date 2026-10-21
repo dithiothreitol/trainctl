@@ -3,11 +3,11 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path'
 import { estimateWorkoutMinutes, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
-import { readLog, LOG_FILE } from './logfile.ts'
+import { logFor, readLog, LOG_FILE } from './logfile.ts'
 import { computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, scaleToBaseline, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
-import { isRunningActivity } from './execution.ts'
+import { isRunningActivity, runningKmByDate } from './execution.ts'
 import { clockToday } from './clock.ts'
 import { resultKey } from './calibration.ts'
 
@@ -61,11 +61,11 @@ export function recordedDates(cwd: string): Set<string> {
  */
 export function raceDayKm(cwd: string, plan: StoredPlan): number {
   const date = plan.goal.date
-  const entry = readLog(cwd).filter((e) => e.date === date).at(-1)
-  const logged = !entry || entry.status === 'skipped' ? 0 : entry.km ?? (entry.status === 'done' ? plan.goal.distanceKm : 0)
-  const synced = (readSnapshot(cwd)?.activities ?? [])
-    .filter((a) => a.date === date && isRunningActivity(a))
-    .reduce((sum, a) => sum + (a.distanceKm ?? 0), 0)
+  const entry = logFor(cwd, date)
+  // jawne „pominięte" (DNS) wygrywa nad zegarkiem — tak jak w buildExecution
+  if (entry?.status === 'skipped') return 0
+  const logged = entry ? entry.km ?? (entry.status === 'done' ? plan.goal.distanceKm : 0) : 0
+  const synced = runningKmByDate(readSnapshot(cwd)?.activities ?? []).get(date) ?? 0
   // wpis z dziennika (np. rozruch rano) nie przykrywa startu pobranego z zegarka
   return Math.max(logged, synced)
 }
@@ -127,15 +127,15 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
     // potem computePlan (E-2), a siła zostaje na swoich dniach.
     budgetStrength: 'keep',
     beforeTimeBudget: (metadata) => {
-      // Compute calibration metadata separately; never replay a new baseline from August.
-      // Bieżący cykl jak w zapisanym planie — szczyt i ostrzeżenia nie liczą historii poprzedniego.
+      // Metadane kalibracji liczy computePlan; nowa baza nie sięga wstecz (tygodnie
+      // sprzed decyzji zostają). Bieżący cykl jak w zapisanym planie — szczyt
+      // i ostrzeżenia nie liczą historii poprzedniego.
       if (plan.cycleStart) metadata.cycleStart = plan.cycleStart
       if (volume) {
-        // Strength is an independent track; a volume correction does not reassign it.
-        const savedDays = new Map(plan.weeks.flatMap((w) => w.days).map((d) => [d.date, d]))
+        // siła to osobny tor — korekta objętości jej nie przestawia
         metadata.weeks = scaleToBaseline(plan.weeks, {
           baselineKm: volume.suggestedWeeklyKm!, decidedOn: today, config: nextConfig, goal: plan.goal, vdot: metadata.vdot,
-          strengthOf: (date) => savedDays.get(date)?.strength,
+          reference: plan.weeks,
         })
         return
       }
