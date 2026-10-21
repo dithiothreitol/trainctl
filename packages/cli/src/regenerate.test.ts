@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { setLocale, validatePlan } from 'trainctl-core'
+import { estimateWorkoutMinutes, setLocale, validatePlan } from 'trainctl-core'
 import { cmdDiff, cmdLog, cmdPlan, cmdToday } from './commands.ts'
 import { computePlan, cycleWeeksOf, loadPlan, writePlan, PLAN_YAML, type StoredPlan } from './planfile.ts'
 import { applyProposal, prepareProposal } from './proposals.ts'
@@ -73,14 +73,14 @@ describe('trainctl plan na istniejącym planie', () => {
     for (const date of ['2026-08-04', '2026-09-01', '2026-09-05']) expect(dayOf(plan, date)).toEqual(dayOf(reduced.plan, date))
   })
 
-  it('redukcja objętości przy budżecie dnia nie udaje, że to budżet obciął szczyt', () => {
-    config.time = { weekdayMinutes: 60 }
-    const fresh = initialize()
-    expect(fresh.feasibilityWarnings.join('\n')).not.toContain('time budget caps')
-    const reduced = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 30 }] })
-    // jeśli budżet tnie zredukowany plan, „bez budżetu" to poziom redukcji, nie pierwotny szczyt
-    const warning = reduced.plan.feasibilityWarnings.find((w) => w.includes('time budget caps'))
-    if (warning) expect(Number(warning.match(/would reach ([\d.]+) km\/week/)![1])).toBeLessThanOrEqual(30.5)
+  it('redukcja, którą budżet jeszcze tnie: „bez budżetu" to poziom redukcji, nie pierwotny szczyt', () => {
+    config.time = { weeklyMinutes: 240 }
+    initialize()
+    const reduced = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 45 }] })
+    expect(reduced.plan.timeCaps).toBeDefined()
+    expect(reduced.plan.timeCaps!.withoutBudgetKm).toBeGreaterThan(40)
+    expect(reduced.plan.timeCaps!.withoutBudgetKm).toBeLessThanOrEqual(45.5)
+    expect(reduced.plan.feasibilityWarnings.join('\n')).toContain(`would reach ${reduced.plan.timeCaps!.withoutBudgetKm}`)
   })
   it('redukcja mieszcząca się w budżecie tygodnia: bez ostrzeżenia o budżecie', () => {
     config.time = { weeklyMinutes: 240 }
@@ -115,6 +115,36 @@ describe('trainctl plan na istniejącym planie', () => {
     saveConfig()
     const recalibrated = prepareProposal(dir, '2026-09-10', { ...reduction, actions: [{ type: 'recalibrate-zones' as const, detail: 'recalibrate', ruleRefs: [] }] })
     expect(validatePlan(recalibrated.plan).filter((i) => i.code === 'targetKmMismatch')).toEqual([])
+  })
+  it('rekalibracja w środku tygodnia przy limitach dni: przyszłe dni bieżącego tygodnia mieszczą się w limicie', () => {
+    vi.setSystemTime(new Date('2026-09-10T12:00:00Z'))
+    config.time = { weekdayMinutes: 50, weekendMinutes: 90 }
+    initialize()
+    config.athlete.results = [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580, excluded: true }, { date: '2026-09-05', distanceKm: 10, timeSec: 3300 }]
+    saveConfig()
+    const recalibrated = prepareProposal(dir, '2026-09-10', { ...reduction, actions: [{ type: 'recalibrate-zones' as const, detail: 'recalibrate', ruleRefs: [] }] })
+    const tooLong = recalibrated.plan.feasibilityWarnings.join('\n')
+    for (const day of recalibrated.plan.weeks.flatMap((w) => w.days).filter((d) => d.date > '2026-09-10' && d.date <= '2026-09-13' && d.workout)) {
+      const cap = ['sat', 'sun'].includes(day.weekday) ? 90 : 50
+      if (estimateWorkoutMinutes(day.workout!, 15) > cap) expect(tooLong).toContain(day.date)
+    }
+  })
+  it('rekalibracja po zatwierdzonej bazie: „bez budżetu" to baza, nie pierwotny szczyt', () => {
+    config.time = { weeklyMinutes: 240 }
+    initialize()
+    applyProposal(dir, prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 45 }] }).id)
+    config.athlete.results = [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580, excluded: true }, { date: '2026-08-30', distanceKm: 10, timeSec: 2700 }]
+    saveConfig()
+    const recalibrated = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ type: 'recalibrate-zones' as const, detail: 'recalibrate', ruleRefs: [] }] })
+    const warning = recalibrated.plan.feasibilityWarnings.find((w) => w.includes('time budget caps'))!
+    expect(Number(warning.match(/would reach ([\d.]+) km\/week/)![1])).toBeLessThanOrEqual(45.5)
+  })
+  it('redukcja w środku tygodnia, którą budżet tnie: tydzień decyzji zgadza się z własną objętością (P-3)', () => {
+    vi.setSystemTime(new Date('2026-09-10T12:00:00Z'))
+    config.time = { weeklyMinutes: 240 }
+    initialize()
+    const reduced = prepareProposal(dir, '2026-09-10', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 45 }] })
+    expect(validatePlan(reduced.plan).filter((i) => i.code === 'targetKmMismatch' && i.date === '2026-09-07')).toEqual([])
   })
   it('baza zatwierdzona przy budżecie bez siły: tygodnie sprzed decyzji nie dostają fałszywego „ponad budżet"', () => {
     config.time = { weeklyMinutes: 240 }

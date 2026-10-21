@@ -99,10 +99,10 @@ export function rebuildPlan(
   // planie — i rozstawienie siły z aktualnymi fazami (przesunięty start) oraz
   // `strength.days`. Propozycja przepisuje je z zapisanego planu, który ma właśnie
   // to, więc regeneracja tuż po `adapt --apply` odtwarza zatwierdzone dni.
-  const unscaled = loadState ? computePlan(config, macroStart, today) : undefined
+  // Bez budżetu czasu tygodnie przed hakiem są tym samym planem (bez drugiego przebiegu).
+  const unscaled = loadState && config.time ? computePlan(config, macroStart, today) : undefined
   const fresh = computePlan(config, macroStart, today, loadState
     ? {
-        budgetStrength: 'keep',
         budgetFrom: mondayOf(loadState.effectiveFrom),
         beforeTimeBudget: (plan) => {
           plan.weeks = scaleToBaseline(plan.weeks, {

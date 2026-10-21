@@ -130,9 +130,9 @@ change between minor versions — a regenerated plan can differ.
   time trials are never cut.
   A week keeps its macrocycle target; the volume the budget leaves is stored
   next to it (`timeCappedKm`), and `week`, `adapt`, `diff` and `export` show it.
-  A zone recalibration from `adapt` changes paces and lowers volume only where
-  slower paces no longer fit the weekly budget, from the next week on; volume
-  goes up again through `plan`.
+  A zone recalibration from `adapt` changes paces: day limits shorten
+  sessions that no longer fit from the current week, the weekly budget lowers
+  volume from the next week on, and volume goes up again through `plan`.
 - **Transition block after the goal race** (R-8): after a half marathon or
   longer, two weeks — about half the pre-race volume, easy only, first run on
   the third day after a marathon (R-1), then back to normal with one accent;

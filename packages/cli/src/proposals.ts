@@ -125,14 +125,16 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
     throw new Error(ui().improve.noPatch)
   const nextConfig = structuredClone(config)
   const candidate = withLocale(plan.locale === 'pl' ? 'pl' : 'en', () => computePlan(nextConfig, plan.generatedAt, today, {
-    // Przy skalowaniu tygodnie sprzed decyzji przychodzą z zapisanego planu gotowe.
-    // Rekalibracja zmienia w bieżącym tygodniu tylko tempa (jego przeszłe dni zostają,
-    // więc przycięty od nowa tydzień nie zgadzałby się z własną objętością) — budżet
-    // dopasowuje tygodnie od następnego poniedziałku.
-    budgetFrom: volume ? mondayOf(today) : addDays(mondayOf(today), 7),
     // Tygodnie zapisanego planu zamiast świeżych; budżet czasu z profilu stosuje
-    // potem computePlan (E-2), a siła zostaje na swoich dniach.
-    budgetStrength: 'keep',
+    // potem computePlan (E-2) od tygodnia decyzji, a siła zostaje na swoich dniach.
+    // Rekalibracja zmienia tylko tempa: w bieżącym tygodniu limit dnia skraca za
+    // długie dni, całe tygodnie budżet przycina od następnego poniedziałku, a poziom
+    // bez budżetu zostaje z zapisanego planu (objętości rekalibracja nie zmienia).
+    budgetFrom: mondayOf(today),
+    ...(volume ? {} : {
+      weeklyBudgetFrom: addDays(mondayOf(today), 7),
+      ...(plan.timeCaps ? { withoutBudgetKm: plan.timeCaps.withoutBudgetKm } : {}),
+    }),
     beforeTimeBudget: (metadata) => {
       // Metadane kalibracji liczy computePlan; nowa baza nie sięga wstecz (tygodnie
       // sprzed decyzji zostają). Bieżący cykl jak w zapisanym planie — szczyt
@@ -180,6 +182,9 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
       Object.assign(week, weekTotals(week.days))
       const skeleton = candidate.weeks.find((w) => w.weekStart === week.weekStart)?.skeleton
       if (skeleton) week.skeleton = structuredClone(skeleton)
+      // Tydzień z dniami z obu planów (przeszłe zostają): objętość po budżecie to suma
+      // tego, co w nim faktycznie jest — z nią lint porównuje dni (P-3).
+      if (week.skeleton.timeCappedKm !== undefined) week.skeleton.timeCappedKm = Math.round(week.totalKm * 10) / 10
     }
   }
   next.calibration = candidate.calibration!
@@ -190,6 +195,8 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   else delete next.prediction
   next.peakKmPlanned = Math.max(...cycleWeeksOf(next).map((w) => w.totalKm))
   next.feasibilityWarnings = candidate.feasibilityWarnings
+  if (candidate.timeCaps) next.timeCaps = candidate.timeCaps
+  else delete next.timeCaps
   next.changes.push({ at: today, action: 'adapt', detail: analysis.actions.map((a) => a.type).join(', ') })
   // Lint remains visible in the preview; broken file invariants never reach disk.
   const errors = validatePlan(next).filter((issue) => issue.severity === 'error')
