@@ -6,7 +6,7 @@ export const isRunningActivity = (activity: SyncedActivity): boolean =>
   /^(run|running|trailrun|trailrunning|virtualrun|treadmill|treadmillrunning)$/i.test(activity.type.replace(/[ _-]/g, '')) &&
   !activity.dataWithheld
 
-/** Kilometry biegów z synchronizacji dzień po dniu — jedna reguła dla wykonania i wykrycia startu. */
+/** Kilometry biegów z synchronizacji dzień po dniu — jedna reguła, co z zegarka liczy się jako bieg. */
 export function runningKmByDate(activities: SyncedActivity[]): Map<string, number> {
   const runs = new Map<string, number>()
   for (const a of activities) {
@@ -16,7 +16,7 @@ export function runningKmByDate(activities: SyncedActivity[]): Map<string, numbe
   return runs
 }
 
-/** One interpretation for pull, review and adaptation. Latest journal entry wins. */
+/** Jedna interpretacja wykonania dla pull, review i adaptacji. Wygrywa ostatni wpis dziennika. */
 export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], logs: LogEntry[], today: string): ExecutionRecord[] {
   const runs = runningKmByDate(activities)
   const journal = new Map(logs.map((entry) => [entry.date, entry]))

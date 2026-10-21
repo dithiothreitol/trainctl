@@ -106,13 +106,25 @@ describe('E-2 · budżet czasu z profilu', () => {
     }
     expect(computePlan(config, '2026-08-08').feasibilityWarnings.join(' ')).not.toContain('stay over the weekly time budget')
   })
-  it('cel szkieletu nieosiągalny przy dwóch dniach: bez fałszywego „to budżet obcina szczyt"', () => {
+  it('cel szkieletu nieosiągalny przy dwóch dniach: ostrzeżenie podaje szczyt bez budżetu, nie obiecuje rekomendacji', () => {
     const config: TrainctlConfig = {
       athlete: { recentWeeklyKm: 80, peakWeeklyKm: 100, daysAvailable: ['sat', 'sun'], results: [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580 }] },
       goal: { name: 'Marathon', date: '2026-11-29', distanceKm: 42.195, priority: 'A' },
       time: { weeklyMinutes: 300 },
     }
-    expect(computePlan(config, '2026-08-08').feasibilityWarnings.join(' ')).not.toContain('time budget caps')
+    const free = computePlan({ ...config, time: undefined } as unknown as TrainctlConfig, '2026-08-08')
+    const warning = computePlan(config, '2026-08-08').feasibilityWarnings.find((w) => w.includes('time budget caps'))!
+    const withoutBudget = Number(warning.match(/would reach ([\d.]+) km\/week/)![1])
+    expect(withoutBudget).toBeCloseTo(Math.max(...free.weeks.map((w) => w.totalKm)), 0)
+    expect(withoutBudget).toBeLessThan(free.peakKmRecommended)
+  })
+  it('trzy dni, maraton i ostry budżet: ostrzeżenie mimo szczytu bez budżetu poniżej rekomendacji', () => {
+    const config: TrainctlConfig = {
+      athlete: { recentWeeklyKm: 60, peakWeeklyKm: 100, daysAvailable: ['tue', 'thu', 'sun'], results: [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580 }] },
+      goal: { name: 'Marathon', date: '2026-11-29', distanceKm: 42.195, priority: 'A' },
+      time: { weeklyMinutes: 150 },
+    }
+    expect(computePlan(config, '2026-08-08').feasibilityWarnings.join(' ')).toContain('time budget caps')
   })
   it('diff tygodnia przyciętego budżetem: jedna linia objętości, bez echa sumy dni', () => {
     plan(`${BASE}time:\n  weeklyMinutes: 200\n`)

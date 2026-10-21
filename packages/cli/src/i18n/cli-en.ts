@@ -888,9 +888,9 @@ export const cliEn = {
     noCalibration:
       'No race result from the last 18 months and no goal.targetTimeSec — ' +
       'there is nothing to calibrate the zones from (Z-6: we calibrate from results, not from a watch).',
-    timeCapsVolume: (peak: number, recommended: number) =>
-      `Your time budget caps the plan at ${n(peak)} km/week, below the ${n(recommended)} km/week recommended for ` +
-      'this distance (P-7/P-8). More minutes, or a closer goal, changes that (E-2).',
+    timeCapsVolume: (peak: number, withoutBudget: number, recommended: number) =>
+      `Your time budget caps the plan at ${n(peak)} km/week; without it the plan would reach ${n(withoutBudget)} km/week ` +
+      `(${n(recommended)} km/week recommended for this distance, P-7/P-8). More minutes, or a closer goal, changes that (E-2).`,
     timeDayTooShort: (dates: string) =>
       `These sessions do not fit the day's time budget even shortened (races and time trials are never cut): ${dates} (E-2).`,
     timeWeekOver: (weeks: string) => `These weeks stay over the weekly time budget: ${weeks} (E-2).`,

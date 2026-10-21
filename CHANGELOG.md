@@ -125,8 +125,9 @@ change between minor versions — a regenerated plan can differ.
 - **Time budget** (`time.weeklyMinutes`, `weekdayMinutes`, `weekendMinutes`,
   E-2): weeks over the weekly budget get a lower volume target, days over their
   limit are shortened with the same rules as `shorten` and carry the trade-off;
-  the plan says when the budget is what keeps volume below the level
-  recommended for the distance (P-7/P-8). Races and time trials are never cut.
+  the plan says when the budget lowers the peak below the level recommended
+  for the distance, and what the peak would be without it (P-7/P-8). Races and
+  time trials are never cut.
   A week keeps its macrocycle target; the volume the budget leaves is stored
   next to it (`timeCappedKm`), and `week`, `adapt`, `diff` and `export` show it.
 - **Transition block after the goal race** (R-8): after a half marathon or

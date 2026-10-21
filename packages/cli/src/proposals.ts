@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { estimateWorkoutMinutes, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
+import { estimateWorkoutMinutes, mondayOf, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
 import { logFor, readLog, LOG_FILE } from './logfile.ts'
 import { computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, scaleToBaseline, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
-import { isRunningActivity, runningKmByDate } from './execution.ts'
+import { runningKmByDate } from './execution.ts'
 import { clockToday } from './clock.ts'
 import { resultKey } from './calibration.ts'
 
@@ -50,7 +50,7 @@ function saveProposal(cwd: string, body: Omit<PlanProposal, 'id'>): PlanProposal
 /** Daty z zapisem wykonania (dziennik albo bieg z synchronizacji) — nienaruszalne dla zmian planu. */
 export function recordedDates(cwd: string): Set<string> {
   const dates = new Set(readLog(cwd).map(entry => entry.date))
-  for (const a of readSnapshot(cwd)?.activities ?? []) if (isRunningActivity(a) && (a.distanceKm ?? 0) > 0) dates.add(a.date)
+  for (const date of runningKmByDate(readSnapshot(cwd)?.activities ?? []).keys()) dates.add(date)
   return dates
 }
 
@@ -66,7 +66,9 @@ export function raceDayKm(cwd: string, plan: StoredPlan): number {
   if (entry?.status === 'skipped') return 0
   const logged = entry ? entry.km ?? (entry.status === 'done' ? plan.goal.distanceKm : 0) : 0
   const synced = runningKmByDate(readSnapshot(cwd)?.activities ?? []).get(date) ?? 0
-  // wpis z dziennika (np. rozruch rano) nie przykrywa startu pobranego z zegarka
+  // Świadomie inaczej niż buildExecution (tam wpis dziennika wygrywa z zegarkiem):
+  // tu pytanie brzmi „czy start się odbył", a poranny rozruch w dzienniku to inna
+  // sesja tego dnia niż start pobrany z zegarka — liczy się większa z dwóch wartości.
   return Math.max(logged, synced)
 }
 
@@ -123,6 +125,8 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
     throw new Error(ui().improve.noPatch)
   const nextConfig = structuredClone(config)
   const candidate = withLocale(plan.locale === 'pl' ? 'pl' : 'en', () => computePlan(nextConfig, plan.generatedAt, today, {
+    // przy skalowaniu tygodnie sprzed decyzji przychodzą z zapisanego planu gotowe
+    ...(volume ? { budgetFrom: mondayOf(today) } : {}),
     // Tygodnie zapisanego planu zamiast świeżych; budżet czasu z profilu stosuje
     // potem computePlan (E-2), a siła zostaje na swoich dniach.
     budgetStrength: 'keep',

@@ -214,7 +214,10 @@ describe('regeneracja po zatwierdzonej propozycji', () => {
     write(withBudget(RACE))
     approve('2026-09-16')
     const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
     const past = (r.data as { regeneration: { protectedDays: { date: string; reason: string }[] } }).regeneration.protectedDays.filter((p) => p.reason === 'past')
+    // dni tygodnia decyzji sprzed niej nadal są zgłaszane — skalowanie je zmienia, ochrona trzyma
+    expect(past.length).toBeGreaterThan(0)
     expect(past.every((p) => p.date >= '2026-09-14')).toBe(true)
   })
   it('regeneracja z zatwierdzoną bazą zachowuje notatki siły tygodni (PLAN.md)', () => {

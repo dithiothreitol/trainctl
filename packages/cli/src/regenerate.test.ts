@@ -80,6 +80,17 @@ describe('trainctl plan na istniejącym planie', () => {
     const reduced = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 30 }] })
     expect(reduced.plan.feasibilityWarnings.join('\n')).not.toContain('time budget caps')
   })
+  it('rekalibracja przy budżecie tygodnia: przycięte tygodnie znów w budżecie, ostrzeżenie zostaje', () => {
+    config.time = { weeklyMinutes: 240 }
+    const fresh = initialize()
+    expect(fresh.feasibilityWarnings.join('\n')).toContain('time budget caps')
+    config.athlete.results = [{ date: '2026-03-29', distanceKm: 10, timeSec: 2580, excluded: true }, { date: '2026-08-30', distanceKm: 10, timeSec: 2820 }]
+    saveConfig()
+    const recalibrated = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ type: 'recalibrate-zones' as const, detail: 'recalibrate', ruleRefs: [] }] })
+    const warnings = recalibrated.plan.feasibilityWarnings.join('\n')
+    expect(warnings).toContain('time budget caps')
+    expect(warnings).not.toContain('stay over the weekly time budget')
+  })
   it('zmiana athlete.recentWeeklyKm po redukcji: wygrywa profil, baza znika', () => {
     initialize()
     applyProposal(dir, prepareProposal(dir, '2026-09-06', reduction).id)

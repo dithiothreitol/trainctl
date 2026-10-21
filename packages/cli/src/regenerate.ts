@@ -105,6 +105,7 @@ export function rebuildPlan(
   const fresh = computePlan(config, macroStart, today, loadState
     ? {
         budgetStrength: 'keep',
+        budgetFrom: mondayOf(loadState.effectiveFrom),
         beforeTimeBudget: (plan) => {
           plan.weeks = scaleToBaseline(plan.weeks, {
             baselineKm: loadState.baselineWeeklyKm, decidedOn: loadState.effectiveFrom, config, goal: plan.goal, vdot: plan.vdot,
@@ -216,7 +217,9 @@ export function rebuildPlan(
     JSON.stringify(plan.goal) === JSON.stringify(existing.goal) &&
     plan.locale === existing.locale &&
     plan.engineVersion === existing.engineVersion &&
-    JSON.stringify(plan.loadState ?? null) === JSON.stringify(existing.loadState ?? null)
+    JSON.stringify(plan.loadState ?? null) === JSON.stringify(existing.loadState ?? null) &&
+    // notatki siły tygodni to też treść planu (PLAN.md) — plan, który je zgubił, się naprawia
+    JSON.stringify(weeks.map((w) => w.strengthNotes ?? null)) === JSON.stringify(existing.weeks.map((w) => w.strengthNotes ?? null))
   if (!upToDate) {
     plan.changes.push({
       at: now,

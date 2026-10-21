@@ -911,9 +911,9 @@ export const cliPl: CliMessages = {
     noCalibration:
       'Brak wyniku startu z ostatnich 18 miesięcy i brak goal.targetTimeSec — ' +
       'nie mam z czego skalibrować stref (Z-6: kalibrujemy z wyników, nie z zegarka).',
-    timeCapsVolume: (peak: number, recommended: number) =>
-      `Budżet czasu ogranicza plan do ${n(peak)} km/tydz., poniżej ${n(recommended)} km/tydz. rekomendowanych ` +
-      'dla tego dystansu (P-7/P-8). Zmieni to więcej minut albo bliższy cel (E-2).',
+    timeCapsVolume: (peak: number, withoutBudget: number, recommended: number) =>
+      `Budżet czasu ogranicza plan do ${n(peak)} km/tydz.; bez niego plan doszedłby do ${n(withoutBudget)} km/tydz. ` +
+      `(rekomendowane dla tego dystansu: ${n(recommended)} km/tydz., P-7/P-8). Zmieni to więcej minut albo bliższy cel (E-2).`,
     timeDayTooShort: (dates: string) =>
       `Te jednostki nie mieszczą się w budżecie dnia nawet po skróceniu (startów i sprawdzianów nie skracamy): ${dates} (E-2).`,
     timeWeekOver: (weeks: string) => `Te tygodnie zostają ponad budżetem tygodnia: ${weeks} (E-2).`,
