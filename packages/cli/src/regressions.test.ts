@@ -105,7 +105,7 @@ describe('plan.yaml jest czytelny dla człowieka (plan-as-code)', () => {
   it('każda sesja siłowa zapisana w całości, nie jako referencja', () => {
     setup()
     const yaml = readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')
-    const full = (yaml.match(/kind: heavy/g) ?? []).length
+    const full = (yaml.match(/kind: (heavy|intro|maintenance)/g) ?? []).length
     expect(full).toBe(strengthDays().length)
   })
 })

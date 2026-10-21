@@ -17,6 +17,10 @@ import { addDays, diffDays } from '../util/dates.ts'
 
 /** F-1/F-12: 2 sesje/tydz. w ładowaniu. */
 const SESSIONS_PER_WEEK = 2
+/** F-12: 0–1×/tydz. w okresie startowym; F-14: jedna sesja utrzymuje przyrost. */
+const SESSIONS_PEAK = 1
+/** F-18 (inż.): dwa pierwsze tygodnie bloku to wejście w ruch, zanim przyjdzie ≥80% 1RM. */
+const INTRO_WEEKS = 2
 /** Tydzień odciążeniowy: 1 sesja — spójnie z duchem P-2 (wartość inż.). */
 const SESSIONS_DELOAD = 1
 /** Odstęp między sesjami siły: deficyt siły utrzymuje się do 48 h (S-5/de Carvalho). */
@@ -33,13 +37,25 @@ const QUALITY_KINDS = new Set(['quality_intervals', 'quality_continuous', 'test'
  * współdzielona referencja zamieniłaby 22 z 23 sesji w aliasy `*a2`, a edycja
  * jednego dnia zmieniłaby wszystkie.
  */
-export function strengthSession(): StrengthSession {
+export function strengthSession(variant: StrengthSession['kind'] = 'heavy'): StrengthSession {
+  if (variant === 'intro') {
+    return { kind: 'intro', durationMin: 35, ruleRefs: ['F-1', 'F-3', 'F-18'], description: messages().strength.sessionIntro() }
+  }
+  if (variant === 'maintenance') {
+    return { kind: 'maintenance', durationMin: 25, ruleRefs: ['F-12', 'F-14', 'F-4'], description: messages().strength.sessionMaintenance() }
+  }
   return {
     kind: 'heavy',
     durationMin: 35,
     ruleRefs: ['F-1', 'F-2', 'F-3', 'F-4'],
     description: messages().strength.session(),
   }
+}
+
+/** Wariant sesji dla tygodnia: wejście w blok, ładowanie albo podtrzymanie w szczycie. */
+export function strengthVariant(phase: MacroPhase, blockWeek: number): StrengthSession['kind'] {
+  if (phase === 'peak') return 'maintenance'
+  return blockWeek < INTRO_WEEKS ? 'intro' : 'heavy'
 }
 
 export interface StrengthWeekInput {
@@ -54,6 +70,8 @@ export interface StrengthWeekInput {
    * niedziela→poniedziałek.
    */
   lastSessionDate?: string
+  /** Który to tydzień bloku siły (0 = pierwszy) — wybiera wariant sesji. */
+  blockWeek?: number
 }
 
 export interface StrengthAssignment {
@@ -84,8 +102,16 @@ export function planStrengthWeek(input: StrengthWeekInput): StrengthAssignment {
     notes.push(messages().strength.taperNote)
     return { byDate: new Map(), notes }
   }
+  // R-9 (inż.): po starcie siła wraca dopiero w drugim tygodniu bloku, jedną sesją wejścia
+  const firstTransitionWeek = phase === 'transition' && week.skeleton.qualitySessions === 0
+  if (firstTransitionWeek) {
+    notes.push(messages().strength.transitionNote)
+    return { byDate: new Map(), notes }
+  }
 
-  const target = deload ? SESSIONS_DELOAD : SESSIONS_PER_WEEK
+  const target = phase === 'peak' || phase === 'transition' ? SESSIONS_PEAK : deload ? SESSIONS_DELOAD : SESSIONS_PER_WEEK
+  const variant = phase === 'transition' ? 'intro' : strengthVariant(phase, input.blockWeek ?? INTRO_WEEKS)
+  if (phase === 'peak') notes.push(messages().strength.peakNote)
   const kindOf = (d: PlannedDay) => d.workout?.kind
 
   const blocked = new Set<string>()
@@ -123,7 +149,7 @@ export function planStrengthWeek(input: StrengthWeekInput): StrengthAssignment {
     if (blocked.has(day.date)) continue
     const tooClose = placed.some((d) => Math.abs(diffDays(d, day.date)) < MIN_GAP_DAYS)
     if (tooClose) continue
-    byDate.set(day.date, strengthSession())
+    byDate.set(day.date, strengthSession(variant))
     placed.push(day.date)
   }
 

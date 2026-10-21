@@ -34,7 +34,9 @@ describe('taperWeeksFor / recommendedPeakKm', () => {
 })
 
 describe('planMacrocycle — maraton, 17 tygodni', () => {
-  const plan = planMacrocycle({ today: '2026-08-05', goal: marathon, athlete })
+  const full = planMacrocycle({ today: '2026-08-05', goal: marathon, athlete })
+  // cykl do startu; blok po starcie (R-8) ma własne testy niżej
+  const plan = { ...full, weeks: full.weeks.filter((w) => w.phase !== 'transition') }
 
   it('liczba i wyrównanie tygodni (poniedziałki)', () => {
     expect(plan.weeks).toHaveLength(17)
@@ -120,12 +122,12 @@ describe('planMacrocycle — przypadki brzegowe', () => {
       goal: { ...marathon, date: '2026-08-23' }, // 3 tygodnie
       athlete,
     })
-    expect(compressed.weeks).toHaveLength(3)
+    expect(compressed.weeks.filter((w) => w.phase !== 'transition')).toHaveLength(3)
     // treść ostrzeżenia zależy od języka — sprawdzamy przez katalog, nie przez literał
     expect(
       compressed.feasibilityWarnings.some((w) => w === messages().macro.compressedPlan(3)),
     ).toBe(true)
-    expect(compressed.weeks.at(-1)!.phase).toBe('race')
+    expect(compressed.weeks.find((w) => w.raceDate)!.phase).toBe('race')
   })
 
   it('wytrenowany powyżej rekomendacji nie dostaje cięcia objętości', () => {
@@ -169,5 +171,41 @@ describe('planMacrocycle — rytm kalibracji liczy wyniki z horyzontu planu (W-1
     expect(withResult.filter((w) => w > '2026-08-31' && w < '2026-10-05')).toEqual([])
     // przed wynikiem rytm liczy się od starszego wyniku, jak w planie bez nowego wpisu
     expect(withResult.filter((w) => w < '2026-08-31')).toEqual(tests(athlete).filter((w) => w < '2026-08-31'))
+  })
+})
+
+describe('blok po starcie (R-8, R-10) i plan bez startu (P-11)', () => {
+  const plan = planMacrocycle({ today: '2026-08-05', goal: marathon, athlete })
+  const raceIdx = plan.weeks.findIndex((w) => w.raceDate)
+  const transition = plan.weeks.slice(raceIdx + 1)
+  const before = plan.weeks.slice(raceIdx - 4, raceIdx)
+  const base = before.reduce((s, w) => s + w.targetKm, 0) / before.length
+
+  it('po maratonie dwa tygodnie przejściowe: ~50%, potem ~100% średniej 4 tygodni przed tygodniem startu', () => {
+    expect(transition.map((w) => w.phase)).toEqual(['transition', 'transition'])
+    expect(transition[0]!.targetKm).toBe(Math.round(base * 0.5))
+    expect(transition[1]!.targetKm).toBe(Math.round(base))
+    expect(transition[0]!.weekStart).toBe('2026-11-30')
+  })
+  it('pierwszy tydzień bez akcentu, pierwszy bieg 3. dnia po maratonie (R-1); drugi z jednym akcentem', () => {
+    expect(transition[0]).toMatchObject({ qualitySessions: 0, earliestRun: '2026-12-02', ruleRefs: ['R-1', 'R-2', 'R-8'] })
+    expect(transition[1]).toMatchObject({ qualitySessions: 1 })
+    expect(transition[1]!.earliestRun).toBeUndefined()
+  })
+  it('po 10 km jeden tydzień ~70% (R-10), pierwszy bieg nazajutrz', () => {
+    const tenK = planMacrocycle({ today: '2026-08-05', goal: { ...marathon, distanceKm: 10 }, athlete })
+    const after = tenK.weeks.filter((w) => w.phase === 'transition')
+    expect(after).toHaveLength(1)
+    expect(after[0]!.ruleRefs).toEqual(['R-10'])
+    expect(after[0]!.earliestRun).toBeUndefined() // start w niedzielę, poniedziałek to już dzień po
+  })
+  it('plan bazowy: same tygodnie bazy z odciążeniem, bez taperu, startu i bloku po starcie', () => {
+    const basePlan = planMacrocycle({ today: '2026-08-05', goal: { kind: 'base', name: 'Base', date: '2026-10-25', distanceKm: 0, priority: 'A' }, athlete })
+    expect(new Set(basePlan.weeks.map((w) => w.phase))).toEqual(new Set(['base']))
+    expect(basePlan.weeks.some((w) => w.raceDate)).toBe(false)
+    expect(basePlan.weeks.some((w) => w.deload)).toBe(true)
+    expect(basePlan.weeks.every((w) => w.ruleRefs.includes('P-11'))).toBe(true)
+    expect(basePlan.peakKmRecommended).toBe(0)
+    expect(Math.max(...basePlan.weeks.map((w) => w.targetKm))).toBeLessThanOrEqual(athlete.peakWeeklyKm!)
   })
 })

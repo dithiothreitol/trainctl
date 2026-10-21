@@ -54,6 +54,7 @@ export const coreEn = {
     peak: 'peak',
     taper: 'taper',
     race: 'race week',
+    transition: 'after the race',
   },
 
   intensityModel: {
@@ -137,6 +138,16 @@ export const coreEn = {
   },
 
   strength: {
+    transitionNote:
+      'First week after the race: no strength yet — it comes back next week with one lighter session (R-9).',
+    sessionIntro: () =>
+      'Strength, getting into it, ~35 min: squat or deadlift + lunges + calf raises, 3 sets × 6 reps at a weight ' +
+      'you could lift 8–10 times (~75% 1RM) — learning the movement before the heavy weeks (F-18). Never to failure (S-7).',
+    sessionMaintenance: () =>
+      'Maintenance strength, ~25 min: squat or deadlift + calf raises, 2 sets × 3–5 reps HEAVY (≥80% 1RM), ' +
+      '2–3 min rest. One session a week keeps what the block built (F-12, F-14). Never to failure (S-7).',
+    peakNote:
+      'Peak: one strength session a week — enough to keep the adaptation while running takes priority (F-12, F-14).',
     session: () =>
       'Heavy strength, ~35 min: squat or deadlift + lunges + calf raises, ' +
       '3 sets × 4–6 reps HEAVY (≥80% 1RM — the last rep is hard but the movement holds), ' +
@@ -170,7 +181,9 @@ export const coreEn = {
   macro: {
     raceDurationUnknown: 'Race duration is unknown; no training window can be confirmed.',
     raceConflict: (date: string) => `Race calendar conflict at ${date}: multiple races in one week or a tune-up during taper. Resolve the calendar explicitly.`,
-    raceDateInPast: 'Race date is in the past',
+    raceDateInPast: 'Race date is in the past — set the next goal in trainctl.yaml',
+    baseEndInPast: 'The end date of the base plan (goal.until) is in the past',
+    transitionWeek: (week: number, total: number) => `after the race: week ${week} of ${total} back to training (R-8)`,
     ultraTaperExtrapolated: 'T-8: ultra — extrapolated, no direct source',
     compressedPlan: (weeks: number) =>
       `only ${weeks} weeks to the race — the plan is compressed, without a full progression`,

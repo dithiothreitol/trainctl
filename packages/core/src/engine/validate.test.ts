@@ -76,6 +76,8 @@ const check = (weeks: Microcycle[], goal: RaceGoal = marathon) => validatePlan({
 
 /** Po celowej mutacji dni przywraca spójność sum — żeby test widział TYLKO badane odstępstwo. */
 const resync = (week: Microcycle) => Object.assign(week, weekTotals(week.days))
+/** Tydzień startowy — od fazy przejściowej (R-8) nie jest już ostatnim tygodniem planu. */
+const raceWeekOf = (weeks: Microcycle[]) => weeks.find((w) => w.skeleton.raceDate)!
 
 describe('świeży plan zgłasza niewykonalną częstotliwość tygodnia startowego', () => {
   it('maraton, 17 tygodni', () => {
@@ -190,9 +192,9 @@ describe('integralność pliku (error)', () => {
 
   it('raceDayMissing: plan zgubił dzień startu', () => {
     const weeks = buildWeeks(marathon)
-    const raceDay = weeks.at(-1)!.days.find((d) => d.workout?.kind === 'race')!
+    const raceDay = raceWeekOf(weeks).days.find((d) => d.workout?.kind === 'race')!
     delete raceDay.workout
-    resync(weeks.at(-1)!)
+    resync(raceWeekOf(weeks))
     const hit = check(weeks).find((i) => i.code === 'raceDayMissing')
     expect(hit?.severity).toBe('error')
     expect(hit?.date).toBe(marathon.date)
@@ -202,7 +204,7 @@ describe('integralność pliku (error)', () => {
 describe('odstępstwa od reguł (warn)', () => {
   it('accentGap [I-7]: akcent w przeddzień startu — także na styku jednostek race/test', () => {
     const weeks = buildWeeks(marathon)
-    const raceWeek = weeks.at(-1)!
+    const raceWeek = raceWeekOf(weeks)
     const sharpenerDay = raceWeek.days.find((d) => d.workout?.kind === 'sharpener')!
     const saturday = raceWeek.days[5]!
     saturday.workout = sharpenerDay.workout!
@@ -218,7 +220,7 @@ describe('odstępstwa od reguł (warn)', () => {
 
   it('workoutBeforeRace [T-10]: bieg spokojny w przeddzień startu', () => {
     const weeks = buildWeeks(marathon)
-    const raceWeek = weeks.at(-1)!
+    const raceWeek = raceWeekOf(weeks)
     const easyDay = raceWeek.days.find((d) => d.workout?.kind === 'easy')!
     const saturday = raceWeek.days[5]!
     saturday.workout = easyDay.workout!

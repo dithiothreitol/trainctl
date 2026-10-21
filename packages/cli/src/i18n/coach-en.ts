@@ -18,6 +18,8 @@ export const coachEn = {
   heuristic: 'E-1: engineering choices: retain at least half of quality work, 60% of a long run, the original preparation before hills, and at least 15 min for an easy replacement. These cutoffs do not establish physiological equivalence.',
   context: 'How this session fits your plan',
   goal: (name: string, distance: number, date: string, days: number) => `Goal: ${name}, ${distance} km on ${date}; ${days} days from this session.`,
+  goalBehind: (name: string, distance: number, date: string, days: number) => `Goal behind you: ${name}, ${distance} km on ${date}; this session is ${days} days after it.`,
+  goalBase: (name: string, date: string) => `Goal: ${name} — base training without a race, until ${date} (P-11).`,
   weekContext: (phase: string, actual: number, target: number, share: number) => `Phase: ${phase}. Week: ${actual} km against a ${target} km target; ${share}% easy running.`,
   deload: 'This is a reduced-volume week in the stored plan.',
   taper: 'The stored taper reduces volume while aiming to retain intensity and session frequency.',

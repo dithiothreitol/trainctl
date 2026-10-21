@@ -306,6 +306,21 @@ desk:                       # for trainctl desk (optional)
 strength:                   # optional strength track, 2×/week
   enabled: true
   days: [mon, fri]          # optional preference
+time:                       # optional: the minutes you actually have, preparation included
+  weeklyMinutes: 300        # volume levels off at what fits (E-2)
+  weekdayMinutes: 60        # longer sessions are shortened, with the trade-off shown (E-1)
+  weekendMinutes: 120
+sync:
+  files: ./activities       # optional: exported FIT/TCX/GPX instead of intervals.icu
+```
+
+No race to train for? Use a base plan instead of `goal` with a date and
+distance — no taper, no prediction, volume grows to your peak and levels off (P-11):
+
+```yaml
+goal:
+  kind: base
+  until: "2027-03-01"
 ```
 
 A few consequences worth knowing:
@@ -318,8 +333,14 @@ A few consequences worth knowing:
   in that week.
 - **`strength` is a separate track**, not a running session: it adds no
   kilometres, disappears during the taper, and never lands the day before a hard
-  session. The justification is running economy — *not* injury prevention; see
-  [Where it refuses](#where-it-refuses).
+  session. Two weeks of getting into it, then heavy sessions, and one maintenance
+  session a week in the peak (F-18, F-4, F-12). Log it with
+  `trainctl log --strength done`. The justification is running economy — *not*
+  injury prevention; see [Where it refuses](#where-it-refuses).
+- **The plan does not stop at the race.** After a half marathon or longer, two
+  transition weeks follow: about half the pre-race volume, easy only, first run on
+  the third day after a marathon; then back to normal with one accent (R-8, from
+  three races in the coaching corpus). A new goal starts its cycle after them.
 
 The intervals.icu API key never goes in this file. Use
 `TRAINCTL_INTERVALS_API_KEY`, a `.env` file or `.trainctl-secret`; an explicit

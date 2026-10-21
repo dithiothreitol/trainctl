@@ -33,6 +33,7 @@ const TAPER_MULTIPLIERS: Record<number, number[]> = {
 }
 
 export function taperWeeksFor(goal: RaceGoal): { weeks: number; flags: string[] } {
+  if (goal.kind === 'base') return { weeks: 0, flags: [] } // P-11: plan bez zawodów nie ma taperu
   if (goal.distanceKm > 42.5) return { weeks: 3, flags: [messages().macro.ultraTaperExtrapolated] }
   if (goal.distanceKm >= 42.0) return { weeks: 3, flags: [] } // maraton: 14–21 dni
   if (goal.distanceKm >= 20.9) return { weeks: 2, flags: [] } // HM: 10–14 dni
@@ -62,6 +63,7 @@ export function testDistanceKm(goal: RaceGoal): number {
 
 /** P-7/P-8: rekomendowana objętość szczytowa dla dystansu docelowego. */
 export function recommendedPeakKm(goal: RaceGoal): number {
+  if (goal.kind === 'base') return 0 // bez dystansu docelowego nie ma progu P-7/P-8
   if (goal.distanceKm > 42.5) return 70 // inż. — brak źródła dla ultra (T-8)
   if (goal.distanceKm >= 42.0) return 65 // P-8: >65 km/tydz. → −14 min
   if (goal.distanceKm >= 20.9) return 42 // P-7: >32 km/tydz. + długi >21 km; inż. margines
@@ -72,6 +74,51 @@ export interface MacrocycleInput {
   today: string
   goal: RaceGoal
   athlete: AthleteProfile
+}
+
+/**
+ * R-8 (korpus, n=3: 2 starty maratońskie i dłuższe, 1 półmaraton): po starcie
+ * ≥HM trener rozpisywał ~50% objętości sprzed startu w pierwszym tygodniu
+ * (2–3 sesje, pierwszy akcent 7–8 dni po starcie) i wracał do ~100% w drugim.
+ * R-10 (inż., bez danych w korpusie): po krótszym celu jeden tydzień ~70%.
+ */
+const TRANSITION_FACTORS_LONG = [0.5, 1.0]
+const TRANSITION_FACTORS_SHORT = [0.7]
+/** R-1: 48 h ciszy po maratonie → pierwszy bieg 3. dnia; po HM 2. dnia, po krótszym nazajutrz (inż.). */
+const firstRunOffset = (km: number) => (km >= 42 ? 3 : km >= 20.9 ? 2 : 1)
+/**
+ * P-11 (inż.): plan bez zawodów rośnie do udokumentowanego szczytu
+ * (`peakWeeklyKm`) albo +15% bieżącej objętości i tam się wypłaszcza.
+ */
+const BASE_GROWTH = 1.15
+
+/** Tygodnie po starcie celu A — makrocykl nie kończy się w dniu zawodów. */
+function transitionWeeks(goal: RaceGoal, weeks: WeekSkeleton[]): WeekSkeleton[] {
+  const raceWeek = weeks.at(-1)
+  if (!raceWeek) return []
+  const before = weeks.slice(-5, -1)
+  const base = before.length ? before.reduce((s, w) => s + w.targetKm, 0) / before.length : raceWeek.targetKm
+  const long = goal.distanceKm >= 20.9
+  const factors = long ? TRANSITION_FACTORS_LONG : TRANSITION_FACTORS_SHORT
+  const earliestRun = addDays(goal.date, firstRunOffset(goal.distanceKm))
+  return factors.map((factor, j): WeekSkeleton => {
+    const weekStart = addDays(raceWeek.weekStart, 7 * (j + 1))
+    return {
+      weekStart,
+      index: raceWeek.index + 1 + j,
+      phase: 'transition',
+      intensityModel: 'pyramidal',
+      targetKm: Math.round(base * factor),
+      deload: false,
+      keepIntensity: false,
+      keepFrequency: false,
+      // pierwszy tydzień wyłącznie spokojnie; akcent wraca w drugim (R-8)
+      qualitySessions: j === 0 ? 0 : 1,
+      ...(j === 0 && earliestRun > weekStart ? { earliestRun } : {}),
+      flags: [messages().macro.transitionWeek(j + 1, factors.length)],
+      ruleRefs: long ? (j === 0 ? ['R-1', 'R-2', 'R-8'] : ['R-8', 'R-9']) : ['R-10'],
+    }
+  })
 }
 
 /**
@@ -90,14 +137,15 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   const { today, goal, athlete } = input
   const firstWeek = mondayOf(today)
   const raceWeek = mondayOf(goal.date)
+  const baseOnly = goal.kind === 'base'
   const totalWeeks = Math.floor(diffDays(firstWeek, raceWeek) / 7) + 1
-  if (totalWeeks < 1) throw new Error(messages().macro.raceDateInPast)
+  if (totalWeeks < 1) throw new Error(baseOnly ? messages().macro.baseEndInPast : messages().macro.raceDateInPast)
 
   const feasibilityWarnings: string[] = []
   const taper = taperWeeksFor(goal)
-  const taperWeeks = Math.min(taper.weeks, Math.max(1, totalWeeks - 1))
+  const taperWeeks = baseOnly ? 0 : Math.min(taper.weeks, Math.max(1, totalWeeks - 1))
   const loadWeeks = totalWeeks - taperWeeks
-  if (totalWeeks < 6) {
+  if (totalWeeks < 6 && !baseOnly) {
     feasibilityWarnings.push(
       messages().macro.compressedPlan(totalWeeks),
     )
@@ -111,9 +159,11 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   const reachable = start * Math.pow(RAMP_PER_LOAD_WEEK, Math.max(0, loadOnly - 1))
   // P-7/P-8 to podłoga dla niedotrenowanych, nie sufit: atlecie z bazą powyżej
   // rekomendacji utrzymujemy (lekko rozwijamy) jego wolumen zamiast go ciąć.
-  const targetPeak = Math.max(recommended, Math.min(start * 1.15, cap))
+  const targetPeak = baseOnly
+    ? Math.min(athlete.peakWeeklyKm ?? start * BASE_GROWTH, cap)
+    : Math.max(recommended, Math.min(start * 1.15, cap))
   const peakPlanned = Math.round(Math.min(targetPeak, cap, reachable))
-  if (peakPlanned < recommended) {
+  if (!baseOnly && peakPlanned < recommended) {
     feasibilityWarnings.push(
       messages().macro.peakBelowRecommended(peakPlanned, recommended, goal.distanceKm),
     )
@@ -158,7 +208,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
     if (inTaper) {
       phase = i === totalWeeks - 1 ? 'race' : 'taper'
       intensityModel = 'polarized' // I-2 + T-1: intensywność zostaje
-    } else if (i < baseWeeks) {
+    } else if (baseOnly || i < baseWeeks) {
       phase = 'base'
       intensityModel = 'pyramidal'
     } else if (i < baseWeeks + buildWeeks) {
@@ -250,5 +300,9 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
     })
   }
 
-  return { goal, weeks, peakKmPlanned: peakPlanned, peakKmRecommended: recommended, feasibilityWarnings }
+  if (baseOnly) {
+    for (const w of weeks) w.ruleRefs.push('P-11')
+    return { goal, weeks, peakKmPlanned: peakPlanned, peakKmRecommended: recommended, feasibilityWarnings }
+  }
+  return { goal, weeks: [...weeks, ...transitionWeeks(goal, weeks)], peakKmPlanned: peakPlanned, peakKmRecommended: recommended, feasibilityWarnings }
 }

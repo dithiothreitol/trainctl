@@ -27,6 +27,11 @@ export interface RaceResult {
 export type RacePriority = 'A' | 'B' | 'C'
 
 export interface RaceGoal {
+  /**
+   * 'base' = plan bez zawodów do daty `date` (P-11): bez taperu, bez tygodnia
+   * startowego i bez predykcji; `distanceKm` wynosi wtedy 0.
+   */
+  kind?: 'race' | 'base'
   date: string
   distanceKm: number
   name: string
@@ -64,7 +69,8 @@ export interface AthleteProfile {
 /** Rozkład intensywności planu (FOUNDATIONS I-1/I-2). */
 export type IntensityModel = 'pyramidal' | 'polarized'
 
-export type MacroPhase = 'base' | 'build' | 'peak' | 'taper' | 'race'
+/** 'transition' = blok po starcie (R-8…R-10): powrót do biegania, zanim przyjdzie następny cel. */
+export type MacroPhase = 'base' | 'build' | 'peak' | 'taper' | 'race' | 'transition'
 
 /**
  * Szkielet tygodnia z planera makrocyklu — wejście dla generatora mikrocykli.
@@ -90,6 +96,8 @@ export interface WeekSkeleton {
   tuneUp?: TuneUpRace
   /** Sprawdzian all-out w tym tygodniu: fallback kalibracji przy pustym kalendarzu startów (W-13). */
   testPlanned?: boolean
+  /** Najwcześniejszy dzień biegu w tygodniu — po starcie (R-1: 48 h ciszy po maratonie). */
+  earliestRun?: string
   flags: string[]
   ruleRefs: string[]
 }
@@ -155,7 +163,8 @@ export interface PlannedWorkout {
  * na zegarek jako trening biegowy.
  */
 export interface StrengthSession {
-  kind: 'heavy'
+  /** intro = wejście w blok (F-18, inż.), heavy = ładowanie (F-4), maintenance = szczyt (F-12/F-14). */
+  kind: 'heavy' | 'intro' | 'maintenance'
   description: string
   durationMin: number
   ruleRefs: string[]
@@ -163,7 +172,7 @@ export interface StrengthSession {
 
 export interface PlannedDay {
   /** Explicitly approved time adjustment; original goal remains visible in why. */
-  timeAdjustment?: { originalKind: WorkoutKind; originalDistanceKm: number; budgetMinutes: number; status: 'shortened' | 'easy-alternative' }
+  timeAdjustment?: { originalKind: WorkoutKind; originalDistanceKm: number; budgetMinutes: number; status: 'shortened' | 'easy-alternative'; /** 'profile' = wynik budżetu czasu z trainctl.yaml (E-2), nie zatwierdzony wyjątek. */ origin?: 'profile' }
   date: string
   weekday: Weekday
   /** User decision: preserve this day during automatic proposals. */

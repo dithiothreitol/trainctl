@@ -107,6 +107,35 @@ change between minor versions — a regenerated plan can differ.
   the source, never averaged or turned into a verdict. HRV and CTL/ATL are
   deliberately left out (H-1, P-4).
 
+### Added — the engine: time, life after the race, a plan without a race
+
+- **Time budget** (`time.weeklyMinutes`, `weekdayMinutes`, `weekendMinutes`,
+  E-2): weeks over the weekly budget get a lower volume target, days over their
+  limit are shortened with the same rules as `shorten` and carry the trade-off;
+  the plan says when the budget caps volume below the level recommended for
+  the distance (P-7/P-8). Races and time trials are never cut.
+- **Transition block after the goal race** (R-8): after a half marathon or
+  longer, two weeks — about half the pre-race volume, easy only, first run on
+  the third day after a marathon (R-1), then back to normal with one accent;
+  one week at ~70% after a shorter goal (R-10). Strength returns in the second
+  week (R-9). Measured first: `tools/corpus/post_race_profile.py` (three long
+  races in the corpus — a weak basis, stated as such). `today` and `why` say
+  "after the race" instead of "outside the plan", and a new goal set during the
+  block starts its cycle after it.
+- **A plan without a race** (`goal.kind: base`, `until`, P-11): base weeks only,
+  deload every fourth week, growth to your documented peak and a plateau; no
+  taper, no prediction, no race pack.
+- **Strength variants and journal**: two weeks of getting into it (F-18), then
+  heavy sessions, one maintenance session a week in the peak (F-12, F-14);
+  `trainctl log --strength done|skipped [--minutes]` (MCP `strength`) records a
+  session without touching the run entry of the same day; `review` and `today`
+  show it.
+- **Trail results** no longer calibrate road zones while a road result exists
+  (Z-10); a trail-only calibration is used with a warning.
+- Rules E-2, F-18, P-11, R-8, R-9, R-10 and Z-10 in FOUNDATIONS §10, marked as
+  engineering choices where no source exists. The corpus backtest is unchanged
+  (volume 1.04, Δ accents 0, Δ sessions 0, tune-ups 6/6).
+
 ### Docs
 
 - README command tables list `shorten` and the missing flags; tool lists no

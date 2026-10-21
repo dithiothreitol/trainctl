@@ -63,6 +63,8 @@ export const cliPl: CliMessages = {
     optKm: 'przebiegnięte km',
     optTime: 'czas MM:SS albo HH:MM:SS',
     optRpe: 'wysiłek sesji jako liczba całkowita 1–10 (CR-10)',
+    optStrength: 'zaloguj sesję siły zamiast biegu: done | skipped',
+    optMinutes: 'minuty sesji siłowej',
     optNote: 'notatka (samopoczucie, warunki)',
     optFrom: 'data źródłowa',
     optTo: 'data docelowa',
@@ -163,6 +165,7 @@ export const cliPl: CliMessages = {
   },
 
   plan: {
+    baseUntil: (date: string) => `budowanie bazy do ${date}`,
     weeksOfPlan: (weeks: number) => `${tygodnie(weeks)} planu`,
     volumePeak: 'Szczyt objętości',
     recommendedForDistance: 'Rekomendacja dla dystansu',
@@ -181,6 +184,8 @@ export const cliPl: CliMessages = {
     regenSection: 'Co zmienia regeneracja',
     sameCycle: (start: string) =>
       `Ten sam cykl treningowy: fazy zostają zakotwiczone w ${start}; przyszłe dni idą za trainctl.yaml.`,
+    newCycleVolume: (km: number) =>
+      `Nowy cykl startuje od ${n(km)} km/tydz. (athlete.recentWeeklyKm albo zatwierdzona baza) — zaktualizuj profil, jeśli trening się zmienił.`,
     newCycle: (weekStart: string) =>
       `Nowy cykl treningowy od ${weekStart} (inny dystans celu albo poprzedni start już za Tobą); ` +
       'wcześniejsze tygodnie zostają jako historia.',
@@ -215,12 +220,14 @@ export const cliPl: CliMessages = {
 
   today: {
     daysToRace: (days: number) => `do startu: ${dni(days)}`,
+    daysAfterRace: (days: number) => `${dni(days)} po starcie`,
     weekOf: (index: number, total: number) => `tydzień ${index}/${total}`,
     deload: 'odciążenie',
     restDayTitle: 'Dzień wolny',
     restDayBody: 'Odpoczynek jest częścią planu — adaptacja zachodzi w regeneracji.',
     logged: (status: string) => `Zalogowano: ${status}`,
     whyHint: (date: string) => `dlaczego ten trening: trainctl why --date ${date}`,
+    strengthLogged: (status: string) => `Siła zalogowana: ${status}`,
     estimate: (minutes: number) => `około ${minutes} min razem z przygotowaniem`,
     next: (date: string, weekday: string, kind: string, km: number) => `następny: ${weekday} ${date} · ${kind} · ${n(km)} km`,
     strengthTitle: (minutes: number) => `Siła · ~${n(minutes)} min`,
@@ -259,6 +266,11 @@ export const cliPl: CliMessages = {
     recorded: 'Zapis',
     testTime: (time: string) => `odcinek pomiarowy ${time}`,
     unplanned: 'W planie był tu dzień wolny — wpis liczy się jako bieg poza planem.',
+    strengthSaved: (date: string, status: string) => `Zalogowano siłę ${date}: ${status}.`,
+    strengthStatus: (value: string) => `Status siły „${value}” — użyj done albo skipped.`,
+    strengthOnly: 'Wpis siły przyjmuje tylko --minutes i --note; bieg zaloguj osobno.',
+    strengthMinutes: 'Minuty siły: liczba całkowita 1–300.',
+    strengthUnplanned: 'Tego dnia nie było siły w planie — wpis zostaje jako sesja dodatkowa.',
     prompt: {
       which: 'Który trening?',
       status: 'Status',
@@ -546,6 +558,7 @@ export const cliPl: CliMessages = {
     calendarEntries: (count: number) =>
       `${count} ${pluralPl(count, { one: 'trening', few: 'treningi', other: 'treningów' })} w kalendarzu`,
     printedWeeks: (weeks: number) => `rozpiska ${tygodnie(weeks)} do wydruku`,
+    noRaceInBase: 'Plan bazowy nie ma startu — pakiet startowy wymaga startu docelowego (goal.kind: race).',
     heat: {
       columns: { temperature: 'temperatura', pace: 'tempo', loss: 'strata' },
       scenarioColumn: (label: string) => `scenariusz „${label}”`,
@@ -571,6 +584,9 @@ export const cliPl: CliMessages = {
     noKey:
       'Bez klucza API — przegląd z dziennika i ostatniej migawki (trainctl pull, gdy będzie klucz, albo trainctl pull --from <katalog eksportu>).',
     fromFiles: (label: string) => `Odświeżono z ${label}.`,
+    strength: 'Siła',
+    strengthValue: (done: number, planned: number, skipped: number) =>
+      `${done} z ${planned} zaplanowanych${skipped ? `, ${skipped} pominięte` : ''}`,
     feelFromHub: (date: string, rpe: number, source: string) => `${date} · RPE ${n(rpe)} · z ${source}`,
     wellness: 'Z zegarka (cytowane, nie interpretowane)',
     wellnessLine: (date: string, restingHr?: number, sleepSec?: number, weightKg?: number) => {
@@ -601,6 +617,7 @@ export const cliPl: CliMessages = {
       return remainingKm === totalKm ? `${n(totalKm)} km ${w}` : `zostało ${n(remainingKm)} z ${n(totalKm)} km ${w}`
     },
     toRace: 'Do startu',
+    baseEnd: 'Plan bazowy do',
     toRaceValue: (days: number) =>
       `${days} ${pluralPl(days, { one: 'dzień', few: 'dni', other: 'dni' })}`,
     raceThisWeek: (date: string) =>
@@ -818,6 +835,7 @@ export const cliPl: CliMessages = {
       'trainctl log                  # w terminalu: wybierz trening i odpowiedz na kilka pytań',
       'trainctl log --km 8 --time 41:20 --rpe 4 --note "dobrze się biegło"',
       'trainctl log --date wczoraj --status skipped --note "praca"',
+      'trainctl log --strength done --minutes 30',
     ],
     shorten: [
       'trainctl shorten --minutes 40           # dziś, jako propozycja',
@@ -868,6 +886,7 @@ export const cliPl: CliMessages = {
   },
 
   planMd: {
+    headingBase: (goalName: string, date: string) => `Plan: ${goalName} — budowanie bazy do ${date}`,
     heading: (goalName: string, date: string) => `Plan: ${goalName} — ${date}`,
     goalTime: (time: string) => ` · cel: ${time}`,
     meta: (generatedAt: string, vdot: number, source: string, peakKm: number) =>
@@ -887,6 +906,14 @@ export const cliPl: CliMessages = {
     noCalibration:
       'Brak wyniku startu z ostatnich 18 miesięcy i brak goal.targetTimeSec — ' +
       'nie mam z czego skalibrować stref (Z-6: kalibrujemy z wyników, nie z zegarka).',
+    timeCapsVolume: (peak: number, recommended: number) =>
+      `Budżet czasu ogranicza plan do ${n(peak)} km/tydz., poniżej ${n(recommended)} km/tydz. rekomendowanych ` +
+      'dla tego dystansu (P-7/P-8). Zmieni to więcej minut albo bliższy cel (E-2).',
+    timeDayTooShort: (dates: string) =>
+      `Te jednostki nie mieszczą się w budżecie dnia nawet po skróceniu (startów i sprawdzianów nie skracamy): ${dates} (E-2).`,
+    timeWeekOver: (weeks: string) => `Te tygodnie zostają ponad budżetem tygodnia: ${weeks} (E-2).`,
+    trailOnlyCalibration:
+      'Strefy pochodzą z wyniku na trailu — teren spowalnia bieg, więc tempa szosowe mogą być za łatwe. Dopisz wynik szosowy (Z-10).',
     zonesFromGoal:
       'strefy skalibrowane z celu czasowego, nie z realnego wyniku — dodaj start do athlete.results',
   },
@@ -912,6 +939,13 @@ export const cliPl: CliMessages = {
     },
     templateDesk: 'tryb biurkowy (trainctl desk) — opcjonalny',
     templateDeskPrefer: 'morning | lunch | evening',
+    baseGoalName: 'Budowanie bazy',
+    templateTime: {
+      section: 'czas, który naprawdę masz, z przygotowaniem i siłą (opcjonalnie)',
+      weekly: 'minut w tygodniu — objętość wypłaszcza się na tym, co się mieści (E-2)',
+      weekday: 'minut od poniedziałku do piątku — dłuższe jednostki są skracane (E-1)',
+      weekend: 'minut w sobotę i niedzielę',
+    },
     templateSync: {
       section: 'wykonanie bez konta w intervals.icu (opcjonalnie)',
       files: 'katalog z eksportem plików FIT/TCX/GPX — czytają go trainctl pull i review',
@@ -945,6 +979,8 @@ export const cliPl: CliMessages = {
       listRequired: (path: string) => `${path}: wymagana lista`,
       isoDate: (path: string) => `${path}: format RRRR-MM-DD`,
       seconds: (path: string) => `${path}: liczba sekund > 0`,
+      goalKind: (path: string) => `${path}: race (domyślnie) albo base`,
+      minutes: (path: string) => `${path}: pełne minuty od 15 do 2000`,
       priorityBc: (path: string) => `${path}: B albo C (A to cel w sekcji goal)`,
       required: (path: string) => `${path}: wymagane`,
       boolean: (path: string) => `${path}: true albo false`,
@@ -981,6 +1017,15 @@ export const cliPl: CliMessages = {
     'F-4': 'ciężko: ≥80% 1RM, wielostawowo, wolny ciężar — im ciężej, tym większy efekt na ekonomię (Llanos-Lagos 2024)',
     'F-13': 'taper: siła znika z planu — 4 tyg. detrainingu nie kasuje adaptacji (Berryman 2020, uwaga: n=8)',
     'S-4': 'siła i bieg tego samego dnia: ≥3 h odstępu udokumentowane (Schumann 2022); 6 h to margines inżynierski',
+    'F-12': 'siła 2× w tygodniu w bazie, 0–1× w okresie startowym (Haugen 2022)',
+    'F-14': 'jedna sesja siły w tygodniu utrzymuje efekt bloku (Rønnestad 2010 — dane z kolarzy, ekstrapolacja)',
+    'F-18': 'dwa pierwsze tygodnie bloku siły to nauka ruchu przy ~75% 1RM przed ciężkimi tygodniami — wybór inżynierski, bez źródła',
+    'R-8': 'po starcie na półmaraton i dłużej dwa tygodnie przejściowe: ~50% objętości sprzed startu wyłącznie spokojnie, potem ~100% z jednym akcentem (korpus trenerski, n=3; Martínez-Navarro 2021)',
+    'R-9': 'siła wraca w drugim tygodniu po starcie, jedną lżejszą sesją — wybór inżynierski, bez źródła',
+    'R-10': 'po krótszym starcie docelowym jeden tydzień przejściowy ~70% — wybór inżynierski; brak danych',
+    'P-11': 'plan bez startu rośnie do udokumentowanego szczytu (albo +15%) i tam się wypłaszcza, odciążenie co czwarty tydzień — wybór inżynierski',
+    'E-2': 'budżet czasu z trainctl.yaml ogranicza objętość tygodnia i skraca jednostki według zasad E-1 — wybór inżynierski, bez źródła',
+    'Z-10': 'wynik z trailu nie kalibruje stref szosowych, dopóki jest wynik szosowy — wybór inżynierski; tabele VDOT pochodzą z szosy i bieżni',
     'S-5': 'ciężka siła nie później niż 24 h przed sesją jakościową — deficyt siły trwa do 48 h (de Carvalho e Silva 2022)',
   },
 
@@ -1030,6 +1075,8 @@ export const cliPl: CliMessages = {
     logTime: 'czas MM:SS albo HH:MM:SS',
     logRpe:
       'wysiłek sesji jako liczba całkowita 1–10 (CR-10, 10 = maksymalny). Zapytaj biegacza po sesji — nigdy nie zgaduj.',
+    logStrength: 'done | skipped — zapis sesji siłowej zamiast biegu (działają tylko minutes i note).',
+    logMinutes: 'czas sesji siłowej w minutach',
     logNote: 'samopoczucie, warunki, uwagi',
     shift:
       'Renegocjacja tygodnia: zamień treningi między dwiema datami TEGO SAMEGO tygodnia ' +
@@ -1154,7 +1201,10 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
   „Przesuń interwały” bez spojrzenia na tydzień to zgadywanie.
 - **Po starcie albo sprawdzianie** → dopytaj o czas i zaproponuj wpis do
   \`athlete.results\`. Pomiar bez wpisanego wyniku niczego nie zmienia — strefy
-  dalej liczą się ze starego biegu.
+  dalej liczą się ze starego biegu. Po starcie docelowym plan idzie dalej tygodniami
+  przejściowymi (R-8); gdy użytkownik poda następny cel, zmień \`goal\`
+  w \`trainctl.yaml\` → \`trainctl_diff\` → \`trainctl_plan\` — nowy cykl zaczyna się
+  po bloku przejściowym i zachowuje historię.
 - **Po zalogowanym treningu** → krótka odprawa. Zapytaj, jak było, i zapisz to
   w dzienniku (\`trainctl_log\` z rpe 1–10 i notatką) — ślad odczuć wraca potem
   w przeglądzie tygodnia. Gdy odczucie kłóci się z rolą jednostki (spokojny

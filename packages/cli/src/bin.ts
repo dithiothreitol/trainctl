@@ -263,13 +263,15 @@ withExamples(
       .option('--time <t>', ui().cmd.optTime)
       .option('--test-time <t>', ui().improve.testTime)
       .option('--rpe <n>', ui().cmd.optRpe)
+      .option('--strength <status>', ui().cmd.optStrength)
+      .option('--minutes <n>', ui().cmd.optMinutes)
       .option('--note <text>', ui().cmd.optNote),
   ),
   'log',
 ).action(async (opts, command: Command) => {
   // Bez żadnej flagi w terminalu: pytania zamiast cichego „dziś: done".
   // Poza terminalem (skrypt, agent) zachowanie bez zmian.
-  const flags = ['date', 'km', 'time', 'testTime', 'rpe', 'note', 'commit'].some((k) => opts[k] !== undefined) ||
+  const flags = ['date', 'km', 'time', 'testTime', 'rpe', 'note', 'commit', 'strength', 'minutes'].some((k) => opts[k] !== undefined) ||
     command.getOptionValueSource('status') !== 'default'
   if (!flags && tty) return printInteractive(await runLogPrompt(cwd, localToday(), theme))
   print(cmdLog(cwd, opts))

@@ -98,7 +98,13 @@ export function rebuildPlan(
 
   const ls = existing.loadState
   const keepLoad = ls !== undefined && (ls.profileWeeklyKm === undefined || ls.profileWeeklyKm === config.athlete.recentWeeklyKm)
-  const macroStart = mode === 'same-cycle' ? existing.generatedAt : today
+  // Nowy cel po starcie: pozostałe tygodnie bloku przejściowego (R-8) zostają,
+  // nowy cykl zaczyna się po nich — powrót do biegania nie przepada przez nowy plan.
+  const lastTransition = existing.weeks.filter((w) => w.skeleton.phase === 'transition').at(-1)
+  const afterTransition = raceBehind && lastTransition && lastTransition.weekStart >= mondayOf(today)
+    ? addDays(lastTransition.weekStart, 7)
+    : undefined
+  const macroStart = mode === 'same-cycle' ? existing.generatedAt : afterTransition ?? today
   const fresh = computePlan(config, macroStart, today)
   const loadState = keepLoad
     ? { ...ls!, effectiveFrom: mode === 'same-cycle' ? ls!.effectiveFrom : today, profileWeeklyKm: config.athlete.recentWeeklyKm }
@@ -112,8 +118,9 @@ export function rebuildPlan(
     if (before.date < now) return 'past'
     if (opts.recorded.has(before.date)) return 'recorded'
     if (before.pinned) return 'pinned'
-    if (before.timeAdjustment) return 'approved'
+    if (before.timeAdjustment && before.timeAdjustment.origin !== 'profile') return 'approved'
     // Bez mapy odcisków (plan sprzed 0.2.0) edycji nie da się odróżnić od generacji.
+    // Skrócenie z budżetu w profilu to generacja, nie edycja — odcisk go obejmuje.
     if (existing.generatedDays && existing.generatedDays[before.date] !== dayFingerprint(before)) return 'edited'
     const budget = existing.timeBudgets?.[before.date]
     if (budget !== undefined && minutesOf(after) > budget) return 'budget'

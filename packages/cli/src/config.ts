@@ -24,6 +24,16 @@ export interface StrengthConfig {
   days?: Weekday[]
 }
 
+/**
+ * Czas na trening (E-2): ile minut realnie masz — razem z przygotowaniem i siłą.
+ * Bez tej sekcji plan liczy się w kilometrach, jak dotąd.
+ */
+export interface TimeConfig {
+  weeklyMinutes?: number
+  weekdayMinutes?: number
+  weekendMinutes?: number
+}
+
 /** Źródła wykonania inne niż hub (ADR-037). */
 export interface SyncConfig {
   /** Katalog (albo plik) z eksportem FIT/TCX/GPX — względem katalogu treningowego. */
@@ -36,6 +46,7 @@ export interface TrainctlConfig {
   desk?: DeskConfig
   strength?: StrengthConfig
   sync?: SyncConfig
+  time?: TimeConfig
   /** Język interfejsu i opisów planu: 'en' (domyślny) albo 'pl'. */
   language?: string
 }
@@ -103,6 +114,10 @@ export function configTemplate(): string {
     pad('# strength:', t.templateStrength.section),
     pad('#   enabled: true', t.templateStrength.enabled),
     pad('#   days: [mon, fri]', t.templateStrength.days),
+    pad('# time:', t.templateTime.section),
+    pad('#   weeklyMinutes: 300', t.templateTime.weekly),
+    pad('#   weekdayMinutes: 60', t.templateTime.weekday),
+    pad('#   weekendMinutes: 120', t.templateTime.weekend),
     pad('# sync:', t.templateSync.section),
     pad('#   files: ./activities', t.templateSync.files),
     '',
@@ -162,8 +177,19 @@ export function loadConfig(cwd: string): TrainctlConfig {
         })
     }
   }
+  const base = (g as { kind?: unknown } | undefined)?.kind === 'base'
+  if (g && base) {
+    // P-11: plan bez zawodów — wystarczy data końca (`until`); dystans i cel czasowy nie istnieją
+    const until = (g as { until?: unknown }).until ?? g.date
+    if (!ISO_RE.test(String(until))) errors.push(v.isoDate('goal.until'))
+    else Object.assign(g, { date: String(until), distanceKm: 0, name: g.name || ui().configFile.baseGoalName })
+    delete (g as { until?: unknown }).until
+    delete g.targetTimeSec
+  } else if ((g as { kind?: unknown } | undefined)?.kind !== undefined && (g as { kind?: unknown }).kind !== 'race') {
+    errors.push(v.goalKind('goal.kind'))
+  }
   if (!g) errors.push(v.missingSection('goal'))
-  else {
+  else if (!base) {
     if (g.targetTimeSec !== undefined && (!Number.isFinite(g.targetTimeSec) || g.targetTimeSec <= 0)) errors.push(v.seconds('goal.targetTimeSec'))
     if (!g.name) errors.push(v.required('goal.name'))
     if (!ISO_RE.test(String(g.date))) errors.push(v.isoDate('goal.date'))
@@ -192,6 +218,18 @@ export function loadConfig(cwd: string): TrainctlConfig {
   if (sync !== undefined && (typeof sync !== 'object' || sync === null || (sync.files !== undefined && (typeof sync.files !== 'string' || !sync.files.trim())))) {
     fail([v.required('sync.files')])
   }
+  const time = raw?.time
+  if (time !== undefined) {
+    const errs: string[] = []
+    if (typeof time !== 'object' || time === null) errs.push(v.required('time'))
+    else {
+      for (const key of ['weeklyMinutes', 'weekdayMinutes', 'weekendMinutes'] as const) {
+        const value = time[key]
+        if (value !== undefined && (!Number.isInteger(value) || value < 15 || value > 2000)) errs.push(v.minutes(`time.${key}`))
+      }
+    }
+    if (errs.length) fail(errs)
+  }
   const athlete = a as AthleteProfile
   return {
     athlete: {
@@ -206,6 +244,7 @@ export function loadConfig(cwd: string): TrainctlConfig {
     ...(desk ? { desk } : {}),
     ...(strength ? { strength } : {}),
     ...(sync?.files ? { sync: { files: sync.files } } : {}),
+    ...(time ? { time } : {}),
   }
 }
 

@@ -124,6 +124,8 @@ export function createTrainctlServer(
         testTime: z.string().optional().describe(ui().improve.testTime),
         rpe: z.string().optional().describe(t.logRpe),
         note: z.string().optional().describe(t.logNote),
+        strength: z.enum(['done', 'skipped']).optional().describe(t.logStrength),
+        minutes: z.number().int().min(1).max(300).optional().describe(t.logMinutes),
         commit: commitParam(),
       },
     },

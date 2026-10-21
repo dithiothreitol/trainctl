@@ -200,8 +200,9 @@ export function validatePlan(input: ValidatePlanInput): PlanIssue[] {
     .sort((a, b) => a.date.localeCompare(b.date))
   const dayByDate = new Map(allDays.map((d) => [d.date, d]))
 
-  // --- 4. dzień startu docelowego istnieje i jest startem (tylko gdy cel ma datę)
-  if (goalDate) {
+  // --- 4. dzień startu docelowego istnieje i jest startem (tylko gdy cel ma datę
+  // i jest startem — plan bazowy, P-11, kończy się zwykłym tygodniem)
+  if (goalDate && (input.goal as { kind?: string } | undefined)?.kind !== 'base') {
     const raceDay = allDays.find((d) => d.date === goalDate && d.workout?.kind === 'race')
     if (!raceDay) {
       error({ code: 'raceDayMissing', ruleRefs: [], date: goalDate })

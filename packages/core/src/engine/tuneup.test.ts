@@ -45,7 +45,7 @@ describe('starty kontrolne w makrocyklu', () => {
   const weekOf = (date: string) => plan.weeks.find((w) => w.tuneUp?.date === date)
 
   it('start B/C ląduje w swoim tygodniu i nie zmienia liczby tygodni planu', () => {
-    expect(plan.weeks).toHaveLength(17)
+    expect(plan.weeks.filter((w) => w.phase !== 'transition')).toHaveLength(17)
     expect(weekOf('2026-09-05')).toBeDefined()
     expect(weekOf('2026-10-10')).toBeDefined()
   })

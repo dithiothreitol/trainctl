@@ -114,7 +114,7 @@ describe('lista dni do przesunięcia', () => {
 
   it('dzień startu jest zablokowany', () => {
     const plan = loadPlan(dir)
-    const raceWeek = plan.weeks.at(-1)!
+    const raceWeek = plan.weeks.find((w) => w.skeleton.raceDate)!
     const race = dayChoices(raceWeek).find((c) => c.value === plan.goal.date)!
     expect(race.disabled).toBe(true)
     expect(race.hint).toContain('nie do przesunięcia')

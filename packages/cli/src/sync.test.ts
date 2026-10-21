@@ -91,7 +91,7 @@ describe('trainctl push', () => {
 
   it('tydzień startowy: start idzie jako zawody (ranga A), nie jako trening z krokami', () => {
     const plan = loadPlan(dir)
-    const raceWeek = plan.weeks.at(-1)!
+    const raceWeek = plan.weeks.find((w) => w.skeleton.raceDate)!
     const ws = workoutsToPush(plan, raceWeek.weekStart, plan.goal.date)
     const race = ws.filter((w) => w.date === plan.goal.date)
     expect(race).toHaveLength(1)

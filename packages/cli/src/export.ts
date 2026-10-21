@@ -206,6 +206,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
     return files
   }
 
+  if (req.what === 'race' && plan.goal.kind === 'base') throw new Error(t.noRaceInBase)
   if (req.what === 'race') {
     // `key` jest stabilny między językami — po nim wybieramy scenariusz na opaskę;
     // `label` idzie na wydruk i zmienia się z językiem.

@@ -307,8 +307,9 @@ export function generateMicrocycle(input: MicrocycleInput): Microcycle {
   const style = athlete.longRunDay
     ? { ...defaults, longRunDayPreference: [athlete.longRunDay, ...defaults.longRunDayPreference.filter(d => d !== athlete.longRunDay)] }
     : defaults
-  const available = WEEKDAY_ORDER.filter((wd) => athlete.daysAvailable.includes(wd))
   const dateOf = (wd: Weekday) => addDays(skeleton.weekStart, WEEKDAY_ORDER.indexOf(wd))
+  // po starcie: dni przed najwcześniejszym biegiem wypadają z puli (R-1)
+  const available = WEEKDAY_ORDER.filter((wd) => athlete.daysAvailable.includes(wd) && (!skeleton.earliestRun || dateOf(wd) >= skeleton.earliestRun))
 
   const plan = new Map<Weekday, PlannedWorkout>()
 
@@ -396,6 +397,8 @@ function planNormalWeek(
   const target = skeleton.targetKm
   const polarized = skeleton.intensityModel === 'polarized'
   const inTaper = skeleton.phase === 'taper'
+  // blok po starcie: bez podbiegów, a w pierwszym tygodniu także bez długiego (R-8)
+  const recovering = skeleton.phase === 'transition'
   const workoutsCount = Math.min(
     available.length,
     skeleton.sessionCount ?? Math.max(style.minWorkoutsPerWeek, Math.ceil(target / style.typicalKmPerSession)),
@@ -421,7 +424,7 @@ function planNormalWeek(
   // sloty — dzień startu i dzień przed nim wypadają z puli
   const free = available.filter((wd) => wd !== peakWd && wd !== dayBeforePeak)
   // T-11: długie wybieganie ZOSTAJE po starcie (w korpusie: sobota start → niedziela long)
-  const longWd = inTaper
+  const longWd = inTaper || (recovering && skeleton.qualitySessions === 0)
     ? undefined
     : (style.longRunDayPreference.find((wd) => free.includes(wd)) ?? free.at(-1))
   const qualityWds: Weekday[] = []
@@ -433,7 +436,7 @@ function planNormalWeek(
     )
     if (okGap) qualityWds.push(wd)
   }
-  let hillsWd = inTaper
+  let hillsWd = inTaper || recovering
     ? undefined
     : style.hillsDayPreference.find(
         (wd) => free.includes(wd) && wd !== longWd && !qualityWds.includes(wd),

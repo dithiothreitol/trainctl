@@ -65,6 +65,7 @@ export const corePl: CoreMessages = {
     peak: 'szczyt',
     taper: 'taper',
     race: 'tydzień startowy',
+    transition: 'po starcie',
   },
 
   intensityModel: {
@@ -142,6 +143,16 @@ export const corePl: CoreMessages = {
   },
 
   strength: {
+    transitionNote:
+      'Pierwszy tydzień po starcie: jeszcze bez siły — wraca w następnym tygodniu jedną lżejszą sesją (R-9).',
+    sessionIntro: () =>
+      'Siła na wejście ~35 min: przysiad lub martwy ciąg + wykroki + wspięcia na palce, 3 serie × 6 powtórzeń ciężarem, ' +
+      'który podniósłbyś 8–10 razy (~75% 1RM) — nauka ruchu przed ciężkimi tygodniami (F-18). Nie do wyczerpania (S-7).',
+    sessionMaintenance: () =>
+      'Siła podtrzymująca ~25 min: przysiad lub martwy ciąg + wspięcia na palce, 2 serie × 3–5 powtórzeń CIĘŻKO ' +
+      '(≥80% 1RM), przerwy 2–3 min. Jedna sesja w tygodniu utrzymuje to, co zbudował blok (F-12, F-14). Nie do wyczerpania (S-7).',
+    peakNote:
+      'Szczyt: jedna sesja siły w tygodniu — wystarcza, żeby utrzymać adaptację, gdy bieganie ma pierwszeństwo (F-12, F-14).',
     session: () =>
       'Siła ciężka ~35 min: przysiad lub martwy ciąg + wykroki + wspięcia na palce, ' +
       '3 serie × 4–6 powtórzeń CIĘŻKO (≥80% 1RM, ostatnie powtórzenie trudne, ale bez upadku ruchu), ' +
@@ -176,7 +187,9 @@ export const corePl: CoreMessages = {
   macro: {
     raceDurationUnknown: 'Czas startu jest nieznany; nie można potwierdzić okna treningowego.',
     raceConflict: (date: string) => `Konflikt kalendarza zawodów ${date}: kilka startów w tygodniu lub start kontrolny w taperze. Jawnie rozstrzygnij konflikt w kalendarzu.`,
-    raceDateInPast: 'Data startu w przeszłości',
+    raceDateInPast: 'Data startu w przeszłości — wpisz następny cel w trainctl.yaml',
+    baseEndInPast: 'Data końca planu bazowego (goal.until) jest w przeszłości',
+    transitionWeek: (week: number, total: number) => `po starcie: tydzień ${week} z ${total} powrotu do treningu (R-8)`,
     ultraTaperExtrapolated: 'T-8: ultra — ekstrapolacja bez źródła',
     compressedPlan: (weeks: number) =>
       `tylko ${weeks} tyg. do startu — plan skompresowany, bez pełnej progresji`,

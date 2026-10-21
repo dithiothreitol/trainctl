@@ -65,10 +65,11 @@ describe('trainctl plan', () => {
     expect(md).toContain('truchtu')
   })
 
-  it('plan.yaml wczytuje się z powrotem (17 tygodni, race week na końcu)', () => {
+  it('plan.yaml wczytuje się z powrotem (17 tygodni do startu, potem 2 tygodnie po starcie — R-8)', () => {
     const plan = loadPlan(dir)
-    expect(plan.weeks).toHaveLength(17)
-    expect(plan.weeks.at(-1)!.skeleton.raceDate).toBe('2026-11-29')
+    expect(plan.weeks).toHaveLength(19)
+    expect(plan.weeks[16]!.skeleton.raceDate).toBe('2026-11-29')
+    expect(plan.weeks.slice(17).map((w) => w.skeleton.phase)).toEqual(['transition', 'transition'])
     expect(plan.vdotSource).toBe('result')
   })
 })

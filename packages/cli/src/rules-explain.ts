@@ -26,7 +26,7 @@ export const kindPurpose = (kind: WorkoutKind): string => ui().kindPurpose[kind]
 
 /** Labels describe provenance, never numerical certainty or evidence grades. */
 export function ruleEvidence(id: string): 'research' | 'corpus' | 'engineering' | 'unclassified' {
-  if (['E-1', 'T-9', 'T-12', 'W-13', 'R-5', 'P-3'].includes(id)) return 'engineering'
-  if (['T-10', 'T-11', 'W-12', 'S-9a'].includes(id)) return 'corpus'
+  if (['E-1', 'T-9', 'T-12', 'W-13', 'R-5', 'P-3', 'F-18', 'Z-10', 'E-2', 'R-9', 'R-10', 'P-11'].includes(id)) return 'engineering'
+  if (['T-10', 'T-11', 'W-12', 'S-9a', 'R-8'].includes(id)) return 'corpus'
   return ruleExplain(id) ? 'research' : 'unclassified'
 }

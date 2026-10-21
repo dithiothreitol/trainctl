@@ -22,17 +22,42 @@ export interface LogEntry {
   loggedAt: string
 }
 
-export function appendLog(cwd: string, entry: LogEntry): void {
+/**
+ * Wpis sesji siłowej — w tym samym log.jsonl, ale osobny tor (ADR-023): nie
+ * nadpisuje wpisu biegu z tej samej daty i nie wchodzi do porównań wykonania.
+ */
+export interface StrengthLogEntry {
+  date: string
+  activity: 'strength'
+  status: 'done' | 'skipped'
+  minutes?: number
+  note?: string
+  loggedAt: string
+}
+
+export function appendLog(cwd: string, entry: LogEntry | StrengthLogEntry): void {
   appendFileSync(join(cwd, LOG_FILE), JSON.stringify(entry) + '\n', 'utf-8')
 }
 
-export function readLog(cwd: string): LogEntry[] {
+function readAll(cwd: string): (LogEntry | StrengthLogEntry)[] {
   const path = join(cwd, LOG_FILE)
   if (!existsSync(path)) return []
   return readFileSync(path, 'utf-8')
     .split('\n')
     .filter((l) => l.trim())
-    .map((l) => JSON.parse(l) as LogEntry)
+    .map((l) => JSON.parse(l) as LogEntry | StrengthLogEntry)
+}
+
+const isStrength = (e: LogEntry | StrengthLogEntry): e is StrengthLogEntry => (e as StrengthLogEntry).activity === 'strength'
+
+/** Wpisy biegowe — to, z czego liczy się wykonanie planu. */
+export function readLog(cwd: string): LogEntry[] {
+  return readAll(cwd).filter((e): e is LogEntry => !isStrength(e))
+}
+
+/** Wpisy siły; ostatni wpis dnia wygrywa, jak w dzienniku biegów. */
+export function readStrengthLog(cwd: string): StrengthLogEntry[] {
+  return readAll(cwd).filter(isStrength)
 }
 
 /** Ostatni wpis dla daty (późniejszy nadpisuje wcześniejszy w interpretacji). */

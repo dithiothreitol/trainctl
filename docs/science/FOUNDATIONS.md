@@ -1615,6 +1615,7 @@ jako fakt).
 | Z-7 | Test CS terenowy: 2 próby | 1200 m + 3600 m (lub 3 min + 12 min), przerwa 30–60 min, od dłuższej do krótszej | Lipková 2025 | B |
 | Z-8 | 3MT tylko dla Tier 2+; korygować D′ | CS = średnia z ostatnich 30 s; D′ zaniżone ~16% | Lipková 2025 | B |
 | Z-9 | Rekalibracja | po każdym starcie; dodatkowo co 6–8 tyg. | Filipas 2022; Festa 2020 | D |
+| Z-10 | Wynik z **trailu nie kalibruje stref szosowych**, dopóki jest wynik szosowy; sam trail — z ostrzeżeniem w planie | tabele VDOT (Daniels) powstały z szosy i bieżni; czas w terenie mówi o terenie tak samo jak o formie | **brak źródła** (inż.) | **—** |
 
 ### 10.2 `engine/` — rozkład intensywności
 
@@ -1643,6 +1644,7 @@ jako fakt).
 | P-8 | Progi objętości dla celu — maraton | >65 km/tyg. → −14,09 min; <40 km/tyg. → +6,33 min; najdłuższy <25 km → +13,44 min | Fokkema 2020 | **C** |
 | P-9 | Sufit objętości sanity-check | elita 130–220 km/tyg. — powyżej tego plan jest błędem, nie ambicją | Haugen 2022 | D |
 | P-10 | Nie komunikować objętości jako czynnika ryzyka urazu w tym zakresie | „No associations between training characteristics and new RRIs" | Fokkema 2020 | C |
+| P-11 | Plan **bez startu** (`goal.kind: base`): wyłącznie faza bazy, odciążenie co 4. tydzień (P-2), wzrost do `peakWeeklyKm` albo +15% bieżącej objętości i plateau; bez taperu, predykcji i tygodnia startowego | +15% — wartość inż. | **brak źródła** (inż.); spójne z P-2/P-3 | **—** |
 
 ### 10.4 `engine/` — jednostki treningowe
 
@@ -1684,6 +1686,9 @@ jako fakt).
 | R-5 | Po chorobie: konserwatywny restart | objętość ×0,5–0,6, zero Z3 przez 5–7 dni, potem progresja jak po przerwie | ekstrapolacja | **—** |
 | R-6 | Wyświetlać objawy wymagające lekarza, z cytowaniem | ból w klatce, omdlenie, duszność, kołatanie = bezwzględne przeciwwskazania | Ruuskanen 2023 | **D** |
 | R-7 | Silnik **nie udziela porad medycznych** | brak evidence-based guidelines; decyzja „personalized process between athlete and medical team" | Ruuskanen 2023 | D |
+| R-8 | **Blok przejściowy po starcie ≥HM** — makrocykl nie kończy się w dniu zawodów | tydz. 1: ~50% średniej 4 tygodni przed tygodniem startu, wyłącznie spokojnie, bez długiego, pierwszy bieg 3. dnia po maratonie (R-1) / 2. dnia po HM; tydz. 2: ~100%, najwyżej jeden akcent | korpus trenerski: **3 długie starty** z pełnym pokryciem 14 dni (2 maratony i dłuższe, 1 HM) — mediany: tydz. 1 0,5×, 2–3 sesje, pierwszy bieg 4. dnia, pierwszy akcent 7–8. dnia; tydz. 2 1,0× (`tools/corpus/post_race_profile.py`); spójne z R-1/R-2 i N-15 | **korpus (n=3)** + B |
+| R-9 | Siła wraca w **drugim** tygodniu po starcie, jedną lżejszą sesją | — | **brak źródła** (inż.); spójne z F-13 | **—** |
+| R-10 | Po krótszym celu (<21 km): **jeden** tydzień przejściowy ~70% | — | **brak źródła** (inż.); korpus nie pokrywa tygodni po krótkich startach docelowych | **—** |
 
 ### 10.7 `solver/` — ograniczenia renegocjacji tygodnia
 
@@ -1720,6 +1725,7 @@ jako fakt).
 | F-14 | Utrzymanie poza blokiem: 1 sesja/tyg. wystarcza | 13 tyg. utrzymania zachowuje przyrost siły i CSA — **dane z kolarzy, ekstrapolacja** | Rønnestad 2010 (PMID 20799042) | B (pośredni) |
 | F-15 | **Uczciwość wobec 34–45 lat**: w tej grupie wiekowej efekt na ekonomię jest NIEISTOTNY — moduł nie obiecuje sekund, tylko przenoszenie zakupów po schodach | 21–31,5 lat: g=−0,51 ist.; 34,1–44,8 lat: g=−0,12 [−0,41; 0,17] n.i. | Eihara 2022 (10.1186/s40798-022-00511-1) | **A−** |
 | F-16 | Durability: siła podtrzymuje ekonomię w końcówce długiego wysiłku | RE po 90 min: +2,1% vs −0,6% kontroli (p=0,04); TTE @95% VO₂max +35% | Zanini 2025 (10.1249/MSS.0000000000003685; **1 RCT, n=28**) | B |
+| F-18 | **Wejście w blok siły**: dwa pierwsze tygodnie 3 × 6 przy ~75% 1RM, zanim przyjdzie ≥80% (F-4); w szczycie jedna sesja podtrzymująca (F-12, F-14) | ~75% 1RM, 2 tyg. — wartości inż. | **brak źródła** (inż.) | **—** |
 | F-17 | Wynik z siły potwierdzony tylko w LABORATORIUM na 1,5–10 km — **zero badań nad maratonem/HM i realnymi zawodami**; częsty konfundent: siłę DOKŁADANO do treningu (grupy różniły się całkowitym obciążeniem) | TT/TTE: ES −0,469 [−0,872; −0,066] (ciężka siła) | Llanos-Lagos 2024b (10.1007/s40279-024-02018-z, 38 badań, 894 os.); zastrzeżenie: Blagrove 2018 | **A−** |
 
 ### 10.9 Predykcja wyniku
@@ -1843,6 +1849,15 @@ Wartości 2, 50%, 60%, 0,1 km i 15 minut są progami inżynierskimi, nie zalecen
 fizjologicznymi. Starty i sprawdziany nie są skracane. Brak wykonalnego wariantu
 prowadzi do komunikatu o przesunięciu treningu lub dniu wolnym, bez zmiany planu.
 
+**E-2** — budżet czasu z profilu (`time` w `trainctl.yaml`): tydzień ponad
+`weeklyMinutes` dostaje niższy cel kilometrów (nadwyżka minut przeliczona po
+wolniejszej granicy tempa spokojnego, do czterech przebiegów) i jest generowany od
+nowa; dzień ponad limitem dnia (`weekdayMinutes` / `weekendMinutes`) przechodzi
+przez skracanie E-1 i niesie jawny `timeAdjustment` z pochodzeniem „profil".
+Przygotowanie 15 minut jak w E-1. Startów i sprawdzianów nie skracamy. Gdy budżet
+ogranicza szczyt poniżej progu dla dystansu (P-7/P-8), plan mówi o tym wprost.
+To wybór inżynierski: żadne badanie nie mówi, jak przeliczać minuty na bodziec.
+
 ## 11. DO WERYFIKACJI
 
 Rzeczy, których **nie** potwierdzono z pierwszej ręki. Nic z tej listy nie powinno
@@ -1904,6 +1919,11 @@ Te muszą być oznaczone w kodzie jako heurystyki, nie jako reguły oparte na do
 8. **Czy istnieje RCT treningu siłowego na biegaczach elitarnych.** Nie znaleziono;
    trzy niezależne zespoły (Balsalobre-Fernández, Zecchin, Eihara) niezależnie
    zgłaszają tę samą lukę.
+9. **Przelicznik wyniku z trailu na szosę.** Nie znaleziono walidowanej metody
+   (przewyższenie, nawierzchnia i technika zbiegu działają naraz). Stąd Z-10
+   odkłada wyniki z trailu zamiast je przeliczać.
+10. **Kształt powrotu po starcie.** Poza R-1/R-2 (48 h po maratonie) brak badań nad
+    objętością kolejnych tygodni; R-8 opiera się na trzech startach z korpusu.
 
 ### 11.3 Znane niespójności w źródłach (do rozstrzygnięcia lub udokumentowania)
 

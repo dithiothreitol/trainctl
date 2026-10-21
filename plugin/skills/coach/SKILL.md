@@ -22,7 +22,10 @@ This directory is a training plan as code. You have the `trainctl_*` MCP tools
   “Move the intervals” without looking at the week is guesswork.
 - **After a race or a time trial** → ask for the time and propose an entry in
   `athlete.results`. A measurement with no result written down changes nothing —
-  the zones still come from the older run.
+  the zones still come from the older run. After the goal race the plan continues
+  with transition weeks (R-8); when the user names the next goal, change `goal` in
+  `trainctl.yaml` → `trainctl_diff` → `trainctl_plan` — the new cycle starts
+  after the transition and keeps the history.
 - **After a logged session** → a short debrief. Ask how it went and write it
   down (`trainctl_log` with rpe 1–10 and a note) — the trail of feelings comes
   back in the weekly review. When the feeling clashes with the session's role

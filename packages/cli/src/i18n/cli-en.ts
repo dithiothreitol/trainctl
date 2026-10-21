@@ -49,6 +49,8 @@ export const cliEn = {
     optKm: 'kilometres covered',
     optTime: 'time as MM:SS or HH:MM:SS',
     optRpe: 'session effort as a whole number 1–10 (CR-10)',
+    optStrength: 'log a strength session instead of a run: done | skipped',
+    optMinutes: 'minutes of the strength session',
     optNote: 'note (how it felt, conditions)',
     optFrom: 'source date',
     optTo: 'target date',
@@ -151,6 +153,7 @@ export const cliEn = {
 
   plan: {
     weeksOfPlan: (weeks: number) => `${weeks} weeks of plan`,
+    baseUntil: (date: string) => `base training until ${date}`,
     volumePeak: 'Volume peak',
     recommendedForDistance: 'Recommended for this distance',
     vdot: 'VDOT',
@@ -168,6 +171,8 @@ export const cliEn = {
     regenSection: 'What the regeneration changes',
     sameCycle: (start: string) =>
       `Same training cycle: phases stay anchored to ${start}; future days follow trainctl.yaml.`,
+    newCycleVolume: (km: number) =>
+      `The new cycle starts from ${n(km)} km/week (athlete.recentWeeklyKm, or the approved baseline) — update the profile if your training changed.`,
     newCycle: (weekStart: string) =>
       `New training cycle from ${weekStart} (different goal distance, or the previous race is behind you); ` +
       'earlier weeks stay as history.',
@@ -202,12 +207,14 @@ export const cliEn = {
 
   today: {
     daysToRace: (days: number) => `${days} days to race`,
+    daysAfterRace: (days: number) => `${days} ${pluralEn(days, { one: 'day', other: 'days' })} after the race`,
     weekOf: (index: number, total: number) => `week ${index}/${total}`,
     deload: 'deload',
     restDayTitle: 'Rest day',
     restDayBody: 'Rest is part of the plan — adaptation happens in recovery.',
     logged: (status: string) => `Logged: ${status}`,
     whyHint: (date: string) => `why this session: trainctl why --date ${date}`,
+    strengthLogged: (status: string) => `Strength logged: ${status}`,
     estimate: (minutes: number) => `about ${minutes} min including preparation`,
     next: (date: string, weekday: string, kind: string, km: number) => `next: ${weekday} ${date} · ${kind} · ${n(km)} km`,
     strengthTitle: (minutes: number) => `Strength · ~${n(minutes)} min`,
@@ -246,6 +253,11 @@ export const cliEn = {
     recorded: 'Recorded',
     testTime: (time: string) => `test segment ${time}`,
     unplanned: 'The plan had a rest day here — the entry counts as an unplanned run.',
+    strengthSaved: (date: string, status: string) => `Logged strength ${date}: ${status}.`,
+    strengthStatus: (value: string) => `Strength status "${value}" — use done or skipped.`,
+    strengthOnly: 'A strength entry takes only --minutes and --note; log the run separately.',
+    strengthMinutes: 'Strength minutes: a whole number 1–300.',
+    strengthUnplanned: 'No strength was planned on this day — the entry is kept as an extra session.',
     prompt: {
       which: 'Which session?',
       status: 'Status',
@@ -528,6 +540,7 @@ export const cliEn = {
     filePrintout: 'schedule',
     calendarEntries: (count: number) => `${count} sessions in the calendar`,
     printedWeeks: (weeks: number) => `${weeks} weeks to print`,
+    noRaceInBase: 'A base plan has no race — the race pack needs a goal race (goal.kind: race).',
     heat: {
       columns: { temperature: 'temperature', pace: 'pace', loss: 'loss' },
       scenarioColumn: (label: string) => `scenario “${label}”`,
@@ -551,6 +564,9 @@ export const cliEn = {
       `Could not refresh the data (${error}) — reviewing the last snapshot.`,
     noKey: 'No API key — reviewing from the journal and the last snapshot (trainctl pull once you have one, or trainctl pull --from <export folder>).',
     fromFiles: (label: string) => `Refreshed from ${label}.`,
+    strength: 'Strength',
+    strengthValue: (done: number, planned: number, skipped: number) =>
+      `${done} of ${planned} planned${skipped ? `, ${skipped} skipped` : ''}`,
     feelFromHub: (date: string, rpe: number, source: string) => `${date} · RPE ${n(rpe)} · from ${source}`,
     wellness: 'From your watch (quoted, not interpreted)',
     wellnessLine: (date: string, restingHr?: number, sleepSec?: number, weightKg?: number) => {
@@ -582,6 +598,7 @@ export const cliEn = {
     },
     toRace: 'To race day',
     toRaceValue: (days: number) => `${days} days`,
+    baseEnd: 'Base plan until',
     raceThisWeek: (date: string) =>
       `Race this week: ${date} — the day before stays clear (T-10).`,
     timeTrialThisWeek: (date: string) =>
@@ -794,6 +811,7 @@ export const cliEn = {
       'trainctl log                  # in a terminal: pick the session and answer a few questions',
       'trainctl log --km 8 --time 41:20 --rpe 4 --note "felt good"',
       'trainctl log --date yesterday --status skipped --note "work"',
+      'trainctl log --strength done --minutes 30',
     ],
     shorten: [
       'trainctl shorten --minutes 40           # today, as a proposal',
@@ -846,6 +864,7 @@ export const cliEn = {
   /** plan/PLAN.md — the document the athlete actually reads. */
   planMd: {
     heading: (goalName: string, date: string) => `Plan: ${goalName} — ${date}`,
+    headingBase: (goalName: string, date: string) => `Plan: ${goalName} — base training until ${date}`,
     goalTime: (time: string) => ` · target ${time}`,
     meta: (generatedAt: string, vdot: number, source: string, peakKm: number) =>
       `Generated ${generatedAt} · VDOT ${n(vdot)} (${source}) · peak ${n(peakKm)} km/week.`,
@@ -864,6 +883,14 @@ export const cliEn = {
     noCalibration:
       'No race result from the last 18 months and no goal.targetTimeSec — ' +
       'there is nothing to calibrate the zones from (Z-6: we calibrate from results, not from a watch).',
+    timeCapsVolume: (peak: number, recommended: number) =>
+      `Your time budget caps the plan at ${n(peak)} km/week, below the ${n(recommended)} km/week recommended for ` +
+      'this distance (P-7/P-8). More minutes, or a closer goal, changes that (E-2).',
+    timeDayTooShort: (dates: string) =>
+      `These sessions do not fit the day's time budget even shortened (races and time trials are never cut): ${dates} (E-2).`,
+    timeWeekOver: (weeks: string) => `These weeks stay over the weekly time budget: ${weeks} (E-2).`,
+    trailOnlyCalibration:
+      'Zones come from a trail result — terrain slows a trail race, so road paces may be too easy. Add a road result (Z-10).',
     zonesFromGoal:
       'zones calibrated from the time goal rather than a real result — add a race to athlete.results',
   },
@@ -890,6 +917,13 @@ export const cliEn = {
     },
     templateDesk: 'desk mode (trainctl desk) — optional',
     templateDeskPrefer: 'morning | lunch | evening',
+    baseGoalName: 'Base training',
+    templateTime: {
+      section: 'time you actually have, preparation and strength included (optional)',
+      weekly: 'minutes per week — volume levels off at what fits (E-2)',
+      weekday: 'minutes on Mon–Fri — longer sessions are shortened (E-1)',
+      weekend: 'minutes on Sat–Sun',
+    },
     templateSync: {
       section: 'execution without an intervals.icu account (optional)',
       files: 'folder of exported FIT/TCX/GPX files — trainctl pull and review read it',
@@ -923,6 +957,8 @@ export const cliEn = {
       listRequired: (path: string) => `${path}: a list is required`,
       isoDate: (path: string) => `${path}: format YYYY-MM-DD`,
       seconds: (path: string) => `${path}: a number of seconds > 0`,
+      goalKind: (path: string) => `${path}: race (default) or base`,
+      minutes: (path: string) => `${path}: whole minutes between 15 and 2000`,
       priorityBc: (path: string) => `${path}: B or C (A is the goal in the goal section)`,
       required: (path: string) => `${path}: required`,
       boolean: (path: string) => `${path}: true or false`,
@@ -961,6 +997,15 @@ export const cliEn = {
     'F-13': 'taper: strength leaves the plan — 4 weeks of detraining does not undo the adaptation (Berryman 2020, note: n=8)',
     'S-4': 'strength and running the same day: the ≥3 h gap is documented (Schumann 2022); 6 h is an engineering margin',
     'S-5': 'heavy strength no later than 24 h before a quality session — the strength deficit lasts up to 48 h (de Carvalho e Silva 2022)',
+    'F-12': 'strength twice a week in the base, 0–1 a week in the competition period (Haugen 2022)',
+    'F-14': 'one strength session a week keeps the gains of a block (Rønnestad 2010 — data from cyclists, an extrapolation)',
+    'F-18': 'the first two weeks of a strength block learn the movement at ~75% 1RM before the heavy weeks — an engineering choice, no source',
+    'R-8': 'after a race of half marathon or longer, two transition weeks: ~50% of the pre-race volume easy only, then ~100% with one accent (coaching corpus, n=3; Martínez-Navarro 2021)',
+    'R-9': 'strength returns in the second week after the race, one lighter session — an engineering choice, no source',
+    'R-10': 'after a shorter goal race, one transition week at ~70% — an engineering choice; no data behind it',
+    'P-11': 'a plan without a race grows to your documented peak (or +15%) and levels off there, deload every fourth week — an engineering choice',
+    'E-2': 'the time budget from trainctl.yaml caps weekly volume and shortens sessions with the same rules as E-1 — an engineering choice, no source',
+    'Z-10': 'a trail result does not calibrate road zones while a road result exists — an engineering choice; VDOT tables come from road and track',
   },
 
   /** What each session kind is for — the physiological purpose, one sentence. */
@@ -1012,6 +1057,8 @@ export const cliEn = {
     logRpe:
       'session effort as a whole number 1–10 (CR-10, 10 = maximal). Ask the runner after the session — never guess it.',
     logNote: 'how it felt, conditions, remarks',
+    logStrength: 'done | skipped — records a strength session instead of a run (only minutes and note apply).',
+    logMinutes: 'duration of the strength session in minutes',
     shift:
       'Week renegotiation: swap the sessions of two dates within THE SAME week ' +
       '(e.g. “release on Thursday — move the intervals”). Protects race day and the day before it; ' +
@@ -1132,7 +1179,10 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
   “Move the intervals” without looking at the week is guesswork.
 - **After a race or a time trial** → ask for the time and propose an entry in
   \`athlete.results\`. A measurement with no result written down changes nothing —
-  the zones still come from the older run.
+  the zones still come from the older run. After the goal race the plan continues
+  with transition weeks (R-8); when the user names the next goal, change \`goal\` in
+  \`trainctl.yaml\` → \`trainctl_diff\` → \`trainctl_plan\` — the new cycle starts
+  after the transition and keeps the history.
 - **After a logged session** → a short debrief. Ask how it went and write it
   down (\`trainctl_log\` with rpe 1–10 and a note) — the trail of feelings comes
   back in the weekly review. When the feeling clashes with the session's role

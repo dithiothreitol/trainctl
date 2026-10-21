@@ -30,7 +30,7 @@ import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
 import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
-import { appendLog, logFor, parseTime, readLog, type LogEntry } from './logfile.ts'
+import { appendLog, logFor, parseTime, readLog, readStrengthLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
   computePlan,
   cycleWeeksOf,
@@ -357,12 +357,12 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
     const weeksToRace = cycle.length
     const blocks: Block[] = [
       b.title(
-        `${plan.goal.name} · ${plan.goal.distanceKm} km`,
-        `${plan.goal.date} · ${ui().plan.weeksOfPlan(weeksToRace)}`,
+        plan.goal.kind === 'base' ? plan.goal.name : `${plan.goal.name} · ${plan.goal.distanceKm} km`,
+        `${plan.goal.kind === 'base' ? ui().plan.baseUntil(plan.goal.date) : plan.goal.date} · ${ui().plan.weeksOfPlan(weeksToRace)}`,
       ),
       b.kv([
         [ui().plan.volumePeak, messages().units.kmPerWeek(plan.peakKmPlanned)],
-        [ui().plan.recommendedForDistance, messages().units.kmPerWeek(plan.peakKmRecommended)],
+        ...(plan.peakKmRecommended > 0 ? ([[ui().plan.recommendedForDistance, messages().units.kmPerWeek(plan.peakKmRecommended)]] as [string, string][]) : []),
         [
           ui().plan.vdot,
           `${plan.vdot} (${plan.vdotSource === 'result' ? ui().plan.vdotFromResult : ui().plan.vdotFromGoal})`,
@@ -447,6 +447,7 @@ function regenerationBlocks(existing: StoredPlan, r: Regeneration, opts: { diffL
   blocks.push(b.text(r.mode === 'same-cycle'
     ? t.sameCycle(r.plan.generatedAt)
     : t.newCycle(r.plan.cycleStart ?? r.plan.weeks[0]?.weekStart ?? r.plan.generatedAt)))
+  if (r.mode === 'new-cycle') blocks.push(b.info(t.newCycleVolume(r.plan.loadState?.baselineWeeklyKm ?? cycleWeeksOf(r.plan)[0]?.skeleton.targetKm ?? 0)))
   const counts = new Map<string, number>()
   for (const p of r.protectedDays) counts.set(p.reason, (counts.get(p.reason) ?? 0) + 1)
   const reasons = [...counts].map(([reason, count]) => `${t.reasons[reason as keyof typeof t.reasons]} ${count}`).join(', ')
@@ -497,7 +498,7 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
       b.title(
         `${date} · ${weekdayName(day.weekday)}`,
         `${ui().today.weekOf(weekPosition(plan, week).index + 1, weekPosition(plan, week).total)} · ${phaseLabel(sk.phase)}` +
-          `${sk.deload ? ` · ${ui().today.deload}` : ''} · ${ui().today.daysToRace(toRace)}`,
+          `${sk.deload ? ` · ${ui().today.deload}` : ''} · ${raceDistanceLine(plan, toRace)}`,
       ),
       ...compatibilityNotes(plan),
     ]
@@ -540,6 +541,8 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
         ),
       )
     }
+    const strengthEntry = readStrengthLog(cwd).filter((e) => e.date === date).at(-1)
+    if (strengthEntry) blocks.push(b.success(ui().today.strengthLogged(strengthEntry.status)))
     const estimatedMinutes = (day.workout ? estimateWorkoutMinutes(day.workout, plan.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
     // Dla biegacza zza biurka dwie najważniejsze liczby dnia: ile to potrwa i co dalej.
     if ((day.workout || day.strength) && Number.isFinite(estimatedMinutes)) blocks.push(b.text(ui().today.estimate(estimatedMinutes), 'muted'))
@@ -600,6 +603,9 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
 
 type LogOptions = {
   date?: string | undefined
+  /** Zapis siły zamiast biegu: done | skipped. */
+  strength?: string | undefined
+  minutes?: string | number | undefined
   status?: string | undefined
   km?: string | undefined
   time?: string | undefined
@@ -619,6 +625,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
     if (!findDay(plan, date)) return fail(new Error(ui().log.outsidePlan(date)))
+    if (opts.strength !== undefined) return logStrength(cwd, plan, date, opts)
     const status = (opts.status ?? 'done') as 'done' | 'skipped' | 'modified'
     if (!['done', 'skipped', 'modified'].includes(status)) {
       return fail(new Error(ui().log.unknownStatus(String(opts.status))))
@@ -674,6 +681,34 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
   } catch (e) {
     return fail(e)
   }
+}
+
+/**
+ * Dziennik siły (E4): osobny wpis obok biegu. Bez kilometrów, tempa i RPE —
+ * siła to inny tor, a dziennik ma powiedzieć tylko, czy sesja się odbyła.
+ */
+function logStrength(cwd: string, plan: StoredPlan, date: string, opts: LogOptions): CmdResult {
+  const t = ui().log
+  if (opts.strength !== 'done' && opts.strength !== 'skipped') throw new Error(t.strengthStatus(String(opts.strength)))
+  if ([opts.km, opts.time, opts.testTime, opts.rpe].some((v) => v !== undefined)) throw new Error(t.strengthOnly)
+  const minutes = opts.minutes === undefined ? undefined : Number(opts.minutes)
+  if (minutes !== undefined && (!Number.isInteger(minutes) || minutes < 1 || minutes > 300)) throw new Error(t.strengthMinutes)
+  const entry: StrengthLogEntry = {
+    date,
+    activity: 'strength',
+    status: opts.strength,
+    ...(minutes !== undefined ? { minutes } : {}),
+    ...(opts.note ? { note: opts.note } : {}),
+    loggedAt: new Date().toISOString(),
+  }
+  appendLog(cwd, entry)
+  const planned = findDay(plan, date)!.day.strength
+  const blocks: Block[] = [
+    b.success(t.strengthSaved(date, entry.status)),
+    b.kv([[t.planned, planned ? ui().today.strengthTitle(planned.durationMin) : ui().week.rest]]),
+  ]
+  if (!planned && entry.status === 'done') blocks.push(b.info(t.strengthUnplanned))
+  return okDoc(blocks, { entry, planned: planned ?? null })
 }
 
 export function cmdShift(cwd: string, opts: { from: string; to: string; commit?: CommitOption }): CmdResult {
@@ -1349,6 +1384,7 @@ export async function cmdReview(
       b.kv([
         [ui().review.volume, ui().review.volumeValue(Math.round(actualKm), Math.round(plannedKm))],
         [ui().review.doneSessions, `${done}/${rows.filter((r) => r.plannedKm > 0).length}`],
+        ...strengthRow(plan, readStrengthLog(cwd), from, today),
         ...(missed.length
           ? ([[ui().compare.missed, missed.map((r) => r.date.slice(5)).join(', ')]] as [string, string][])
           : []),
@@ -1428,7 +1464,9 @@ export async function cmdReview(
           ],
           // pozostałe km liczone tą samą miarą co totalKm (objętość treningowa, bez dystansu startu)
           [ui().review.volume, ui().review.volumeAhead(Math.round(upcoming.reduce((s, d) => s + (d.workout?.distanceKm ?? 0), 0) * 10) / 10, week.totalKm, upcoming.length)],
-          [ui().review.toRace, ui().review.toRaceValue(diffDays(today, plan.goal.date))],
+          ...(plan.goal.kind === 'base'
+            ? ([[ui().review.baseEnd, plan.goal.date]] as [string, string][])
+            : ([[ui().review.toRace, raceDistanceLine(plan, diffDays(today, plan.goal.date))]] as [string, string][])),
         ]),
       )
       const race = upcoming.find((d) => d.workout?.kind === 'race')
@@ -1802,6 +1840,26 @@ export function cmdDiff(cwd: string, opts: { plan?: string | undefined } = {}): 
   } catch (e) {
     return fail(e)
   }
+}
+
+/**
+ * Siła w przeglądzie: ile zaplanowanych sesji odnotowano — liczba, bez wniosków.
+ * Wiersz pojawia się tylko wtedy, gdy siła była w planie albo w dzienniku.
+ */
+function strengthRow(plan: StoredPlan, entries: StrengthLogEntry[], from: string, to: string): [string, string][] {
+  const planned = plan.weeks.flatMap((w) => w.days).filter((d) => d.strength && d.date >= from && d.date <= to).length
+  const latest = new Map<string, StrengthLogEntry>()
+  for (const e of entries) if (e.date >= from && e.date <= to) latest.set(e.date, e)
+  if (!planned && !latest.size) return []
+  const done = [...latest.values()].filter((e) => e.status === 'done').length
+  const skipped = [...latest.values()].filter((e) => e.status === 'skipped').length
+  return [[ui().review.strength, ui().review.strengthValue(done, planned, skipped)]]
+}
+
+/** „N dni do startu", „N dni po starcie" albo koniec planu bazowego (P-11). */
+function raceDistanceLine(plan: StoredPlan, toRace: number): string {
+  if (plan.goal.kind === 'base') return ui().plan.baseUntil(plan.goal.date)
+  return toRace >= 0 ? ui().today.daysToRace(toRace) : ui().today.daysAfterRace(-toRace)
 }
 
 /** Metody źródła jako zwykłe funkcje — `this` klasy zostaje przy nich. */

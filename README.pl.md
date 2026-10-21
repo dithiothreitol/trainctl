@@ -310,9 +310,25 @@ desk:                       # dla trainctl desk (opcjonalne)
 strength:                   # opcjonalny tor siłowy, 2×/tydz.
   enabled: true
   days: [mon, fri]          # opcjonalna preferencja dni
+time:                       # opcjonalnie: minuty, które naprawdę masz, z przygotowaniem
+  weeklyMinutes: 300        # objętość wypłaszcza się na tym, co się mieści (E-2)
+  weekdayMinutes: 60        # dłuższe jednostki są skracane, z pokazanym kompromisem (E-1)
+  weekendMinutes: 120
+sync:
+  files: ./activities       # opcjonalnie: eksport FIT/TCX/GPX zamiast intervals.icu
 ```
 
-Trzy konsekwencje, o których warto wiedzieć:
+Nie masz startu, do którego się przygotowujesz? Zamiast `goal` z datą i dystansem
+użyj planu bazowego — bez taperu i predykcji, objętość rośnie do Twojego szczytu
+i tam się wypłaszcza (P-11):
+
+```yaml
+goal:
+  kind: base
+  until: "2027-03-01"
+```
+
+Kilka konsekwencji, o których warto wiedzieć:
 
 - **`results` napędza wszystko.** Bez wyniku startu nie ma VDOT-u ani stref;
   przy samym `targetTimeSec` plan wyliczy strefy z celu i powie wprost, że
@@ -322,9 +338,16 @@ Trzy konsekwencje, o których warto wiedzieć:
   tygodniu. Przy pustym kalendarzu startów plan sam wstawi sprawdzian na czas —
   ale prawdziwy start zawsze ma pierwszeństwo.
 - **`strength` to osobny tor**, nie kolejna jednostka biegowa: nie dokłada
-  kilometrów, znika w taperze i nigdy nie ląduje dzień przed akcentem.
+  kilometrów, znika w taperze i nigdy nie ląduje dzień przed akcentem. Dwa
+  tygodnie wejścia, potem sesje ciężkie, a w szczycie jedna podtrzymująca
+  w tygodniu (F-18, F-4, F-12). Zapis: `trainctl log --strength done`.
   Uzasadnieniem jest ekonomia biegu — *nie* prewencja urazów; zob.
   [Gdzie silnik odmawia](#gdzie-silnik-odmawia).
+- **Plan nie kończy się na starcie.** Po półmaratonie i dłuższym dystansie idą
+  dwa tygodnie przejściowe: mniej więcej połowa objętości sprzed startu, wyłącznie
+  spokojnie, pierwszy bieg trzeciego dnia po maratonie; potem powrót do zwykłego
+  rytmu z jednym akcentem (R-8, z trzech startów w korpusie trenera). Nowy cel
+  zaczyna swój cykl po nich.
 
 Klucz API do intervals.icu nigdy nie trafia do tego pliku. Użyj
 `TRAINCTL_INTERVALS_API_KEY`, pliku `.env` albo `.trainctl-secret`; zmienna

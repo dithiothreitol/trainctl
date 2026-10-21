@@ -7,6 +7,8 @@ import {
   diffDays,
   estimateWorkoutMinutes,
   generateMicrocycle,
+  shortenWorkout,
+  weekTotals,
   getLocale,
   messages,
   paceZones,
@@ -73,15 +75,21 @@ export interface StoredPlan {
 
 export function computePlan(config: TrainctlConfig, today: string, calibrationDate = today): StoredPlan {
   const { athlete, goal } = config
-  const usable = athlete.results.filter(
+  const recent = athlete.results.filter(
     (r) => !r.excluded && r.date <= calibrationDate && diffDays(r.date, calibrationDate) <= 540,
   )
+  // Z-10 (inż.): wynik z trailu nie kalibruje stref szosowych — czas w terenie mówi
+  // o terenie tak samo jak o formie. Gdy innych wyników brak, używamy go z ostrzeżeniem.
+  const roadGoal = goal.terrain !== 'trail' && goal.terrain !== 'ultra'
+  const road = roadGoal ? recent.filter((r) => r.terrain !== 'trail') : recent
+  const usable = road.length ? road : recent
+  const trailOnly = roadGoal && road.length === 0 && recent.length > 0
   let vdot: number
   let vdotSource: StoredPlan['vdotSource']
   if (usable.length > 0) {
     vdot = Math.max(...usable.map((r) => vdotFromRace(r.distanceKm, r.timeSec)))
     vdotSource = 'result'
-  } else if (goal.targetTimeSec) {
+  } else if (goal.targetTimeSec && goal.kind !== 'base') {
     vdot = vdotFromRace(goal.distanceKm, goal.targetTimeSec)
     vdotSource = 'goal-target'
   } else {
@@ -97,10 +105,13 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     return week
   })
   if (config.strength?.enabled) applyStrength(weeks, config.strength)
+  const timeWarnings = config.time
+    ? fitTimeBudget(weeks, config, zones, testDistanceKm(goal))
+    : []
   const plan: StoredPlan = {
     schemaVersion: PLAN_SCHEMA_VERSION,
     engineVersion: packageVersion(),
-    calibration: inspectCalibration(athlete.results, calibrationDate),
+    calibration: inspectCalibration(athlete.results, calibrationDate, roadGoal),
     generatedAt: today,
     locale: getLocale(),
     vdot: Math.round(vdot * 10) / 10,
@@ -108,16 +119,24 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     goal,
     peakKmPlanned: macro.peakKmPlanned,
     peakKmRecommended: macro.peakKmRecommended,
-    feasibilityWarnings: [...macro.feasibilityWarnings],
+    feasibilityWarnings: [...macro.feasibilityWarnings, ...timeWarnings],
     changes: [],
     weeks,
   }
-  if (usable.length > 0) {
+  if (config.time) {
+    plan.peakKmPlanned = Math.max(...weeks.map((w) => w.totalKm))
+    if (plan.peakKmPlanned < macro.peakKmRecommended) {
+      plan.feasibilityWarnings.push(ui().planMd.timeCapsVolume(plan.peakKmPlanned, macro.peakKmRecommended))
+    }
+  }
+  // plan bazowy nie ma dystansu docelowego, więc i predykcji (P-11)
+  if (usable.length > 0 && goal.kind !== 'base') {
     plan.prediction = predictRace(usable, goal.distanceKm, { today: calibrationDate })
   }
   if (vdotSource === 'goal-target') {
     plan.feasibilityWarnings.push(ui().planMd.zonesFromGoal)
   }
+  if (trailOnly) plan.feasibilityWarnings.push(ui().planMd.trailOnlyCalibration)
   plan.generatedDays = Object.fromEntries(plan.weeks.flatMap((w) => w.days).map((d) => [d.date, dayFingerprint(d)]))
   return plan
 }
@@ -131,6 +150,66 @@ export function writePlan(cwd: string, plan: StoredPlan): void {
   writeFileSync(join(cwd, PLAN_MD), renderMarkdown(plan), 'utf-8')
 }
 
+/** Przygotowanie wliczone w budżet czasu — to samo domyślne 15 minut co w E-1. */
+const PREPARATION_MINUTES = 15
+
+const isWeekend = (wd: string) => wd === 'sat' || wd === 'sun'
+
+/**
+ * Budżet czasu z profilu (E-2, wartość inżynierska) — dwa kroki:
+ *  1. tydzień ponad `weeklyMinutes` dostaje niższy cel kilometrów (nadwyżka minut
+ *     przeliczona po wolniejszej granicy tempa spokojnego) i jest generowany
+ *     od nowa — objętość wypłaszcza się na tym, co się mieści;
+ *  2. dzień ponad limitem dnia przechodzi przez to samo skracanie co `shorten`
+ *     (E-1), z jawnym `timeAdjustment` i utratą celu, gdy wariant jej wymaga.
+ * Starty i sprawdziany nie są skracane; co się nie mieści, zostaje ostrzeżeniem.
+ */
+function fitTimeBudget(weeks: Microcycle[], config: TrainctlConfig, zones: ReturnType<typeof paceZones>, testKm: number): string[] {
+  const time = config.time!
+  const minutesOf = (d: PlannedDay) =>
+    (d.workout ? estimateWorkoutMinutes(d.workout, PREPARATION_MINUTES) : 0) + (d.strength?.durationMin ?? 0)
+  const weekMinutes = (w: Microcycle) => w.days.reduce((s, d) => s + (d.workout || d.strength ? minutesOf(d) : 0), 0)
+  const easyMinPerKm = zones.easy.hiSecPerKm / 60
+  if (time.weeklyMinutes) {
+    for (let i = 0; i < weeks.length; i++) {
+      for (let pass = 0; pass < 4; pass++) {
+        const week = weeks[i]!
+        if (week.skeleton.raceDate) break
+        const minutes = weekMinutes(week)
+        if (minutes <= time.weeklyMinutes) break
+        const target = Math.max(5, Math.floor(week.skeleton.targetKm - (minutes - time.weeklyMinutes) / easyMinPerKm))
+        if (target >= week.skeleton.targetKm) break
+        weeks[i] = generateMicrocycle({ skeleton: { ...week.skeleton, targetKm: target }, athlete: config.athlete, zones, goal: config.goal, testDistanceKm: testKm })
+      }
+    }
+    if (config.strength?.enabled) applyStrength(weeks, config.strength)
+  }
+  const tooLong: string[] = []
+  for (const week of weeks) {
+    for (const day of week.days) {
+      const cap = isWeekend(day.weekday) ? time.weekendMinutes : time.weekdayMinutes
+      if (cap === undefined || !day.workout || minutesOf(day) <= cap) continue
+      if (['race', 'test'].includes(day.workout.kind)) {
+        tooLong.push(day.date)
+        continue
+      }
+      const result = shortenWorkout(day.workout, cap, { preparationMinutes: PREPARATION_MINUTES, strengthMinutes: day.strength?.durationMin ?? 0 })
+      if (result.workout && (result.status === 'shortened' || result.status === 'easy-alternative')) {
+        day.timeAdjustment = { originalKind: day.workout.kind, originalDistanceKm: day.workout.distanceKm, budgetMinutes: cap, status: result.status, origin: 'profile' }
+        day.workout = result.workout
+      } else {
+        tooLong.push(day.date)
+      }
+    }
+    Object.assign(week, weekTotals(week.days))
+  }
+  const overWeek = time.weeklyMinutes ? weeks.filter((w) => !w.skeleton.raceDate && weekMinutes(w) > time.weeklyMinutes!).map((w) => w.weekStart) : []
+  return [
+    ...(tooLong.length ? [ui().planMd.timeDayTooShort(tooLong.join(', '))] : []),
+    ...(overWeek.length ? [ui().planMd.timeWeekOver(overWeek.join(', '))] : []),
+  ]
+}
+
 /**
  * Rozstawienie siły na ciągu tygodni. Ciąg, a nie tydzień po tygodniu osobno:
  * odstęp ≥48 h musi obowiązywać także na styku niedziela→poniedziałek.
@@ -138,14 +217,18 @@ export function writePlan(cwd: string, plan: StoredPlan): void {
  */
 export function applyStrength(weeks: Microcycle[], strength: StrengthConfig): void {
   let lastSessionDate: string | undefined
+  // tydzień bloku siły: liczymy tygodnie, w których siła w ogóle wchodzi do planu
+  let blockWeek = 0
   for (const week of weeks) {
     const { byDate, notes } = planStrengthWeek({
       week,
       phase: week.skeleton.phase,
       deload: week.skeleton.deload,
+      blockWeek,
       ...(strength.days?.length ? { daysPreference: strength.days } : {}),
       ...(lastSessionDate ? { lastSessionDate } : {}),
     })
+    if (!['taper', 'race'].includes(week.skeleton.phase)) blockWeek++
     for (const day of week.days) {
       const session = byDate.get(day.date)
       if (session) day.strength = session
@@ -280,7 +363,7 @@ export function renderMarkdown(plan: StoredPlan): string {
   const core = messages()
   const lines: string[] = []
   const target = plan.goal.targetTimeSec ? m.goalTime(fmtTime(plan.goal.targetTimeSec)) : ''
-  lines.push(`# ${m.heading(plan.goal.name, plan.goal.date)}${target}`)
+  lines.push(`# ${plan.goal.kind === 'base' ? m.headingBase(plan.goal.name, plan.goal.date) : m.heading(plan.goal.name, plan.goal.date)}${target}`)
   lines.push('')
   lines.push(
     m.meta(

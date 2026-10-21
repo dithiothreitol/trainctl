@@ -18,6 +18,8 @@ export const coachPl: typeof coachEn = {
   applyHint: (id: string) => `Przejrzyj propozycję, następnie zatwierdź dokładnie te zmiany: trainctl adapt --apply ${id}`,
   heuristic: 'E-1: wybory inżynierskie: zachowujemy co najmniej połowę pracy jakościowej, 60% długiego biegu, pierwotne wprowadzenie przed podbiegami i co najmniej 15 min spokojnego zamiennika. Te progi nie dowodzą równoważności fizjologicznej.',
   context: 'Miejsce tej jednostki w Twoim planie',
+  goalBehind: (name: string, distance: number, date: string, days: number) => `Cel za Tobą: ${name}, ${distance} km dnia ${date}; ta jednostka wypada ${days} dni po nim.`,
+  goalBase: (name: string, date: string) => `Cel: ${name} — budowanie bazy bez startu, do ${date} (P-11).`,
   goal: (name: string, distance: number, date: string, days: number) => `Cel: ${name}, ${distance} km, ${date}; od tej jednostki pozostaje ${days} dni.`,
   weekContext: (phase: string, actual: number, target: number, share: number) => `Faza: ${phase}. Tydzień: ${actual} km przy celu ${target} km; ${share}% spokojnego biegania.`,
   deload: 'W zapisanym planie ten tydzień ma obniżoną objętość.',

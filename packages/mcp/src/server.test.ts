@@ -182,7 +182,7 @@ describe('serwer MCP trainctl', () => {
 
   it('scenariusz renegocjacji: week → shift → week', async () => {
     const before = await call('trainctl_week', { date: '2026-08-04' })
-    expect(before.text).toContain('Tydzień 1/17')
+    expect(before.text).toContain('Tydzień 1/19')
     expect(before.text).toMatch(/08-04.*3 kilometry/)
 
     const shift = await call('trainctl_shift', { from: '2026-08-04', to: '2026-08-05' })

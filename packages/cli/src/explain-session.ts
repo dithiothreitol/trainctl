@@ -13,7 +13,10 @@ export function explainSession(plan: StoredPlan, week: Microcycle, day: PlannedD
   const neighbor = (d: PlannedDay | undefined) => d?.workout ? { date: d.date, kind: d.workout.kind, gapDays: Math.abs(diffDays(day.date, d.date)) } : null
   const placement = { previous: neighbor(previous), next: neighbor(next) }
   const kindLabel = (kind: string) => (messages().kind as Record<string, string>)[kind] ?? kind
-  const context = [t.goal(plan.goal.name, plan.goal.distanceKm, plan.goal.date, diffDays(day.date, plan.goal.date)),
+  const toGoal = diffDays(day.date, plan.goal.date)
+  const context = [plan.goal.kind === 'base' ? t.goalBase(plan.goal.name, plan.goal.date)
+    : toGoal >= 0 ? t.goal(plan.goal.name, plan.goal.distanceKm, plan.goal.date, toGoal)
+      : t.goalBehind(plan.goal.name, plan.goal.distanceKm, plan.goal.date, -toGoal),
     t.weekContext(messages().phase[week.skeleton.phase], week.totalKm, week.skeleton.targetKm, Math.round(week.easyShare * 100))]
   if (week.skeleton.deload) context.push(t.deload)
   if (week.skeleton.keepIntensity || week.skeleton.keepFrequency) context.push(t.taper)

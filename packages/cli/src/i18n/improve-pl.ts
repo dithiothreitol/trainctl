@@ -33,6 +33,7 @@ export const improvePl: typeof improveEn = {
   selected: 'Użyty do stref', 'lower-vdot': 'Niższy VDOT', excluded: 'Wykluczony przez Ciebie', future: 'Wynik z przyszłości', stale: 'Starszy niż 540 dni',
   age: (days: number) => `sprzed ${days} dni`,
   unclassified: 'Sprawdź regułę źródłową; pochodzenie niesklasyfikowane',
+  terrain: 'Wynik z trailu — nie kalibruje stref szosowych (Z-10)',
   research: 'Interpretacja opublikowanych badań', corpus: 'Korpus trenerski', engineering: 'Heurystyka inżynierska',
   minuteEstimate: (minutes: number) => `Około ${minutes} minut z przygotowaniem; to szacunek, nie gwarancja.`,
   mobile: 'Trening na telefon', mobileExport: 'Eksport samodzielnej strony treningu na telefon',
