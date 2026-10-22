@@ -485,6 +485,28 @@ skonfigurowanego progu. To potwierdza słuszność decyzji z `workout-syntax.ts`
 **Nadal niezweryfikowane:** czy trening dociera na fizyczny zegarek Garmina
 (wymaga konta połączonego z Garmin Connect i samego urządzenia).
 
+## 2c. STARTY I SIŁA W KALENDARZU — weryfikacja na żywym koncie (2026-10-22)
+
+Test wersji 0.4.0 (ADR-037) prawdziwym kluczem API, pełną ścieżką przez CLI:
+plan testowy z celem A (półmaraton) i startem kontrolnym B (10 km) oraz siłą,
+`trainctl push --from 2029-05-28 --to 2029-06-17`. Okno w 2029 roku było przed
+testem puste (zero wydarzeń), więc test nie mógł dotknąć prawdziwego planu.
+Po teście wszystkie wpisy `trainctl-` z okna usunięto (`DELETE /events/{id}` →
+200 dla każdego); okno jest znów puste.
+
+| Pytanie | Wynik |
+|---|---|
+| Start celu jako `category: RACE_A` | ✅ przyjęte, `type: Run` |
+| Start kontrolny jako `category: RACE_B` | ✅ przyjęte, `type: Run` |
+| Siła jako osobny wpis `WORKOUT` z `type: WeightTraining` | ✅ przyjęte, `external_id` z sufiksem `-strength` |
+| Biegi w tym samym żądaniu co dni z siłą | ✅ osobne żądania bulk (biegi, starty, siła), wszystkie 200 |
+| Fallback startów do `WORKOUT` | nie był potrzebny — API przyjęło kategorie startów |
+| Idempotencja przy trzech kategoriach | ✅ drugi push tego zakresu → 13 wpisów, 13 unikalnych `external_id` |
+| Nazwy po polsku przy `language: pl` | ✅ ponowny push nadpisał nazwy (upsert), bez duplikatów |
+
+**Nadal niezweryfikowane:** jak starty `RACE_*` i wpisy `WeightTraining`
+wyglądają na fizycznym zegarku po synchronizacji z Garmin Connect.
+
 ## 2b. INFERENCJA PROFILU Z HISTORII — stan weryfikacji (2026-08-05, faza 6)
 
 `trainctl init --from-intervals` odpytuje `GET /athlete/0/activities?oldest&newest`
