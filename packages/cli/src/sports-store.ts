@@ -49,13 +49,16 @@ export function readSessionLogs(cwd: string): SessionLog[] {
     return entry
   })
 }
-export function sessionText(s: TrainingSession): string {
+export function sessionStepsText(s: TrainingSession): string {
   const t = msg()
-  const steps = s.legacyWorkout ? s.description ?? workoutText({date:s.date,weekday:'mon',workout:s.legacyWorkout}) : s.steps.map(x => {
+  return s.legacyWorkout ? s.description ?? workoutText({date:s.date,weekday:'mon',workout:s.legacyWorkout}) : s.steps.map(x => {
     const dose = x.distanceM ? `${x.distanceM} m` : `${Math.round(x.durationSec / 60 * 10) / 10} min`
     const target = x.target.kind === 'power' ? `${x.target.watts} W` : x.target.kind === 'pace' ? `${x.target.seconds} s/${x.target.perM} m` : 'open'
     return `${x.repeat ? `${x.repeat} × ` : ''}${dose} @ ${target}${x.restSec ? ` + ${x.restSec}s ${t.role.rest}` : ''}${x.sendoffSec ? ` / ${x.sendoffSec}s` : ''}${x.stroke ? ` (${x.stroke})` : ''}`
   }).join('; ')
+}
+export function sessionText(s: TrainingSession): string {
+  const t = msg(), steps = sessionStepsText(s)
   return `${t.sport[s.sport]} · ${t.purpose[s.purpose]} · ${Math.round(s.durationSec / 6) / 10} min${s.distanceM ? ` · ${s.distanceM} m` : ''} · ${steps}`
 }
 const cell = (s: string): string => s.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ')

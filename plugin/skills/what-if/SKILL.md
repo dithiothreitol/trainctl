@@ -3,6 +3,8 @@ name: what-if
 description: "Explore a training scenario without touching the real plan (\"what if the race moves three weeks?\"). Use for any hypothetical change to the goal, dates or profile."
 ---
 
+If trainctl_workspace is available, inspect its current selection first. Before using training tools, bind it to the user's training directory with an absolute directory path. Use the current project only when it is the intended training directory; ask if unclear. Never initialize a plan inside the plugin cache. A different directory requires a new server session.
+
 # What-if scenario
 
 1. Never change the real plan for a question. Create a scenario: a git branch or a copied directory.

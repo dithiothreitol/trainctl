@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "trainctl": {
-      "command": "npx",
-      "args": ["-y", "trainctl-mcp@0.4.0"]
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/scripts/start-mcp.mjs"]
     }
   }
 }

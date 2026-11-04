@@ -1,6 +1,6 @@
 {
   "name": "trainctl-monorepo",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Running coach in your terminal: training plan as code in a git repo, coach as a tool for your agent (CLI + MCP)",
   "keywords": [
@@ -26,8 +26,10 @@
   },
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "plugin:build": "node tools/plugin/build.mjs",
+    "verify:plugin": "node scripts/verify-plugin.mjs",
+    "test": "vitest run --configLoader native",
+    "test:watch": "vitest --configLoader native",
     "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/sync-intervalsicu && tsc --noEmit -p packages/sync-files && tsc --noEmit -p packages/export && tsc --noEmit -p packages/cli && tsc --noEmit -p packages/mcp",
     "check": "pnpm typecheck && pnpm test",
     "trainctl": "node packages/cli/src/bin.ts",
@@ -39,9 +41,11 @@
   },
   "devDependencies": {
     "@garmin/fitsdk": "21.218.0",
-    "@types/node": "^24.0.0",
+    "@types/node": "^24.19.2",
+    "esbuild": "0.28.1",
     "ical.js": "2.2.1",
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "typescript": "^5.9.3",
+    "vite": "7.3.7",
+    "vitest": "^4.1.12"
   }
 }

@@ -1,6 +1,6 @@
 # trainctl-mcp
 
-The [trainctl](https://www.npmjs.com/package/trainctl) running coach as MCP
+The [trainctl](https://www.npmjs.com/package/trainctl) endurance training planner as MCP
 tools, so an agent (Claude Code, Codex, any MCP client) can plan, explain and
 renegotiate your training week.
 
@@ -12,6 +12,12 @@ claude mcp add trainctl --env TRAINCTL_DIR="/path/to/my-training" \
 `TRAINCTL_DIR` points at your training directory (the git repo holding
 `trainctl.yaml`, `plan/`, `log.jsonl`); without it the server uses the current
 working directory.
+
+The bundled [Codex plugin](../../plugin/README.md) additionally provides
+`trainctl_workspace` with `{directory: "/absolute/path/to/training"}`. Codex starts the
+server in its plugin cache, so it blocks training tools until the workspace has
+been selected (or explicitly supplied through `TRAINCTL_DIR`). The selection
+cannot change within a server session; restart to use another directory.
 
 Tools over the same handlers the CLI uses, so the agent and your
 terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,

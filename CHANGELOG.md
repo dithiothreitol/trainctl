@@ -6,6 +6,52 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-11-04
+
+### Added
+
+- Cycling, swimming and mixed-sport plans with separate profiles, time volumes,
+  equipment constraints, session IDs and multisport race groups.
+- Reviewed substitutions in all six directions between running, cycling and
+  swimming, with time budgets, trade-offs and restoration of the original session.
+- Schema v1 to v2 migration with preview/apply, protected history, journal entries
+  for the sport actually performed, and recovery after interrupted writes.
+- Multisport FIT, ICS and HTML exports, calendar withdrawal/reactivation, and
+  activity matching across Intervals.icu and imported FIT/TCX/GPX files.
+- A self-contained Codex plugin bundle with 21 training tools, six skills and
+  `trainctl_workspace` for selecting the training directory explicitly.
+- `--color auto|always|never` and `--plain`; responsive tables, consistent sport
+  colours, readable help and separate session metadata in the CLI.
+
+### Fixed
+
+- `week --session` now selects the requested session, including other weeks,
+  and rejects unknown IDs or conflicting sport filters.
+- `init --from-intervals` respects agent setup and commit options; a conflicting
+  `--sports` option is rejected before contacting the provider or writing files.
+- CLI logs of a spontaneous sport change now use the same default `modified`
+  status as MCP unless an explicit status is supplied.
+- Codex no longer treats the plugin cache as the training workspace. A server
+  session binds to one selected directory and keeps its credential context separate.
+- Interactive selectors and the week browser now emit valid terminal control
+  sequences. Narrow layouts preserve labels, full IDs and Unicode graphemes.
+
+### Dependencies and validation
+
+- Updated the MCP SDK, Zod, Vitest/Vite and transitive dependencies; adapted the
+  test runner to Vitest 4. The dependency audit returned no known advisories.
+- CI checks source, installed npm tarballs and relocated plugin bundles on Linux
+  and Windows. Export checks use Garmin FIT SDK and ICAL.js independently.
+
+### Known limits
+
+- Cycling/swimming templates and substitution limits remain explicit engineering
+  choices; a substitution is not a claim of physiological equivalence.
+- Physical-watch acceptance is separate from file/parser validation. Suunto
+  account pairing and live Google Calendar import were not completed in this audit.
+- Multisport groups export linked sessions; swimming FIT send-off is unsupported,
+  and pace is descriptive when stroke is the executable target.
+
 ## [0.4.0] — 2026-10-21
 
 ### Fixed — found by running every command on a fresh directory

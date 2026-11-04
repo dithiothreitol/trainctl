@@ -3,6 +3,8 @@ name: review
 description: "Weekly review of a trainctl training plan: what happened, what it means, what is ahead. Use at the start of a week or when asked \"how did I do?\"."
 ---
 
+If trainctl_workspace is available, inspect its current selection first. Before using training tools, bind it to the user's training directory with an absolute directory path. Use the current project only when it is the intended training directory; ask if unclear. Never initialize a plan inside the plugin cache. A different directory requires a new server session.
+
 # Weekly review
 
 1. In schema 2, keep running, cycling and swimming totals separate; inspect activity matching and replacement history.

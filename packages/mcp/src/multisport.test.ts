@@ -35,6 +35,8 @@ it('runs init → plan → replace → apply → log → check through MCP', asy
     await call('init',{sports:'run,bike,swim'})
     const {plan}=await call('plan')
     const source=plan.sessions.find((s:any)=>s.sport==='run')
+    expect((await call('week',{session:source.id})).sessions).toEqual([source])
+    expect((await client.callTool({name:'trainctl_week',arguments:{session:'missing'}})).isError).toBe(true)
     const {proposal}=await call('replace',{session:source.id,toSport:'bike',prepare:true})
     const applied=await call('replace',{apply:proposal.id})
     const target=applied.plan.sessions.find((s:any)=>s.replacesSessionId===source.id)

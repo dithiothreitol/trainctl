@@ -1,5 +1,5 @@
 /** `trainctl init --from-intervals`: profil z historii, propozycje z proweniencją (ADR-019). */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -59,6 +59,24 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('cmdInitFromIntervals', () => {
+  it('odrzuca sports i nieznanego agenta przed odczytem API i zapisem', async () => {
+    let calls = 0
+    const blockedFactory = () => { calls++; return fakeProvider }
+    for (const options of [{sports:'bike'}, {agent:'unknown'}]) {
+      const result = await cmdInitFromIntervals(dir, options, blockedFactory)
+      expect(result.code).toBe(1)
+    }
+    expect(calls).toBe(0)
+    expect(existsSync(join(dir,'trainctl.yaml'))).toBe(false)
+  })
+
+  it('zachowuje opcje integracji i commit także dla profilu z historii', async () => {
+    const result = await cmdInitFromIntervals(dir, {date:TODAY,agent:'codex',commit:true}, factory)
+    expect(result.code,result.output).toBe(0)
+    expect(readFileSync(join(dir,'.codex/config.toml'),'utf8')).toContain('[mcp_servers.trainctl]')
+    expect(result.data?.commit).toMatchObject({status:'no-git'})
+  })
+
   it('zapisuje trainctl.yaml z wartościami i komentarzami proweniencji', async () => {
     const r = await cmdInitFromIntervals(dir, { date: TODAY }, factory)
     expect(r.code).toBe(0)

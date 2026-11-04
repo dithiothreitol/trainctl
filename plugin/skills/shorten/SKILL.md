@@ -3,6 +3,8 @@ name: shorten
 description: "Fit a planned trainctl session into limited time (\"only 40 minutes today\"). Use when the user has less time than the session needs."
 ---
 
+If trainctl_workspace is available, inspect its current selection first. Before using training tools, bind it to the user's training directory with an absolute directory path. Use the current project only when it is the intended training directory; ask if unclear. Never initialize a plan inside the plugin cache. A different directory requires a new server session.
+
 # Only N minutes today
 
 1. Select the session ID in schema 2 (a date may contain several sports). Call `trainctl_shorten` with `minutes` (and `date` if not today). The budget includes preparation and strength.

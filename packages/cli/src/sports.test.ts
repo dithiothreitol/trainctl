@@ -22,6 +22,15 @@ function init(goalDate?: string) {
 function proposalId(r: ReturnType<typeof cmdReplace>): string { expect(r.code,r.output).toBe(0); return (r.data!.proposal as {id:string}).id }
 
 describe('multisport CLI workflows',()=>{
+  it('week --session wskazuje jedną sesję i odrzuca nieznane ID',()=>{
+    const p=init(), session=p.sessions.find(s=>s.date>'2026-11-08')!
+    const result=cmdWeek(dir,{session:session.id})
+    expect(result.code,result.output).toBe(0)
+    expect(result.data?.sessions).toEqual([session])
+    expect(cmdWeek(dir,{session:'missing'}).code).toBe(1)
+    expect(cmdWeek(dir,{session:session.id,sport:session.sport==='bike'?'swim':'bike'}).code).toBe(1)
+  })
+
   it('refuses session-schema options in v1 without recording the wrong sport or changing a plan',()=>{
     const legacy=`athlete:\n  recentWeeklyKm: 35\n  daysAvailable: [tue, thu, sat, sun]\n  longRunDay: sun\n  results:\n    - { date: '2026-09-01', distanceKm: 10, timeSec: 3000 }\ngoal:\n  kind: base\n  name: Base\n  date: '2026-12-27'\n  distanceKm: 0\n  priority: A\n`
     expect(cmdInit(dir,legacy).code).toBe(0);expect(cmdPlan(dir).code).toBe(0)

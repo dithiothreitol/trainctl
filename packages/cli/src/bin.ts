@@ -6,7 +6,7 @@
  */
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { Command, InvalidArgumentError, type Option } from 'commander'
+import { Command, InvalidArgumentError, Option } from 'commander'
 import { resolveLocale, setLocale, sportMessages } from 'trainctl-core'
 import { runSportsPicker, runSportsWeekBrowser, runSportsWizard } from './sports-interactive.ts'
 import { isSportsWorkspace } from './sports-store.ts'
@@ -49,8 +49,9 @@ import {
   type Shell,
 } from './commands.ts'
 import { runExportPicker, runLogPrompt, runShiftPicker, runWeekBrowser } from './interactive.ts'
-import { b, renderAnsi, renderPlain } from './ui/blocks.ts'
-import { Theme } from './ui/theme.ts'
+import { b, renderAnsi, renderPlain, wrap } from './ui/blocks.ts'
+import { Theme, detectCapabilities, type ColorMode } from './ui/theme.ts'
+import { helpItem } from './ui/help.ts'
 import { withSpinner } from './ui/spinner.ts'
 import { runWizard, toYaml } from './ui/wizard.ts'
 import { select } from './ui/select.ts'
@@ -73,6 +74,7 @@ function argValue(names: string[]): string | undefined {
 // `.env` i językiem, bo oba czytamy z katalogu treningowego, nie z procesu.
 const cwd = resolve(process.cwd(), argValue(['-C', '--dir']) ?? process.env['TRAINCTL_DIR'] ?? '.')
 const jsonMode = process.argv.includes('--json')
+const plainMode = process.argv.includes('--plain')
 
 // `.env` PRZED wszystkim innym: ma działać nie tylko dla klucza API, ale też
 // dla TRAINCTL_LANG, a język ustalamy zaraz niżej. `loadEnvFile` nie nadpisuje
@@ -90,10 +92,12 @@ setLocale(
   }),
 )
 
-const theme = new Theme()
+const colorMode = argValue(['--color']) ?? 'auto'
+const theme = new Theme(detectCapabilities(process.stdout, process.env,
+  jsonMode || plainMode ? 'never' : ['auto', 'always', 'never'].includes(colorMode) ? colorMode as ColorMode : 'auto'))
 const program = new Command()
 /** Tryby interaktywne tylko w terminalu i nigdy przy --json (wyjście ma być danymi). */
-const tty = process.stdin.isTTY === true && !jsonMode
+const tty = process.stdin.isTTY === true && process.stdout.isTTY === true && !jsonMode && !plainMode
 
 // Ostrzeżenie na stderr, nie na stdout: wyjście komend bywa przekierowywane
 // do pliku albo potoku, a to jest komunikat dla człowieka, nie dane.
@@ -113,6 +117,8 @@ function print(result: CmdResult): void {
       data: result.data ?? {},
       output: result.blocks ? renderPlain(result.blocks) : result.output,
     }, null, 2))
+  } else if (plainMode) {
+    console.log([...(notice ? [notice] : []), result.blocks ? renderPlain(result.blocks) : result.output].join('\n\n'))
   } else if (result.blocks) {
     console.log(renderAnsi(notice ? [b.warn(notice), ...result.blocks] : result.blocks, theme))
   } else {
@@ -131,7 +137,7 @@ function printInteractive(result: { output: string; code: number }): void {
   process.exitCode = result.code
 }
 
-const spin = <T,>(label: string, fn: () => Promise<T>): Promise<T> => (jsonMode ? fn() : withSpinner(label, fn, theme))
+const spin = <T,>(label: string, fn: () => Promise<T>): Promise<T> => (jsonMode || plainMode ? fn() : withSpinner(label, fn, theme))
 
 // --- daty względne (ADR: tylko CLI; MCP przyjmuje ISO) -----------------------
 const dateArg = (direction: DateDirection) => (value: string): string => {
@@ -164,13 +170,23 @@ program
   .option('--lang <code>', ui().cmd.lang)
   .option('-C, --dir <path>', ui().cmd.optDir)
   .option('--json', ui().cmd.optJson)
+  .option('--plain', ui().cmd.optPlain)
+  .addOption(new Option('--color <mode>', ui().cmd.optColor).choices(['auto', 'always', 'never']).default('auto'))
   .configureHelp({
+    helpWidth: theme.caps.width,
+    minWidthToWrap: 1,
+    formatItem: (term, termWidth, description) => helpItem(term, termWidth, description, theme),
+    styleUsage: (str) => wrap(str, Math.max(1, theme.caps.width - 7)).join('\n       '),
     styleTitle: (str) => theme.bold(theme.color(str, 'accent')),
     styleCommandText: (str) => theme.color(str, 'brand'),
-    styleOptionText: (str) => theme.dim(str),
+    styleOptionText: (str) => theme.color(str, 'brand'),
     styleDescriptionText: (str) => str,
   })
   .configureOutput({
+    getOutHasColors: () => theme.caps.color,
+    getErrHasColors: () => theme.caps.color,
+    getOutHelpWidth: () => theme.caps.width,
+    getErrHelpWidth: () => theme.caps.width,
     outputError: (str, write) => write(`${theme.color(s.fail, 'error')} ${str}`),
   })
   // Błąd użycia (nieznana komenda albo flaga, zła data) to kod 2 — skrypt i hook
@@ -182,7 +198,7 @@ program
 /** Przykłady pod `trainctl help <komenda>` — z katalogu, w języku katalogu treningowego. */
 function withExamples(command: Command, name: keyof ReturnType<typeof ui>['examples']): Command {
   const lines = ui().examples[name]
-  return command.addHelpText('after', `\n${theme.dim(ui().cmd.examples)}\n${lines.map((l) => `  ${l}`).join('\n')}`)
+  return command.addHelpText('after', `\n${theme.bold(ui().cmd.examples)}\n${lines.flatMap((l) => wrap(l, theme.caps.width, '  ')).join('\n')}`)
 }
 
 const commitOption = (command: Command) => command.option('--commit [message]', ui().cmd.optCommit)
@@ -201,13 +217,16 @@ commitOption(
     .option('--from-intervals', ui().cmd.initFromIntervals)
     .option('--agent <name>', ui().cmd.optAgent),
 ).action(async (opts) => {
+  if (opts.fromIntervals === true && opts.sports !== undefined) {
+    return print(await cmdInitFromIntervals(cwd, { sports: opts.sports }))
+  }
   if (opts.sports && opts.template !== true && tty) {
     try { return print(cmdInit(cwd, await runSportsWizard(opts.sports,localToday(),theme), {commit:opts.commit,agent:opts.agent})) } catch(e) {return print({code:1,output:e instanceof Error ? e.message : String(e)})}
   }
   const interactive = opts.template !== true && !opts.sports && tty
   if (!interactive) {
     if (opts.fromIntervals === true) {
-      return print(await spin(ui().cmd.spinnerInit, () => cmdInitFromIntervals(cwd)))
+      return print(await spin(ui().cmd.spinnerInit, () => cmdInitFromIntervals(cwd, { agent: opts.agent, commit: opts.commit })))
     }
     return print(cmdInit(cwd, undefined, { commit: opts.commit, agent: opts.agent, sports: opts.sports }))
   }
@@ -284,7 +303,7 @@ withExamples(
     command.getOptionValueSource('status') !== 'default'
   if (!flags && tty && isSportsWorkspace(cwd)) return print(await runSportsPicker(cwd,'log',localToday(),theme))
   if (!flags && tty && !isSportsWorkspace(cwd)) return printInteractive(await runLogPrompt(cwd, localToday(), theme))
-  print(cmdLog(cwd, opts))
+  print(cmdLog(cwd, { ...opts, status: command.getOptionValueSource('status') === 'default' ? undefined : opts.status }))
 })
 
 commitOption(
@@ -453,28 +472,15 @@ program
     process.stdout.write(completionScript(shell as Shell, specs, optionsOf(program.options)))
   })
 
-program.addHelpText(
-  'after',
-  '\n' +
-    theme.dim(ui().cmd.firstSteps) +
-    theme.color('trainctl init', 'brand') +
-    theme.dim(' → ') +
-    theme.color('trainctl plan', 'brand') +
-    theme.dim(' → ') +
-    theme.color('trainctl today', 'brand') +
-    '\n' +
-    theme.dim(ui().cmd.interactively) +
-    theme.color('trainctl shift', 'brand') +
-    theme.dim(ui().cmd.pickFromList) +
-    theme.color('trainctl week -i', 'brand') +
-    theme.dim(ui().cmd.browseArrows) +
-    '\n' +
-    theme.dim(ui().cmd.datesHint) +
-    '\n' +
-    theme.dim(ui().cmd.dirHint) +
-    '\n' +
-    theme.dim(ui().cmd.colorsHint),
-)
+program.addHelpText('after', '\n' + renderAnsi([
+  b.section(ui().cmd.firstSteps.trim().replace(/:$/, '')),
+  b.hint(['trainctl init', 'trainctl plan', 'trainctl today'].join(' '+theme.sym.arrow+' ')),
+  b.text(ui().cmd.interactively + 'trainctl shift' + ui().cmd.pickFromList + 'trainctl week -i' + ui().cmd.browseArrows),
+  b.blank(),
+  b.text(ui().cmd.datesHint, 'muted'),
+  b.text(ui().cmd.dirHint, 'muted'),
+  b.text(ui().cmd.colorsHint, 'muted'),
+], theme))
 
 
 commitOption(program.command('replace').description(sportMessages().replace)

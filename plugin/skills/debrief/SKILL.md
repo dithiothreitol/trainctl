@@ -3,6 +3,8 @@ name: debrief
 description: "Short debrief after a training session in a trainctl training directory: record how it went (RPE and a note). Use when the user says they finished a session."
 ---
 
+If trainctl_workspace is available, inspect its current selection first. Before using training tools, bind it to the user's training directory with an absolute directory path. Use the current project only when it is the intended training directory; ask if unclear. Never initialize a plan inside the plugin cache. A different directory requires a new server session.
+
 # Debrief after a session
 
 1. `trainctl_today` (or `trainctl_week`) to see what was planned for that day.

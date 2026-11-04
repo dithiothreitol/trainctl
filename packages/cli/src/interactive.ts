@@ -234,7 +234,7 @@ export async function runWeekBrowser(
     theme.dim(`  ${ui().picker.weekKeys}   [${index + 1}/${plan.weeks.length}]`)
 
   const draw = () => {
-    stdout.write('[2J[H') // czyść ekran i wróć na górę
+    stdout.write('\x1b[2J\x1b[H') // czyść ekran i wróć na górę
     const week = plan.weeks[index]!
     console.log(renderAnsi(cmdWeek(cwd, { date: week.weekStart }).blocks ?? [], theme))
     console.log()
@@ -247,7 +247,7 @@ export async function runWeekBrowser(
       stdin.off('keypress', onKey)
       if (stdin.isTTY) stdin.setRawMode(wasRaw)
       stdin.pause()
-      stdout.write('[2J[H')
+      stdout.write('\x1b[2J\x1b[H')
       resolve({ code: 0, output })
     }
 
@@ -271,7 +271,7 @@ export async function runWeekBrowser(
           stdin.off('keypress', onKey)
           if (stdin.isTTY) stdin.setRawMode(wasRaw)
           const week = plan.weeks[index]!
-          stdout.write('[2J[H')
+          stdout.write('\x1b[2J\x1b[H')
           const from = await select(ui().picker.whatToMove, dayChoices(week), theme)
           const to = from
             ? await select(ui().picker.whichDay, dayChoices(week, from), theme)

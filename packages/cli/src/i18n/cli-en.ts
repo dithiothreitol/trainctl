@@ -14,6 +14,13 @@ export const cliEn = {
   coach: coachEn,
   improve: improveEn,
   /** Opisy komend i flag — to, co widać w `trainctl --help`. */
+  display: {
+    openTarget: 'No pace or power target',
+    sport: 'Sport', duration: 'Time', distance: 'Distance', intensity: 'Intensity',
+    trainingTime: 'Training time', occupiedTime: 'Including preparation and transitions',
+    sessions: 'Sessions', details: 'Details',
+    views: { today: 'Day', week: 'Week', status: 'Overview', why: 'Session explained', desk: 'Desk day' },
+  },
   cmd: {
     banner: 'plan as code, coach as your agent’s tool',
     lang: 'interface language: en | pl (or TRAINCTL_LANG / language in trainctl.yaml)',
@@ -70,11 +77,13 @@ export const cliEn = {
     interactively: 'Interactive: ',
     pickFromList: ' (pick from a list) · ',
     browseArrows: ' (browse with arrows)',
-    colorsHint: 'Colours: NO_COLOR=1 disables them, TRAINCTL_ASCII=1 forces ASCII glyphs.',
+    colorsHint: 'Colours: --color auto|always|never; NO_COLOR=1 disables, --plain simplifies output; TRAINCTL_ASCII=1 uses ASCII.',
     datesHint:
       'Dates: YYYY-MM-DD, today/tomorrow/yesterday, +N/-N days, or a weekday (mon…sun). ' +
       'log, review, adapt and pull look back; the other commands look ahead.',
     dirHint: 'Directory: -C <path> or TRAINCTL_DIR; TRAINCTL_TODAY=YYYY-MM-DD simulates the date (always announced).',
+    optColor: 'colour output: auto | always | never',
+    optPlain: 'plain text without decoration or interactive prompts',
     optJson: 'print JSON ({ code, data, output }) instead of formatted text',
     optDir: 'training directory (defaults to TRAINCTL_DIR, then the current directory)',
     optCommit: 'commit the files this command changed (optionally with your own message)',
@@ -118,6 +127,7 @@ export const cliEn = {
   },
 
   init: {
+    intervalsSportsConflict: '--from-intervals infers a running profile only. Use --sports separately; the two options cannot be combined.',
     created: (file: string) => `Created ${file}`,
     createdAgents: (file: string) =>
       `Created ${file} — the coach instructions for your agent (Claude Code, Codex)`,
@@ -1044,6 +1054,11 @@ export const cliEn = {
       'comment, and race candidates come back FOR CONFIRMATION with the user — add them to ' +
       'athlete.results only once they agree.',
     initFromIntervals: 'profile from intervals.icu history',
+    workspace: 'Select the training directory for this plugin session before using training tools; omit directory to inspect the selection. The binding lasts until the server restarts.',
+    workspaceDirectory: 'Absolute path of the training directory authorized by the user; it must already exist.',
+    workspaceRequired: 'Select a training directory first with trainctl_workspace(directory). The plugin cache is not a training directory.',
+    workspaceInvalid: 'Use an existing absolute training directory outside the plugin cache.',
+    workspaceLocked: 'This server is already bound to another directory. Start a new session to switch directories.',
     plan:
       'Generate the training plan from trainctl.yaml → plan/plan.yaml + plan/PLAN.md. ' +
       'Returns a summary: volume peak, predicted finish (a range) and how realistic the goal is. ' +

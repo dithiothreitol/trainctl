@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /**
  * Backtest generatora na korpusie: sezon HM (Półmaraton Warszawski, 2025-03-30).
  * Porównuje strukturę tygodni wygenerowanych vs realnych planów trenera

@@ -214,17 +214,20 @@ export async function fetchInferredProfile(
  */
 export async function cmdInitFromIntervals(
   cwd: string,
-  opts: { date?: string | undefined } = {},
+  opts: { date?: string | undefined; sports?: string | undefined; agent?: string | undefined; commit?: CommitOption } = {},
   factory: ProviderFactory = defaultProviderFactory,
 ): Promise<CmdResult> {
   try {
+    if (opts.sports !== undefined) return fail(new Error(ui().init.intervalsSportsConflict))
+    if (opts.agent !== undefined && !(AGENTS as readonly string[]).includes(opts.agent)) {
+      return fail(new Error(ui().init.agentUnknown(opts.agent, AGENTS.join(', '))))
+    }
     const today = opts.date ?? localToday()
     const outcome = await fetchInferredProfile(cwd, today, factory)
     if (!outcome.ok) return fail(new Error(outcome.reason))
     const p = outcome.profile
-    writeConfigTemplate(cwd, inferredConfigYaml(p))
-    writeAgentsFile(cwd)
-    protectSecrets(cwd)
+    const initialized = cmdInit(cwd, inferredConfigYaml(p), { agent: opts.agent, commit: opts.commit })
+    if (initialized.code !== 0) return initialized
 
     const recent4 = p.weeklyKm.slice(-4).map((w) => w.km)
     const blocks: Block[] = [
@@ -257,7 +260,8 @@ export async function cmdInitFromIntervals(
       blocks.push(b.info(ui().init.noRaceCandidates))
     }
     blocks.push(b.blank(), b.hint(ui().init.fillGoal))
-    return okDoc(blocks)
+    blocks.push(...(initialized.blocks ?? []))
+    return okDoc(blocks, initialized.data)
   } catch (e) {
     return fail(e)
   }

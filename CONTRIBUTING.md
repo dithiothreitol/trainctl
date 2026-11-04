@@ -56,7 +56,7 @@ versions before/after replacement, withdrawal and reactivation, FIT/HTML files,
 source plans, a SHA-256 manifest and Polish instructions. Manual results start
 as `pending`; parser success does not imply success on a particular device/client.
 
-The test runner extends `VitestTestRunner` through its public Runner API.
+The test runner extends `TestRunner` from `vitest` through its public Runner API.
 Before each attempt it awaits an empty `onTaskUpdate` round trip, allowing the
 worker to receive reporting acknowledgements before another synchronous file
 or CLI operation. A single `setImmediate` yield proved insufficient on Windows

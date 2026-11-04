@@ -75,6 +75,7 @@ describe('polski nie jest kalką', () => {
     // Symbole, formaty i listy wartości enum — tłumaczenie ich byłoby błędem.
     expect(identical.sort()).toEqual(
       [
+        'display.sport', // Sport — ten sam rzeczownik w obu językach.
         'cmd.optStatus',
         'cmd.optExportWhat',
         'common.labelOk',

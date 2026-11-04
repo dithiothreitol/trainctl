@@ -1,12 +1,13 @@
 {
   "name": "trainctl",
-  "version": "0.4.0",
-  "description": "Running coach as your agent's tool: training plan as code, MCP tools and coach skills",
+  "version": "0.5.0",
+  "description": "Plan running, cycling, swimming and multisport; replace sessions, log and review training through local MCP tools",
   "author": { "name": "Dariusz Tyszka" },
   "homepage": "https://github.com/dithiothreitol/trainctl",
   "repository": "https://github.com/dithiothreitol/trainctl",
   "license": "MIT",
-  "keywords": ["running", "training-plan", "coach", "mcp", "plan-as-code"],
+  "keywords": ["running", "cycling", "swimming", "multisport", "training-plan", "coach", "mcp"],
+  "requires_local_executor": true,
   "skills": "./skills/",
   "mcpServers": "./codex.mcp.json"
 }

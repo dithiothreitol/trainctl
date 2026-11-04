@@ -102,4 +102,4 @@ export function pluginSkills(): Skill[] {
 }
 
 export const renderSkill = (skill: Skill): string =>
-  `---\nname: ${skill.name}\ndescription: ${JSON.stringify(skill.description)}\n---\n\n${skill.body.trim()}\n`
+  `---\nname: ${skill.name}\ndescription: ${JSON.stringify(skill.description)}\n---\n\nIf trainctl_workspace is available, inspect its current selection first. Before using training tools, bind it to the user's training directory with an absolute directory path. Use the current project only when it is the intended training directory; ask if unclear. Never initialize a plan inside the plugin cache. A different directory requires a new server session.\n\n${skill.body.trim()}\n`

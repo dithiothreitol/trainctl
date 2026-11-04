@@ -6,8 +6,8 @@
  * `constructor(readonly x: T)`). Bez tego testu taki kod przechodzi całą
  * zieloną suitę i wywala się dopiero u użytkownika przy pierwszym uruchomieniu.
  */
-import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -45,6 +45,36 @@ beforeAll(() => {
 afterAll(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
 
 describe('binarka CLI pod natywnym Node', () => {
+  it('przełącza formatowanie bez zmiany danych JSON i respektuje potoki', () => {
+    run(['plan', '--date', '2026-08-05'])
+    const args = ['today', '--date', '2026-08-04']
+    const colored = run([...args, '--color', 'always'], {NO_COLOR:'1', COLUMNS:'48'})
+    expect(colored).toContain('\x1b[')
+    const clean = run([...args, '--color=never'], {FORCE_COLOR:'1'})
+    expect(clean).not.toContain('\x1b[')
+    const plain = run([...args, '--plain', '--color', 'always'])
+    expect(plain).not.toContain('\x1b[')
+    expect(plain).not.toMatch(/[╭╰│]/)
+    const json = JSON.parse(run([...args, '--json', '--color', 'always']))
+    expect(json.output).toBe(plain.trim())
+    expect(json.data.date).toBe('2026-08-04')
+    expect(run(['--help'])).toContain('--plain')
+    expect(run(['--help'])).toContain('--color')
+    expect(run(['--help', '--color', 'always'], {NO_COLOR:'1'})).toContain('\x1b[')
+    const invalid = spawnSync(process.execPath, [CLI_BIN, ...args, '--color', 'rainbow'], {cwd:dir,encoding:'utf8'})
+    expect(invalid.status).toBe(2)
+  }, 30_000)
+
+  it('nie ignoruje --sports przy --from-intervals i nie tworzy błędnego profilu', () => {
+    const empty=mkdtempSync(join(tmpdir(),'trainctl-bin-conflict-'))
+    try {
+      const result=spawnSync(process.execPath,[CLI_BIN,'init','--from-intervals','--sports','bike','--template'],{cwd:empty,encoding:'utf8',env:{...process.env,TRAINCTL_LANG:'pl',TRAINCTL_INTERVALS_API_KEY:''}})
+      expect(result.status).toBe(1)
+      expect(result.stdout.replace(/\s+/g,' ')).toContain('tych opcji nie można łączyć')
+      expect(existsSync(join(empty,'trainctl.yaml'))).toBe(false)
+    } finally {rmSync(empty,{recursive:true,force:true,maxRetries:3})}
+  })
+
   it('supports time budgets and mobile export through the actual CLI', () => {
     run(['plan', '--date', '2026-08-05'])
     const output = run(['reschedule', '--date', '2026-08-24', '--time', '2026-08-27=35', '--pin', '2026-08-29', '--preparation', '10'])

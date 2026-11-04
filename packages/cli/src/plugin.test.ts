@@ -26,15 +26,15 @@ const tools = new Set([...read('packages/mcp/src/server.ts').matchAll(/registerT
 
 describe('manifesty i wersje', () => {
   it('Claude Code i Codex: ta sama nazwa i wersja co paczki', () => {
-    for (const path of ['plugin/.claude-plugin/plugin.json', 'plugin/.codex-plugin/plugin.json']) {
+    for (const path of ['plugin/.claude-plugin/plugin.json', 'plugin/.codex-plugin/plugin.json', 'plugin/plugin.json']) {
       expect(json(path)).toMatchObject({ name: 'trainctl', version, license: 'MIT' })
     }
     expect(json('plugin/.codex-plugin/plugin.json')).toMatchObject({ skills: './skills/', mcpServers: './codex.mcp.json' })
   })
-  it('serwery MCP pluginu przypinają trainctl-mcp do tej samej wersji', () => {
-    for (const path of ['plugin/.mcp.json', 'plugin/codex.mcp.json']) {
-      expect(json(path)['mcpServers']['trainctl']).toMatchObject({ command: 'npx', args: ['-y', `trainctl-mcp@${version}`] })
-    }
+  it('Claude przypina npm, a Codex używa własnego lokalnego runtime', () => {
+    expect(json('plugin/.mcp.json')['mcpServers']['trainctl']).toMatchObject({ command: 'npx', args: ['-y', `trainctl-mcp@${version}`] })
+    for (const path of ['plugin/codex.mcp.json','plugin/mcp.json']) expect(json(path)['mcpServers']['trainctl']).toMatchObject({command:'node',args:['${PLUGIN_ROOT}/scripts/start-mcp.mjs']})
+    expect(json('plugin/mcp.json')['mcpServers']['trainctl'].type).toBe('stdio')
     expect(json('plugin/.mcp.json')['mcpServers']['trainctl']['env']).toEqual({ TRAINCTL_DIR: '${CLAUDE_PROJECT_DIR}' })
     expect(TRAINCTL_VERSION).toBe(version)
   })

@@ -6,6 +6,7 @@
 node_modules/
 .pnpm-store/
 /artifacts/
+/plugin/runtime/
 dist/
 *.tsbuildinfo
 

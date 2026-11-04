@@ -35,8 +35,8 @@ describe('detekcja możliwości terminala', () => {
   })
 
   it('szerokość jest ograniczana do rozsądnego zakresu', () => {
-    expect(detectCapabilities({ columns: 300 }, {}).width).toBeLessThanOrEqual(110)
-    expect(detectCapabilities({ columns: 20 }, {}).width).toBeGreaterThanOrEqual(40)
+    expect(detectCapabilities({ columns: 300 }, {}).width).toBeLessThanOrEqual(120)
+    expect(detectCapabilities({ columns: 20 }, {}).width).toBe(20)
   })
 
   it('TRAINCTL_ASCII wymusza znaki ASCII', () => {

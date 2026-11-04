@@ -3,6 +3,8 @@ name: replace
 description: "Replace a planned trainctl workout with running, cycling or swimming, preserving explicit intent and tradeoffs."
 ---
 
+If trainctl_workspace is available, inspect its current selection first. Before using training tools, bind it to the user's training directory with an absolute directory path. Use the current project only when it is the intended training directory; ask if unclear. Never initialize a plan inside the plugin cache. A different directory requires a new server session.
+
 # Replace a session
 
 1. Read trainctl_week and choose the source session ID. A date can have several sessions.

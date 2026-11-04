@@ -72,3 +72,8 @@ jobs:
 
       - name: install as a user would, simulate CLI and call MCP over stdio
         run: pnpm verify:distribution --online
+
+      - name: bundle current code for Codex
+        run: pnpm plugin:build --out artifacts/plugin-ci
+      - name: exercise the relocated plugin CLI and all MCP tools
+        run: pnpm verify:plugin artifacts/plugin-ci/plugin artifacts/plugin-ci-evidence

@@ -3,8 +3,8 @@
  * Cienki adapter: handlery z trainctl są warstwą use-case'ów (ADR-008);
  * tu tylko schematy wejść i mapowanie CmdResult → wynik narzędzia MCP.
  */
-import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { isAbsolute, join, relative, sep } from 'node:path'
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import { packageVersion } from './version.ts'
@@ -60,9 +60,38 @@ function toTool(r: CmdResult) {
 export function createTrainctlServer(
   dir: string,
   factory: ProviderFactory = defaultProviderFactory,
+  options: { selectWorkspace?: boolean; requireWorkspaceSelection?: boolean; pluginRoot?: string; onWorkspaceSelected?: (directory: string) => void } = {},
 ): McpServer {
   const t = ui().mcp
   const server = new McpServer({ name: 'trainctl', version: packageVersion() })
+  let selected = !options.requireWorkspaceSelection
+  const trainingDir = () => {
+    if (!selected) throw new Error(ui().mcp.workspaceRequired)
+    return dir
+  }
+  if (options.selectWorkspace) server.registerTool('trainctl_workspace', {
+    description: t.workspace,
+    outputSchema: toolOutputSchema,
+    annotations: {readOnlyHint:false,openWorldHint:false,destructiveHint:false,idempotentHint:true},
+    inputSchema: {directory:z.string().optional().describe(t.workspaceDirectory)},
+  }, async ({directory}) => {
+    try {
+      if (directory !== undefined) {
+        if (!isAbsolute(directory) || !statSync(directory).isDirectory()) throw new Error(ui().mcp.workspaceInvalid)
+        const target=realpathSync(directory)
+        if (options.pluginRoot) {
+          const inside=relative(realpathSync(options.pluginRoot),target)
+          if (inside==='' || (inside!=='..' && !inside.startsWith('..'+sep) && !isAbsolute(inside))) throw new Error(ui().mcp.workspaceInvalid)
+        }
+        // Jedno powiązanie na proces zapobiega przeniesieniu klucza .env między kontami.
+        if (selected && relative(realpathSync(dir),target)!=='') throw new Error(ui().mcp.workspaceLocked)
+        if (!selected) { options.onWorkspaceSelected?.(target);dir=target;selected=true }
+      }
+      return toTool({code:0,output:selected?dir:ui().mcp.workspaceRequired,data:{directory:selected?dir:null,selected,initialized:selected&&existsSync(join(dir,'trainctl.yaml'))}})
+    } catch (error) {
+      return toTool({code:1,output:error instanceof Error?error.message:String(error)})
+    }
+  })
 
   server.registerTool(
     'trainctl_init',
@@ -78,7 +107,7 @@ export function createTrainctlServer(
       },
     },
     async (args) =>
-      toTool(args?.fromIntervals === true ? await cmdInitFromIntervals(dir, {}, factory) : cmdInit(dir, undefined, { commit: args?.commit, agent: args?.agent, sports: args?.sports })),
+      toTool(args?.fromIntervals === true ? await cmdInitFromIntervals(trainingDir(), { sports: args.sports, agent: args.agent, commit: args.commit }, factory) : cmdInit(trainingDir(), undefined, { commit: args?.commit, agent: args?.agent, sports: args?.sports })),
   )
 
   server.registerTool(
@@ -89,7 +118,7 @@ export function createTrainctlServer(
       annotations: { readOnlyHint: false, openWorldHint: false },
       inputSchema: { date: isoDate().optional().describe(t.planDate), fresh: z.boolean().optional().describe(t.planFresh), commit: commitParam() },
     },
-    async (args) => toTool(cmdPlan(dir, args)),
+    async (args) => toTool(cmdPlan(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -100,7 +129,7 @@ export function createTrainctlServer(
       annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(), date: isoDate().optional() },
     },
-    async (args) => toTool(cmdToday(dir, args)),
+    async (args) => toTool(cmdToday(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -111,7 +140,7 @@ export function createTrainctlServer(
       annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(), date: isoDate().optional().describe(t.weekDate) },
     },
-    async (args) => toTool(cmdWeek(dir, args)),
+    async (args) => toTool(cmdWeek(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -137,7 +166,7 @@ export function createTrainctlServer(
         commit: commitParam(),
       },
     },
-    async (args) => toTool(cmdLog(dir, args)),
+    async (args) => toTool(cmdLog(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -152,7 +181,7 @@ export function createTrainctlServer(
         commit: commitParam(),
       },
     },
-    async (args) => toTool(cmdShift(dir, { ...args, from: args.from ?? '' })),
+    async (args) => toTool(cmdShift(trainingDir(), { ...args, from: args.from ?? '' })),
   )
 
   server.registerTool(
@@ -163,7 +192,7 @@ export function createTrainctlServer(
       annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(), date: isoDate().optional() },
     },
-    async (args) => toTool(cmdWhy(dir, args)),
+    async (args) => toTool(cmdWhy(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -179,7 +208,7 @@ export function createTrainctlServer(
         commit: commitParam(),
       },
     },
-    async (args) => toTool(cmdAdapt(dir, args)),
+    async (args) => toTool(cmdAdapt(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -193,7 +222,7 @@ export function createTrainctlServer(
         heavy: z.boolean().optional().describe(t.deskHeavy),
       },
     },
-    async (args) => toTool(cmdDesk(dir, args)),
+    async (args) => toTool(cmdDesk(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -209,7 +238,7 @@ export function createTrainctlServer(
         commit: commitParam(),
       },
     },
-    async (args) => toTool(cmdShorten(dir, args)),
+    async (args) => toTool(cmdShorten(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -223,7 +252,7 @@ export function createTrainctlServer(
         date: isoDate().optional().describe(t.exportDate),
       },
     },
-    async (args) => toTool(cmdExport(dir, args)),
+    async (args) => toTool(cmdExport(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -244,7 +273,7 @@ export function createTrainctlServer(
         commit: commitParam(),
       },
     },
-    async (args) => toTool(cmdReschedule(dir, args)),
+    async (args) => toTool(cmdReschedule(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -259,7 +288,7 @@ export function createTrainctlServer(
         days: z.string().optional().describe(t.pushDays),
       },
     },
-    async (args) => toTool(await cmdPush(dir, args, factory)),
+    async (args) => toTool(await cmdPush(trainingDir(), args, factory)),
   )
 
   server.registerTool(
@@ -270,7 +299,7 @@ export function createTrainctlServer(
       annotations: { readOnlyHint: false, openWorldHint: true },
       inputSchema: { days: z.string().optional().describe(t.pullDays), date: isoDate().optional(), from: z.string().optional().describe(t.pullFrom) },
     },
-    async (args) => toTool(await cmdPull(dir, args, factory)),
+    async (args) => toTool(await cmdPull(trainingDir(), args, factory)),
   )
 
   server.registerTool(
@@ -285,7 +314,7 @@ export function createTrainctlServer(
         prepare: z.boolean().optional().describe(ui().coach.reviewPrepare),
       },
     },
-    async (args) => toTool(await cmdReview(dir, args, factory)),
+    async (args) => toTool(await cmdReview(trainingDir(), args, factory)),
   )
 
   server.registerTool(
@@ -298,7 +327,7 @@ export function createTrainctlServer(
         plan: z.string().optional().describe(t.diffPlan),
       },
     },
-    async (args) => toTool(cmdDiff(dir, args)),
+    async (args) => toTool(cmdDiff(trainingDir(), args)),
   )
 
   server.registerTool(
@@ -315,7 +344,7 @@ export function createTrainctlServer(
   // --- zasoby: pliki katalogu treningowego do czytania bez wywoływania narzędzia
   const fileResource = (name: string, file: string, description: string, mimeType: string) =>
     server.registerResource(name, `trainctl://${name}`, { title: file, description, mimeType }, async (uri) => {
-      const path = join(dir, file)
+      const path = join(trainingDir(), file)
       if (!existsSync(path)) throw new Error(t.resourceMissing(file))
       return { contents: [{ uri: uri.href, mimeType, text: readFileSync(path, 'utf-8') }] }
     })
@@ -358,7 +387,7 @@ export function createTrainctlServer(
       annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: {},
     },
-    async () => toTool(cmdStatus(dir)),
+    async () => toTool(cmdStatus(trainingDir())),
   )
 
   server.registerTool(
@@ -371,7 +400,7 @@ export function createTrainctlServer(
         strict: z.boolean().optional().describe(t.checkStrict),
       },
     },
-    async (args) => toTool(cmdCheck(dir, args)),
+    async (args) => toTool(cmdCheck(trainingDir(), args)),
   )
 
 
@@ -381,10 +410,10 @@ export function createTrainctlServer(
       restore:z.boolean().optional().describe(sportMessages().restore),
       variant:z.enum(['endurance','quality']).optional(),toSport:z.enum(['run','bike','swim']).optional(),minutes:z.number().min(5).max(1440).optional(),
       reason:z.string().optional(),prepare:z.boolean().optional(),apply:z.string().optional(),commit:commitParam()
-    }}, async args => toTool(cmdReplace(dir,args)))
+    }}, async args => toTool(cmdReplace(trainingDir(),args)))
   server.registerTool('trainctl_migrate', { description:sportMessages().migration,outputSchema:toolOutputSchema,
     annotations:{readOnlyHint:false,openWorldHint:false},inputSchema:{recover:z.enum(['resume','rollback']).optional(),prepare:z.boolean().optional(),apply:z.string().optional(),commit:commitParam()}
-  },async args => toTool(cmdMigrate(dir,args)))
+  },async args => toTool(cmdMigrate(trainingDir(),args)))
 
   return server
 }

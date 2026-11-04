@@ -28,6 +28,13 @@ import { coachPl } from './coach-pl.ts'
 export const cliPl: CliMessages = {
   coach: coachPl,
   improve: improvePl,
+  display: {
+    openTarget: 'Bez zadanego tempa lub mocy',
+    sport: 'Sport', duration: 'Czas', distance: 'Dystans', intensity: 'Intensywność',
+    trainingTime: 'Czas treningów', occupiedTime: 'Z przygotowaniem i przejściami',
+    sessions: 'Treningi', details: 'Szczegóły',
+    views: { today: 'Dzień', week: 'Tydzień', status: 'Przegląd', why: 'Opis treningu', desk: 'Dzień przy biurku' },
+  },
   cmd: {
     banner: 'plan treningowy jako kod, trener jako narzędzie agenta',
     lang: 'język interfejsu: en | pl (albo TRAINCTL_LANG / language w trainctl.yaml)',
@@ -36,7 +43,7 @@ export const cliPl: CliMessages = {
     initTemplate: 'zapisz szablon bez pytań',
     initFromIntervals: 'zaproponuj profil z historii intervals.icu (wymaga klucza API)',
     plan: 'wygeneruj plan z trainctl.yaml → plan/plan.yaml + plan/PLAN.md',
-    today: 'co mam dziś wybiegać',
+    today: 'dzisiejsze treningi i czas potrzebny na ich wykonanie',
     week: 'podgląd tygodnia; -i włącza przeglądanie strzałkami',
     weekInteractive: 'przeglądaj tygodnie klawiszami (←/→, s, q)',
     log: 'zaloguj wykonanie treningu',
@@ -84,11 +91,13 @@ export const cliPl: CliMessages = {
     interactively: 'Interaktywnie: ',
     pickFromList: ' (wybór z listy) · ',
     browseArrows: ' (przeglądanie strzałkami)',
-    colorsHint: 'Kolory: NO_COLOR=1 wyłącza, TRAINCTL_ASCII=1 wymusza znaki ASCII.',
+    colorsHint: 'Kolory: --color auto|always|never; NO_COLOR=1 wyłącza, --plain upraszcza widok; TRAINCTL_ASCII=1 używa ASCII.',
     datesHint:
       'Daty: RRRR-MM-DD, dziś/jutro/wczoraj (także today/tomorrow/yesterday), +N/-N dni albo dzień tygodnia ' +
       '(pn…nd, mon…sun). log, review, adapt i pull patrzą wstecz; pozostałe komendy — w przód.',
     dirHint: 'Katalog: -C <ścieżka> albo TRAINCTL_DIR; TRAINCTL_TODAY=RRRR-MM-DD symuluje datę (zawsze ogłoszoną).',
+    optColor: 'kolory wyjścia: auto | always | never',
+    optPlain: 'czysty tekst bez ozdobników i pytań interaktywnych',
     optJson: 'wypisz JSON ({ code, data, output }) zamiast sformatowanego tekstu',
     optDir: 'katalog treningowy (domyślnie TRAINCTL_DIR, potem bieżący katalog)',
     optCommit: 'zacommituj pliki zmienione przez komendę (opcjonalnie z własną wiadomością)',
@@ -131,6 +140,7 @@ export const cliPl: CliMessages = {
   },
 
   init: {
+    intervalsSportsConflict: '--from-intervals wyznacza tylko profil biegowy. Użyj --sports osobno; tych opcji nie można łączyć.',
     created: (file: string) => `Utworzono ${file}`,
     createdAgents: (file: string) =>
       `Utworzono ${file} — instrukcja trenerska dla Twojego agenta (Claude Code, Codex)`,
@@ -1063,6 +1073,11 @@ export const cliPl: CliMessages = {
       'komentarz proweniencji, a kandydatów na wyniki startów zwraca DO POTWIERDZENIA ' +
       'z użytkownikiem — dopisz je do athlete.results dopiero po jego zgodzie.',
     initFromIntervals: 'profil z historii intervals.icu',
+    workspace: 'Wybierz katalog treningowy dla tej sesji pluginu przed użyciem narzędzi; pomiń directory, aby odczytać wybór. Powiązanie trwa do ponownego uruchomienia serwera.',
+    workspaceDirectory: 'Bezwzględna ścieżka katalogu treningowego wskazanego przez użytkownika; katalog musi już istnieć.',
+    workspaceRequired: 'Najpierw wybierz katalog treningowy przez trainctl_workspace(directory). Cache pluginu nie jest katalogiem treningowym.',
+    workspaceInvalid: 'Wskaż istniejący katalog treningowy pełną ścieżką, poza cache pluginu.',
+    workspaceLocked: 'Serwer jest już powiązany z innym katalogiem. Aby go zmienić, rozpocznij nową sesję.',
     plan:
       'Wygeneruj plan treningowy z trainctl.yaml → plan/plan.yaml + plan/PLAN.md. ' +
       'Zwraca podsumowanie: szczyt objętości, predykcję wyniku (przedział) i ocenę realności celu. ' +

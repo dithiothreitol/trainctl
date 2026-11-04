@@ -5,7 +5,8 @@
  */
 import { emitKeypressEvents } from 'node:readline'
 import { ui } from '../i18n/index.ts'
-import { Theme } from './theme.ts'
+import { Theme, visibleLength } from './theme.ts'
+import { wrap } from './blocks.ts'
 import { digitIndex, keyAction, moveIndex, type KeyEvent } from './keys.ts'
 
 export interface Choice<T> {
@@ -26,14 +27,16 @@ export function renderChoices<T>(
   theme: Theme,
 ): string[] {
   const s = theme.sym
-  return choices.map((choice, i) => {
+  return choices.flatMap((choice, i) => {
     const number = theme.dim(`${i + 1}`.padStart(2))
-    const label = choice.disabled ? theme.dim(choice.label) : choice.label
-    const hint = choice.hint ? theme.dim(`  ${choice.hint}`) : ''
-    if (i === active) {
-      return `${number} ${theme.color(s.arrow, 'brand')} ${theme.bold(label)}${hint}`
-    }
-    return `${number}   ${label}${hint}`
+    const prefix = `${number} ${i === active ? theme.color(s.arrow, 'brand') : ' '.repeat(s.arrow.length)} `
+    const indent = 4 + s.arrow.length
+    const labels = wrap(choice.label, theme.caps.width - indent)
+    const inline = choice.hint && labels.length === 1 && indent + visibleLength(choice.label) + 2 + visibleLength(choice.hint) <= theme.caps.width
+    return [
+      ...labels.map((line, index) => `${index ? ' '.repeat(indent) : prefix}${choice.disabled ? theme.dim(line) : i === active ? theme.bold(line) : line}${inline ? theme.dim(`  ${choice.hint}`) : ''}`),
+      ...(choice.hint && !inline ? wrap(choice.hint, theme.caps.width, ' '.repeat(indent)).map(line => theme.dim(line)) : []),
+    ]
   })
 }
 
@@ -48,19 +51,19 @@ export async function select<T>(
   if (usable.length === 0) return undefined
 
   let active = choices.findIndex((c) => !c.disabled)
-  const footer = theme.dim(ui().picker.selectKeys)
+  const footer = wrap(ui().picker.selectKeys, theme.caps.width).map(line => theme.dim(line))
 
   emitKeypressEvents(stdin)
   const wasRaw = stdin.isRaw === true
   if (stdin.isTTY) stdin.setRawMode(true)
   stdin.resume()
-  stdout.write(theme.bold(`${title}\n`))
+  stdout.write(wrap(title, theme.caps.width).map(line => theme.bold(line)).join('\n') + '\n')
 
   let printed = 0
   const draw = () => {
-    if (printed > 0) stdout.write(`[${printed}A`)
-    const lines = [...renderChoices(choices, active, theme), footer]
-    stdout.write(lines.map((l) => `[2K${l}`).join('\n') + '\n')
+    if (printed > 0) stdout.write(`\x1b[${printed}A`)
+    const lines = [...renderChoices(choices, active, theme), ...footer]
+    stdout.write(lines.map((l) => `\r\x1b[2K${l}`).join('\n') + '\n')
     printed = lines.length
   }
   draw()
@@ -70,9 +73,9 @@ export async function select<T>(
       stdin.off('keypress', onKey)
       if (stdin.isTTY) stdin.setRawMode(wasRaw)
       stdin.pause()
-      stdout.write(`[${printed}A`)
-      for (let i = 0; i < printed; i++) stdout.write('[2K\n')
-      stdout.write(`[${printed}A`)
+      stdout.write(`\x1b[${printed}A`)
+      for (let i = 0; i < printed; i++) stdout.write('\r\x1b[2K\n')
+      stdout.write(`\x1b[${printed}A`)
       resolve(value)
     }
 

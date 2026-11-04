@@ -6,8 +6,8 @@
 import { EventEmitter } from 'node:events'
 import { describe, expect, it } from 'vitest'
 import { ui } from '../i18n/index.ts'
-import { select, type Choice } from './select.ts'
-import { Theme } from './theme.ts'
+import { renderChoices, select, type Choice } from './select.ts'
+import { Theme, visibleLength } from './theme.ts'
 
 class FakeStdin extends EventEmitter {
   isTTY = true
@@ -71,6 +71,20 @@ function run(keys: (stdin: FakeStdin) => void) {
 }
 
 describe('select — pętla interaktywna', () => {
+  it('odświeża wiersze sekwencjami sterującymi zamiast drukować ich zapis', async () => {
+    const { promise, stdout } = run(s => { s.press('down'); s.press('return') })
+    await promise
+    expect(stdout.text).toContain('\x1b[2K')
+    expect(stdout.text).toMatch(/\x1b\[\d+A/)
+    expect(stdout.text.replace(/\x1b\[\d+[AK]/g, '')).not.toMatch(/\[\d+[AK]/)
+  })
+
+  it('zawija etykiety i podpowiedzi bez gubienia numerów wyboru', () => {
+    const lines = renderChoices([{label:'Długi trening rowerowy z rozgrzewką',value:'bike',hint:'ID: c-94935ff6-2026-11-02-bike-1'}],0,new Theme({color:true,unicode:true,width:32}))
+    for (const line of lines) expect(visibleLength(line)).toBeLessThanOrEqual(32)
+    expect(lines[0]).toContain('1')
+  })
+
   it('Enter wybiera pierwszą pozycję', async () => {
     const { promise, stdin } = run((s) => s.press('return'))
     await expect(promise).resolves.toBe('wt')

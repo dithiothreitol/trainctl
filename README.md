@@ -1,8 +1,8 @@
 # trainctl
 
-New in 0.4.0: trainctl as a **plugin for Claude Code and Codex**, execution read
-from exported **FIT, TCX and GPX files** (no API key needed), and an engine that
-knows your **time budget**, the **weeks after a race** and **plans without one**:
+New in **0.5.0**: cycling, swimming and multisport plans, reversible session
+substitutions, a bundled Codex plugin and a clearer, responsive CLI with
+`--color` and `--plain`. [Release notes](CHANGELOG.md#050--2026-11-04).
 
 ```sh
 trainctl init --agent claude      # profile + plugin setup for your agent
@@ -469,6 +469,9 @@ server also exposes `plan/PLAN.md`, `trainctl.yaml`, `AGENTS.md` and every rule 
 resources (`trainctl://plan`, `trainctl://rules/I-7`, …), and the weekly review
 and the post-run debrief as prompts.
 
+The local Codex plugin also exposes `trainctl_workspace` to select an absolute
+training directory before using these tools. See [plugin setup](plugin/README.md).
+
 The `AGENTS.md` written by `trainctl init` turns the agent into a coach rather
 than a command runner: ask before regenerating a plan, ask for context when a
 week was missed, correlate what it can see (calendar, tracker, on-call) with the
@@ -528,6 +531,25 @@ trainctl export --what race       # race pack: splits, paper pace band, heat tab
 The FIT encoder is written here rather than pulled in as a dependency; the files
 are checked byte by byte in tests and were confirmed by uploading them to an
 independent parser.
+
+## Terminal output
+
+The CLI adapts tables to terminal width and uses consistent colours for running,
+cycling, swimming and strength. Wide tables become labelled records in a narrow
+window; session IDs remain available below the workout description.
+
+`--color auto|always|never` controls colour. Auto honours `NO_COLOR`,
+`FORCE_COLOR` and `TERM=dumb`; an explicit flag overrides these defaults.
+`--plain` provides undecorated text and disables prompts; `--json` retains
+the structured data interface. Both stay free of ANSI colour codes even with
+`--color always`. Pipes use no colour by default. `TRAINCTL_ASCII=1` selects
+ASCII decoration. Width comes from the terminal, then `COLUMNS`, with an
+80-column fallback and a 120-column reading limit.
+
+`trainctl week --color always` · `trainctl review --plain` · `trainctl week --json`
+
+Design references: [CLI Guidelines](https://clig.dev/#output) and
+[NO_COLOR](https://no-color.org/).
 
 ## Language
 
@@ -606,9 +628,10 @@ guarantees and tells you what a hand edit broke.
 `pull --from` and `review` read exported activity files, and export covers
 watch, calendar and paper.
 
-**Does it support cycling, swimming, triathlon?** No. The engine is built for
-running; the domain model was designed with other sports in mind, but nothing
-else is implemented.
+**Does it support cycling, swimming, triathlon?** Yes, since 0.5.0:
+schema 2 supports standalone cycling/swimming, mixed weeks, triathlon/duathlon
+goals and reversible session substitutions. See [multisport](docs/MULTISPORT.md).
+For Codex, use the [bundled plugin](plugin/README.md). Device acceptance and coaching validation have separate limits.
 
 **Is my training data sent anywhere?** No. One outbound host, intervals.icu, and
 only when you ask for it. No telemetry. See [SECURITY.md](SECURITY.md).
@@ -623,7 +646,7 @@ pnpm install
 pnpm check       # typecheck + tests — what CI runs
 ```
 
-953 tests (2026-11-03). Seven of them backtest the engine against the coaching corpus, which
+The suite includes unit, integration and CLI/MCP tests. Seven cases backtest the engine against the coaching corpus, which
 is not distributed; without it that suite reports itself as one skipped test
 rather than quietly disappearing.
 

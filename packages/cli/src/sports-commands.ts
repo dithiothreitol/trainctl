@@ -8,6 +8,7 @@ import {
   type EnduranceSport, type SessionLog, type SportsConfig, type SportsPlan, type TrainingSession,
 } from 'trainctl-core'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
+import { ui } from './i18n/index.ts'
 import { clockToday } from './clock.ts'
 import { packageVersion } from './version.ts'
 import { CONFIG_FILE } from './config.ts'
@@ -15,7 +16,7 @@ import { LOG_FILE, parseTime } from './logfile.ts'
 import { PLAN_MD, PLAN_YAML } from './planfile.ts'
 import { commitFiles } from './git.ts'
 import { readSnapshot, SYNC_FILE } from './sync.ts'
-import { applySportsProposal, fingerprint, loadSportsConfig, loadSportsPlan, migrationCandidate, prepareSportsProposal, readOptional, readSessionLogs, sessionText, sportsProposalStatus, writeSportsPlan, writeTransaction } from './sports-store.ts'
+import { applySportsProposal, fingerprint, loadSportsConfig, loadSportsPlan, migrationCandidate, prepareSportsProposal, readOptional, readSessionLogs, sessionStepsText, sessionText, sportsProposalStatus, writeSportsPlan, writeTransaction } from './sports-store.ts'
 import { initialRunning, regenerateRunning } from './sports-running.ts'
 import { recoverSportsTransaction } from './sports-transaction.ts'
 import { exportSportsPlan } from './sports-export.ts'
@@ -59,10 +60,22 @@ function checked(p: SportsPlan, c: SportsConfig): void {
 function volumeBlocks(sessions: TrainingSession[]): Block[] {
   const t = msg(), totals = sportsTotals(sessions), sports = [...ENDURANCE_SPORTS,'strength' as const].filter(s=>totals[s]!.sessions)
   const keys = ['easy','quality','race','recovery','technique','unknown'] as const
-  return [b.table([t.totals,t.minutes,t.meters,...keys.map(k=>`${t.intensity[k]} %`)],sports.map(s=>{
+  const d = ui().display
+  return [b.section(t.totals), b.table([d.sport,d.duration,d.distance,d.intensity],sports.map(s=>{
     const row=totals[s]!
-    return [t.sport[s],row.minutes.toFixed(1),String(row.distanceM),...keys.map(k=>row.intensityPercent[k].toFixed(1))]
-  })),b.info(t.intensityMethod)]
+    return [t.sport[s],`${Number(row.minutes.toFixed(1))} min`,`${row.distanceM} m`,
+      keys.filter(k=>row.intensityPercent[k]>0).map(k=>`${t.intensity[k]} ${Number(row.intensityPercent[k].toFixed(1))}%`).join(' · ') || '—']
+  }),sports),b.blank(),b.text(t.intensityMethod, 'muted')]
+}
+function sessionPanel(s: TrainingSession): Block {
+  const t = msg(), step = s.steps[0]
+  const simple = !s.legacyWorkout && s.steps.length === 1 && step?.target.kind === 'open' &&
+    step.durationSec === s.durationSec && !step.repeat && !step.restSec && !step.sendoffSec && !step.stroke && !step.distanceM
+  const lines = [`${t.purpose[s.purpose]} · ${Math.round(s.durationSec / 6) / 10} min${s.distanceM ? ` · ${s.distanceM} m` : ''}`]
+  if (!simple) lines.push(sessionStepsText(s))
+  else lines.push(ui().display.openTarget)
+  return b.panel(`${s.date}${s.start ? ` ${s.start}` : ''} · ${t.sport[s.sport]}`, lines, s.sport,
+    [`ID: ${s.id}`, ...(s.replacesSessionId ? [`${t.replaced}: ${s.replacesSessionId}`] : []), ...(s.groupId ? [`${t.group}: ${s.groupId}`] : [])])
 }
 function proposed(cwd: string, action: string, p: SportsPlan, notes: string[], o: SportsOptions, extra: { config?: SportsConfig; log?: string } = {}): SportsResult {
   const proposal = prepareSportsProposal(cwd, action, p, notes, extra)
@@ -107,9 +120,19 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
     const plan = loadSportsPlan(cwd), logs = readSessionLogs(cwd), activities = readSnapshot(cwd)?.activities ?? []
     const execution = buildSessionExecution(plan, activities, logs, date)
     if (['today', 'week', 'why', 'desk', 'status'].includes(action)) {
-      const list = plan.sessions.filter(s => action === 'status' ? s.date >= date && s.date < addDays(date, 7) : action === 'week' ? mondayOf(s.date) === mondayOf(date) : o.session ? s.id === o.session : s.date === date).filter(s => !o.sport || s.sport === o.sport)
+      const list = plan.sessions.filter(s => o.session ? s.id === o.session : action === 'status' ? s.date >= date && s.date < addDays(date, 7) : action === 'week' ? mondayOf(s.date) === mondayOf(date) : s.date === date).filter(s => !o.sport || s.sport === o.sport)
       if (o.session && !list.length) throw new Error(t.noSession)
-      const blocks: Block[] = [b.title(`${t.plan}: ${plan.goal.name}`), ...list.map(s => b.panel(`${s.date} ${s.start ?? ''} · ${s.id}`, [sessionText(s), ...(s.replacesSessionId ? [`${t.replaced}: ${s.replacesSessionId}`] : []), ...(s.groupId ? [`${t.group}: ${s.groupId}`] : [])]))]
+      const d = ui().display
+      const view = d.views[action as keyof typeof d.views]
+      const start = o.session ? list[0]!.date : action === 'week' ? mondayOf(date) : date
+      const period = !o.session && (action === 'week' || action === 'status') ? `${start} – ${addDays(start, 6)}` : start
+      const blocks: Block[] = [b.title(`${t.plan}: ${plan.goal.name}`, `${view} · ${period}`)]
+      if (list.length) blocks.push(b.kv([
+        [d.sessions, String(list.length)],
+        [d.trainingTime, `${Number((list.reduce((sum, s) => sum + s.durationSec, 0) / 60).toFixed(1))} min`],
+        [d.occupiedTime, `${Number(calendarMinutes(list, plan.groups).toFixed(1))} min`],
+      ]))
+      blocks.push(...list.map(sessionPanel))
       if (!list.length) blocks.push(b.info(t.rest))
       if (action === 'week' || action === 'status') blocks.push(...volumeBlocks(list))
       for (const group of plan.groups.filter(g=>g.sessionIds.some(id=>list.some(s=>s.id===id)) && g.transitionSec>0)) blocks.push(b.info(`${t.group}: ${group.id} · ${t.transitions}: ${group.transitionsSec?.map((n,i)=>`T${i+1}=${n}`).join(', ') ?? group.transitionSec}`))

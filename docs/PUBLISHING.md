@@ -4,18 +4,16 @@
 <https://github.com/dithiothreitol/trainctl>, MIT, Discussions wyłączone,
 prywatne zgłaszanie podatności włączone. Warunek „sezon na sobie" został
 świadomie odpuszczony — decyzja właściciela, nie przeoczenie.
-**Bieżące wydanie: 0.4.0 (2026-10-21)** dla wszystkich sześciu paczek
+**Wersja repozytorium: 0.5.0 (2026-11-04)** dla wszystkich sześciu paczek
 i pluginu (Claude Code, Codex).
 Historia wydań: `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.3.0`, `v0.4.0`.
 0.1.0 pozostaje zdeprecjonowane — przyczynę opisano w historycznej sekcji npm.
 
-0.4.0 obejmuje cały plan z [PLAN-v0.4.md](PLAN-v0.4.md): chronioną
-regenerację planu, CLI do skryptów (`--json`, `-C`, `status`, `--commit`),
-plugin do Claude Code i Codex, wykonanie z plików FIT/TCX/GPX (nowa paczka
-`trainctl-sync-files`) oraz silnik z budżetem czasu, blokiem po starcie
-i planem bez startu. Walidacja: 896 testów, typy, build, dziesięć rund code
-review oraz instalacja sześciu tarballi w osobnym katalogu, z wykonaniem
-scenariuszy CLI i uruchomieniem MCP.
+0.5.0 dodaje rower, pływanie i multisport, zamiany jednostek w sześciu
+kierunkach, samodzielny plugin Codexa oraz responsywne formatowanie CLI.
+Zakres i ograniczenia opisuje [CHANGELOG.md](../CHANGELOG.md).
+Dostępność paczek w npm sprawdzamy osobno od tagu i GitHub Release;
+sama zmiana wersji w repozytorium nie oznacza publikacji do rejestru.
 
 Poniżej zapis rozumowania, które do tego doprowadziło — zostaje, bo tłumaczy,
 czemu projekt jest otwarty, a korpus nie.

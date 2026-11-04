@@ -296,13 +296,20 @@ describe('trainctl_init fromIntervals — profil z historii przez agenta', () =>
     rmSync(icuDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 
+  it('odrzuca połączenie importu profilu biegowego z wyborem sportów', async () => {
+    const res = await icuClient.callTool({name:'trainctl_init',arguments:{fromIntervals:true,sports:'bike'}})
+    expect(res.isError).toBe(true)
+    expect(JSON.stringify(res.content)).toContain('--sports')
+  })
+
   it('tworzy trainctl.yaml z proweniencją; agent dostaje instrukcję potwierdzania', async () => {
-    const res = await icuClient.callTool({ name: 'trainctl_init', arguments: { fromIntervals: true } })
+    const res = await icuClient.callTool({ name: 'trainctl_init', arguments: { fromIntervals: true, agent:'codex' } })
     expect(res.isError).not.toBe(true)
     const yaml = readFileSync(join(icuDir, 'trainctl.yaml'), 'utf-8')
     expect(yaml).toContain('recentWeeklyKm: 36')
     expect(yaml).toContain('intervals.icu')
     expect(yaml).toContain('UZUPEŁNIJ')
+    expect(readFileSync(join(icuDir,'.codex/config.toml'),'utf8')).toContain('[mcp_servers.trainctl]')
   })
 })
 

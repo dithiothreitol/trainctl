@@ -61,10 +61,15 @@ tools, pick **one** of:
   `[mcp_servers.trainctl]` entry. Codex loads project configuration only after
   you trust the project. If the tools report the wrong directory, set
   `env = { TRAINCTL_DIR = "/absolute/path" }` in that entry.
-- **The plugin**: `codex plugin marketplace add dithiothreitol/trainctl`, then
-  `/plugins` in a session. It brings the MCP server and the same skills.
-  Codex plugins with hooks are not eligible for its public directory, so the
-  Codex manifest (`.codex-plugin/plugin.json`) declares no hooks.
+- **The current local plugin**: run `pnpm plugin:build` in this repository,
+  register the generated marketplace with `codex plugin marketplace add <path>`,
+  then `codex plugin add trainctl@trainctl-local` (tested with CLI 0.153.4), or
+  install it from the Plugins Directory. It bundles the current CLI/MCP and its
+  dependencies, so startup needs no npm download. Ready bundles are attached to GitHub Releases.
+  Start a new session in your training directory, or set `TRAINCTL_DIR`.
+  See [build, installation and examples](../../plugin/README.md).
+  The generated Codex package has no lifecycle hooks. The local source tree needs
+  a build before installation; the Git marketplace alone does not supply the runtime.
 
 ## Working on the plugin
 
@@ -72,7 +77,7 @@ tools, pick **one** of:
 node tools/plugin/render-skills.ts            # after changing AGENTS.md or a skill
 claude --plugin-dir ./plugin                   # try it without installing
 TRAINCTL_PLUGIN_CLI=packages/cli/src/bin.ts   # make the check hook use your working tree
-node tools/release/bump-version.mjs 0.4.0      # versions of packages, plugin, hooks and examples together
+node tools/release/bump-version.mjs 0.5.0      # versions of packages, plugin, hooks and examples together
 ```
 
 `plugin.test.ts` fails when the skills drift from their source, when a skill

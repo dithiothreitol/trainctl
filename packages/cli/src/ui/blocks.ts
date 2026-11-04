@@ -5,7 +5,7 @@
  * a wygląd CLI można zmieniać bez dotykania logiki.
  */
 import { ui } from '../i18n/index.ts'
-import { Theme, padVisible, visibleLength, type ColorName } from './theme.ts'
+import { Theme, graphemes, padVisible, visibleLength, type ColorName } from './theme.ts'
 
 export type Block =
   | { t: 'title'; text: string; sub?: string }
@@ -15,7 +15,7 @@ export type Block =
   | { t: 'bullets'; items: string[]; tone?: 'normal' | 'muted' }
   | { t: 'table'; head: string[]; rows: string[][]; accent?: (ColorName | undefined)[] }
   | { t: 'note'; text: string; kind: 'warn' | 'success' | 'error' | 'info' }
-  | { t: 'panel'; title: string; lines: string[]; accent?: ColorName }
+  | { t: 'panel'; title: string; lines: string[]; accent?: ColorName; meta?: string[] }
   | { t: 'blank' }
   | { t: 'hint'; text: string }
 
@@ -39,11 +39,12 @@ export const b = {
   success: (text: string): Block => ({ t: 'note', text, kind: 'success' }),
   error: (text: string): Block => ({ t: 'note', text, kind: 'error' }),
   info: (text: string): Block => ({ t: 'note', text, kind: 'info' }),
-  panel: (title: string, lines: string[], accent?: ColorName): Block => ({
+  panel: (title: string, lines: string[], accent?: ColorName, meta?: string[]): Block => ({
     t: 'panel',
     title,
     lines,
     ...(accent ? { accent } : {}),
+    ...(meta?.length ? { meta } : {}),
   }),
   blank: (): Block => ({ t: 'blank' }),
   hint: (text: string): Block => ({ t: 'hint', text }),
@@ -51,20 +52,90 @@ export const b = {
 
 /** Zawijanie tekstu do szerokości, po słowach. */
 export function wrap(text: string, width: number, indent = ''): string[] {
-  const words = text.split(/\s+/).filter(Boolean)
+  const available = Math.max(1, width - visibleLength(indent))
   const lines: string[] = []
-  let line = ''
-  for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word
-    if (visibleLength(candidate) + indent.length > width && line) {
-      lines.push(indent + line)
-      line = word
-    } else {
-      line = candidate
+  // Preserve explicit line breaks (errors, lists and multi-step workouts).
+  for (const paragraph of text.split(/\r?\n/)) {
+    let line = ''
+    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
+      if (line && visibleLength(`${line} ${word}`) > available) {
+        lines.push(indent + line)
+        line = ''
+      }
+      if (visibleLength(word) > available) {
+        for (const part of graphemes(word)) {
+          if (line && visibleLength(line + part) > available) {
+            lines.push(indent + line)
+            line = ''
+          }
+          line += part
+        }
+      } else {
+        line = line ? `${line} ${word}` : word
+      }
     }
+    lines.push(indent + line)
   }
-  if (line) lines.push(indent + line)
   return lines.length ? lines : [indent]
+}
+
+function keyValues(pairs: [string, string][], theme: Theme, width: number): string[] {
+  const keyWidth = Math.min(Math.max(0, ...pairs.map(([key]) => visibleLength(key) + 1)), Math.floor(width / 2))
+  return pairs.flatMap(([key, value]) => {
+    if (visibleLength(key) + 1 > keyWidth || width - keyWidth < 16) {
+      return [...wrap(`${key}:`, width).map(line => theme.dim(line)), ...wrap(value, width, '  ')]
+    }
+    const lines = wrap(value, width - keyWidth - 2)
+    const numeric = /^\d+(?:[.,]\d+)?(?:\s*(?:%|km|m|min|h|s|W))?$/.test(value)
+    return lines.map((line, i) => `${i ? ' '.repeat(keyWidth) : theme.dim(padVisible(`${key}:`, keyWidth))}  ${numeric ? theme.bold(line) : line}`)
+  })
+}
+
+function table(block: Extract<Block, { t: 'table' }>, theme: Theme): string[] {
+  const { width } = theme.caps
+  const cols = block.head.length
+  if (!cols) return []
+  const cells = block.head.map((head, col) => [head, ...block.rows.map(row => row[col] ?? '')])
+  const natural = cells.map(values => Math.max(1, ...values.flatMap(value => value.split('\n').map(visibleLength))))
+  const minimum = cells.map((values, col) => Math.min(natural[col]!, Math.max(8,
+    Math.min(18, Math.max(...values.flatMap(value => value.split(/\s+/).map(visibleLength)))))))
+  const gap = 2 * (cols - 1)
+  // Too many columns: keep every labelled value in stacked records, never clip data.
+  if (cols > Math.max(3, Math.floor(width / 16)) || minimum.reduce((sum, n) => sum + n, gap) > width) {
+    return block.rows.flatMap((row, index) => {
+      const first = `${block.head[0]}: ${row[0] ?? ''}`
+      const heading = wrap(first, width).map(line => theme.bold(theme.color(line, block.accent?.[index] ?? 'accent')))
+      return [ ...(index ? [''] : []), ...heading,
+        ...keyValues(block.head.slice(1).map((head, i) => [head, row[i + 1] ?? '']), theme, width) ]
+    })
+  }
+  const widths = [...natural]
+  while (widths.reduce((sum, n) => sum + n, gap) > width) {
+    let widest = -1
+    for (let col = 0; col < cols; col++) {
+      if (widths[col]! > minimum[col]! && (widest < 0 || widths[col]! > widths[widest]!)) widest = col
+    }
+    if (widest < 0) break
+    widths[widest]!--
+  }
+  const numeric = block.head.map((_, col) => col > 0 && block.rows.length > 0 && block.rows.every(row =>
+    /^[+−-]?\d+(?:[.,]\d+)?(?:\s*(?:%|km|m|min|h|s|W))?$/.test(row[col] ?? '')))
+  const rowLines = (row: string[], heading: boolean, accent?: ColorName): string[] => {
+    const wrapped = block.head.map((_, col) => wrap(row[col] ?? '', widths[col]!))
+    return Array.from({ length: Math.max(...wrapped.map(lines => lines.length)) }, (_, line) =>
+      wrapped.map((lines, col) => {
+        const text = lines[line] ?? ''
+        const padded = numeric[col] ? ' '.repeat(Math.max(0, widths[col]! - visibleLength(text))) + text : padVisible(text, widths[col]!)
+        if (heading) return theme.bold(padded)
+        if (col === 0) return theme.color(padded, accent ?? 'accent')
+        return numeric[col] ? theme.bold(padded) : padded
+      }).join('  ').trimEnd())
+  }
+  return [
+    ...rowLines(block.head, true),
+    theme.dim(widths.map(n => theme.sym.horizontal.repeat(n)).join('  ')),
+    ...block.rows.flatMap((row, index) => rowLines(row, false, block.accent?.[index])),
+  ]
 }
 
 // ------------------------------------------------------------------ renderers
@@ -77,22 +148,20 @@ export function renderAnsi(blocks: Block[], theme = new Theme()): string {
   for (const block of blocks) {
     switch (block.t) {
       case 'title': {
-        out.push(theme.bold(theme.color(block.text, 'brand')))
-        if (block.sub) out.push(theme.dim(block.sub))
-        out.push(theme.dim(s.horizontal.repeat(Math.min(width, visibleLength(block.text) + 8))))
+        if (out.length) out.push('')
+        out.push(...wrap(block.text, width).map(line => theme.bold(theme.color(line, 'brand'))))
+        if (block.sub) out.push(...wrap(block.sub, width).map(line => theme.dim(line)))
+        out.push(theme.dim(s.horizontal.repeat(Math.min(width, 64))), '')
         break
       }
       case 'section':
-        out.push('', theme.bold(theme.color(block.text, 'accent')))
+        out.push('', ...wrap(block.text, width).map(line => theme.bold(theme.color(line, 'accent'))), '')
         break
       case 'text':
         out.push(...wrap(block.text, width).map((l) => (block.tone === 'muted' ? theme.dim(l) : l)))
         break
       case 'kv': {
-        const keyWidth = Math.max(...block.pairs.map(([k]) => k.length))
-        for (const [k, v] of block.pairs) {
-          out.push(`${theme.dim(padVisible(k, keyWidth))}  ${theme.bold(v)}`)
-        }
+        out.push(...keyValues(block.pairs, theme, width))
         break
       }
       case 'bullets':
@@ -106,30 +175,7 @@ export function renderAnsi(blocks: Block[], theme = new Theme()): string {
         }
         break
       case 'table': {
-        const cols = block.head.length
-        const widths = Array.from({ length: cols }, (_, i) =>
-          Math.max(visibleLength(block.head[i] ?? ''), ...block.rows.map((r) => visibleLength(r[i] ?? ''))),
-        )
-        // ostatnia kolumna dostaje resztę szerokości (opis treningu)
-        const fixed = widths.slice(0, -1).reduce((a, w) => a + w + 2, 0)
-        widths[cols - 1] = Math.max(10, width - fixed - 2)
-        out.push(
-          theme.dim(block.head.map((h, i) => padVisible(h.toUpperCase(), widths[i]!)).join('  ')),
-        )
-        for (const row of block.rows) {
-          const cells = row.map((cell, i) => {
-            const color = block.accent?.[block.rows.indexOf(row)]
-            const value = i === cols - 1 ? cell : padVisible(cell, widths[i]!)
-            if (i === 0 && color) return theme.color(padVisible(cell, widths[i]!), color)
-            return value
-          })
-          const last = cells[cols - 1] ?? ''
-          const head = cells.slice(0, -1).join('  ')
-          const lines = wrap(last, widths[cols - 1]!)
-          out.push(`${head}  ${lines[0] ?? ''}`)
-          const indent = ' '.repeat(visibleLength(head) + 2)
-          for (const extra of lines.slice(1)) out.push(indent + extra)
-        }
+        out.push(...table(block, theme))
         break
       }
       case 'note': {
@@ -140,24 +186,30 @@ export function renderAnsi(blocks: Block[], theme = new Theme()): string {
           info: [s.arrow, 'accent'],
         } as const
         const [symbol, color] = map[block.kind]
-        const lines = wrap(block.text, width - 2)
+        const prefixWidth = visibleLength(symbol) + 1
+        const lines = wrap(block.text, width - prefixWidth)
         out.push(`${theme.color(symbol, color)} ${lines[0]}`)
-        for (const rest of lines.slice(1)) out.push(`  ${rest}`)
+        for (const rest of lines.slice(1)) out.push(`${' '.repeat(prefixWidth)}${rest}`)
         break
       }
       case 'panel': {
-        const inner = width - 4
+        const inner = Math.max(1, width - 2)
         const lines = block.lines.flatMap((l) => wrap(l, inner))
         const accent = block.accent ?? 'accent'
-        const top = `${s.topLeft}${s.horizontal} ${theme.bold(theme.color(block.title, accent))} `
-        const topPad = Math.max(0, width - visibleLength(top) - 1)
-        out.push(theme.dim(s.topLeft + s.horizontal) + ` ${theme.bold(theme.color(block.title, accent))} ` + theme.dim(s.horizontal.repeat(topPad)))
-        for (const line of lines) out.push(`${theme.dim(s.vertical)} ${line}`)
-        out.push(theme.dim(s.bottomLeft + s.horizontal.repeat(width - 1)))
+        out.push('')
+        for (const [index, title] of wrap(block.title, inner).entries()) {
+          out.push(`${theme.color(index ? s.vertical : s.topLeft, accent)} ${theme.bold(theme.color(title, accent))}`)
+        }
+        for (const line of lines) out.push(`${theme.color(s.vertical, accent)} ${line}`)
+        for (const line of (block.meta ?? []).flatMap(text => wrap(text, inner))) {
+          out.push(`${theme.color(s.vertical, accent)} ${theme.dim(line)}`)
+        }
+        out.push(theme.color(s.bottomLeft + s.horizontal.repeat(Math.min(width - 1, 23)), accent), '')
         break
       }
       case 'hint':
-        out.push(theme.dim(`${s.arrow} ${block.text}`))
+        out.push('', ...wrap(block.text, width - visibleLength(s.arrow) - 1).map((line, i) =>
+          `${i ? ' '.repeat(visibleLength(s.arrow)) : theme.color(s.arrow, 'accent')} ${theme.color(line, 'brand')}`))
         break
       case 'blank':
         out.push('')
@@ -189,6 +241,7 @@ export function renderPlain(blocks: Block[]): string {
         for (const item of block.items) out.push(`- ${item}`)
         break
       case 'table':
+        out.push(block.head.join(' | '))
         for (const row of block.rows) out.push(row.filter(Boolean).join(' | '))
         break
       case 'note': {
@@ -200,7 +253,7 @@ export function renderPlain(blocks: Block[]): string {
         break
       }
       case 'panel':
-        out.push(`${block.title}:`, ...block.lines)
+        out.push(`${block.title}:`, ...block.lines, ...(block.meta ?? []))
         break
       case 'hint':
         out.push(block.text)

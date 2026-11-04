@@ -15,20 +15,26 @@ export interface Capabilities {
   width: number
 }
 
+export type ColorMode = 'auto' | 'always' | 'never'
+
 export function detectCapabilities(
   stream: { isTTY?: boolean; columns?: number } = process.stdout,
   env: NodeJS.ProcessEnv = process.env,
+  mode: ColorMode = 'auto',
 ): Capabilities {
   const forced = env['FORCE_COLOR']
-  const disabled = env['NO_COLOR'] !== undefined || env['TRAINCTL_NO_COLOR'] !== undefined
-  const color = disabled ? false : forced ? forced !== '0' : Boolean(stream.isTTY)
+  const disabled = Boolean(env['NO_COLOR'] || env['TRAINCTL_NO_COLOR'])
+  const color = mode === 'always' || (mode !== 'never' && !disabled && env['TERM'] !== 'dumb' &&
+    (forced !== undefined ? forced !== '0' : Boolean(stream.isTTY)))
   const unicode =
+    env['TERM'] !== 'dumb' &&
     env['TRAINCTL_ASCII'] === undefined &&
     (process.platform !== 'win32' || Boolean(env['WT_SESSION'] || env['TERM_PROGRAM'] || env['TERM']))
+  const columns = stream.columns ?? Number(env['COLUMNS'])
   return {
     color,
     unicode,
-    width: Math.max(40, Math.min(stream.columns ?? 80, 110)),
+    width: Number.isFinite(columns) && columns > 0 ? Math.max(1, Math.min(Math.floor(columns), 120)) : 80,
   }
 }
 
@@ -40,18 +46,22 @@ const CODES = {
   underline: 4,
 } as const
 
-/** Kolory 256 — czytelne i na jasnym, i na ciemnym tle. */
+/** Kolory palety terminala: użytkownik zachowuje kontrolę nad kontrastem i tłem. */
 const FG = {
-  brand: 39, // cyan
-  accent: 75, // niebieski
-  quality: 170, // fiolet — akcenty treningowe
-  long: 33, // granat — długie wybieganie
-  easy: 78, // zieleń — spokojne
-  race: 214, // pomarańcz — start
-  warn: 179,
-  error: 203,
-  success: 71,
-  muted: 245,
+  brand: 36,
+  accent: 34,
+  quality: 35,
+  long: 34,
+  easy: 32,
+  race: 33,
+  warn: 33,
+  error: 31,
+  success: 32,
+  muted: 90,
+  run: 32,
+  bike: 33,
+  swim: 36,
+  strength: 35,
 } as const
 
 export type ColorName = keyof typeof FG
@@ -68,7 +78,7 @@ export class Theme {
   }
 
   color(text: string, name: ColorName): string {
-    return this.wrap(text, `[38;5;${FG[name]}m`)
+    return this.wrap(text, `[${FG[name]}m`)
   }
 
   bold(text: string): string {
@@ -83,9 +93,9 @@ export class Theme {
     return this.wrap(text, `[${CODES.underline}m`)
   }
 
-  /** Tło dla plakietek (badge). */
+  /** Plakietka bez narzucania koloru tła terminala. */
   badge(text: string, name: ColorName): string {
-    return this.wrap(` ${text} `, `[48;5;${FG[name]}m[38;5;255m[1m`)
+    return this.bold(this.color(`[${text}]`, name))
   }
 
   get sym() {
@@ -127,7 +137,24 @@ export function sparkline(values: number[], unicode = true): string {
 
 /** Długość widoczna — bez sekwencji ANSI (do wyrównywania kolumn). */
 export function visibleLength(text: string): number {
-  return stripAnsi(text).length
+  return graphemes(stripAnsi(text)).reduce((width, part) => width + graphemeWidth(part), 0)
+}
+
+const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+export function graphemes(text: string): string[] {
+  return Array.from(segmenter.segment(text), part => part.segment)
+}
+
+function graphemeWidth(part: string): number {
+  if (/^[\p{Mark}\p{Control}\p{Format}]*$/u.test(part)) return 0
+  if (/\p{Emoji_Presentation}|\uFE0F|\u20E3/u.test(part)) return 2
+  const cp = part.codePointAt(0) ?? 0
+  // CJK/fullwidth characters occupy two terminal cells; combining marks stay with their base.
+  return cp >= 0x1100 && (cp <= 0x115f || cp === 0x2329 || cp === 0x232a ||
+    (cp >= 0x2e80 && cp <= 0xa4cf && cp !== 0x303f) || (cp >= 0xac00 && cp <= 0xd7a3) ||
+    (cp >= 0xf900 && cp <= 0xfaff) || (cp >= 0xfe10 && cp <= 0xfe19) ||
+    (cp >= 0xfe30 && cp <= 0xfe6f) || (cp >= 0xff00 && cp <= 0xff60) ||
+    (cp >= 0xffe0 && cp <= 0xffe6) || (cp >= 0x20000 && cp <= 0x3fffd)) ? 2 : 1
 }
 
 export function stripAnsi(text: string): string {
