@@ -5,8 +5,8 @@ import { ENDURANCE_SPORTS, type SportsConfig, type SportsPlan } from './types.ts
 
 export const config: SportsConfig = { schemaVersion: 2, athlete: { sports: {
   run: { weeklyMinutes: 90, sessionsPerWeek: 2, easyPaceSecPerKm: 360, preparationMinutes: 5 },
-  bike: { weeklyMinutes: 120, sessionsPerWeek: 2, ftpWatts: 220, preparationMinutes: 5 },
-  swim: { weeklyMinutes: 60, sessionsPerWeek: 2, cssSecPer100m: 120, poolLengthM: 25, preparationMinutes: 5 },
+  bike: { weeklyMinutes: 120, sessionsPerWeek: 2, ftpWatts: 220, calibration: {date:"2026-11-01",source:"test"}, preparationMinutes: 5 },
+  swim: { weeklyMinutes: 60, sessionsPerWeek: 2, cssSecPer100m: 120, calibration: {date:"2026-11-01",source:"test"}, poolLengthM: 25, preparationMinutes: 5 },
 } }, goal: { kind: 'base', name: 'Mixed base', date: '2026-12-06' }, maxSessionsPerDay: 2 }
 const generate = (c = config) => generateSportsPlan(c, '2026-11-02', 'plan1', 'cycle1', 'test')
 
@@ -16,9 +16,9 @@ describe('session planning v2', () => {
     expect(generate()).toEqual(p)
     expect(validateSportsPlan(p)).toEqual([])
     expect(calendarIssues(p, config)).toEqual([])
-    expect(p.sessions.find(s => s.sport === 'bike')!.steps[0]!.target).toEqual({ kind: 'power', watts: 143, ftpPercent: 65 })
-    expect(p.sessions.find(s => s.sport === 'swim' && s.purpose === 'long')!.steps[0]!.target).toEqual({ kind: 'pace', seconds: 132, perM: 100 })
-    expect(p.sessions.find(s => s.sport === 'swim' && s.purpose === 'technique')!.steps[0]!.target).toEqual({kind:'open'})
+    expect(p.sessions.find(s => s.sport === 'bike')!.steps.find(x=>x.role==='work')!.target).toEqual({ kind: 'power', watts: 143, ftpPercent: 65 })
+    expect(p.sessions.find(s => s.sport === 'swim' && s.purpose === 'long')!.steps.find(x=>x.role==='work')!.target).toEqual({ kind: 'pace', seconds: 132, perM: 100 })
+    expect(p.sessions.find(s => s.sport === 'swim' && s.purpose === 'technique')!.steps.find(x=>x.role==='drill')!.target).toEqual({kind:'open'})
   })
   for (const source of ENDURANCE_SPORTS) for (const target of ENDURANCE_SPORTS.filter(s => s !== source)) {
     it(`replaces ${source} → ${target} without duplicate active original`, () => {
@@ -72,9 +72,11 @@ describe('session planning v2', () => {
   it('keeps full pool repeats when shortening, including rests', () => {
     const s = buildSportSession('swim', config.athlete.sports.swim!, 30, 'swim1', '2026-11-03')
     const shorter = shortenSportSession(s, 16)
-    expect(shorter.steps[0]!.repeat).toBe(4)
-    expect(shorter.distanceM).toBe(400)
-    expect(shorter.durationSec).toBe(608)
+    expect(shorter.steps[0]).toEqual(s.steps[0])
+    expect(shorter.steps.at(-1)).toEqual(s.steps.at(-1))
+    expect(shorter.steps.find(x=>x.role==='work')!.repeat).toBe(1)
+    expect(shorter.distanceM).toBe(450)
+    expect(shorter.durationSec).toBe(642)
     expect(shorter.durationSec + shorter.preparationSec).toBeLessThanOrEqual(16 * 60)
     expect(shortenSportSession(shorter, 16)).toEqual(shorter)
     expect(() => shortenSportSession(s, 6)).toThrow()
@@ -105,12 +107,12 @@ describe('session planning v2', () => {
     const p = generate(c), group = p.groups.find(g => g.kind === 'brick')!
     expect(group).toBeDefined()
     const before = p.sessions.filter(s => s.groupId === group.id)
-    expect(calendarMinutes(before, [group])).toBe(80)
+    expect(calendarMinutes(before, [group])).toBe(63.75)
     const next = rescheduleSportsPlan(p,c,'2026-11-02',[before[0]!.date],new Set())
     const after = next.sessions.filter(s => s.groupId === group.id)
     expect(new Set(after.map(s => s.date)).size).toBe(1)
     expect(after[0]!.date).not.toBe(before[0]!.date)
-    expect(calendarMinutes(after,[group])).toBe(80)
+    expect(calendarMinutes(after,[group])).toBe(calendarMinutes(before,[group]))
     expect(calendarIssues(next,c)).toEqual([])
   })
   it('does not infer a missed workout from absent or ambiguous telemetry', () => {

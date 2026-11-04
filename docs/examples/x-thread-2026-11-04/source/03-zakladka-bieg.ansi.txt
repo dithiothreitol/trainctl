@@ -1,0 +1,80 @@
+$ trainctl today --date 2026-11-07 --sport run
+[33m⚠[0m data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i
+  ważność propozycji idą za nią
+
+[1m[36mPlan sportowy: Przykładowy triathlon[0m[0m
+[2mDzień · 2026-11-07[0m
+[2m────────────────────────────────────────────────────────────────[0m
+
+[2mTreningi:                      [0m  [1m1[0m
+[2mCzas treningów:                [0m  [1m15 min[0m
+[2mZ przygotowaniem i przejściami:[0m  [1m30 min[0m
+
+[32m╭[0m [1m[32m2026-11-07 07:45 · Bieganie[0m[0m
+[32m│[0m Spokojna wytrzymałość · 15 min
+[32m│[0m Bieg po rowerze
+[32m│[0m 
+[32m│[0m [1m[36mCel[0m[0m
+[32m│[0m 
+[32m│[0m Przećwicz przejście do biegu; zacznij spokojnie i ustabilizuj krok.
+[32m│[0m 
+[32m│[0m [1m[35mIntensywność[0m[0m
+[32m│[0m 
+[32m│[0m [1m[32mNajmocniejszy etap (plan): RPE 3–4/10[0m[0m
+[32m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[32m│[0m [36m  1 [0m [36m  2 [0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[32m│[0m [2m1–2 bardzo lekko · 3–4 lekko · 5–6 umiarkowanie · 7–8 mocno · 9–10 bardzo[0m
+[32m│[0m [2mmocno. Nawiasy [ ] wskazują zaplanowany zakres.[0m
+[32m│[0m 
+[32m│[0m [1m[34mPrzebieg treningu[0m[0m
+[32m│[0m 
+[32m│[0m [1m[32m1. Rozgrzewka · 2 min 15 s[0m[0m
+[32m│[0m 
+[32m│[0m [2mCel etapu:[0m  według odczucia
+[32m│[0m [2mRPE:      [0m  2–3/10
+[32m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[32m│[0m Zacznij bardzo spokojnie; stopniowo ustabilizuj rytm i oddech.
+[32m│[0m 
+[32m│[0m [1m[32m2. Praca · 11 min 15 s[0m[0m
+[32m│[0m 
+[32m│[0m [2mCel etapu:[0m  według odczucia
+[32m│[0m [2mRPE:      [0m  3–4/10
+[32m│[0m [2mSwobodna rozmowa pełnymi zdaniami.[0m
+[32m│[0m Kontroluj oddech i rytm podczas zmiany dyscypliny; bez przyspieszania na
+[32m│[0m zmęczeniu.
+[32m│[0m 
+[32m│[0m [1m[36m3. Schłodzenie · 1 min 30 s[0m[0m
+[32m│[0m 
+[32m│[0m [2mCel etapu:[0m  według odczucia
+[32m│[0m [2mRPE:      [0m  1–2/10
+[32m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[32m│[0m Stopniowo zmniejsz wysiłek i rozluźnij ruch.
+[32m│[0m 
+[32m│[0m [1m[36mDlaczego ten trening[0m[0m
+[32m│[0m 
+[32m│[0m Faza: Baza. Tydzień cyklu: 1. Cel planu: Przykładowy triathlon (10000 m).
+[32m│[0m Dawkę ograniczają poziom doświadczenia i dostępny czas; progresja nie wymaga
+[32m│[0m zwiększania intensywności. Zakładka: ćwicz spokojne przejście z roweru do
+[32m│[0m biegu i kontrolę tempa po zmianie dyscypliny. Doświadczenie: regularnie
+[32m│[0m trenujący. Spokojna intensywność pozwala rozwijać regularność i technikę bez
+[32m│[0m dodawania kolejnego akcentu.
+[32m│[0m 
+[32m│[0m [1m[32mWskazówki wykonania[0m[0m
+[32m│[0m 
+[32m│[0m [34m•[0m Utrzymaj swobodny oddech i stabilną technikę; zakończ z zapasem sił.
+[32m│[0m [34m•[0m Zapisz czas, odczuwany wysiłek RPE i ewentualne zmniejszenie liczby
+[32m│[0m   powtórzeń.
+[32m│[0m 
+[32m│[0m [1m[33mDostosowanie[0m[0m
+[32m│[0m 
+[32m│[0m [34m•[0m Intensywność określa RPE 1–10; brak aktualnego pomiaru nie jest zastępowany
+[32m│[0m   wynikiem z innej dyscypliny.
+[32m│[0m [34m•[0m Jeśli wysiłek lub technika wykraczają poza wskazówki, zwolnij albo skróć
+[32m│[0m   serię. Nie nadrabiaj pominiętych odcinków.
+[32m│[0m 
+[32m│[0m [2mID: c-4723c794-2026-11-02-run-1[0m
+[32m│[0m [2mGrupa powiązanych sesji: c-4723c794-2026-11-02-brick[0m
+[32m╰───────────────────────────────────────────────────────────────[0m
+
+[34m→[0m Grupa powiązanych sesji: c-4723c794-2026-11-02-brick · Przejścia między
+  etapami zawodów (sekundy): 300

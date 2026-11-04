@@ -1,6 +1,6 @@
 {
   "name": "trainctl",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Plan running, cycling, swimming and multisport; replace sessions, log and review training through local MCP tools",
   "author": { "name": "Dariusz Tyszka" },
   "homepage": "https://github.com/dithiothreitol/trainctl",

@@ -1,0 +1,26 @@
+1/9
+Rozwijam trainctl, narzędzie do planowania treningów przez terminal i MCP. Nowa wersja rozwojowa obejmuje bieganie, rower, pływanie i multisport. Najwięcej zmian dotyczy struktury jednostek, zamiany dyscyplin i czytelności opisów.
+
+2/9
+Nowe jednostki mają opis celu, uzasadnienie i wskazówki wykonania. Kolorowe nagłówki oddzielają sekcje, a skala RPE od 1 do 10 zaznacza wysiłek najmocniejszego etapu. Rozgrzewka, odcinki pracy i przerwy są opisane osobno.
+
+3/9
+Trening rowerowy podaje moc dla pracy i odpoczynku. W przykładzie: 5 odcinków po 3 min przy 275 W, rozdzielonych 3 min przy 125 W. Cele wynikają z FTP zawodnika. Przy braku aktualnej kalibracji program korzysta z instrukcji RPE.
+
+4/9
+Serie pływackie uwzględniają długość basenu, tempo i odpoczynki. Ćwiczenia techniczne mają konkretne instrukcje. Po nich plan zawiera odcinki kraula, które pozwalają zastosować ćwiczoną umiejętność w pełnym ruchu.
+
+5/9
+Plan multisportowy uwzględnia czas każdej dyscypliny, przygotowania i przejścia między sesjami. Zakładka łączy rower z biegiem. Bieg po rowerze ma własny cel: spokojne przejście do nowego ruchu i kontrolę tempa.
+
+6/9
+Jednostki można zamieniać między bieganiem, rowerem i pływaniem. Przed zatwierdzeniem widać nowy trening, zmianę objętości i ograniczenia zamiany. Można też przywrócić oryginał. Program nie zakłada fizjologicznej równoważności dyscyplin.
+
+7/9
+Skracanie treningu zachowuje pełne powtórzenia, przerwy, rozgrzewkę i schłodzenie. W przykładzie budżet 45 min pozwala na 33 min jazdy i 10 min przygotowania. Gdy nie da się zachować wymaganej części głównej, program odrzuca zmianę.
+
+8/9
+CLI i MCP udostępniają te same cele oraz strukturę treningów. Eksport obejmuje HTML, ICS i FIT. Program tworzy też plan w Markdown. Dane strukturalne pozwalają agentowi analizować i modyfikować plan.
+
+9/9
+Aktualny kod przeszedł 1076 testów oraz symulacje CLI. Sprawdziłem też MCP i eksporty. Funkcje są w wersji rozwojowej. Testy na fizycznych zegarkach Garmin i Suunto oraz niezależna ocena biblioteki przez trenerów pozostają do wykonania.

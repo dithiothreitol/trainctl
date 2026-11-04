@@ -1,4 +1,4 @@
-import { activityKey, addDays, parseIso, sportMessages as msg, type PushableWorkout, type SportsPlan, type TrainingSession } from 'trainctl-core'
+import { activityKey, addDays, parseIso, targetText, sportMessages as msg, type PushableWorkout, type SportsPlan, type TrainingSession } from 'trainctl-core'
 import { toWorkoutSyntax } from 'trainctl-sync-intervalsicu'
 import { FileActivitySource } from 'trainctl-sync-files'
 import { resolve } from 'node:path'
@@ -16,14 +16,18 @@ export function pushableSession(p: SportsPlan, s: TrainingSession): PushableWork
   if (s.legacyWorkout) lines.push(toWorkoutSyntax(s.legacyWorkout.segments))
   else for (const step of s.steps) {
     const target = step.target
-    const pace = target.kind === 'pace' ? `${Math.floor(target.seconds / 60)}:${String(target.seconds % 60).padStart(2, '0')}/${target.perM === 100 ? '100m' : 'km'} Pace` : ''
+    const pace = target.kind === 'pace' ? `${targetText(target).replace('100 m','100m')} Pace` : ''
     const dose = step.distanceM ? `${step.distanceM}mtr` : `${step.durationSec}s`
     if ((step.repeat ?? 1) > 1) lines.push('', `${step.repeat}x`)
     lines.push(`- ${step.stroke ?? step.role} ${dose}${target.kind === 'power' ? ` ${target.watts}w` : pace ? ` ${pace}` : ''}`)
-    if (step.restSec) lines.push(`- Rest ${step.restSec}s`)
+    if (step.restSec) {
+      const recovery=step.recovery?.target
+      const recoveryTarget=recovery?.kind==='power'?` ${recovery.watts}w`:recovery?.kind==='pace'?` ${targetText(recovery).replace('100 m','100m')} Pace`:''
+      lines.push(`- Rest ${step.restSec}s${recoveryTarget}`)
+    }
     lines.push('')
   }
-  return { externalId: sessionExternalId(p, s), date: s.date, ...(s.start ? { startTime: s.start } : {}), name: `${msg().sport[s.sport]} · ${msg().purpose[s.purpose]}`, description: lines.join('\n'), sport: s.sport, durationSec: s.durationSec, ...(s.distanceM ? { distanceKm: s.distanceM / 1000 } : {}), ...(s.purpose === 'race' ? { race: { priority: s.racePriority ?? 'A' } } : {}) }
+  return { externalId: sessionExternalId(p, s), date: s.date, ...(s.start ? { startTime: s.start } : {}), name: `${msg().sport[s.sport]} · ${s.coaching?.title ?? msg().purpose[s.purpose]}`, description: lines.join('\n'), sport: s.sport, durationSec: s.durationSec, ...(s.distanceM ? { distanceKm: s.distanceM / 1000 } : {}), ...(s.purpose === 'race' ? { race: { priority: s.racePriority ?? 'A' } } : {}) }
 }
 export async function sportsSyncCommand(cwd: string, action: 'pull' | 'push' | 'review', opts: SportsOptions, factory: ProviderFactory): Promise<SportsResult> {
   try {

@@ -1,0 +1,1 @@
+Podsumowanie tygodnia w trainctl. Tabela pokazuje osobno bieganie, rower oraz pływanie, z czasem każdej dyscypliny i udziałem planowanej intensywności.

@@ -15,6 +15,7 @@ afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); rmSync(dir, { recursiv
 const read = (file: string): string => readFileSync(join(dir, file), 'utf8')
 function init(sports = 'bike') {
   const config = parse(sportsTemplate(sports, '2026-11-02')) as SportsConfig
+  config.athlete.sports.bike!.calibration = {date:"2026-11-01",source:"test"}
   config.athlete.sports.bike!.ftpWatts = 220
   expect(cmdInit(dir, stringify(config)).code).toBe(0)
   regenerate()

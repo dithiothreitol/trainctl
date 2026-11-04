@@ -1,0 +1,93 @@
+$ trainctl today --date 2026-11-06 --sport swim
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i
+  ważność propozycji idą za nią
+
+Plan sportowy: Przykładowy triathlon
+Dzień · 2026-11-06
+────────────────────────────────────────────────────────────────
+
+Treningi:                        1
+Czas treningów:                  54 min 34 s
+Z przygotowaniem i przejściami:  64 min 34 s
+
+╭ 2026-11-06 06:00 · Pływanie
+│ Technika · 54 min 34 s · 1875 m
+│ Technika i spokojny rytm
+│ 
+│ Cel
+│ 
+│ Popraw pozycję ciała, wydech i spokojny powrót ramienia, następnie przenieś je
+│ do kraula.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 2–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1  [ 2] [ 3] [ 4]   5    6    7    8    9   10 
+│ 1–2 bardzo lekko · 3–4 lekko · 5–6 umiarkowanie · 7–8 mocno · 9–10 bardzo
+│ mocno. Nawiasy [ ] wskazują zaplanowany zakres.
+│ 
+│ Przebieg treningu
+│ 
+│ 1. Rozgrzewka · 400 m
+│ 
+│ Cel etapu:  2:20/100 m
+│ RPE:        2–3/10
+│ Styl:       kraul
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Zacznij bardzo spokojnie; stopniowo ustabilizuj rytm i oddech.
+│ 
+│ 2. Ćwiczenie techniczne · 12 × 25 m
+│ 
+│ Cel etapu:  według odczucia
+│ RPE:        2–3/10
+│ Styl:       ćwiczenie techniczne
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Spokojny kraul: patrz w dół, wydychaj powietrze do wody, odwróć głowę do
+│ naturalnego wdechu. Nie wydłużaj przerw w oddychaniu.
+│ 
+│ Przerwa po odcinku:  20 s @ według odczucia · RPE 1–2/10
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Odpocznij przy ścianie po każdym odcinku, również ostatnim.
+│ 
+│ 3. Praca · 19 × 50 m
+│ 
+│ Cel etapu:  2:18/100 m
+│ RPE:        2–4/10
+│ Styl:       kraul
+│ Swobodny wydech do wody; technika bez napięcia.
+│ Przenieś ćwiczoną umiejętność do spokojnego kraula.
+│ 
+│ Przerwa po odcinku:  20 s @ według odczucia · RPE 1–2/10
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Odpocznij przy ścianie po każdym odcinku, również ostatnim.
+│ 
+│ 4. Schłodzenie · 225 m
+│ 
+│ Cel etapu:  2:20/100 m
+│ RPE:        1–2/10
+│ Styl:       kraul
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Stopniowo zmniejsz wysiłek i rozluźnij ruch.
+│ 
+│ Dlaczego ten trening
+│ 
+│ Faza: Baza. Tydzień cyklu: 1. Cel planu: Przykładowy triathlon (1500 m). Dawkę
+│ ograniczają poziom doświadczenia i dostępny czas; progresja nie wymaga
+│ zwiększania intensywności. Doświadczenie: wytrenowany. Ćwiczenie izoluje jedną
+│ umiejętność, a następująca po nim część główna przenosi ją do zwykłego ruchu.
+│ 
+│ Wskazówki wykonania
+│ 
+│ • Przenieś wskazówkę z ćwiczenia do części głównej: zachowaj spokojny oddech i
+│   swobodny ruch.
+│ • Zapisz czas, odczuwany wysiłek RPE i ewentualne zmniejszenie liczby
+│   powtórzeń.
+│ 
+│ Dostosowanie
+│ 
+│ • Jeśli wysiłek lub technika wykraczają poza wskazówki, zwolnij albo skróć
+│   serię. Nie nadrabiaj pominiętych odcinków.
+│ 
+│ ID: c-4723c794-2026-11-02-swim-1
+╰───────────────────────────────────────────────────────────────

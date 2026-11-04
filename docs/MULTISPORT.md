@@ -318,3 +318,25 @@ utworzenie planu, sześć kierunków zamiany, zatwierdzenie, regeneracja, dzienn
 walidacja i eksport. Nie odczytuje ani nie zmienia planu użytkownika, nie używa sieci.
 Testy obejmują też MCP, migrację, zakładki, zawody, import części aktywności,
 dekodowanie FIT i błąd częściowej publikacji.
+
+## Cel i pełna instrukcja jednostki
+
+Nowe jednostki zawierają tytuł, cel, uzasadnienie wyboru w fazie planu, kryteria
+wykonania i wskazówki dostosowania. Każdy etap ma intensywność i instrukcję.
+RPE to subiektywna skala 1–10, dostępna także bez FTP/CSS. Liczbowe cele
+roweru i pływania wymagają aktualnej kalibracji z datą i źródłem.
+
+- `trainctl week`: krótki przegląd jednostek i kroków.
+- `trainctl today --session ID`: cel oraz pełna instrukcja wybranej jednostki.
+- `trainctl why --session ID`: uzasadnienie, faza, kryteria i ograniczenia.
+- `trainctl --json today --session ID`: pola coaching, effort i recovery dla integracji.
+- `trainctl rules MS-6`: objaśnienie doboru i granic biblioteki.
+- MCP: te same informacje w trainctl_today/trainctl_why i trainctl://rules/MS-6.
+
+Uruchomienie `trainctl plan` przelicza przyszłe, niechronione jednostki według
+nowej biblioteki. Jednostki zapisane jako wykonane, przypięte lub zatwierdzone
+pozostają chronione. Starsze pliki bez metadanych coaching nadal są odczytywane.
+
+W eksporcie HTML/ICS i opisach Intervals.icu dostępna jest pełna instrukcja.
+FIT ma ograniczoną długość notatek i zależne od urządzenia ich wyświetlanie;
+pełny opis pozostaje w HTML/CLI. Szczegóły: [MS-6](science/MULTISPORT.md).

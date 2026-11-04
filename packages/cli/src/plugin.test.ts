@@ -152,6 +152,7 @@ describe('reguły i init --agent', () => {
     expect(all.output).toMatch(/I-7 — .+ · Interpretation of published research/)
     expect(cmdRules({ id: 'i-7' }).data).toMatchObject({ id: 'I-7', origin: 'research', source: expect.stringContaining('FOUNDATIONS.md') })
     expect(cmdRules({ id: 'E-1' }).data).toMatchObject({ origin: 'engineering' })
+    expect(cmdRules({ id: 'ms-6' }).data).toMatchObject({id:'MS-6',source:expect.stringContaining('/docs/science/MULTISPORT.md')})
     expect(cmdRules({ id: 'X-99' }).code).toBe(1)
   })
   it('--agent claude: ustawienia z marketplace i włączonym pluginem, bez .mcp.json (dwa serwery)', () => {

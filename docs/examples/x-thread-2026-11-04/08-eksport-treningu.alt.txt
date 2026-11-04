@@ -1,0 +1,1 @@
+CLI potwierdza zapis wybranej jednostki rowerowej do FIT oraz eksport planu do plików ICS i HTML.

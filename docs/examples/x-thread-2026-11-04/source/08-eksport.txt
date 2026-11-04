@@ -1,0 +1,6 @@
+$ trainctl export --what all --session c-4723c794-2026-11-16-bike-0
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i
+  ważność propozycji idą za nią
+✓ Wyeksportowano: export/c-4723c794-2026-11-16-bike-0.fit
+✓ Wyeksportowano: export/plan.ics
+✓ Wyeksportowano: export/plan.html

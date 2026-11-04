@@ -1,13 +1,17 @@
 # Pływanie — zakres reguł
 
-Moduł swimming ma własny profil czasu, częstości, doświadczenia, basenu i CSS.
-CSS jest ręcznie zadeklarowanym pomiarem z datą oraz źródłem, nie wynikiem
-konwersji biegu lub roweru. Serie respektują długość basenu, pełne powtórzenia,
-przerwy i styl. Ćwiczenia techniczne nie mają narzuconego tempa wykonania.
+CSS to ręczny pomiar z datą i źródłem, nie konwersja biegu lub roweru.
+Jednostka zawiera rozgrzewkę, część główną i schłodzenie. Serie respektują
+pełne długości basenu, liczbę powtórzeń, styl oraz odpoczynek po każdym odcinku.
 
-Szczegółowe dawki, progresja, taper, powrót i zamienniki są parametrami
-inżynierskimi [MS-1–MS-5](MULTISPORT.md). Nie zweryfikowano ich na populacji
-początkujących pływaków ani z trenerem. CSS nie opisuje umiejętności technicznych
-i nie gwarantuje możliwości wykonania danej serii. Brak kalibracji daje otwarty
-cel czasowy; brak zadeklarowanego basenu blokuje umieszczenie treningu w kalendarzu.
-Automatyczna estymacja CSS, jardy i planowanie wód otwartych pozostają poza zakresem.
+Biblioteka obejmuje spokojne serie, wytrzymałość, odcinki blisko CSS, krótkie
+odcinki z kontrolą techniki, pobudzenie przed startem i ćwiczenia techniczne.
+Technika ma instrukcję pozycji/wydechu lub powrotu ramienia i etap przeniesienia
+umiejętności do kraula. Samo ćwiczenie ma otwarty cel tempa i wskazówki RPE.
+Bez wiarygodnego CSS generator podaje czas i odczuwany wysiłek, bez
+wymyślania dystansu. Przy krótkim budżecie może jawnie uprościć cel jednostki.
+
+Parametry, podstawy i ograniczenia: [MS-6](MULTISPORT.md). Nie wykonano
+przeglądu całej biblioteki z trenerem ani walidacji na początkujących.
+CSS nie opisuje umiejętności technicznych i nie gwarantuje wykonania serii.
+Automatyczne CSS, jardy i planowanie wód otwartych pozostają poza zakresem.

@@ -1,8 +1,8 @@
 # trainctl
 
-New in **0.5.0**: cycling, swimming and multisport plans, reversible session
-substitutions, a bundled Codex plugin and a clearer, responsive CLI with
-`--color` and `--plain`. [Release notes](CHANGELOG.md#050--2026-11-04).
+New in **0.6.0**: detailed workout goals and instructions, phase-specific cycling
+and swimming sessions, structured replacement previews and a coloured RPE scale.
+[Release notes](CHANGELOG.md#060--2026-11-04) · [Terminal examples](docs/examples/x-thread-2026-11-04/index.html).
 
 ```sh
 trainctl init --agent claude      # profile + plugin setup for your agent
@@ -55,6 +55,10 @@ training is your git history.
 ---
 
 ## Install
+
+**Version 0.6.0 is available on [GitHub Releases](https://github.com/dithiothreitol/trainctl/releases/tag/v0.6.0).**
+Download the bundled CLI/MCP and Codex plugin ZIP and follow `INSTALL.txt`.
+This version is not published to npm; the commands below install the npm release.
 
 ```bash
 npx trainctl init          # no install at all

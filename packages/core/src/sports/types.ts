@@ -60,6 +60,26 @@ export type StepTarget =
   | { kind: 'pace'; seconds: number; perM: 100 | 1000 }
   | { kind: 'power'; watts: number; ftpPercent?: number }
   | { kind: 'open' }
+/** Subjective 1–10 effort, not a measured physiological zone. */
+export interface EffortGuide { min: number; max: number; cue: string }
+export interface SessionCoaching {
+  version: 1
+  recipeId: string
+  title: string
+  objective: string
+  rationale: string
+  successCriteria: string[]
+  adjustments: string[]
+  /** Minimum main-set work retained when shortening a quality session. */
+  minimumWorkSec?: number
+}
+export interface SessionContext {
+  phase?: TrainingSession['phase']
+  weekIndex?: number
+  slot?: number
+  goal?: SportGoal
+  brick?: 'bike' | 'run'
+}
 export interface SessionStep {
   role: 'warmup' | 'work' | 'rest' | 'cooldown' | 'drill'
   /** Czas kroku jest estymacją, gdy miarą zakończenia jest dystans. */
@@ -69,6 +89,11 @@ export interface SessionStep {
   restSec?: number
   sendoffSec?: number
   target: StepTarget
+  name?: string
+  instruction?: string
+  effort?: EffortGuide
+  /** Recovery after EACH repeat, including the last; counted in restSec. */
+  recovery?: { target: StepTarget; effort?: EffortGuide; instruction: string }
   stroke?: 'freestyle' | 'backstroke' | 'breaststroke' | 'butterfly' | 'drill'
 }
 export interface TrainingSession {
@@ -97,6 +122,7 @@ export interface TrainingSession {
   racePriority?: 'A' | 'B' | 'C'
   phase?: 'base' | 'build' | 'deload' | 'taper' | 'recovery' | 'race'
   intent?: TrainingIntent
+  coaching?: SessionCoaching
 }
 export interface TrainingIntent {
   primary: 'aerobic' | 'durability' | 'quality' | 'technique' | 'competition' | 'strength'

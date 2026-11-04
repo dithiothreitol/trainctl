@@ -1,3 +1,4 @@
+import { trainingCard, trainingDuration } from './ui/training.ts'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -63,23 +64,28 @@ function volumeBlocks(sessions: TrainingSession[]): Block[] {
   const d = ui().display
   return [b.section(t.totals), b.table([d.sport,d.duration,d.distance,d.intensity],sports.map(s=>{
     const row=totals[s]!
-    return [t.sport[s],`${Number(row.minutes.toFixed(1))} min`,`${row.distanceM} m`,
+    return [t.sport[s],trainingDuration(row.minutes * 60),`${row.distanceM} m`,
       keys.filter(k=>row.intensityPercent[k]>0).map(k=>`${t.intensity[k]} ${Number(row.intensityPercent[k].toFixed(1))}%`).join(' · ') || '—']
   }),sports),b.blank(),b.text(t.intensityMethod, 'muted')]
 }
-function sessionPanel(s: TrainingSession): Block {
-  const t = msg(), step = s.steps[0]
-  const simple = !s.legacyWorkout && s.steps.length === 1 && step?.target.kind === 'open' &&
-    step.durationSec === s.durationSec && !step.repeat && !step.restSec && !step.sendoffSec && !step.stroke && !step.distanceM
-  const lines = [`${t.purpose[s.purpose]} · ${Math.round(s.durationSec / 6) / 10} min${s.distanceM ? ` · ${s.distanceM} m` : ''}`]
-  if (!simple) lines.push(sessionStepsText(s))
-  else lines.push(ui().display.openTarget)
-  return b.panel(`${s.date}${s.start ? ` ${s.start}` : ''} · ${t.sport[s.sport]}`, lines, s.sport,
-    [`ID: ${s.id}`, ...(s.replacesSessionId ? [`${t.replaced}: ${s.replacesSessionId}`] : []), ...(s.groupId ? [`${t.group}: ${s.groupId}`] : [])])
+
+/** Keep proposal data intact; present the session comparison as structured cards. */
+function changeDisplay(action: string, before: SportsPlan | undefined, after: SportsPlan, notes: string[], applied = false): Block[] {
+  if (!before || !['replace', 'shorten'].includes(action)) return notes.map(n => b.info(n))
+  const change = after.changes.at(-1)
+  const source = before.sessions.find(s => s.id === change?.sessionIds[0])
+  const target = after.sessions.find(s => s.id === (action === 'replace' ? change?.sessionIds[1] : change?.sessionIds[0]))
+  if (!source || !target) return notes.map(n => b.info(n))
+  const t = msg()
+  const summary = (s: TrainingSession) => t.sport[s.sport] + ' · ' + trainingDuration(s.durationSec) + (s.distanceM ? ' · ' + s.distanceM + ' m' : '')
+  if (applied) return [b.kv([[t.before, summary(source)], [t.after, summary(target)]]), ...notes.slice(2).map(n => b.info(n)), b.hint('trainctl today --session ' + target.id)]
+  return [trainingCard(source, false, t.before), trainingCard(target, false, t.after), ...notes.slice(2).map(n => b.info(n))]
 }
+
 function proposed(cwd: string, action: string, p: SportsPlan, notes: string[], o: SportsOptions, extra: { config?: SportsConfig; log?: string } = {}): SportsResult {
   const proposal = prepareSportsProposal(cwd, action, p, notes, extra)
-  const result = sportsResult([b.success(`${msg().prepared} ${proposal.id}`), ...notes.map(n => b.info(n)), b.hint(`trainctl ${action} --apply ${proposal.id}`)], { proposal, applied: false })
+  const before = ['replace', 'shorten'].includes(action) ? loadSportsPlan(cwd) : undefined
+  const result = sportsResult([b.success(`${msg().prepared} ${proposal.id}`), ...changeDisplay(action, before, p, notes), b.hint(`trainctl ${action} --apply ${proposal.id}`)], { proposal, applied: false })
   return result
 }
 function commitResult(cwd: string, o: SportsOptions, result: SportsResult, files: string[], action: string): SportsResult {
@@ -106,8 +112,9 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
     if (typeof o.apply === 'string') {
       if (o.prepare || o.session || o.toSport || o.restore || o.actualSport || o.variant || o.reason || o.minutes !== undefined || o.date || o.block || o.time) throw new Error(t.invalid)
       if (!['migrate', 'replace', 'adapt', 'shorten', 'reschedule'].includes(action)) throw new Error(t.invalid)
+      const before = ['replace', 'shorten'].includes(action) ? loadSportsPlan(cwd) : undefined
       const proposal = applySportsProposal(cwd, o.apply, action)
-      return commitResult(cwd, o, sportsResult([b.success(t.applied), ...proposal.notes.map(n => b.info(n))], { proposal, plan: proposal.plan, applied: true }), [PLAN_YAML, PLAN_MD, ...(action === 'migrate' ? [CONFIG_FILE, LOG_FILE] : [])], action)
+      return commitResult(cwd, o, sportsResult([b.success(t.applied), ...changeDisplay(action, before, proposal.plan, proposal.notes, true)], { proposal, plan: proposal.plan, applied: true }), [PLAN_YAML, PLAN_MD, ...(action === 'migrate' ? [CONFIG_FILE, LOG_FILE] : [])], action)
     }
     if (action === 'migrate') {
       const raw = readOptional(cwd, PLAN_YAML)
@@ -129,10 +136,10 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
       const blocks: Block[] = [b.title(`${t.plan}: ${plan.goal.name}`, `${view} · ${period}`)]
       if (list.length) blocks.push(b.kv([
         [d.sessions, String(list.length)],
-        [d.trainingTime, `${Number((list.reduce((sum, s) => sum + s.durationSec, 0) / 60).toFixed(1))} min`],
-        [d.occupiedTime, `${Number(calendarMinutes(list, plan.groups).toFixed(1))} min`],
+        [d.trainingTime, trainingDuration(list.reduce((sum, s) => sum + s.durationSec, 0))],
+        [d.occupiedTime, trainingDuration(calendarMinutes(list, plan.groups) * 60)],
       ]))
-      blocks.push(...list.map(sessionPanel))
+      blocks.push(...list.map(s=>trainingCard(s,action==='today'||action==='why'||!!o.session)))
       if (!list.length) blocks.push(b.info(t.rest))
       if (action === 'week' || action === 'status') blocks.push(...volumeBlocks(list))
       for (const group of plan.groups.filter(g=>g.sessionIds.some(id=>list.some(s=>s.id===id)) && g.transitionSec>0)) blocks.push(b.info(`${t.group}: ${group.id} · ${t.transitions}: ${group.transitionsSec?.map((n,i)=>`T${i+1}=${n}`).join(', ') ?? group.transitionSec}`))

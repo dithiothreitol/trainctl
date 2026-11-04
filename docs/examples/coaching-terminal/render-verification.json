@@ -1,0 +1,51 @@
+[
+  {
+    "slug": "01-rower-interwaly",
+    "width": 1440,
+    "height": 2373,
+    "lines": 81,
+    "maxColumns": 109
+  },
+  {
+    "slug": "02-plywanie-technika",
+    "width": 1440,
+    "height": 2589,
+    "lines": 89,
+    "maxColumns": 109
+  },
+  {
+    "slug": "03-zakladka-bieg",
+    "width": 1440,
+    "height": 2184,
+    "lines": 74,
+    "maxColumns": 109
+  },
+  {
+    "slug": "04-tydzien-multisport",
+    "width": 1440,
+    "height": 6747,
+    "lines": 243,
+    "maxColumns": 112
+  },
+  {
+    "slug": "05-zamiana-bieg-plywanie",
+    "width": 1440,
+    "height": 5073,
+    "lines": 181,
+    "maxColumns": 112
+  },
+  {
+    "slug": "06-skrocenie-roweru",
+    "width": 1440,
+    "height": 4155,
+    "lines": 147,
+    "maxColumns": 109
+  },
+  {
+    "slug": "07-rower-bez-pomiaru-mocy",
+    "width": 1440,
+    "height": 2076,
+    "lines": 70,
+    "maxColumns": 109
+  }
+]

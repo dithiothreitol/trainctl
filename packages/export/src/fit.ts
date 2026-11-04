@@ -10,7 +10,7 @@
  * w mm/s (m/s × 1000), zamieniając s/km na m/s. Szybsze tempo = wyższa prędkość,
  * więc granice zakresu zamieniają się miejscami.
  */
-import { messages, sportMessages } from 'trainctl-core'
+import { effortText, messages, sportMessages } from 'trainctl-core'
 import type { PlannedWorkout, PaceRange, TrainingSession } from 'trainctl-core'
 
 // ---------------------------------------------------------------- prymitywy
@@ -129,6 +129,7 @@ interface FitStep {
   low: number
   high: number
   intensity: Intensity
+  notes?: string
 }
 
 const FIT_EPOCH_OFFSET = 631065600 // 1989-12-31T00:00:00Z w sekundach uniksowych
@@ -298,12 +299,17 @@ export function toSessionFitSteps(session: TrainingSession): FitStep[] {
     const pace = target.kind === 'pace' ? Math.round(target.perM / target.seconds * 1000) : 0
     const stroke = step.stroke ? { freestyle: 0, backstroke: 1, breaststroke: 2, butterfly: 3, drill: 4 }[step.stroke] : undefined
     const swimming = session.sport === 'swim' && stroke !== undefined
-    result.push({ name: `${step.role}${target.kind === 'pace' ? ` ${target.seconds}s/${target.perM}m` : ''}`, durationType: step.distanceM ? 1 : 0,
+    result.push({ name: `${step.effort ? `RPE ${step.effort.min}-${step.effort.max} ` : ''}${step.role}${target.kind === 'pace' ? ` ${target.seconds}s/${target.perM}m` : ''}`, durationType: step.distanceM ? 1 : 0,
+      notes: [target.kind==='pace' ? `${target.seconds}s/${target.perM}m` : '', step.effort ? effortText(step.effort) : '', step.instruction ?? '', start===0 ? session.coaching?.objective ?? '' : ''].filter(Boolean).join(' '),
       durationValue: Math.round(step.distanceM ? step.distanceM * 100 : step.durationSec * 1000), targetType: swimming ? 11 : target.kind === 'power' ? 4 : target.kind === 'pace' ? 0 : 2,
       targetValue: swimming ? stroke! : 0, low: swimming ? 0 : target.kind === 'power' ? target.watts + 1000 : pace,
       high: swimming ? 0 : target.kind === 'power' ? target.watts + 1000 : pace,
       intensity: step.role === 'rest' ? 1 : step.role === 'warmup' ? 2 : step.role === 'cooldown' ? 3 : 0 })
-    if (step.restSec) result.push({ name: 'Rest', durationType: 0, durationValue: Math.round(step.restSec * 1000), targetType: 2, targetValue: 0, low: 0, high: 0, intensity: 1 })
+    if (step.restSec) {
+      const r=step.recovery, target=r?.target, speed=target?.kind==='pace'?Math.round(target.perM/target.seconds*1000):0
+      const value=target?.kind==='power'?target.watts+1000:speed
+      result.push({ name: r?.effort ? `Rest RPE ${r.effort.min}-${r.effort.max}` : 'Rest', durationType: 0, durationValue: Math.round(step.restSec * 1000), targetType: target?.kind==='power'?4:target?.kind==='pace'?0:2, targetValue: 0, low:value, high:value, intensity:1, notes:r?[r.effort?effortText(r.effort):'',r.instruction].filter(Boolean).join(' '):'' })
+    }
     if ((step.repeat ?? 1) > 1) result.push({ name: 'Repeat', durationType: 6, durationValue: start, targetType: 2, targetValue: step.repeat!, low: 0, high: 0, intensity: 0 })
   }
   if (!result.length || result.length > 100) throw new Error(sportMessages().exportUnsupported)
@@ -372,6 +378,7 @@ function encodeSteps(steps: FitStep[], name: string, opts: { createdAtSec?: numb
     { num: 5, type: 'uint32' }, // custom_target_value_low
     { num: 6, type: 'uint32' }, // custom_target_value_high
     { num: 7, type: 'enum' }, // intensity
+    { num: 8, type: 'string', size: 255 }, // notes (UTF-8, bounded by a FIT field)
   ]
   let defined = false
   steps.forEach((step, index) => {
@@ -389,6 +396,7 @@ function encodeSteps(steps: FitStep[], name: string, opts: { createdAtSec?: numb
         step.low,
         step.high,
         step.intensity,
+        step.notes ?? '',
       ],
     }
     if (!defined) {

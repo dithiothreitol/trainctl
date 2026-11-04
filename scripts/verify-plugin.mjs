@@ -97,12 +97,15 @@ try {
   appendFileSync(join(mcpDir,'trainctl.yaml'),'\ndesk: {workStart: "09:00", workEnd: "17:00", lunchMinutes: 45}\n')
   const initial=(await call(client,'plan')).plan
   const source=initial.sessions.find(s=>s.sport==='run')
+  assert(source.coaching.objective && source.coaching.rationale)
+  assert(source.steps.every(s=>s.effort?.cue))
   for(const name of ['today','week','why']) await call(client,name,{session:source.id})
   assert.deepEqual((await call(client,'week',{session:source.id})).sessions,[source])
   await call(client,'week',{session:'missing'},true)
   await call(client,'desk',{date:source.date})
   await call(client,'status');await call(client,'check');await call(client,'diff')
   await call(client,'rule',{id:'MS-2'})
+  await call(client,'rule',{id:'MS-6'})
   await call(client,'rule',{id:'NOT-A-RULE'},true)
 
   const resources=await client.listResources();resourcesCount=resources.resources.length

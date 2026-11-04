@@ -57,7 +57,7 @@ import {
   PLAN_YAML,
   type StoredPlan,
 } from './planfile.ts'
-import { foundationsUrl, kindPurpose, ruleExplain, ruleEvidence } from './rules-explain.ts'
+import { foundationsUrl, kindPurpose, ruleExplain, ruleEvidence, ruleSourceUrl } from './rules-explain.ts'
 import { packageVersion } from './version.ts'
 import { clockToday } from './clock.ts'
 import { rebuildPlan, type Regeneration } from './regenerate.ts'
@@ -1736,15 +1736,16 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
 export function cmdRules(opts: { id?: string | undefined } = {}): CmdResult {
   try {
     const t = ui().rulesCmd
-    const ids = [...Object.keys(ui().rules), 'E-1', 'MS-1', 'MS-2', 'MS-3', 'MS-4', 'MS-5'].sort((a, z) => a.localeCompare(z, 'en', { numeric: true }))
-    const url = foundationsUrl()
+    const ids = [...Object.keys(ui().rules), 'E-1', 'MS-1', 'MS-2', 'MS-3', 'MS-4', 'MS-5', 'MS-6'].sort((a, z) => a.localeCompare(z, 'en', { numeric: true }))
+    const url = ruleSourceUrl(opts.id?.trim().toUpperCase() ?? '')
     if (!opts.id) {
       return okDoc([
         b.title(t.title, t.subtitle(ids.length)),
         b.bullets(ids.map((id) => ui().why.ruleLine(id, ruleExplain(id), ui().improve[ruleEvidence(id)]))),
         b.blank(),
         b.hint(ui().why.sourcesHint(url, '§10')),
-      ], { rules: ids.map((id) => ({ id, explanation: ruleExplain(id), origin: ruleEvidence(id) })), source: url })
+        b.hint(ui().why.sourcesHint(ruleSourceUrl('MS-1'), 'MS-1…MS-6')),
+      ], { rules: ids.map((id) => ({ id, explanation: ruleExplain(id), origin: ruleEvidence(id), source: ruleSourceUrl(id) })), source: url })
     }
     const id = opts.id.trim().toUpperCase()
     const explanation = ruleExplain(id)
@@ -1754,7 +1755,7 @@ export function cmdRules(opts: { id?: string | undefined } = {}): CmdResult {
       b.title(id, ui().improve[origin]),
       b.text(explanation),
       b.blank(),
-      b.hint(ui().why.sourcesHint(url, '§10')),
+      b.hint(ui().why.sourcesHint(url, id.startsWith('MS-') ? id : '§10')),
     ], { id, explanation, origin, source: url })
   } catch (e) {
     return fail(e)

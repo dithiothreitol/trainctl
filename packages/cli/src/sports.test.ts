@@ -3,10 +3,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parse, stringify } from 'yaml'
-import { type SportsPlan, type SportsConfig, type SyncProvider, type PushableWorkout } from 'trainctl-core'
+import ICAL from 'ical.js'
+import { buildSportSession, type SportsPlan, type SportsConfig, type SyncProvider, type PushableWorkout } from 'trainctl-core'
 import { cmdInit, cmdPlan, cmdReplace, cmdMigrate, cmdLog, cmdCheck, cmdWeek, cmdToday, cmdShorten, cmdShift, cmdExport, cmdPush, cmdPull, cmdAdapt, cmdDiff, cmdReview, cmdWhy, cmdReschedule } from './commands.ts'
 import { loadSportsPlan, sportsTemplate } from './sports-store.ts'
-import { sessionExternalId } from './sports-sync.ts'
+import { pushableSession, sessionExternalId } from './sports-sync.ts'
 
 let dir: string
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(),'trainctl-sports-')); vi.stubEnv('TRAINCTL_TODAY','2026-11-02') })
@@ -14,7 +15,7 @@ afterEach(() => { vi.unstubAllEnvs(); rmSync(dir,{recursive:true,force:true,maxR
 function init(goalDate?: string) {
   const config = parse(sportsTemplate('run,bike,swim','2026-11-02')) as SportsConfig
   if (goalDate) config.goal.date = goalDate
-  config.athlete.sports.bike!.ftpWatts = 220; config.athlete.sports.swim!.cssSecPer100m = 120
+  config.athlete.sports.bike!.calibration = {date:"2026-11-01",source:"test"}; config.athlete.sports.bike!.ftpWatts = 220; config.athlete.sports.swim!.cssSecPer100m = 120
   expect(cmdInit(dir,stringify(config)).code).toBe(0)
   const r = cmdPlan(dir); expect(r.output).not.toMatch(/Error/); expect(r.code,r.output).toBe(0)
   return loadSportsPlan(dir)
@@ -22,6 +23,52 @@ function init(goalDate?: string) {
 function proposalId(r: ReturnType<typeof cmdReplace>): string { expect(r.code,r.output).toBe(0); return (r.data!.proposal as {id:string}).id }
 
 describe('multisport CLI workflows',()=>{
+  it('exports fractional pace in workout and recovery steps as valid minute clocks',()=>{
+    const s=buildSportSession('run',{weeklyMinutes:120,sessionsPerWeek:3},40,'fractional','2026-11-02','intervals')
+    const work=s.steps.find(x=>x.repeat)!
+    work.target={kind:'pace',seconds:359.6,perM:1000}
+    work.recovery!.target={kind:'pace',seconds:419.9,perM:1000}
+    const output=pushableSession({id:'p'} as SportsPlan,s).description
+    expect(output).toContain('6:00/km Pace')
+    expect(output).toContain('- Rest 120s 7:00/km Pace')
+    expect(output).not.toMatch(/:60\/|:59\.9|:59\.6/)
+    const swim=buildSportSession('swim',{weeklyMinutes:120,sessionsPerWeek:3,cssSecPer100m:108.2,calibration:{date:'2026-11-01',source:'test'}},30,'swim','2026-11-02')
+    expect(pushableSession({id:'p'} as SportsPlan,swim).description).toContain('2:00/100m Pace')
+  })
+  it('preserves detailed coaching in CLI, JSON, saved plans and all readable exports',()=>{
+    const config=parse(sportsTemplate('bike,swim','2026-11-02')) as SportsConfig
+    config.language='en';config.goal.date='2026-11-15'
+    for(const p of Object.values(config.athlete.sports)){p.weeklyMinutes=180;p.sessionsPerWeek=3;p.experience='regular';p.calibration={date:'2026-11-01',source:'test'}}
+    config.athlete.sports.bike!.ftpWatts=250;config.athlete.sports.swim!.cssSecPer100m=120
+    expect(cmdInit(dir,stringify(config)).code).toBe(0)
+    expect(cmdPlan(dir).code).toBe(0)
+    const p=loadSportsPlan(dir), s=p.sessions.find(x=>x.sport==='bike'&&x.purpose==='intervals')!
+    const today=cmdToday(dir,{session:s.id}),why=cmdWhy(dir,{session:s.id})
+    expect(today.code,today.output).toBe(0);expect(why.code,why.output).toBe(0)
+    expect(today.output).toContain('Objective:');expect(today.output).toContain('RPE')
+    expect(why.output).toContain('Why this workout:');expect(why.output).toContain(config.goal.name)
+    expect((why.data!.sessions as typeof p.sessions)[0]!.coaching).toEqual(s.coaching)
+    expect(cmdExport(dir,{what:'all'}).code).toBe(0)
+    const html=readFileSync(join(dir,'export/plan.html'),'utf8')
+    expect(html).toContain(s.coaching!.objective);expect(html).toContain('white-space:pre-line')
+    const calendar=new ICAL.Component(ICAL.parse(readFileSync(join(dir,'export/plan.ics'),'utf8')))
+    expect(calendar.getAllSubcomponents('vevent').some(e=>new ICAL.Event(e).description.includes(s.coaching!.objective))).toBe(true)
+    const markdown=readFileSync(join(dir,'plan/PLAN.md'),'utf8')
+    expect(markdown).toContain(s.coaching!.objective)
+    const outbound=pushableSession(p,s)
+    expect(outbound.description).toContain(s.coaching!.objective)
+    expect(outbound.description).toContain('RPE')
+    expect(outbound.description).toContain('- Rest 120s 125w')
+    const swim=p.sessions.find(x=>x.sport==='swim'&&x.purpose==='technique')!
+    expect(html).toContain(swim.steps.find(x=>x.role==='drill')!.instruction!)
+    const preserved=structuredClone(s.coaching)
+    const replacement=cmdReplace(dir,{session:s.id,toSport:'swim',prepare:true})
+    const id=proposalId(replacement)
+    expect(cmdReplace(dir,{apply:id}).code).toBe(0)
+    const updated=loadSportsPlan(dir)
+    expect(updated.archive.find(x=>x.id===s.id)!.coaching).toEqual(preserved)
+    expect(updated.sessions.find(x=>x.replacesSessionId===s.id)!.coaching?.recipeId).toMatch(/^swim-/)
+  })
   it('week --session wskazuje jedną sesję i odrzuca nieznane ID',()=>{
     const p=init(), session=p.sessions.find(s=>s.date>'2026-11-08')!
     const result=cmdWeek(dir,{session:session.id})

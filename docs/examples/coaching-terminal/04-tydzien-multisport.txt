@@ -1,0 +1,242 @@
+$ trainctl week --date 2026-11-16
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i ważność propozycji idą za nią
+
+Plan sportowy: Przykładowy triathlon
+Tydzień · 2026-11-16 – 2026-11-22
+────────────────────────────────────────────────────────────────
+
+Treningi:                        8
+Czas treningów:                  414 min 27 s
+Z przygotowaniem i przejściami:  499 min 27 s
+
+╭ 2026-11-16 06:00 · Pływanie
+│ Długa wytrzymałość · 68 min 55 s · 2925 m
+│ Spokojna wytrzymałość długotrwała
+│ 
+│ Cel
+│ 
+│ Wydłużaj czas utrzymania swobodnego wysiłku i stabilnej techniki.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 3–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2  [ 3] [ 4]   5    6    7    8    9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap            Dawka       Cel / wysiłek                  
+│ ──────────────  ──────────  ───────────────────────────────
+│ 1. Rozgrzewka   525 m       2:20/100 m · RPE 2–3/10 · kraul
+│ 2. Praca        10 × 200 m  2:12/100 m · RPE 3–4/10 · kraul
+│ Przerwa po 2    20 s        według odczucia · RPE 1–2/10
+│ 3. Praca        125 m       2:20/100 m · RPE 2–3/10 · kraul
+│ 4. Schłodzenie  275 m       2:20/100 m · RPE 1–2/10 · kraul
+│ 
+│ ID: c-8e047b2e-2026-11-16-swim-2
+╰───────────────────────────────────────────────────────────────
+
+╭ 2026-11-17 06:00 · Rower
+│ Interwały · 68 min
+│ Moc tlenowa: krótkie odcinki
+│ 
+│ Cel
+│ 
+│ Rozwijaj tolerancję powtarzanych mocnych odcinków bez sprintowania.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 7–8/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2    3    4    5    6  [ 7] [ 8]   9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap            Dawka      Cel / wysiłek                
+│ ──────────────  ─────────  ─────────────────────────────
+│ 1. Rozgrzewka   10 min     150 W (60% FTP) · RPE 2–3/10
+│ 2. Praca        5 × 3 min  275 W (110% FTP) · RPE 7–8/10
+│ Przerwa po 2    3 min      125 W (50% FTP) · RPE 1–2/10
+│ 3. Praca        23 min     150 W (60% FTP) · RPE 2–3/10
+│ 4. Schłodzenie  5 min      125 W (50% FTP) · RPE 1–2/10
+│ 
+│ ID: c-8e047b2e-2026-11-16-bike-0
+╰───────────────────────────────────────────────────────────────
+
+╭ 2026-11-18 06:00 · Bieganie
+│ Spokojna wytrzymałość · 40 min
+│ Spokojny trening tlenowy
+│ 
+│ Cel
+│ 
+│ Buduj wytrzymałość tlenową bez dużego zmęczenia.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 3–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2  [ 3] [ 4]   5    6    7    8    9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap             Dawka  Cel / wysiłek               
+│ ──────────────  ──────  ────────────────────────────
+│ 1. Rozgrzewka    5 min  według odczucia · RPE 2–3/10
+│ 2. Praca        31 min  według odczucia · RPE 3–4/10
+│ 3. Schłodzenie   4 min  według odczucia · RPE 1–2/10
+│ 
+│ ID: c-8e047b2e-2026-11-16-run-0
+╰───────────────────────────────────────────────────────────────
+
+╭ 2026-11-19 06:00 · Pływanie
+│ Interwały · 54 min 58 s · 2150 m
+│ Szybkość z kontrolą techniki
+│ 
+│ Cel
+│ 
+│ Utrzymuj sprawny chwyt wody i rytm przy krótkich, mocnych odcinkach.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 6–7/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2    3    4    5  [ 6] [ 7]   8    9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap            Dawka      Cel / wysiłek                  
+│ ──────────────  ─────────  ───────────────────────────────
+│ 1. Rozgrzewka   400 m      2:20/100 m · RPE 2–3/10 · kraul
+│ 2. Praca        12 × 25 m  1:56/100 m · RPE 6–7/10 · kraul
+│ Przerwa po 2    30 s       według odczucia · RPE 1–2/10
+│ 3. Praca        1225 m     2:20/100 m · RPE 2–3/10 · kraul
+│ 4. Schłodzenie  225 m      2:20/100 m · RPE 1–2/10 · kraul
+│ 
+│ ID: c-8e047b2e-2026-11-16-swim-0
+╰───────────────────────────────────────────────────────────────
+
+╭ 2026-11-20 06:00 · Pływanie
+│ Technika · 54 min 34 s · 1875 m
+│ Technika i spokojny rytm
+│ 
+│ Cel
+│ 
+│ Popraw pozycję ciała, wydech i spokojny powrót ramienia, następnie przenieś je do kraula.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 2–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1  [ 2] [ 3] [ 4]   5    6    7    8    9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap                     Dawka      Cel / wysiłek                                      
+│ ───────────────────────  ─────────  ───────────────────────────────────────────────────
+│ 1. Rozgrzewka            400 m      2:20/100 m · RPE 2–3/10 · kraul
+│ 2. Ćwiczenie techniczne  12 × 25 m  według odczucia · RPE 2–3/10 · ćwiczenie techniczne
+│ Przerwa po 2             20 s       według odczucia · RPE 1–2/10
+│ 3. Praca                 19 × 50 m  2:18/100 m · RPE 2–4/10 · kraul
+│ Przerwa po 3             20 s       według odczucia · RPE 1–2/10
+│ 4. Schłodzenie           225 m      2:20/100 m · RPE 1–2/10 · kraul
+│ 
+│ ID: c-8e047b2e-2026-11-16-swim-1
+╰───────────────────────────────────────────────────────────────
+
+╭ 2026-11-21 07:00 · Rower
+│ Spokojna wytrzymałość · 40 min
+│ Rower przed zakładką
+│ 
+│ Cel
+│ 
+│ Utrzymaj równy wysiłek i zakończ rower z zapasem na bieg.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 3–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2  [ 3] [ 4]   5    6    7    8    9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap             Dawka  Cel / wysiłek               
+│ ──────────────  ──────  ────────────────────────────
+│ 1. Rozgrzewka    5 min  150 W (60% FTP) · RPE 2–3/10
+│ 2. Praca        31 min  163 W (65% FTP) · RPE 3–4/10
+│ 3. Schłodzenie   4 min  125 W (50% FTP) · RPE 1–2/10
+│ 
+│ ID: c-8e047b2e-2026-11-16-bike-2
+│ Grupa powiązanych sesji: c-8e047b2e-2026-11-16-brick
+╰───────────────────────────────────────────────────────────────
+
+╭ 2026-11-21 07:55 · Bieganie
+│ Spokojna wytrzymałość · 20 min
+│ Bieg po rowerze
+│ 
+│ Cel
+│ 
+│ Przećwicz przejście do biegu; zacznij spokojnie i ustabilizuj krok.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 3–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2  [ 3] [ 4]   5    6    7    8    9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap             Dawka  Cel / wysiłek               
+│ ──────────────  ──────  ────────────────────────────
+│ 1. Rozgrzewka    3 min  według odczucia · RPE 2–3/10
+│ 2. Praca        15 min  według odczucia · RPE 3–4/10
+│ 3. Schłodzenie   2 min  według odczucia · RPE 1–2/10
+│ 
+│ ID: c-8e047b2e-2026-11-16-run-1
+│ Grupa powiązanych sesji: c-8e047b2e-2026-11-16-brick
+╰───────────────────────────────────────────────────────────────
+
+╭ 2026-11-22 06:00 · Rower
+│ Spokojna wytrzymałość · 68 min
+│ Spokojny trening tlenowy
+│ 
+│ Cel
+│ 
+│ Buduj wytrzymałość tlenową bez dużego zmęczenia.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 3–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2  [ 3] [ 4]   5    6    7    8    9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap             Dawka  Cel / wysiłek               
+│ ──────────────  ──────  ────────────────────────────
+│ 1. Rozgrzewka    5 min  150 W (60% FTP) · RPE 2–3/10
+│ 2. Praca        58 min  163 W (65% FTP) · RPE 3–4/10
+│ 3. Schłodzenie   5 min  125 W (50% FTP) · RPE 1–2/10
+│ 
+│ ID: c-8e047b2e-2026-11-16-bike-1
+╰───────────────────────────────────────────────────────────────
+
+Objętość według sportu
+
+Sport     Czas          Dystans  Intensywność                                                   
+────────  ────────────  ───────  ───────────────────────────────────────────────────────────────
+Bieganie  60 min            0 m  Spokojnie 100%
+Rower     176 min           0 m  Spokojnie 83% · Akcent 8.5% · Odpoczynek 8.5%
+Pływanie  178 min 27 s   6950 m  Spokojnie 69.1% · Akcent 3.3% · Odpoczynek 11% · Technika 16.6%
+
+Planowana intensywność wynika z ról kroków, nie z pomiaru stref. Rozgrzewka i schłodzenie są spokojne, wszystkie
+przerwy to odpoczynek. Interwały bez kalibracji i mieszane segmenty biegu bez podziału czasu pozostają
+nieokreślone.
+→ Grupa powiązanych sesji: c-8e047b2e-2026-11-16-brick · Przejścia między etapami zawodów (sekundy): 300

@@ -11,8 +11,9 @@ export interface SportModule {
 }
 export function trainingIntent(s: TrainingSession): TrainingIntent {
   const primary = ({ easy: 'aerobic', long: 'durability', intervals: 'quality', technique: 'technique', race: 'competition', strength: 'strength' } as const)[s.purpose]
-  const calibratedWork = s.steps.some(step=>step.role==='work'&&step.target.kind!=='open') || s.legacyWorkout?.segments.some(segment=>segment.pace && !['warmup','cooldown','easy'].includes(segment.type))
-  return { primary, intensity: s.purpose === 'race' ? 'high' : s.purpose === 'intervals' ? calibratedWork ? 'high' : 'unknown' : s.purpose === 'strength' ? 'unknown' : 'low', specificTo: s.sport }
+  const calibratedWork = s.steps.some(step=>step.role==='work'&&(step.target.kind!=='open'||(step.effort?.max??0)>4)) || s.legacyWorkout?.segments.some(segment=>segment.pace && !['warmup','cooldown','easy'].includes(segment.type))
+  const moderate=s.steps.some(step=>step.role==='work' && step.effort && step.effort.max>4) && s.steps.every(step=>!step.effort || step.effort.max<=6)
+  return { primary, intensity: s.purpose === 'race' ? 'high' : s.purpose === 'intervals' ? calibratedWork ? moderate?'moderate':'high' : 'unknown' : s.purpose === 'strength' ? 'unknown' : 'low', specificTo: s.sport }
 }
 function calibrated(sport: EnduranceSport, p: SportProfile, asOf: string): boolean {
   if (sport === 'bike' && p.resources && !p.resources.includes('powerMeter')) return false

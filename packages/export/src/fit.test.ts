@@ -14,27 +14,28 @@ import { buildSportSession } from 'trainctl-core'
 
 describe('sport-specific FIT workouts', () => {
   it('encodes cycling power in watts with the FIT offset and correct sport', () => {
-    const s = buildSportSession('bike', {weeklyMinutes:120,sessionsPerWeek:2,ftpWatts:200}, 40, 'bike1', '2026-11-03')
+    const s = buildSportSession('bike', {weeklyMinutes:120,sessionsPerWeek:2,ftpWatts:200,calibration:{date:"2026-11-01",source:"test"}}, 40, 'bike1', '2026-11-03')
     const fit = decodeFit(encodeSessionFit(s,'Cycling'))
     expect(fit.headerOk && fit.crcOk).toBe(true)
     expect(fit.records.find(r=>r.globalNum===26)!.fields.get(4)).toBe(2)
     const step=fit.records.find(r=>r.globalNum===27)!
     expect(step.fields.get(3)).toBe(4)
-    expect(step.fields.get(5)).toBe(1130)
+    expect(step.fields.get(5)).toBe(1120)
   })
   it('encodes swimming distance, pool length, stroke, rests and repeats', () => {
-    const s = buildSportSession('swim', {weeklyMinutes:60,sessionsPerWeek:2,cssSecPer100m:120,poolLengthM:25}, 30, 'swim1', '2026-11-03')
+    const s = buildSportSession('swim', {weeklyMinutes:60,sessionsPerWeek:2,cssSecPer100m:120,calibration:{date:"2026-11-01",source:"test"},poolLengthM:25}, 30, 'swim1', '2026-11-03')
     const fit=decodeFit(encodeSessionFit(s,'Pool'))
     expect(fit.headerOk && fit.crcOk).toBe(true)
     const w=fit.records.find(r=>r.globalNum===26)!
     expect(w.fields.get(4)).toBe(5);expect(w.fields.get(14)).toBe(2500)
     const steps=fit.records.filter(r=>r.globalNum===27)
     expect(steps[0]!.fields.get(1)).toBe(1)
-    expect(steps[0]!.fields.get(2)).toBe(10000)
+    expect(steps[0]!.fields.get(2)).toBe(22500)
     expect(steps[0]!.fields.get(3)).toBe(11)
-    expect(steps[1]!.fields.get(2)).toBe(20000)
-    expect(steps[2]!.fields.get(1)).toBe(6)
-    expect(steps[2]!.fields.get(4)).toBe(11) // 11 × (132 s swim + 20 s rest) fits in 30 min
+    expect(steps[1]!.fields.get(2)).toBe(10000)
+    expect(steps[2]!.fields.get(2)).toBe(20000)
+    expect(steps[3]!.fields.get(1)).toBe(6)
+    expect(steps[3]!.fields.get(4)).toBe(8) // 8 full repeats, in addition to warm-up and cool-down
   })
   it('refuses send-off export instead of silently losing its timing semantics', () => {
     const s=buildSportSession('swim',{weeklyMinutes:60,sessionsPerWeek:2},30,'s1','2026-11-03')

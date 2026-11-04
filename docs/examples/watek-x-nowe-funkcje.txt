@@ -1,0 +1,29 @@
+1/10
+Rozwijam trainctl, narzędzie do planowania treningów przez CLI i MCP. Do biegania dołączyły rower, pływanie i multisport. W wersji rozwojowej dodałem dokładne opisy jednostek, zamianę dyscypliny i czytelniejszy widok treningu.
+
+2/10
+Opis jednostki zawiera cel i uzasadnienie. Rozgrzewka, część główna, przerwy i schłodzenie mają osobne sekcje. Każdy etap podaje czas lub dystans, docelowy wysiłek i wskazówki wykonania.
+
+3/10
+Treningi rowerowe korzystają z własnego profilu zawodnika i aktualnego FTP. Odcinki pracy oraz odpoczynku mają osobne cele mocy. Przy braku aktualnej kalibracji program opisuje wysiłek przez RPE, czyli subiektywną ocenę jego intensywności.
+
+4/10
+Serie pływackie uwzględniają długość basenu, tempo wynikające z aktualnego CSS i odpoczynki. Ćwiczenia techniczne mają konkretne instrukcje oraz część, w której ćwiczoną umiejętność przenosimy do kraula.
+
+5/10
+Plan multisportowy łączy trzy dyscypliny we wspólnym harmonogramie. Uwzględnia czas przygotowania i przejścia między sesjami. Zakładki rower–bieg mają własny cel, strukturę i stopniowo zmienianą objętość.
+
+6/10
+Jednostki można zamieniać między bieganiem, rowerem i pływaniem. Podgląd pokazuje nową strukturę, zmianę objętości i kompromisy treningowe. Można też przywrócić oryginał. Program nie zakłada fizjologicznej równoważności dyscyplin.
+
+7/10
+Skracanie treningu uwzględnia dostępny czas, pełne powtórzenia, przerwy, rozgrzewkę i schłodzenie. Jeśli budżet czasu nie pozwala zachować wymaganej struktury i minimalnej części głównej, program odrzuca zmianę.
+
+8/10
+Widok terminala ma oddzielone sekcje, kolorowe nagłówki i skalę RPE od 1 do 10. Skala zaznacza zakres najmocniejszego zaplanowanego etapu. Etykiety i wartości liczbowe pozostają czytelne także po wyłączeniu kolorów.
+
+9/10
+Plan można wyeksportować do HTML, Markdown, ICS i FIT. CLI oraz MCP udostępniają te same cele i strukturę treningów, więc agent może analizować plan na tych samych danych co użytkownik terminala.
+
+10/10
+Aktualny kod przeszedł 1076 testów. Sprawdziłem CLI, MCP, eksporty i symulacje zmian planu. Testy na fizycznych zegarkach Garmin i Suunto oraz niezależna ocena biblioteki treningów przez trenerów pozostają do wykonania.

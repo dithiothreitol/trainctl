@@ -22,4 +22,5 @@ export * from './sports/messages.ts'
 export * from './sports/engine.ts'
 
 export * from './sports/modules.ts'
+export * from './sports/coaching.ts'
 export * from './sports/activities.ts'

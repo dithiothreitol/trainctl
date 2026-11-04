@@ -2,3 +2,6 @@
 # Skrypty z shebangiem (hooki pluginu): vitest zdejmuje `#!` tylko przed LF —
 # z CRLF po checkoucie na Windows import kończy się SyntaxError.
 *.mjs text eol=lf
+# Surowe wyniki CLI zachowują końcowe spacje ramek i skali intensywności.
+docs/examples/coaching-terminal/[0-9]*.txt text eol=lf whitespace=-blank-at-eol
+docs/examples/x-thread-2026-11-04/source/*.txt text eol=lf whitespace=-blank-at-eol

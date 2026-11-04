@@ -1,6 +1,6 @@
 {
   "name": "trainctl-monorepo",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Running coach in your terminal: training plan as code in a git repo, coach as a tool for your agent (CLI + MCP)",
   "keywords": [
@@ -37,7 +37,8 @@
     "build": "pnpm -r run build",
     "simulate:multisport": "node scripts/simulate-multisport.ts",
     "benchmark:multisport": "node scripts/benchmark-multisport.ts",
-    "verify:distribution": "node scripts/verify-distribution.ts"
+    "verify:distribution": "node scripts/verify-distribution.ts",
+    "simulate:coaching": "node scripts/simulate-coaching.ts"
   },
   "devDependencies": {
     "@garmin/fitsdk": "21.218.0",

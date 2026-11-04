@@ -1,5 +1,5 @@
 /** Adapter: the established running engine remains authoritative after migration. */
-import { estimateWorkoutMinutes, predictTimeSec, type PlannedWorkout, type SportsConfig, type SportsPlan, type TrainingSession } from 'trainctl-core'
+import { attachRunningCoaching, estimateWorkoutMinutes, predictTimeSec, type PlannedWorkout, type SportsConfig, type SportsPlan, type TrainingSession } from 'trainctl-core'
 import { computePlan, dayFingerprint, workoutText, type StoredPlan } from './planfile.ts'
 import type { TrainctlConfig } from './config.ts'
 import { rebuildPlan } from './regenerate.ts'
@@ -19,7 +19,7 @@ export function runningSessions(plan: StoredPlan, cycleId: string): TrainingSess
     if (sport === 'run' ? !workout : !strength) return []
     const seconds = sport === 'run' ? Math.max(60, Math.round(runningDurationMinutes(plan, workout!, d.date) * 60)) : strength!.durationMin * 60
     const approved = !!(d.timeAdjustment && d.timeAdjustment.origin !== 'profile') || !!(plan.generatedDays && plan.generatedDays[d.date] !== dayFingerprint(d))
-    return [{ id: `${cycleId}-${d.date}-${sport}`, date: d.date, sport,
+    return [attachRunningCoaching({ id: `${cycleId}-${d.date}-${sport}`, date: d.date, sport,
       purpose: sport === 'strength' ? 'strength' : workout!.kind === 'race' ? 'race' : workout!.kind === 'long' ? 'long' : workout!.kind.includes('quality') || workout!.kind === 'test' ? 'intervals' : 'easy',
       durationSec: seconds, preparationSec: sport === 'run' ? (plan.preparationMinutes ?? 15) * 60 : 0,
       steps: [{ role: 'work', durationSec: seconds, target: { kind: 'open' } }],
@@ -27,7 +27,7 @@ export function runningSessions(plan: StoredPlan, cycleId: string): TrainingSess
       ...(sport === 'run' && !Number.isFinite(estimateWorkoutMinutes(workout!,0)) ? {durationSource:'running-prediction'} : {}),
       ...(approved ? { approved: true } : {}), ...(d.pinned ? { pinned: true } : {}),
       ...(sport === 'run' ? { legacyWorkout: workout!, distanceM: (workout!.raceDistanceKm ?? workout!.distanceKm) * 1000, description: workoutText(d), externalId: `trainctl-${d.date}` } : { description: strength!.description, externalId: `trainctl-${d.date}-strength` }),
-    } as TrainingSession]
+    } as TrainingSession, {phase:w.skeleton.deload?'deload':w.skeleton.phase==='transition'?'recovery':w.skeleton.phase==='peak'?'build':w.skeleton.phase,weekIndex:w.skeleton.index,goal:{kind:plan.goal.kind==='base'?'base':'race',name:plan.goal.name,date:plan.goal.date,sport:'run',distanceM:plan.goal.distanceKm*1000}})]
   })))
 }
 

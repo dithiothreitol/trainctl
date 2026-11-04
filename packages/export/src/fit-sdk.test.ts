@@ -1,6 +1,6 @@
 import { Decoder, Stream } from '@garmin/fitsdk'
 import { describe, expect, it } from 'vitest'
-import { sessionTotals, type PlannedWorkout, type SessionStep, type TrainingSession } from 'trainctl-core'
+import { buildSportSession, sessionTotals, type PlannedWorkout, type SessionStep, type TrainingSession } from 'trainctl-core'
 import { encodeSessionFit, encodeWorkoutFit } from './fit.ts'
 
 const session = (sport: TrainingSession['sport'], steps: SessionStep[], poolLengthM?: number): TrainingSession => ({
@@ -20,6 +20,20 @@ function decode(bytes: Uint8Array) {
 }
 
 describe('FIT interoperability with the official Garmin SDK', () => {
+  it('retains coaching notes, subjective effort and measured recovery targets',()=>{
+    const bike=buildSportSession('bike',{weeklyMinutes:180,sessionsPerWeek:3,ftpWatts:250,calibration:{date:'2026-11-01',source:'test'}},60,'b','2026-11-02','intervals')
+    const messages=decode(encodeSessionFit(bike,'Bike coaching'))
+    const steps=messages.workoutStepMesgs!
+    expect(steps[0]!.wktStepName).toContain('RPE')
+    expect(steps[0]!.notes).toContain('RPE')
+    expect(steps.find(s=>s.intensity==='rest')).toMatchObject({targetType:'power',customTargetPowerLow:1125,customTargetPowerHigh:1125,durationTime:180})
+    expect(steps.find(s=>s.intensity==='rest')!.notes).toBeTruthy()
+    const swim=buildSportSession('swim',{weeklyMinutes:120,sessionsPerWeek:3},30,'s','2026-11-02','technique')
+    const uncalibrated=decode(encodeSessionFit(swim,'Pool coaching')).workoutStepMesgs!
+    expect(uncalibrated.some(s=>String(s.notes).includes('RPE'))).toBe(true)
+    expect(uncalibrated.find(s=>s.targetStrokeType==='drill')!.notes).toBeTruthy()
+    expect(uncalibrated.every(s=>!String(s.notes).includes('�'))).toBe(true)
+  })
   it('decodes running distance, speed, recovery and loop boundaries in physical units', () => {
     const workout = session('run', [
       { role: 'warmup', durationSec: 300, target: { kind: 'open' } },

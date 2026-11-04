@@ -1,0 +1,29 @@
+1/9 · 01-plan-multisport.png
+Podsumowanie tygodnia w trainctl. Tabela pokazuje osobno bieganie, rower oraz pływanie, z czasem każdej dyscypliny i udziałem planowanej intensywności.
+
+2/9 · 02-cel-i-intensywnosc.png
+Cel treningu rowerowego: powtarzane mocne odcinki bez sprintowania. Kolorowa skala od 1 do 10 zaznacza planowany zakres RPE od 7 do 8.
+
+3/9 · 03-rower-odcinki-i-przerwy.png
+5 odcinków po 3 minuty przy 275 W i RPE 7 do 8. Po każdym odcinku, również ostatnim, 3 minuty odpoczynku przy 125 W i RPE 1 do 2.
+
+4/9 · 04-plywanie-technika.png
+Ćwiczenie techniczne 12 razy 25 metrów, RPE 2 do 3. Instrukcja dotyczy pozycji głowy i swobodnego oddychania. Po każdym odcinku 20 sekund odpoczynku przy ścianie.
+
+4/9 · 04b-plywanie-czesc-glowna.png
+Po ćwiczeniu technicznym plan zawiera 19 razy 50 metrów kraulem w tempie 2:18 na 100 metrów. RPE od 2 do 4, przerwa 20 sekund po każdym odcinku.
+
+5/9 · 05-zakladka-rower-bieg.png
+Celem biegu po rowerze jest spokojne przejście do biegu i ustabilizowanie kroku. Część główna trwa 11 minut 15 sekund przy RPE 3 do 4, z kontrolą oddechu i rytmu.
+
+6/9 · 06-zamiana-biegu-na-plywanie.png
+Podgląd zamiany 40 minut biegu na 29 minut 36 sekund pływania, łącznie 1200 metrów. Część główna nowej jednostki obejmuje 8 razy 100 metrów i 20 sekund przerwy po odcinku.
+
+6/9 · 06b-wplyw-zamiany-na-plan.png
+Podgląd wskazuje, że zamiana dyscypliny nie oznacza równoważności fizjologicznej. Tygodniowa objętość biegu spada o 40 minut, a pływania rośnie o 29,6 minuty. Rower pozostaje bez zmian.
+
+7/9 · 07-skrocenie-do-budzetu.png
+Po skróceniu trening zajmuje 33 minuty, a wraz z przygotowaniem 43 minuty. Pozostają 3 odcinki po 3 minuty przy 275 W oraz pełne 3 minuty odpoczynku przy 125 W.
+
+8/9 · 08-eksport-treningu.png
+CLI potwierdza zapis wybranej jednostki rowerowej do FIT oraz eksport planu do plików ICS i HTML.

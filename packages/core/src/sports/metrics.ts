@@ -20,7 +20,7 @@ export function intensityMinutes(session: TrainingSession) {
     seconds.recovery += stepSeconds(step) - work
     const kind = step.role === 'rest' ? 'recovery' : step.role === 'warmup' || step.role === 'cooldown' ? 'easy'
       : step.role === 'drill' || session.purpose === 'technique' ? 'technique'
-      : session.purpose === 'intervals' ? (step.target.kind === 'open' ? 'unknown' : 'quality')
+      : session.purpose === 'intervals' ? (step.effort ? step.effort.max>4?'quality':'easy' : step.target.kind === 'open' ? 'unknown' : 'quality')
       : ['easy','long'].includes(session.purpose) ? 'easy' : 'unknown'
     seconds[kind] += work
   }

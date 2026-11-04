@@ -1,0 +1,122 @@
+[
+  {
+    "number": 1,
+    "text": "1/9\nRozwijam trainctl, narzędzie do planowania treningów przez terminal i MCP. Nowa wersja rozwojowa obejmuje bieganie, rower, pływanie i multisport. Najwięcej zmian dotyczy struktury jednostek, zamiany dyscyplin i czytelności opisów.",
+    "images": [
+      {
+        "file": "01-plan-multisport.png",
+        "alt": "Podsumowanie tygodnia w trainctl. Tabela pokazuje osobno bieganie, rower oraz pływanie, z czasem każdej dyscypliny i udziałem planowanej intensywności."
+      }
+    ],
+    "image": "01-plan-multisport.png",
+    "alt": "Podsumowanie tygodnia w trainctl. Tabela pokazuje osobno bieganie, rower oraz pływanie, z czasem każdej dyscypliny i udziałem planowanej intensywności.",
+    "characters": 234
+  },
+  {
+    "number": 2,
+    "text": "2/9\nNowe jednostki mają opis celu, uzasadnienie i wskazówki wykonania. Kolorowe nagłówki oddzielają sekcje, a skala RPE od 1 do 10 zaznacza wysiłek najmocniejszego etapu. Rozgrzewka, odcinki pracy i przerwy są opisane osobno.",
+    "images": [
+      {
+        "file": "02-cel-i-intensywnosc.png",
+        "alt": "Cel treningu rowerowego: powtarzane mocne odcinki bez sprintowania. Kolorowa skala od 1 do 10 zaznacza planowany zakres RPE od 7 do 8."
+      }
+    ],
+    "image": "02-cel-i-intensywnosc.png",
+    "alt": "Cel treningu rowerowego: powtarzane mocne odcinki bez sprintowania. Kolorowa skala od 1 do 10 zaznacza planowany zakres RPE od 7 do 8.",
+    "characters": 225
+  },
+  {
+    "number": 3,
+    "text": "3/9\nTrening rowerowy podaje moc dla pracy i odpoczynku. W przykładzie: 5 odcinków po 3 min przy 275 W, rozdzielonych 3 min przy 125 W. Cele wynikają z FTP zawodnika. Przy braku aktualnej kalibracji program korzysta z instrukcji RPE.",
+    "images": [
+      {
+        "file": "03-rower-odcinki-i-przerwy.png",
+        "alt": "5 odcinków po 3 minuty przy 275 W i RPE 7 do 8. Po każdym odcinku, również ostatnim, 3 minuty odpoczynku przy 125 W i RPE 1 do 2."
+      }
+    ],
+    "image": "03-rower-odcinki-i-przerwy.png",
+    "alt": "5 odcinków po 3 minuty przy 275 W i RPE 7 do 8. Po każdym odcinku, również ostatnim, 3 minuty odpoczynku przy 125 W i RPE 1 do 2.",
+    "characters": 232
+  },
+  {
+    "number": 4,
+    "text": "4/9\nSerie pływackie uwzględniają długość basenu, tempo i odpoczynki. Ćwiczenia techniczne mają konkretne instrukcje. Po nich plan zawiera odcinki kraula, które pozwalają zastosować ćwiczoną umiejętność w pełnym ruchu.",
+    "images": [
+      {
+        "file": "04-plywanie-technika.png",
+        "alt": "Ćwiczenie techniczne 12 razy 25 metrów, RPE 2 do 3. Instrukcja dotyczy pozycji głowy i swobodnego oddychania. Po każdym odcinku 20 sekund odpoczynku przy ścianie."
+      },
+      {
+        "file": "04b-plywanie-czesc-glowna.png",
+        "alt": "Po ćwiczeniu technicznym plan zawiera 19 razy 50 metrów kraulem w tempie 2:18 na 100 metrów. RPE od 2 do 4, przerwa 20 sekund po każdym odcinku."
+      }
+    ],
+    "image": "04-plywanie-technika.png",
+    "alt": "Ćwiczenie techniczne 12 razy 25 metrów, RPE 2 do 3. Instrukcja dotyczy pozycji głowy i swobodnego oddychania. Po każdym odcinku 20 sekund odpoczynku przy ścianie.",
+    "characters": 217
+  },
+  {
+    "number": 5,
+    "text": "5/9\nPlan multisportowy uwzględnia czas każdej dyscypliny, przygotowania i przejścia między sesjami. Zakładka łączy rower z biegiem. Bieg po rowerze ma własny cel: spokojne przejście do nowego ruchu i kontrolę tempa.",
+    "images": [
+      {
+        "file": "05-zakladka-rower-bieg.png",
+        "alt": "Celem biegu po rowerze jest spokojne przejście do biegu i ustabilizowanie kroku. Część główna trwa 11 minut 15 sekund przy RPE 3 do 4, z kontrolą oddechu i rytmu."
+      }
+    ],
+    "image": "05-zakladka-rower-bieg.png",
+    "alt": "Celem biegu po rowerze jest spokojne przejście do biegu i ustabilizowanie kroku. Część główna trwa 11 minut 15 sekund przy RPE 3 do 4, z kontrolą oddechu i rytmu.",
+    "characters": 215
+  },
+  {
+    "number": 6,
+    "text": "6/9\nJednostki można zamieniać między bieganiem, rowerem i pływaniem. Przed zatwierdzeniem widać nowy trening, zmianę objętości i ograniczenia zamiany. Można też przywrócić oryginał. Program nie zakłada fizjologicznej równoważności dyscyplin.",
+    "images": [
+      {
+        "file": "06-zamiana-biegu-na-plywanie.png",
+        "alt": "Podgląd zamiany 40 minut biegu na 29 minut 36 sekund pływania, łącznie 1200 metrów. Część główna nowej jednostki obejmuje 8 razy 100 metrów i 20 sekund przerwy po odcinku."
+      },
+      {
+        "file": "06b-wplyw-zamiany-na-plan.png",
+        "alt": "Podgląd wskazuje, że zamiana dyscypliny nie oznacza równoważności fizjologicznej. Tygodniowa objętość biegu spada o 40 minut, a pływania rośnie o 29,6 minuty. Rower pozostaje bez zmian."
+      }
+    ],
+    "image": "06-zamiana-biegu-na-plywanie.png",
+    "alt": "Podgląd zamiany 40 minut biegu na 29 minut 36 sekund pływania, łącznie 1200 metrów. Część główna nowej jednostki obejmuje 8 razy 100 metrów i 20 sekund przerwy po odcinku.",
+    "characters": 241
+  },
+  {
+    "number": 7,
+    "text": "7/9\nSkracanie treningu zachowuje pełne powtórzenia, przerwy, rozgrzewkę i schłodzenie. W przykładzie budżet 45 min pozwala na 33 min jazdy i 10 min przygotowania. Gdy nie da się zachować wymaganej części głównej, program odrzuca zmianę.",
+    "images": [
+      {
+        "file": "07-skrocenie-do-budzetu.png",
+        "alt": "Po skróceniu trening zajmuje 33 minuty, a wraz z przygotowaniem 43 minuty. Pozostają 3 odcinki po 3 minuty przy 275 W oraz pełne 3 minuty odpoczynku przy 125 W."
+      }
+    ],
+    "image": "07-skrocenie-do-budzetu.png",
+    "alt": "Po skróceniu trening zajmuje 33 minuty, a wraz z przygotowaniem 43 minuty. Pozostają 3 odcinki po 3 minuty przy 275 W oraz pełne 3 minuty odpoczynku przy 125 W.",
+    "characters": 236
+  },
+  {
+    "number": 8,
+    "text": "8/9\nCLI i MCP udostępniają te same cele oraz strukturę treningów. Eksport obejmuje HTML, ICS i FIT. Program tworzy też plan w Markdown. Dane strukturalne pozwalają agentowi analizować i modyfikować plan.",
+    "images": [
+      {
+        "file": "08-eksport-treningu.png",
+        "alt": "CLI potwierdza zapis wybranej jednostki rowerowej do FIT oraz eksport planu do plików ICS i HTML."
+      }
+    ],
+    "image": "08-eksport-treningu.png",
+    "alt": "CLI potwierdza zapis wybranej jednostki rowerowej do FIT oraz eksport planu do plików ICS i HTML.",
+    "characters": 203
+  },
+  {
+    "number": 9,
+    "text": "9/9\nAktualny kod przeszedł 1076 testów oraz symulacje CLI. Sprawdziłem też MCP i eksporty. Funkcje są w wersji rozwojowej. Testy na fizycznych zegarkach Garmin i Suunto oraz niezależna ocena biblioteki przez trenerów pozostają do wykonania.",
+    "images": [],
+    "image": null,
+    "alt": null,
+    "characters": 240
+  }
+]

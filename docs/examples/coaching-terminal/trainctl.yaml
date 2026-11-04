@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 2,
+  "language": "pl",
+  "athlete": {
+    "sports": {
+      "run": {
+        "weeklyMinutes": 90,
+        "sessionsPerWeek": 2,
+        "experience": "regular"
+      },
+      "bike": {
+        "weeklyMinutes": 240,
+        "sessionsPerWeek": 3,
+        "experience": "trained",
+        "ftpWatts": 250,
+        "calibration": {
+          "date": "2026-11-01",
+          "source": "synthetic test"
+        },
+        "resources": [
+          "bike",
+          "powerMeter"
+        ]
+      },
+      "swim": {
+        "weeklyMinutes": 180,
+        "sessionsPerWeek": 3,
+        "experience": "trained",
+        "cssSecPer100m": 120,
+        "poolLengthM": 25,
+        "calibration": {
+          "date": "2026-11-01",
+          "source": "synthetic test"
+        },
+        "resources": [
+          "pool"
+        ]
+      }
+    }
+  },
+  "goal": {
+    "kind": "multisport",
+    "name": "Przykładowy triathlon",
+    "date": "2026-12-27",
+    "legs": [
+      {
+        "id": "swim",
+        "sport": "swim",
+        "distanceM": 1500,
+        "estimatedMinutes": 35
+      },
+      {
+        "id": "bike",
+        "sport": "bike",
+        "distanceM": 40000,
+        "estimatedMinutes": 90
+      },
+      {
+        "id": "run",
+        "sport": "run",
+        "distanceM": 10000,
+        "estimatedMinutes": 60
+      }
+    ]
+  },
+  "maxSessionsPerDay": 2,
+  "brick": {
+    "day": "sat",
+    "bikeMinutes": 40,
+    "runMinutes": 20,
+    "transitionMinutes": 5
+  }
+}

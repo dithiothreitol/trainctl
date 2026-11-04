@@ -1,0 +1,149 @@
+$ trainctl shorten --date 2026-11-17 --sport bike --minutes 45
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i
+  ważność propozycji idą za nią
+✓ Propozycja gotowa; przejrzyj ją i zastosuj jej ID.
+  225077a5-b0b8-48b3-adb0-caa42aa5af3e
+
+╭ Oryginał · 2026-11-17 06:00 · Rower
+│ Interwały · 68 min
+│ Moc tlenowa: krótkie odcinki
+│ 
+│ Cel
+│ 
+│ Rozwijaj tolerancję powtarzanych mocnych odcinków bez sprintowania.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 7–8/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2    3    4    5    6  [ 7] [ 8]   9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap            Dawka      Cel / wysiłek                
+│ ──────────────  ─────────  ─────────────────────────────
+│ 1. Rozgrzewka   10 min     150 W (60% FTP) · RPE 2–3/10
+│ 2. Praca        5 × 3 min  275 W (110% FTP) · RPE 7–8/10
+│ Przerwa po 2    3 min      125 W (50% FTP) · RPE 1–2/10
+│ 3. Praca        23 min     150 W (60% FTP) · RPE 2–3/10
+│ 4. Schłodzenie  5 min      125 W (50% FTP) · RPE 1–2/10
+│ 
+│ ID: c-4723c794-2026-11-16-bike-0
+╰───────────────────────────────────────────────────────────────
+
+╭ Zamiennik · 2026-11-17 06:00 · Rower
+│ Interwały · 33 min
+│ Moc tlenowa: krótkie odcinki
+│ 
+│ Cel
+│ 
+│ Rozwijaj tolerancję powtarzanych mocnych odcinków bez sprintowania.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 7–8/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2    3    4    5    6  [ 7] [ 8]   9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap            Dawka      Cel / wysiłek                
+│ ──────────────  ─────────  ─────────────────────────────
+│ 1. Rozgrzewka   10 min     150 W (60% FTP) · RPE 2–3/10
+│ 2. Praca        3 × 3 min  275 W (110% FTP) · RPE 7–8/10
+│ Przerwa po 2    3 min      125 W (50% FTP) · RPE 1–2/10
+│ 3. Schłodzenie  5 min      125 W (50% FTP) · RPE 1–2/10
+│ 
+│ ID: c-4723c794-2026-11-16-bike-0
+╰───────────────────────────────────────────────────────────────
+
+→ trainctl shorten --apply 225077a5-b0b8-48b3-adb0-caa42aa5af3e
+
+$ trainctl shorten --apply 225077a5-b0b8-48b3-adb0-caa42aa5af3e
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i
+  ważność propozycji idą za nią
+✓ Zastosowano propozycję.
+Oryginał:   Rower · 68 min
+Zamiennik:  Rower · 33 min
+
+→ trainctl today --session c-4723c794-2026-11-16-bike-0
+
+$ trainctl today --date 2026-11-17 --sport bike
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i
+  ważność propozycji idą za nią
+
+Plan sportowy: Przykładowy triathlon
+Dzień · 2026-11-17
+────────────────────────────────────────────────────────────────
+
+Treningi:                        1
+Czas treningów:                  33 min
+Z przygotowaniem i przejściami:  43 min
+
+╭ 2026-11-17 06:00 · Rower
+│ Interwały · 33 min
+│ Moc tlenowa: krótkie odcinki
+│ 
+│ Cel
+│ 
+│ Rozwijaj tolerancję powtarzanych mocnych odcinków bez sprintowania.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 7–8/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2    3    4    5    6  [ 7] [ 8]   9   10 
+│ 1–2 bardzo lekko · 3–4 lekko · 5–6 umiarkowanie · 7–8 mocno · 9–10 bardzo
+│ mocno. Nawiasy [ ] wskazują zaplanowany zakres.
+│ 
+│ Przebieg treningu
+│ 
+│ 1. Rozgrzewka · 10 min
+│ 
+│ Cel etapu:  150 W (60% FTP)
+│ RPE:        2–3/10
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Zacznij bardzo spokojnie; stopniowo ustabilizuj rytm i oddech.
+│ 
+│ 2. Praca · 3 × 3 min
+│ 
+│ Cel etapu:  275 W (110% FTP)
+│ RPE:        7–8/10
+│ Mocno, ale bez sprintu; pozostaw zapas na ostatni odcinek.
+│ Ostatni odcinek wykonaj równie równo jak pierwszy; nie przyspieszaj ponad cel.
+│ 
+│ Przerwa po odcinku:  3 min @ 125 W (50% FTP) · RPE 1–2/10
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Bardzo lekki ruch po każdym odcinku, również ostatnim.
+│ 
+│ 3. Schłodzenie · 5 min
+│ 
+│ Cel etapu:  125 W (50% FTP)
+│ RPE:        1–2/10
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Stopniowo zmniejsz wysiłek i rozluźnij ruch.
+│ 
+│ Dlaczego ten trening
+│ 
+│ Faza: Rozbudowa. Tydzień cyklu: 3. Cel planu: Przykładowy triathlon (40000 m).
+│ Dawkę ograniczają poziom doświadczenia i dostępny czas; progresja nie wymaga
+│ zwiększania intensywności. Doświadczenie: wytrenowany. Krótszy dystans celu i
+│ zadeklarowane wytrenowanie pozwalają wybrać krótką, ograniczoną serię
+│ mocniejszych odcinków.
+│ 
+│ Wskazówki wykonania
+│ 
+│ • Utrzymaj zadany wysiłek i pełne przerwy; porównaj tempo lub moc pierwszego i
+│   ostatniego odcinka.
+│ • Zapisz czas, odczuwany wysiłek RPE i ewentualne zmniejszenie liczby
+│   powtórzeń.
+│ 
+│ Dostosowanie
+│ 
+│ • Jeśli wysiłek lub technika wykraczają poza wskazówki, zwolnij albo skróć
+│   serię. Nie nadrabiaj pominiętych odcinków.
+│ 
+│ ID: c-4723c794-2026-11-16-bike-0
+╰───────────────────────────────────────────────────────────────

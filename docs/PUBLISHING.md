@@ -4,13 +4,15 @@
 <https://github.com/dithiothreitol/trainctl>, MIT, Discussions wyłączone,
 prywatne zgłaszanie podatności włączone. Warunek „sezon na sobie" został
 świadomie odpuszczony — decyzja właściciela, nie przeoczenie.
-**Wersja repozytorium: 0.5.0 (2026-11-04)** dla wszystkich sześciu paczek
+**Wersja repozytorium: 0.6.0 (2026-11-04)** dla wszystkich sześciu paczek
 i pluginu (Claude Code, Codex).
-Historia wydań: `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.3.0`, `v0.4.0`.
+Historia wydań: `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.5.0`.
 0.1.0 pozostaje zdeprecjonowane — przyczynę opisano w historycznej sekcji npm.
 
-0.5.0 dodaje rower, pływanie i multisport, zamiany jednostek w sześciu
-kierunkach, samodzielny plugin Codexa oraz responsywne formatowanie CLI.
+0.6.0 dodaje szczegółowe cele i struktury jednostek, instrukcje pływania,
+kontrolę kalibracji, zachowanie pełnych powtórzeń przy skracaniu oraz kolorowe
+sekcje i skalę RPE w CLI. Wydanie obejmuje GitHub Release i samodzielny ZIP
+pluginu z CLI/MCP. Zgodnie z decyzją właściciela nie publikujemy 0.6.0 w npm.
 Zakres i ograniczenia opisuje [CHANGELOG.md](../CHANGELOG.md).
 Dostępność paczek w npm sprawdzamy osobno od tagu i GitHub Release;
 sama zmiana wersji w repozytorium nie oznacza publikacji do rejestru.

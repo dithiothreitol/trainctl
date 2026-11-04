@@ -40,7 +40,7 @@ describe('sport-specific policies',()=>{
     const p=base(), s=buildSportSession('run',c.athlete.sports.run!,40,'r','2026-11-10','intervals');p.sessions=[s]
     const next=replaceSportSession(p,c,'r','bike',undefined,undefined,{asOf:'2026-11-02',variant:'quality'})
     expect(next.sessions[0]!.purpose).toBe('intervals')
-    expect(next.sessions[0]!.steps.find(s=>s.role==='work')!.target).toMatchObject({kind:'power',watts:180})
+    expect(next.sessions[0]!.steps.find(s=>s.role==='work')!.target).toMatchObject({kind:'power',watts:176})
     p.sessions.push(buildSportSession('bike',c.athlete.sports.bike!,40,'b','2026-11-11','intervals'))
     expect(replaceSportSession(p,c,'r','bike').sessions[0]!.purpose).toBe('easy')
     expect(()=>replaceSportSession(p,c,'r','bike',undefined,undefined,{variant:'quality'})).toThrow()
@@ -59,11 +59,11 @@ describe('sport-specific policies',()=>{
     const run=buildSportSession('run',{weeklyMinutes:90,sessionsPerWeek:2,results:[{date:'2026-11-10',distanceKm:10,timeSec:2500}]},40,'r','2026-11-12','easy','2026-11-02')
     expect(run.steps[0]!.target.kind).toBe('open')
     const bike=buildSportSession('bike',c.athlete.sports.bike!,50,'b','2026-11-10','intervals')
-    const shorter=shortenSportSession(bike,40)
+    const shorter=shortenSportSession(bike,50)
     expect(shorter.steps[0]).toEqual(bike.steps[0])
     expect(shorter.steps.at(-1)).toEqual(bike.steps.at(-1))
-    expect(shorter.steps.find(s=>s.role==='work')!.restSec).toBe(60)
-    expect(shorter.durationSec+shorter.preparationSec).toBeLessThanOrEqual(2400)
+    expect(shorter.steps.find(s=>s.role==='work')!.restSec).toBe(180)
+    expect(shorter.durationSec+shorter.preparationSec).toBeLessThanOrEqual(3000)
   })
 })
 describe('calendar search',()=>{

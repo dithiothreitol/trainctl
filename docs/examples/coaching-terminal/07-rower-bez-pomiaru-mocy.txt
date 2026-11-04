@@ -1,0 +1,69 @@
+$ trainctl today --date 2026-11-16 --sport bike
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i ważność propozycji idą za nią
+
+Plan sportowy: Przykładowy triathlon
+Dzień · 2026-11-16
+────────────────────────────────────────────────────────────────
+
+Treningi:                        1
+Czas treningów:                  68 min
+Z przygotowaniem i przejściami:  78 min
+
+╭ 2026-11-16 06:00 · Rower
+│ Spokojna wytrzymałość · 68 min
+│ Spokojny trening tlenowy
+│ 
+│ Cel
+│ 
+│ Buduj wytrzymałość tlenową bez dużego zmęczenia.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 3–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2  [ 3] [ 4]   5    6    7    8    9   10 
+│ 1–2 bardzo lekko · 3–4 lekko · 5–6 umiarkowanie · 7–8 mocno · 9–10 bardzo mocno. Nawiasy [ ] wskazują
+│ zaplanowany zakres.
+│ 
+│ Przebieg treningu
+│ 
+│ 1. Rozgrzewka · 5 min
+│ 
+│ Cel etapu:  według odczucia
+│ RPE:        2–3/10
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Zacznij bardzo spokojnie; stopniowo ustabilizuj rytm i oddech.
+│ 
+│ 2. Praca · 58 min
+│ 
+│ Cel etapu:  według odczucia
+│ RPE:        3–4/10
+│ Swobodna rozmowa pełnymi zdaniami.
+│ Utrzymuj równy wysiłek i swobodną technikę.
+│ 
+│ 3. Schłodzenie · 5 min
+│ 
+│ Cel etapu:  według odczucia
+│ RPE:        1–2/10
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Stopniowo zmniejsz wysiłek i rozluźnij ruch.
+│ 
+│ Dlaczego ten trening
+│ 
+│ Faza: Rozbudowa. Tydzień cyklu: 3. Cel planu: Przykładowy triathlon (40000 m). Dawkę ograniczają poziom
+│ doświadczenia i dostępny czas; progresja nie wymaga zwiększania intensywności. Doświadczenie: wytrenowany.
+│ Spokojna intensywność pozwala rozwijać regularność i technikę bez dodawania kolejnego akcentu.
+│ 
+│ Wskazówki wykonania
+│ 
+│ • Utrzymaj swobodny oddech i stabilną technikę; zakończ z zapasem sił.
+│ • Zapisz czas, odczuwany wysiłek RPE i ewentualne zmniejszenie liczby powtórzeń.
+│ 
+│ Dostosowanie
+│ 
+│ • Intensywność określa RPE 1–10; brak aktualnego pomiaru nie jest zastępowany wynikiem z innej dyscypliny.
+│ • Jeśli wysiłek lub technika wykraczają poza wskazówki, zwolnij albo skróć serię. Nie nadrabiaj pominiętych
+│   odcinków.
+│ 
+│ ID: c-f2650b5a-2026-11-16-bike-0
+╰───────────────────────────────────────────────────────────────

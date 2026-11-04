@@ -1,0 +1,252 @@
+[
+  {
+    "post": 1,
+    "file": "01-plan-multisport.png",
+    "title": "Bieganie, rower i pływanie",
+    "subtitle": "Objętość i intensywność każdej dyscypliny",
+    "pieces": [
+      {
+        "source": "04-tydzien-multisport",
+        "part": 0,
+        "fromLine": 4,
+        "toLine": 5
+      },
+      {
+        "source": "04-tydzien-multisport",
+        "part": 0,
+        "fromLine": 233,
+        "toLine": 241
+      }
+    ],
+    "alt": "Podsumowanie tygodnia w trainctl. Tabela pokazuje osobno bieganie, rower oraz pływanie, z czasem każdej dyscypliny i udziałem planowanej intensywności.",
+    "width": 1600,
+    "height": 900,
+    "lines": 13,
+    "maxColumns": 80
+  },
+  {
+    "post": 2,
+    "file": "02-cel-i-intensywnosc.png",
+    "title": "Cel treningu i skala RPE",
+    "subtitle": "Zakres wysiłku najmocniejszego etapu",
+    "pieces": [
+      {
+        "source": "01-rower-interwaly",
+        "part": 0,
+        "fromLine": 12,
+        "toLine": 14
+      },
+      {
+        "source": "01-rower-interwaly",
+        "part": 0,
+        "fromLine": 16,
+        "toLine": 19
+      },
+      {
+        "source": "01-rower-interwaly",
+        "part": 0,
+        "fromLine": 22,
+        "toLine": 24
+      }
+    ],
+    "alt": "Cel treningu rowerowego: powtarzane mocne odcinki bez sprintowania. Kolorowa skala od 1 do 10 zaznacza planowany zakres RPE od 7 do 8.",
+    "width": 1600,
+    "height": 900,
+    "lines": 13,
+    "maxColumns": 69
+  },
+  {
+    "post": 3,
+    "file": "03-rower-odcinki-i-przerwy.png",
+    "title": "Rower: praca i odpoczynek",
+    "subtitle": "Cel mocy i pełna przerwa po każdym odcinku",
+    "pieces": [
+      {
+        "source": "01-rower-interwaly",
+        "part": 0,
+        "fromLine": 37,
+        "toLine": 40
+      },
+      {
+        "source": "01-rower-interwaly",
+        "part": 0,
+        "fromLine": 44,
+        "toLine": 47
+      }
+    ],
+    "alt": "5 odcinków po 3 minuty przy 275 W i RPE 7 do 8. Po każdym odcinku, również ostatnim, 3 minuty odpoczynku przy 125 W i RPE 1 do 2.",
+    "width": 1600,
+    "height": 900,
+    "lines": 10,
+    "maxColumns": 59
+  },
+  {
+    "post": 4,
+    "file": "04-plywanie-technika.png",
+    "title": "Pływanie: ćwiczenie techniczne",
+    "subtitle": "Konkretna instrukcja i przerwa po odcinku",
+    "pieces": [
+      {
+        "source": "02-plywanie-technika",
+        "part": 0,
+        "fromLine": 39,
+        "toLine": 51
+      }
+    ],
+    "alt": "Ćwiczenie techniczne 12 razy 25 metrów, RPE 2 do 3. Instrukcja dotyczy pozycji głowy i swobodnego oddychania. Po każdym odcinku 20 sekund odpoczynku przy ścianie.",
+    "width": 1600,
+    "height": 900,
+    "lines": 14,
+    "maxColumns": 74
+  },
+  {
+    "post": 4,
+    "file": "04b-plywanie-czesc-glowna.png",
+    "title": "Pływanie: zastosowanie techniki",
+    "subtitle": "Ćwiczona umiejętność przechodzi do odcinków kraula",
+    "pieces": [
+      {
+        "source": "02-plywanie-technika",
+        "part": 0,
+        "fromLine": 52,
+        "toLine": 63
+      }
+    ],
+    "alt": "Po ćwiczeniu technicznym plan zawiera 19 razy 50 metrów kraulem w tempie 2:18 na 100 metrów. RPE od 2 do 4, przerwa 20 sekund po każdym odcinku.",
+    "width": 1600,
+    "height": 900,
+    "lines": 13,
+    "maxColumns": 61
+  },
+  {
+    "post": 5,
+    "file": "05-zakladka-rower-bieg.png",
+    "title": "Zakładka: bieg po rowerze",
+    "subtitle": "Cel i wskazówki dla zmiany dyscypliny",
+    "pieces": [
+      {
+        "source": "03-zakladka-bieg",
+        "part": 0,
+        "fromLine": 16,
+        "toLine": 19
+      },
+      {
+        "source": "03-zakladka-bieg",
+        "part": 0,
+        "fromLine": 37,
+        "toLine": 44
+      }
+    ],
+    "alt": "Celem biegu po rowerze jest spokojne przejście do biegu i ustabilizowanie kroku. Część główna trwa 11 minut 15 sekund przy RPE 3 do 4, z kontrolą oddechu i rytmu.",
+    "width": 1600,
+    "height": 900,
+    "lines": 13,
+    "maxColumns": 74
+  },
+  {
+    "post": 6,
+    "file": "06-zamiana-biegu-na-plywanie.png",
+    "title": "Zamiana biegu na pływanie",
+    "subtitle": "Podgląd oryginału i nowej jednostki",
+    "pieces": [
+      {
+        "source": "05-zamiana-bieg-plywanie",
+        "part": 0,
+        "fromLine": 6,
+        "toLine": 8
+      },
+      {
+        "source": "05-zamiana-bieg-plywanie",
+        "part": 0,
+        "fromLine": 32,
+        "toLine": 34
+      },
+      {
+        "source": "05-zamiana-bieg-plywanie",
+        "part": 0,
+        "fromLine": 52,
+        "toLine": 53
+      }
+    ],
+    "alt": "Podgląd zamiany 40 minut biegu na 29 minut 36 sekund pływania, łącznie 1200 metrów. Część główna nowej jednostki obejmuje 8 razy 100 metrów i 20 sekund przerwy po odcinku.",
+    "width": 1600,
+    "height": 900,
+    "lines": 13,
+    "maxColumns": 77
+  },
+  {
+    "post": 6,
+    "file": "06b-wplyw-zamiany-na-plan.png",
+    "title": "Zamiana: wpływ na tydzień",
+    "subtitle": "Objętość i ograniczenia zmiany dyscypliny",
+    "pieces": [
+      {
+        "source": "05-zamiana-bieg-plywanie",
+        "part": 0,
+        "fromLine": 61,
+        "toLine": 62
+      },
+      {
+        "source": "05-zamiana-bieg-plywanie",
+        "part": 0,
+        "fromLine": 68,
+        "toLine": 72
+      }
+    ],
+    "alt": "Podgląd wskazuje, że zamiana dyscypliny nie oznacza równoważności fizjologicznej. Tygodniowa objętość biegu spada o 40 minut, a pływania rośnie o 29,6 minuty. Rower pozostaje bez zmian.",
+    "width": 1600,
+    "height": 900,
+    "lines": 11,
+    "maxColumns": 80
+  },
+  {
+    "post": 7,
+    "file": "07-skrocenie-do-budzetu.png",
+    "title": "Trening w budżecie 45 minut",
+    "subtitle": "33 minuty jazdy i 10 minut przygotowania",
+    "pieces": [
+      {
+        "source": "06-skrocenie-roweru",
+        "part": 2,
+        "fromLine": 8,
+        "toLine": 10
+      },
+      {
+        "source": "06-skrocenie-roweru",
+        "part": 2,
+        "fromLine": 37,
+        "toLine": 40
+      },
+      {
+        "source": "06-skrocenie-roweru",
+        "part": 2,
+        "fromLine": 44,
+        "toLine": 44
+      }
+    ],
+    "alt": "Po skróceniu trening zajmuje 33 minuty, a wraz z przygotowaniem 43 minuty. Pozostają 3 odcinki po 3 minuty przy 275 W oraz pełne 3 minuty odpoczynku przy 125 W.",
+    "width": 1600,
+    "height": 900,
+    "lines": 12,
+    "maxColumns": 59
+  },
+  {
+    "post": 8,
+    "file": "08-eksport-treningu.png",
+    "title": "Eksport gotowego treningu",
+    "subtitle": "FIT, kalendarz ICS i plan HTML",
+    "pieces": [
+      {
+        "source": "08-eksport",
+        "part": 0,
+        "fromLine": 3,
+        "toLine": 5
+      }
+    ],
+    "alt": "CLI potwierdza zapis wybranej jednostki rowerowej do FIT oraz eksport planu do plików ICS i HTML.",
+    "width": 1600,
+    "height": 900,
+    "lines": 5,
+    "maxColumns": 67
+  }
+]

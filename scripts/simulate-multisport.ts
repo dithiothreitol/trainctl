@@ -128,6 +128,7 @@ try {
   cli(['init','--sports','run,bike,swim'])
   const multi=parse(readFileSync(join(current,'trainctl.yaml'),'utf8'))
   multi.athlete.sports.swim.cssSecPer100m=120
+  multi.athlete.sports.swim.calibration={date:"2026-11-01",source:"simulation CSS test"}
   multi.goal={kind:'multisport',name:'Duathlon',date:'2026-11-29',legs:[{id:'run1',sport:'run',distanceM:5000,estimatedMinutes:30},{id:'bike',sport:'bike',distanceM:20000,estimatedMinutes:45},{id:'run2',sport:'run',distanceM:2500,estimatedMinutes:15}]}
   multi.goal.transitionsSec=[180,120]
   multi.availabilityExceptions={'2026-11-03':[]}

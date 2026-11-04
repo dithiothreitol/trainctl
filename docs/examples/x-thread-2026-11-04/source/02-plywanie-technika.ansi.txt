@@ -1,0 +1,93 @@
+$ trainctl today --date 2026-11-06 --sport swim
+[33m⚠[0m data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i
+  ważność propozycji idą za nią
+
+[1m[36mPlan sportowy: Przykładowy triathlon[0m[0m
+[2mDzień · 2026-11-06[0m
+[2m────────────────────────────────────────────────────────────────[0m
+
+[2mTreningi:                      [0m  [1m1[0m
+[2mCzas treningów:                [0m  54 min 34 s
+[2mZ przygotowaniem i przejściami:[0m  64 min 34 s
+
+[36m╭[0m [1m[36m2026-11-06 06:00 · Pływanie[0m[0m
+[36m│[0m Technika · 54 min 34 s · 1875 m
+[36m│[0m Technika i spokojny rytm
+[36m│[0m 
+[36m│[0m [1m[36mCel[0m[0m
+[36m│[0m 
+[36m│[0m Popraw pozycję ciała, wydech i spokojny powrót ramienia, następnie przenieś je
+[36m│[0m do kraula.
+[36m│[0m 
+[36m│[0m [1m[35mIntensywność[0m[0m
+[36m│[0m 
+[36m│[0m [1m[32mNajmocniejszy etap (plan): RPE 2–4/10[0m[0m
+[36m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[36m│[0m [36m  1 [0m [36m[1m[ 2][0m[0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[36m│[0m [2m1–2 bardzo lekko · 3–4 lekko · 5–6 umiarkowanie · 7–8 mocno · 9–10 bardzo[0m
+[36m│[0m [2mmocno. Nawiasy [ ] wskazują zaplanowany zakres.[0m
+[36m│[0m 
+[36m│[0m [1m[34mPrzebieg treningu[0m[0m
+[36m│[0m 
+[36m│[0m [1m[32m1. Rozgrzewka · 400 m[0m[0m
+[36m│[0m 
+[36m│[0m [2mCel etapu:[0m  2:20/100 m
+[36m│[0m [2mRPE:      [0m  2–3/10
+[36m│[0m [2mStyl:     [0m  kraul
+[36m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[36m│[0m Zacznij bardzo spokojnie; stopniowo ustabilizuj rytm i oddech.
+[36m│[0m 
+[36m│[0m [1m[32m2. Ćwiczenie techniczne · 12 × 25 m[0m[0m
+[36m│[0m 
+[36m│[0m [2mCel etapu:[0m  według odczucia
+[36m│[0m [2mRPE:      [0m  2–3/10
+[36m│[0m [2mStyl:     [0m  ćwiczenie techniczne
+[36m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[36m│[0m Spokojny kraul: patrz w dół, wydychaj powietrze do wody, odwróć głowę do
+[36m│[0m naturalnego wdechu. Nie wydłużaj przerw w oddychaniu.
+[36m│[0m 
+[36m│[0m [2mPrzerwa po odcinku:[0m  20 s @ według odczucia · RPE 1–2/10
+[36m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[36m│[0m Odpocznij przy ścianie po każdym odcinku, również ostatnim.
+[36m│[0m 
+[36m│[0m [1m[32m3. Praca · 19 × 50 m[0m[0m
+[36m│[0m 
+[36m│[0m [2mCel etapu:[0m  2:18/100 m
+[36m│[0m [2mRPE:      [0m  2–4/10
+[36m│[0m [2mStyl:     [0m  kraul
+[36m│[0m [2mSwobodny wydech do wody; technika bez napięcia.[0m
+[36m│[0m Przenieś ćwiczoną umiejętność do spokojnego kraula.
+[36m│[0m 
+[36m│[0m [2mPrzerwa po odcinku:[0m  20 s @ według odczucia · RPE 1–2/10
+[36m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[36m│[0m Odpocznij przy ścianie po każdym odcinku, również ostatnim.
+[36m│[0m 
+[36m│[0m [1m[36m4. Schłodzenie · 225 m[0m[0m
+[36m│[0m 
+[36m│[0m [2mCel etapu:[0m  2:20/100 m
+[36m│[0m [2mRPE:      [0m  1–2/10
+[36m│[0m [2mStyl:     [0m  kraul
+[36m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[36m│[0m Stopniowo zmniejsz wysiłek i rozluźnij ruch.
+[36m│[0m 
+[36m│[0m [1m[36mDlaczego ten trening[0m[0m
+[36m│[0m 
+[36m│[0m Faza: Baza. Tydzień cyklu: 1. Cel planu: Przykładowy triathlon (1500 m). Dawkę
+[36m│[0m ograniczają poziom doświadczenia i dostępny czas; progresja nie wymaga
+[36m│[0m zwiększania intensywności. Doświadczenie: wytrenowany. Ćwiczenie izoluje jedną
+[36m│[0m umiejętność, a następująca po nim część główna przenosi ją do zwykłego ruchu.
+[36m│[0m 
+[36m│[0m [1m[32mWskazówki wykonania[0m[0m
+[36m│[0m 
+[36m│[0m [34m•[0m Przenieś wskazówkę z ćwiczenia do części głównej: zachowaj spokojny oddech i
+[36m│[0m   swobodny ruch.
+[36m│[0m [34m•[0m Zapisz czas, odczuwany wysiłek RPE i ewentualne zmniejszenie liczby
+[36m│[0m   powtórzeń.
+[36m│[0m 
+[36m│[0m [1m[33mDostosowanie[0m[0m
+[36m│[0m 
+[36m│[0m [34m•[0m Jeśli wysiłek lub technika wykraczają poza wskazówki, zwolnij albo skróć
+[36m│[0m   serię. Nie nadrabiaj pominiętych odcinków.
+[36m│[0m 
+[36m│[0m [2mID: c-4723c794-2026-11-02-swim-1[0m
+[36m╰───────────────────────────────────────────────────────────────[0m

@@ -11,6 +11,7 @@ import { sportModule, trainingIntent, replacementAssessment, type ReplacementCon
 import { shortenWorkout } from '../engine/shorten.ts'
 import { estimateWorkoutMinutes } from '../engine/duration.ts'
 import { planDeskDay } from '../engine/desk.ts'
+import { attachRunningCoaching } from './coaching.ts'
 export { sportsTotals, intensityMinutes } from './metrics.ts'
 
 const DAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
@@ -159,12 +160,25 @@ export function validateSportsPlan(raw: unknown): string[] {
       parseIso(s.date); ids.add(s.id)
       for (const step of s.steps) {
         if (!finite(step.durationSec, 0.001, 604800) || (step.distanceM !== undefined && !finite(step.distanceM, 0.001, 2e6)) || (step.repeat !== undefined && (!Number.isInteger(step.repeat) || !finite(step.repeat, 1, 1000))) || (step.restSec !== undefined && !finite(step.restSec, 0, 86400)) || (step.sendoffSec !== undefined && (!finite(step.sendoffSec, step.durationSec, 86400) || step.restSec !== undefined))) throw new Error('step')
+        if (!['warmup','work','rest','cooldown','drill'].includes(step.role)) throw new Error('role')
         if (!step.target || !['open', 'pace', 'power'].includes(step.target.kind)) throw new Error('target')
         if (step.target.kind === 'pace' && (!finite(step.target.seconds, 1, 3600) || ![100, 1000].includes(step.target.perM))) throw new Error('pace')
         if (step.target.kind === 'power' && (s.sport !== 'bike' || !finite(step.target.watts, 1, 3000))) throw new Error('power')
+        for (const text of [step.name,step.instruction]) if (text !== undefined && (typeof text !== 'string' || !text.trim() || text.length>2000)) throw new Error('instruction')
+        for (const effort of [step.effort,step.recovery?.effort]) if (effort && (!finite(effort.min,1,10) || !finite(effort.max,effort.min,10) || typeof effort.cue!=='string' || !effort.cue.trim() || effort.cue.length>1000)) throw new Error('effort')
+        if (step.recovery) {
+          const r=step.recovery, target=r.target
+          if (!step.restSec || typeof r.instruction!=='string' || !r.instruction.trim() || r.instruction.length>2000 || !target || !['open','pace','power'].includes(target.kind)) throw new Error('recovery')
+          if (target.kind==='power' && (s.sport!=='bike' || !finite(target.watts,1,3000))) throw new Error('recovery power')
+          if (target.kind==='pace' && (!finite(target.seconds,1,3600) || ![100,1000].includes(target.perM))) throw new Error('recovery pace')
+        }
         if (s.sport === 'swim' && s.purpose !== 'race' && step.distanceM !== undefined && s.poolLengthM && Math.abs(step.distanceM / s.poolLengthM - Math.round(step.distanceM / s.poolLengthM)) > 1e-6) throw new Error('pool')
       }
       const total = sessionTotals(s.steps)
+      if (s.coaching) {
+        const c=s.coaching
+        if (c.version!==1 || !safeId(c.recipeId) || [c.title,c.objective,c.rationale].some(x=>typeof x!=='string'||!x.trim()||x.length>4000) || [c.successCriteria,c.adjustments].some(a=>!Array.isArray(a)||a.length>30||a.some(x=>typeof x!=='string'||!x.trim()||x.length>4000)) || !c.successCriteria.length || (c.minimumWorkSec!==undefined && !finite(c.minimumWorkSec,1,s.durationSec))) throw new Error('coaching')
+      }
       if (Math.abs(total.durationSec - s.durationSec) > 1 || (!s.legacyWorkout && Math.abs((total.distanceM ?? 0) - (s.distanceM ?? 0)) > 0.1)) throw new Error('totals')
     } catch { issues.push(`${msg().invalid} ${s?.id ?? 'session'}`) }
   }
@@ -257,7 +271,7 @@ export function generateSportsPlan(c: SportsConfig, from: string, id: string, cy
     const members: string[] = []
     for (const leg of legs) {
       const id = event.priority === 'A' ? `${cycleId}-${leg.id}` : `${cycleId}-tune-${event.date}-${leg.id}`
-      const s = buildSportSession(leg.sport, c.athlete.sports[leg.sport]!, Math.max(5, Math.min(1440, leg.estimatedMinutes!)), id, event.date, 'race', asOf)
+      const s = buildSportSession(leg.sport, c.athlete.sports[leg.sport]!, Math.max(5, Math.min(1440, leg.estimatedMinutes!)), id, event.date, 'race', asOf, {phase:'race',goal:event})
       s.steps = [{ role: 'work', durationSec: leg.estimatedMinutes! * 60, distanceM: leg.distanceM, target: { kind: 'open' } }]
       Object.assign(s, sessionTotals(s.steps)); s.pinned = true; s.groupId = groupId; s.racePriority = event.priority; s.phase = 'race'; s.intent = trainingIntent(s); p.sessions.push(s); members.push(s.id)
     }
@@ -278,7 +292,7 @@ export function generateSportsPlan(c: SportsConfig, from: string, id: string, cy
       for (const [i, dose] of prescription.doses.slice(0,prescription.doses.length-eventCount).entries()) {
         const preferred = eligibleDates[Math.floor(i * eligibleDates.length / profile.sessionsPerWeek)] ?? eligibleDates[0]
         if (!preferred) continue
-        const request = module.session(sport, profile, dose.minutes, `${cycleId}-${week}-${sport}-${i}`, preferred, dose.purpose, asOf)
+        const request = module.session(sport, profile, dose.minutes, `${cycleId}-${week}-${sport}-${i}`, preferred, dose.purpose, asOf, {phase:prescription.phase,weekIndex:Math.max(0,Math.floor(diffDays(mondayOf(from),week)/7)),slot:i,goal:c.goal})
         request.phase = prescription.phase; request.intent = trainingIntent(request)
         request.ruleRefs.push('MS-4'); requests.push(request)
       }
@@ -300,8 +314,11 @@ export function generateSportsPlan(c: SportsConfig, from: string, id: string, cy
       const run = p.sessions.find(s => mondayOf(s.date) === week && s.sport === 'run' && s.purpose !== 'race' && !s.groupId)
       if (bike && run && dates.includes(date)) {
         const gid = `${cycleId}-${week}-brick`
-        const a = buildSportSession('bike', c.athlete.sports.bike!, c.brick.bikeMinutes, bike.id, date)
-        const b = buildSportSession('run', c.athlete.sports.run!, c.brick.runMinutes, run.id, date)
+        const weekIndex=Math.max(0,Math.floor(diffDays(mondayOf(from),week)/7))
+        const brickFactor=weekIndex%4===3?0.7:Math.min(1,0.75+0.125*(weekIndex%4))
+        const a = buildSportSession('bike', c.athlete.sports.bike!, Math.max(5,c.brick.bikeMinutes*brickFactor), bike.id, date, 'easy', asOf, {phase:bike.phase,weekIndex,goal:c.goal,brick:'bike'})
+        const b = buildSportSession('run', c.athlete.sports.run!, Math.max(5,c.brick.runMinutes*brickFactor), run.id, date, 'easy', asOf, {phase:run.phase,weekIndex,goal:c.goal,brick:'run'})
+        a.intent=trainingIntent(a); b.intent=trainingIntent(b)
         a.start = sportsWindows(c,date)?.find(w=>w.sports.includes('bike'))?.start ?? '07:00'
         b.start = clockText(Math.ceil(clockMinutes(a.start) + occupiedMinutes(a) + c.brick.transitionMinutes))
         a.groupId = gid; b.groupId = gid
@@ -373,13 +390,19 @@ export function replaceSportSession(plan: SportsPlan, config: SportsConfig, id: 
   const nextStart = source.start ? Math.min(Infinity,...remaining.filter(s=>s.date===source.date&&s.start&&s.start>source.start!).map(s=>clockMinutes(s.start!)-clockMinutes(source.start!)-transitionAfter(source,plan.groups))) : Infinity
   const allowed = Math.min(minutes ?? occupiedMinutes(source),daily,weekly,window,nextStart)
   const decision = replacementAssessment(plan, config, source, targetSport, allowed, context)
-  const replacement = sportModule(targetSport).session(targetSport, profile, decision.minutes, replacementId(plan), source.date, decision.purpose, context.asOf ?? source.date)
+  const replacement = sportModule(targetSport).session(targetSport, profile, decision.minutes, replacementId(plan), source.date, decision.purpose, context.asOf ?? source.date, {phase:source.phase,goal:config.goal})
   replacement.intent = trainingIntent(replacement)
+  if (context.variant==='quality' && replacement.purpose!=='intervals') throw new Error(msg().qualityUnavailable)
+  decision.assessment.alternative = replacement.intent
+  if (decision.purpose==='intervals' && replacement.purpose!=='intervals') {
+    decision.assessment.preserved=decision.assessment.preserved.filter(x=>x!==msg().qualityIntent)
+    decision.assessment.lost.push(msg().differentPurpose)
+  }
   decision.assessment.afterMinutes = occupiedMinutes(replacement)
   if (source.start) replacement.start = source.start
   replacement.approved = true; replacement.replacesSessionId = source.id
   if (source.groupId) replacement.groupId = source.groupId
-  replacement.ruleRefs = ['MS-1', 'MS-2', 'MS-5']
+  replacement.ruleRefs = ['MS-1', 'MS-2', 'MS-5', 'MS-6']
   const next = structuredClone(plan)
   next.sessions = next.sessions.map(s => s.id === source.id ? replacement : s)
   next.archive.push(structuredClone(source))
@@ -396,11 +419,15 @@ export function shortenSportSession(source: TrainingSession, minutes: number): T
     const result = shortenWorkout(source.legacyWorkout, Math.floor(minutes), { preparationMinutes: Math.ceil(source.preparationSec / 60) })
     if (!result.workout) throw new Error(msg().noFit)
     const workout = result.workout, durationSec = Math.round(estimateWorkoutMinutes(workout, 0) * 60)
-    return { ...source, legacyWorkout: workout, description: workout.segments.map(s => s.description).join('; '),
+    const shortened:TrainingSession = { ...source, legacyWorkout: workout, description: workout.segments.map(s => s.description).join('; '),
       durationSec, distanceM: workout.distanceKm * 1000, ruleRefs: workout.ruleRefs, approved: true,
       purpose: result.status === 'easy-alternative' ? 'easy' : source.purpose,
       steps: [{ role: 'work', durationSec, target: { kind: 'open' } }],
     }
+    const updated=attachRunningCoaching(shortened,{phase:source.phase})
+    if(source.coaching)updated.coaching!.rationale=source.coaching.rationale
+    updated.intent=trainingIntent(updated)
+    return updated
   }
   const budgetSec = Math.floor(minutes * 60 - source.preparationSec)
   if (budgetSec >= source.durationSec) return structuredClone(source)
@@ -419,7 +446,11 @@ export function shortenSportSession(source: TrainingSession, minutes: number): T
     break
   }
   if (!steps.length || sessionTotals(steps).durationSec < 60) throw new Error(msg().noFit)
-  if (source.purpose === 'intervals' && sessionTotals(steps).durationSec < source.steps.filter(s => s.role === 'work').reduce((n,s) => n + stepSeconds(s), 0) * 0.5) throw new Error(msg().noFit)
+  if (source.purpose === 'intervals') {
+    const work=(list:SessionStep[])=>list.filter(s=>s.role==='work' && (!s.effort || s.effort.max>4)).reduce((n,s)=>n+s.durationSec*(s.repeat??1),0)
+    if(work(steps)<Math.max(source.coaching?.minimumWorkSec??0,work(source.steps)*.5)) throw new Error(msg().noFit)
+  }
+  if (source.purpose==='technique' && source.steps.some(s=>s.role==='drill') && (!steps.some(s=>s.role==='drill') || !steps.some(s=>s.role==='work'))) throw new Error(msg().noFit)
   steps.unshift(...fixed.filter(s => s.role === 'warmup')); steps.push(...fixed.filter(s => s.role === 'cooldown'))
   const next = { ...source, steps, ...sessionTotals(steps), approved: true }
   delete next.legacyWorkout

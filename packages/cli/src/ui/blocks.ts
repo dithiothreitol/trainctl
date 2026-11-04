@@ -9,7 +9,9 @@ import { Theme, graphemes, padVisible, visibleLength, type ColorName } from './t
 
 export type Block =
   | { t: 'title'; text: string; sub?: string }
-  | { t: 'section'; text: string }
+  | { t: 'section'; text: string; accent?: ColorName }
+  | { t: 'card'; title: string; body: Block[]; accent: ColorName; meta: string[] }
+  | { t: 'rpe'; label: string; min: number; max: number; legend: string }
   | { t: 'text'; text: string; tone?: 'normal' | 'muted' }
   | { t: 'kv'; pairs: [string, string][] }
   | { t: 'bullets'; items: string[]; tone?: 'normal' | 'muted' }
@@ -21,7 +23,9 @@ export type Block =
 
 export const b = {
   title: (text: string, sub?: string): Block => ({ t: 'title', text, ...(sub ? { sub } : {}) }),
-  section: (text: string): Block => ({ t: 'section', text }),
+  section: (text: string, accent?: ColorName): Block => ({ t: 'section', text, ...(accent ? { accent } : {}) }),
+  card: (title: string, body: Block[], accent: ColorName, meta: string[] = []): Block => ({ t: 'card', title, body, accent, meta }),
+  rpe: (label: string, min: number, max: number, legend: string): Block => ({ t: 'rpe', label, min, max, legend }),
   text: (text: string, tone?: 'normal' | 'muted'): Block => ({ t: 'text', text, ...(tone ? { tone } : {}) }),
   kv: (pairs: [string, string][]): Block => ({ t: 'kv', pairs }),
   bullets: (items: string[], tone?: 'normal' | 'muted'): Block => ({
@@ -138,6 +142,34 @@ function table(block: Extract<Block, { t: 'table' }>, theme: Theme): string[] {
   ]
 }
 
+/** The palette shows planned subjective effort, never a measured training zone. */
+export const rpeColor = (value: number): ColorName => value <= 2 ? 'brand' : value <= 4 ? 'easy' : value <= 6 ? 'warn' : value <= 8 ? 'quality' : 'error'
+
+function effortScale(block: Extract<Block, { t: 'rpe' }>, theme: Theme): string[] {
+  const { width } = theme.caps
+  const out = wrap(block.label + ': RPE ' + block.min + '–' + block.max + '/10', width)
+    .map(line => theme.bold(theme.color(line, rpeColor(block.max))))
+  const count = Math.max(1, Math.floor((width + 1) / 5))
+  const levels = ['▁', '▂', '▃', '▄', '▅', '▅', '▆', '▇', '█', '█']
+  for (let start = 1; start <= 10; start += count) {
+    const bars: string[] = [], numbers: string[] = []
+    for (let n = start; n < start + count && n <= 10; n++) {
+      const active = n >= block.min && n <= block.max
+      const cell = (active ? '[' : ' ') + String(n).padStart(2, ' ') + (active ? ']' : ' ')
+      if (width < 4) {
+        out.push(...wrap(cell.trim(), width).map(line => theme.color(line, rpeColor(n))))
+        continue
+      }
+      const bar = ' ' + (theme.caps.unicode ? levels[n - 1]!.repeat(2) : active ? '##' : '--') + ' '
+      bars.push(theme.color(bar, rpeColor(n)))
+      numbers.push(theme.color(active ? theme.bold(cell) : cell, rpeColor(n)))
+    }
+    if (bars.length) out.push(bars.join(' '), numbers.join(' '))
+  }
+  out.push(...wrap(block.legend, width).map(line => theme.dim(line)))
+  return out
+}
+
 // ------------------------------------------------------------------ renderers
 
 export function renderAnsi(blocks: Block[], theme = new Theme()): string {
@@ -155,7 +187,7 @@ export function renderAnsi(blocks: Block[], theme = new Theme()): string {
         break
       }
       case 'section':
-        out.push('', ...wrap(block.text, width).map(line => theme.bold(theme.color(line, 'accent'))), '')
+        out.push('', ...wrap(block.text, width).map(line => theme.bold(theme.color(line, block.accent ?? 'accent'))), '')
         break
       case 'text':
         out.push(...wrap(block.text, width).map((l) => (block.tone === 'muted' ? theme.dim(l) : l)))
@@ -190,6 +222,23 @@ export function renderAnsi(blocks: Block[], theme = new Theme()): string {
         const lines = wrap(block.text, width - prefixWidth)
         out.push(`${theme.color(symbol, color)} ${lines[0]}`)
         for (const rest of lines.slice(1)) out.push(`${' '.repeat(prefixWidth)}${rest}`)
+        break
+      }
+      case 'rpe':
+        out.push(...effortScale(block, theme))
+        break
+      case 'card': {
+        const inset = width >= 4 ? 2 : 0
+        const inner = Math.max(1, width - inset)
+        const nested = new Theme({ ...theme.caps, width: inner })
+        out.push('')
+        for (const [index, title] of wrap(block.title, inner).entries()) {
+          out.push((inset ? theme.color(index ? s.vertical : s.topLeft, block.accent) + ' ' : '') + theme.bold(theme.color(title, block.accent)))
+        }
+        const content = renderAnsi(block.body, nested).split('\n')
+        if (block.meta.length) content.push('', ...block.meta.flatMap(text => wrap(text, inner).map(line => theme.dim(line))))
+        for (const line of content) out.push((inset ? theme.color(s.vertical, block.accent) + ' ' : '') + line)
+        out.push(theme.color(s.bottomLeft + s.horizontal.repeat(Math.max(0, Math.min(width - 1, 63))), block.accent), '')
         break
       }
       case 'panel': {
@@ -252,6 +301,12 @@ export function renderPlain(blocks: Block[]): string {
         out.push(prefix ? `${prefix} ${block.text}` : block.text)
         break
       }
+      case 'rpe':
+        out.push(...effortScale(block, new Theme({ color: false, unicode: false, width: 80 })))
+        break
+      case 'card':
+        out.push('', block.title, renderPlain(block.body), '', ...block.meta, '')
+        break
       case 'panel':
         out.push(`${block.title}:`, ...block.lines, ...(block.meta ?? []))
         break

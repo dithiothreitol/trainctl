@@ -1,4 +1,4 @@
-# MS-1–MS-5: zasady planowania wielu sportów
+# MS-1–MS-6: zasady planowania wielu sportów
 
 Kod rozróżnia wyniki badań od parametrów przyjętych przez implementację.
 Testy potwierdzają obliczenia, ochronę danych i spójność kalendarza. Nie są
@@ -26,13 +26,10 @@ ma wagę 1.5 dla roweru i 1.25 dla pozostałych sportów, pozostałe wagę 1.
 Czas dzieli się proporcjonalnie z limitem maxSessionMinutes. To wybór szablonu,
 nie zalecenie wynikające wprost z badania. Nie sumuje się kilometrów różnych sportów.
 
-Spokojny rower używa 65% zadeklarowanego FTP; wariant jakościowy 90% FTP,
-5 min rozgrzewki, 4 powtórzenia z 60 s odpoczynku, 5 min schłodzenia.
-Pływanie korzysta z CSS+12 s/100 m w spokojnych seriach, CSS w seriach jakościowych,
-20 s przerwy oraz odcinków 2 długości dla techniki, 4 dla zwykłych serii i 8 dla
-długich. Ćwiczenia techniczne mają otwarty cel intensywności. Te różnice i liczby
-są ustawieniami programu; rzeczywisty koszt techniki może istotnie odbiegać od estymacji.
-Bez kalibracji powstają otwarte kroki czasowe. Wyniki przyszłe są pomijane.
+Struktury i cele jednostek opisuje MS-6 poniżej. Kalibracja FTP/CSS wymaga
+daty i źródła, nie starszych niż 180 dni względem daty oceny. Przy braku
+wiarygodnego pomiaru generator podaje instrukcje RPE, bez wymyślania mocy lub CSS.
+Wyniki przyszłe są pomijane.
 
 Kalendarz obejmuje przygotowanie i przejścia dokładnie raz. Wspólne ograniczenia
 obejmują dni, zasoby, okna, limity dnia/tygodnia, przypięcia i grupy.
@@ -103,3 +100,84 @@ recoveryDays w profilu jest dodatkowym ograniczeniem kalendarza.
 Formaty nie uzasadniają parametrów fizjologicznych. FIT z send-off jest jawnie
 odrzucany; HTML/ICS zachowują opis. Cele tempa pływania obok stylu są opisowe.
 Nie wykonano próby na fizycznym urządzeniu ani oceny biblioteki z trenerem.
+
+## MS-6 — kompletna instrukcja i biblioteka jednostek
+
+Każda nowo generowana jednostka wytrzymałościowa ma tytuł, cel, uzasadnienie
+wyboru, kryteria wykonania i wskazówki dostosowania. Kroki zawierają odczuwany
+wysiłek RPE 1–10 oraz opis techniki. Rozgrzewka, część główna i schłodzenie
+są oddzielne. Starty zachowują odrębny protokół; silnik biegowy zachowuje swoje
+pierwotne segmenty i otrzymuje opis celu. Starsze zapisane jednostki bez
+metadanych pozostają czytelne.
+
+Podstawy organizacji treningu:
+- [USA Triathlon — struktura sesji pływackiej](https://www.usatriathlon.org/training-tips/what-do-i-do-in-the-pool): rozgrzewka, część główna, ćwiczenia umiejętności i spokojne zakończenie; technika wymaga konkretnych wskazówek.
+- [British Cycling — RPE](https://www.britishcycling.org.uk/knowledge/training-plans/supporting-documents/article/izn20151119-Training-Plans-Supporting-Documents-Related-Rate-of-Perceived-Exertion-Scale---RPE-0/1000): odczuwany wysiłek może prowadzić trening bez znanego FTP lub stref tętna.
+
+Te źródła wspierają strukturę oraz sposób komunikowania intensywności. **Nie
+walidują poniższych konkretnych dawek, progów doboru ani całego generatora.**
+
+### Rower
+
+| Przepis | Odcinek pracy | Przerwa | Moc | Maksymalna liczba odcinków |
+| --- | --- | --- | --- | --- |
+| Tempo w bazie | 6 min | 2 min | 80% FTP | 3–5; 2 w lżejszym tygodniu |
+| Dłuższa praca podprogowa | 8 min | 3 min | 88% FTP | 3–4 |
+| Próg, zawodnik wytrenowany | 6 min | 3 min | 95% FTP | 3–4 |
+| Moc tlenowa, zawodnik wytrenowany | 3 min | 3 min | 110% FTP | 4–5 |
+| Pobudzenie w taperze | 1 min | 2 min | 100% FTP | 3 |
+
+Przepisy progowe i mocy tlenowej wybierane są w fazie budowy dla wytrenowanych
+z celem do 40 km roweru; dłuższe cele korzystają z pracy podprogowej. To jawny
+heurystyczny podział, bez modelowania profilu trasy czy specjalizacji kolarskiej.
+Przerwy mają cel 50% FTP i RPE 1–2. Rozgrzewka akcentu zajmuje do 10 min,
+schłodzenie do 5 min; oba są rezerwowane przed doborem powtórzeń. Większy budżet
+nie wydłuża dowolnie odcinka pracy: pozostały czas to spokojna jazda.
+
+### Pływanie
+
+Serie spokojne mają zwykle 4 długości, długie 8, przy CSS+12 s/100 m. Serie
+w pobliżu CSS mają 4 długości i CSS+5 w bazie lub CSS+2 w budowie, z 20 s
+odpoczynku. Dla wytrenowanych z celem do 1500 m co drugi tydzień budowy może
+zawierać krótkie odcinki jednej długości przy CSS−4, z 30 s odpoczynku. Taper
+używa 4 odcinków po 2 długości przy CSS. Liczba powtórzeń jest ograniczona
+recepturą, doświadczeniem i czasem; nie jest dopasowywana do wyczerpania.
+
+Rozgrzewka i schłodzenie rezerwują około 18% i 10% czasu, po zaokrągleniu
+do pełnych długości basenu. Technika obejmuje konkretny opis pozycji i wydechu
+lub luźnego powrotu ramienia, następnie przeniesienie umiejętności do kraula.
+Ćwiczenie nie narzuca tempa; jego czas jest estymacją na podstawie CSS+35.
+Brak CSS lub zbyt mały budżet na pełne długości daje kroki czasowe z RPE.
+Zakończenie odcinka następuje przy ścianie; estymacja czasu nie przewiduje
+dokładnie czasu pojedynczej długości zawodnika.
+
+### Granice, zamiany i skracanie
+
+- Początkujący i faza regeneracji nie otrzymują mocnej jednostki.
+- Gdy nie mieszczą się co najmniej dwa pełne odcinki wraz z rozgrzewką,
+  odpoczynkiem i schłodzeniem, generator jawnie zmienia cel na spokojny.
+- Skracanie zachowuje rozgrzewkę, schłodzenie i pełne powtórzenia. Dla akcentu
+  musi zostać co najmniej połowa pierwotnej pracy jakościowej i dwa odcinki.
+  Skracanie techniki zachowuje ćwiczenie oraz pływanie po ćwiczeniu.
+- Odpoczynek naliczany jest po każdym powtórzeniu, również ostatnim.
+- Zakładki mają cel kontroli przejścia rower–bieg. Zadeklarowane czasy stanowią
+  pułap; czterotygodniowa fala to 75%, 87.5%, 100%, 70%. Dotychczasowe
+  ograniczenia kalendarza i wyłączenie zakładek przed głównym startem pozostają.
+- Brak pomiarów nie uruchamia automatycznie akcentów w planie. RPE prowadzi
+  sesje spokojne oraz jawnie wywołane treningi; zamiana jakościowa nadal wymaga
+  aktualnej kalibracji docelowej dyscypliny.
+- Kryteria wykonania są wskazówkami, nie automatyczną oceną techniki z czujnika.
+
+### Przenoszenie instrukcji
+
+CLI today/why oraz MCP przekazują cel i pełne kroki; week pokazuje krótszą
+wersję. JSON i YAML przechowują coaching oraz effort/recovery kroków.
+Markdown, HTML, ICS i opis Intervals.icu zachowują pełny tekst. FIT zachowuje
+moc/tempo/odpoczynek i RPE w nazwie oraz notatkach kroku. Pole notatki ma limit
+254 bajtów UTF-8; dłuższa instrukcja pozostaje w HTML/CLI. RPE jest opisem,
+nie alarmem fizjologicznym; tempo pływania pozostaje opisowe obok celu stylu.
+Wyświetlanie notatek zależy od urządzenia.
+
+Biblioteka wymaga jeszcze niezależnego przeglądu przez trenerów biegania,
+kolarstwa, pływania i triathlonu oraz prób na fizycznych zegarkach. Wyników
+testów technicznych nie należy przedstawiać jako takiego zatwierdzenia.

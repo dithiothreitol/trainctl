@@ -1,0 +1,73 @@
+$ trainctl today --date 2026-11-07 --sport run
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i ważność propozycji idą za nią
+
+Plan sportowy: Przykładowy triathlon
+Dzień · 2026-11-07
+────────────────────────────────────────────────────────────────
+
+Treningi:                        1
+Czas treningów:                  15 min
+Z przygotowaniem i przejściami:  30 min
+
+╭ 2026-11-07 07:45 · Bieganie
+│ Spokojna wytrzymałość · 15 min
+│ Bieg po rowerze
+│ 
+│ Cel
+│ 
+│ Przećwicz przejście do biegu; zacznij spokojnie i ustabilizuj krok.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 3–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2  [ 3] [ 4]   5    6    7    8    9   10 
+│ 1–2 bardzo lekko · 3–4 lekko · 5–6 umiarkowanie · 7–8 mocno · 9–10 bardzo mocno. Nawiasy [ ] wskazują
+│ zaplanowany zakres.
+│ 
+│ Przebieg treningu
+│ 
+│ 1. Rozgrzewka · 2 min 15 s
+│ 
+│ Cel etapu:  według odczucia
+│ RPE:        2–3/10
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Zacznij bardzo spokojnie; stopniowo ustabilizuj rytm i oddech.
+│ 
+│ 2. Praca · 11 min 15 s
+│ 
+│ Cel etapu:  według odczucia
+│ RPE:        3–4/10
+│ Swobodna rozmowa pełnymi zdaniami.
+│ Kontroluj oddech i rytm podczas zmiany dyscypliny; bez przyspieszania na zmęczeniu.
+│ 
+│ 3. Schłodzenie · 1 min 30 s
+│ 
+│ Cel etapu:  według odczucia
+│ RPE:        1–2/10
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Stopniowo zmniejsz wysiłek i rozluźnij ruch.
+│ 
+│ Dlaczego ten trening
+│ 
+│ Faza: Baza. Tydzień cyklu: 1. Cel planu: Przykładowy triathlon (10000 m). Dawkę ograniczają poziom
+│ doświadczenia i dostępny czas; progresja nie wymaga zwiększania intensywności. Zakładka: ćwicz spokojne
+│ przejście z roweru do biegu i kontrolę tempa po zmianie dyscypliny. Doświadczenie: regularnie trenujący.
+│ Spokojna intensywność pozwala rozwijać regularność i technikę bez dodawania kolejnego akcentu.
+│ 
+│ Wskazówki wykonania
+│ 
+│ • Utrzymaj swobodny oddech i stabilną technikę; zakończ z zapasem sił.
+│ • Zapisz czas, odczuwany wysiłek RPE i ewentualne zmniejszenie liczby powtórzeń.
+│ 
+│ Dostosowanie
+│ 
+│ • Intensywność określa RPE 1–10; brak aktualnego pomiaru nie jest zastępowany wynikiem z innej dyscypliny.
+│ • Jeśli wysiłek lub technika wykraczają poza wskazówki, zwolnij albo skróć serię. Nie nadrabiaj pominiętych
+│   odcinków.
+│ 
+│ ID: c-8e047b2e-2026-11-02-run-1
+│ Grupa powiązanych sesji: c-8e047b2e-2026-11-02-brick
+╰───────────────────────────────────────────────────────────────
+
+→ Grupa powiązanych sesji: c-8e047b2e-2026-11-02-brick · Przejścia między etapami zawodów (sekundy): 300

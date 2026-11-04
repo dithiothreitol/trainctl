@@ -6,6 +6,46 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-11-04
+
+### Fixed
+
+- Fractional pace now rounds correctly across minute boundaries in CLI and
+  Intervals.icu work/recovery steps.
+- Hard running and timed swimming repetitions explain their actual intent;
+  standalone sessions do not imply a known training phase.
+- Multisport rule links now refer to MULTISPORT rather than running foundations.
+
+### Added
+
+- Phase-specific cycling and swimming recipes with objectives, rationale,
+  success criteria, warm-up, main work, recovery and cool-down.
+- Named swimming drills, RPE guidance without current calibration, and
+  bounded progression for bike/run bricks.
+- Coaching instructions in CLI/MCP, JSON/YAML, Markdown, HTML, ICS and
+  Intervals.icu; FIT step notes and explicit recovery power/pace.
+- MS-6 documents recipe parameters, evidence boundaries and device limits.
+
+### Changed
+
+- CLI workout cards separate objectives, structure, rationale and adjustments
+  with coloured headings. Planned peak RPE has a labelled ten-step colour scale;
+  recovery targets have separate rows, and durations use minutes and seconds.
+- Replacement and shortening previews compare structured cards; confirmation
+  shows a concise summary. Plain/MCP output keeps headings and numeric RPE.
+- FTP/CSS without a current dated source now uses subjective effort guidance.
+- Shortening preserves complete repetitions and the minimum quality stimulus.
+- A time budget too small for a quality set explicitly produces an easy session.
+
+### Distribution and limits
+
+- GitHub-only release with a self-contained Codex plugin and terminal examples.
+  Version 0.6.0 is not published to npm.
+- Training recipe parameters remain documented engineering choices; independent
+  coaching review and tests on physical Garmin/Suunto watches are still pending.
+- FIT step notes may be truncated to 254 UTF-8 bytes; full instructions remain
+  available through CLI/MCP and text exports.
+
 ## [0.5.0] — 2026-11-04
 
 ### Added

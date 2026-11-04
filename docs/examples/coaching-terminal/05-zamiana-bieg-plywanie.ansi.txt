@@ -1,0 +1,176 @@
+$ trainctl replace --date 2026-11-04 --sport run --to-sport swim --minutes 40 --prepare
+[33m⚠[0m data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i ważność propozycji idą za nią
+[32m✓[0m Propozycja gotowa; przejrzyj ją i zastosuj jej ID. a41d5b30-6a01-4c03-8ba1-31a8873c885c
+
+[32m╭[0m [1m[32mOryginał · 2026-11-04 06:00 · Bieganie[0m[0m
+[32m│[0m Spokojna wytrzymałość · 40 min
+[32m│[0m Spokojny trening tlenowy
+[32m│[0m 
+[32m│[0m [1m[36mCel[0m[0m
+[32m│[0m 
+[32m│[0m Buduj wytrzymałość tlenową bez dużego zmęczenia.
+[32m│[0m 
+[32m│[0m [1m[35mIntensywność[0m[0m
+[32m│[0m 
+[32m│[0m [1m[32mNajmocniejszy etap (plan): RPE 3–4/10[0m[0m
+[32m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[32m│[0m [36m  1 [0m [36m  2 [0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[32m│[0m [2m[0m
+[32m│[0m 
+[32m│[0m [1m[34mPrzebieg treningu[0m[0m
+[32m│[0m 
+[32m│[0m [1mEtap          [0m  [1m Dawka[0m  [1mCel / wysiłek               [0m
+[32m│[0m [2m──────────────  ──────  ────────────────────────────[0m
+[32m│[0m [32m1. Rozgrzewka [0m  [1m 5 min[0m  według odczucia · RPE 2–3/10
+[32m│[0m [32m2. Praca      [0m  [1m31 min[0m  według odczucia · RPE 3–4/10
+[32m│[0m [36m3. Schłodzenie[0m  [1m 4 min[0m  według odczucia · RPE 1–2/10
+[32m│[0m 
+[32m│[0m [2mID: c-8e047b2e-2026-11-02-run-0[0m
+[32m╰───────────────────────────────────────────────────────────────[0m
+
+[36m╭[0m [1m[36mZamiennik · 2026-11-04 06:00 · Pływanie[0m[0m
+[36m│[0m Spokojna wytrzymałość · 29 min 36 s · 1200 m
+[36m│[0m Spokojny trening tlenowy
+[36m│[0m 
+[36m│[0m [1m[36mCel[0m[0m
+[36m│[0m 
+[36m│[0m Buduj wytrzymałość tlenową bez dużego zmęczenia.
+[36m│[0m 
+[36m│[0m [1m[35mIntensywność[0m[0m
+[36m│[0m 
+[36m│[0m [1m[32mNajmocniejszy etap (plan): RPE 3–4/10[0m[0m
+[36m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[36m│[0m [36m  1 [0m [36m  2 [0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[36m│[0m [2m[0m
+[36m│[0m 
+[36m│[0m [1m[34mPrzebieg treningu[0m[0m
+[36m│[0m 
+[36m│[0m [1mEtap          [0m  [1mDawka    [0m  [1mCel / wysiłek                  [0m
+[36m│[0m [2m──────────────  ─────────  ───────────────────────────────[0m
+[36m│[0m [32m1. Rozgrzewka [0m  225 m      2:20/100 m · RPE 2–3/10 · kraul
+[36m│[0m [32m2. Praca      [0m  8 × 100 m  2:12/100 m · RPE 3–4/10 · kraul
+[36m│[0m [36mPrzerwa po 2  [0m  20 s       według odczucia · RPE 1–2/10
+[36m│[0m [32m3. Praca      [0m  50 m       2:20/100 m · RPE 2–3/10 · kraul
+[36m│[0m [36m4. Schłodzenie[0m  125 m      2:20/100 m · RPE 1–2/10 · kraul
+[36m│[0m 
+[36m│[0m [2mID: c-8e047b2e-replacement-1[0m
+[36m│[0m [2mZamiennik jednostki: c-8e047b2e-2026-11-02-run-0[0m
+[36m╰───────────────────────────────────────────────────────────────[0m
+
+[34m→[0m MS-2: zamiana sportu jest świadomą alternatywą, bez przelicznika równoważności fizjologicznej.
+[34m→[0m Zachowana ogólna aktywność tlenowa.
+[34m→[0m Praktyka specyficzna dla sportu oryginalnej jednostki pozostaje niezrealizowana.
+[34m→[0m Pływanie nie zachowuje mechaniki biegu ani tolerancji obciążeń udarowych.
+[34m→[0m Sąsiedni akcent wyklucza dodanie kolejnej intensywnej sesji.
+[34m→[0m Wpływ na objętość tygodnia: 2026-11-02
+[34m→[0m Bieganie: 55.0 → 15.0 min (Zmiana: -40.0 min); 0 → 0 m
+[34m→[0m Rower: 166.0 → 166.0 min (Zmiana: 0.0 min); 0 → 0 m
+[34m→[0m Pływanie: 178.0 → 207.6 min (Zmiana: 29.6 min); 7100 → 8300 m
+[34m→[0m Zajęty czas wraz z przygotowaniem: 484.0 → 473.6 min
+[34m→[0m Tygodniowy udział sportów zmienia się zgodnie z podglądem; cel i pozostałe sesje pozostają bez zmian.
+
+[34m→[0m [36mtrainctl replace --apply a41d5b30-6a01-4c03-8ba1-31a8873c885c[0m
+
+$ trainctl replace --apply a41d5b30-6a01-4c03-8ba1-31a8873c885c
+[33m⚠[0m data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i ważność propozycji idą za nią
+[32m✓[0m Zastosowano propozycję.
+[2mOryginał: [0m  Bieganie · 40 min
+[2mZamiennik:[0m  Pływanie · 29 min 36 s · 1200 m
+[34m→[0m MS-2: zamiana sportu jest świadomą alternatywą, bez przelicznika równoważności fizjologicznej.
+[34m→[0m Zachowana ogólna aktywność tlenowa.
+[34m→[0m Praktyka specyficzna dla sportu oryginalnej jednostki pozostaje niezrealizowana.
+[34m→[0m Pływanie nie zachowuje mechaniki biegu ani tolerancji obciążeń udarowych.
+[34m→[0m Sąsiedni akcent wyklucza dodanie kolejnej intensywnej sesji.
+[34m→[0m Wpływ na objętość tygodnia: 2026-11-02
+[34m→[0m Bieganie: 55.0 → 15.0 min (Zmiana: -40.0 min); 0 → 0 m
+[34m→[0m Rower: 166.0 → 166.0 min (Zmiana: 0.0 min); 0 → 0 m
+[34m→[0m Pływanie: 178.0 → 207.6 min (Zmiana: 29.6 min); 7100 → 8300 m
+[34m→[0m Zajęty czas wraz z przygotowaniem: 484.0 → 473.6 min
+[34m→[0m Tygodniowy udział sportów zmienia się zgodnie z podglądem; cel i pozostałe sesje pozostają bez zmian.
+
+[34m→[0m [36mtrainctl today --session c-8e047b2e-replacement-1[0m
+
+$ trainctl today --date 2026-11-04 --sport swim
+[33m⚠[0m data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i ważność propozycji idą za nią
+
+[1m[36mPlan sportowy: Przykładowy triathlon[0m[0m
+[2mDzień · 2026-11-04[0m
+[2m────────────────────────────────────────────────────────────────[0m
+
+[2mTreningi:                      [0m  [1m1[0m
+[2mCzas treningów:                [0m  29 min 36 s
+[2mZ przygotowaniem i przejściami:[0m  39 min 36 s
+
+[36m╭[0m [1m[36m2026-11-04 06:00 · Pływanie[0m[0m
+[36m│[0m Spokojna wytrzymałość · 29 min 36 s · 1200 m
+[36m│[0m Spokojny trening tlenowy
+[36m│[0m 
+[36m│[0m [1m[36mCel[0m[0m
+[36m│[0m 
+[36m│[0m Buduj wytrzymałość tlenową bez dużego zmęczenia.
+[36m│[0m 
+[36m│[0m [1m[35mIntensywność[0m[0m
+[36m│[0m 
+[36m│[0m [1m[32mNajmocniejszy etap (plan): RPE 3–4/10[0m[0m
+[36m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[36m│[0m [36m  1 [0m [36m  2 [0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[36m│[0m [2m1–2 bardzo lekko · 3–4 lekko · 5–6 umiarkowanie · 7–8 mocno · 9–10 bardzo mocno. Nawiasy [ ] wskazują[0m
+[36m│[0m [2mzaplanowany zakres.[0m
+[36m│[0m 
+[36m│[0m [1m[34mPrzebieg treningu[0m[0m
+[36m│[0m 
+[36m│[0m [1m[32m1. Rozgrzewka · 225 m[0m[0m
+[36m│[0m 
+[36m│[0m [2mCel etapu:[0m  2:20/100 m
+[36m│[0m [2mRPE:      [0m  2–3/10
+[36m│[0m [2mStyl:     [0m  kraul
+[36m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[36m│[0m Zacznij bardzo spokojnie; stopniowo ustabilizuj rytm i oddech.
+[36m│[0m 
+[36m│[0m [1m[32m2. Praca · 8 × 100 m[0m[0m
+[36m│[0m 
+[36m│[0m [2mCel etapu:[0m  2:12/100 m
+[36m│[0m [2mRPE:      [0m  3–4/10
+[36m│[0m [2mStyl:     [0m  kraul
+[36m│[0m [2mSwobodny wydech do wody; technika bez napięcia.[0m
+[36m│[0m Utrzymuj równy rytm i jakość ruchu od pierwszego do ostatniego odcinka.
+[36m│[0m 
+[36m│[0m [2mPrzerwa po odcinku:[0m  20 s @ według odczucia · RPE 1–2/10
+[36m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[36m│[0m Odpocznij przy ścianie po każdym odcinku, również ostatnim.
+[36m│[0m 
+[36m│[0m [1m[32m3. Praca · 50 m[0m[0m
+[36m│[0m 
+[36m│[0m [2mCel etapu:[0m  2:20/100 m
+[36m│[0m [2mRPE:      [0m  2–3/10
+[36m│[0m [2mStyl:     [0m  kraul
+[36m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[36m│[0m Dopłyń spokojnie; utrzymaj swobodną sylwetkę.
+[36m│[0m 
+[36m│[0m [1m[36m4. Schłodzenie · 125 m[0m[0m
+[36m│[0m 
+[36m│[0m [2mCel etapu:[0m  2:20/100 m
+[36m│[0m [2mRPE:      [0m  1–2/10
+[36m│[0m [2mStyl:     [0m  kraul
+[36m│[0m [2mBardzo lekko; spokojny, swobodny oddech.[0m
+[36m│[0m Stopniowo zmniejsz wysiłek i rozluźnij ruch.
+[36m│[0m 
+[36m│[0m [1m[36mDlaczego ten trening[0m[0m
+[36m│[0m 
+[36m│[0m Faza: Baza. Cel planu: Przykładowy triathlon (1500 m). Dawkę ograniczają poziom doświadczenia i dostępny czas;
+[36m│[0m progresja nie wymaga zwiększania intensywności. Doświadczenie: wytrenowany. Spokojna intensywność pozwala
+[36m│[0m rozwijać regularność i technikę bez dodawania kolejnego akcentu.
+[36m│[0m 
+[36m│[0m [1m[32mWskazówki wykonania[0m[0m
+[36m│[0m 
+[36m│[0m [34m•[0m Utrzymaj swobodny oddech i stabilną technikę; zakończ z zapasem sił.
+[36m│[0m [34m•[0m Zapisz czas, odczuwany wysiłek RPE i ewentualne zmniejszenie liczby powtórzeń.
+[36m│[0m 
+[36m│[0m [1m[33mDostosowanie[0m[0m
+[36m│[0m 
+[36m│[0m [34m•[0m Jeśli wysiłek lub technika wykraczają poza wskazówki, zwolnij albo skróć serię. Nie nadrabiaj pominiętych
+[36m│[0m   odcinków.
+[36m│[0m 
+[36m│[0m [2mID: c-8e047b2e-replacement-1[0m
+[36m│[0m [2mZamiennik jednostki: c-8e047b2e-2026-11-02-run-0[0m
+[36m╰───────────────────────────────────────────────────────────────[0m

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { parse, stringify } from 'yaml'
 import {
-  ENDURANCE_SPORTS, addDays, estimateWorkoutMinutes, getLocale, mondayOf,
+  ENDURANCE_SPORTS, addDays, coachingLines, sessionStepLines, estimateWorkoutMinutes, getLocale, mondayOf,
   sportMessages as msg, validateSportsConfig, validateSportsPlan,
   type EnduranceSport, type SessionLog, type SportsConfig, type SportsPlan, type TrainingSession,
 } from 'trainctl-core'
@@ -50,23 +50,19 @@ export function readSessionLogs(cwd: string): SessionLog[] {
   })
 }
 export function sessionStepsText(s: TrainingSession): string {
-  const t = msg()
-  return s.legacyWorkout ? s.description ?? workoutText({date:s.date,weekday:'mon',workout:s.legacyWorkout}) : s.steps.map(x => {
-    const dose = x.distanceM ? `${x.distanceM} m` : `${Math.round(x.durationSec / 60 * 10) / 10} min`
-    const target = x.target.kind === 'power' ? `${x.target.watts} W` : x.target.kind === 'pace' ? `${x.target.seconds} s/${x.target.perM} m` : 'open'
-    return `${x.repeat ? `${x.repeat} × ` : ''}${dose} @ ${target}${x.restSec ? ` + ${x.restSec}s ${t.role.rest}` : ''}${x.sendoffSec ? ` / ${x.sendoffSec}s` : ''}${x.stroke ? ` (${x.stroke})` : ''}`
-  }).join('; ')
+  return sessionStepLines(s).join('\n')
 }
 export function sessionText(s: TrainingSession): string {
   const t = msg(), steps = sessionStepsText(s)
-  return `${t.sport[s.sport]} · ${t.purpose[s.purpose]} · ${Math.round(s.durationSec / 6) / 10} min${s.distanceM ? ` · ${s.distanceM} m` : ''} · ${steps}`
+  return [`${t.sport[s.sport]} · ${s.coaching?.title ?? t.purpose[s.purpose]} · ${Math.round(s.durationSec / 6) / 10} min${s.distanceM ? ` · ${s.distanceM} m` : ''}`, ...coachingLines(s), steps].join('\n')
 }
 const cell = (s: string): string => s.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ')
 export function sportsMarkdown(p: SportsPlan): string {
   const t = msg()
-  return [`# ${cell(p.goal.name)}`, '', t.engineering, '', '| ID | Date | Start | Session |', '| --- | --- | --- | --- |',
-    ...p.sessions.map(s => `| ${cell(s.id)} | ${s.date} | ${s.start ?? ''} | ${cell(sessionText(s))}${s.replacesSessionId ? ` (${t.replaced}: ${cell(s.replacesSessionId)})` : ''} |`), '',
-    ...p.warnings.map(w => `- ${w}`), '', '## History', ...p.replacements.map(r => `- ${r.sourceId} → ${r.targetId}: ${r.tradeoffs.join(' ')}`), ''].join('\n')
+  return ['# ' + cell(p.goal.name), '', t.engineering, '', '| ID | Date | Start | Session |', '| --- | --- | --- | --- |',
+    ...p.sessions.map(s => '| '+cell(s.id)+' | '+s.date+' | '+(s.start??'')+' | '+cell(t.sport[s.sport]+' · '+(s.coaching?.title??t.purpose[s.purpose])+' · '+Number((s.durationSec/60).toFixed(1))+' min')+' |'), '',
+    ...p.sessions.flatMap(s=>['### '+s.date+' · '+t.sport[s.sport]+' · '+cell(s.coaching?.title??t.purpose[s.purpose]),'', 'ID: '+s.id, '', ...coachingLines(s).map(x=>cell(x)), '', ...sessionStepLines(s).map(x=>cell(x)), '']),
+    ...p.warnings.map(w => '- '+w), '', '## History', ...p.replacements.map(r => '- '+r.sourceId+' → '+r.targetId+': '+r.tradeoffs.join(' ')), ''].join('\n')
 }
 export const planFiles = (p: SportsPlan): Record<string, string> => ({ [PLAN_YAML]: stringify(p), [PLAN_MD]: sportsMarkdown(p) })
 export function writeSportsPlan(cwd: string, p: SportsPlan): void {

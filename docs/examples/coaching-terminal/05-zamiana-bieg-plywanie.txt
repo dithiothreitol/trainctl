@@ -1,0 +1,176 @@
+$ trainctl replace --date 2026-11-04 --sport run --to-sport swim --minutes 40 --prepare
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i ważność propozycji idą za nią
+✓ Propozycja gotowa; przejrzyj ją i zastosuj jej ID. a41d5b30-6a01-4c03-8ba1-31a8873c885c
+
+╭ Oryginał · 2026-11-04 06:00 · Bieganie
+│ Spokojna wytrzymałość · 40 min
+│ Spokojny trening tlenowy
+│ 
+│ Cel
+│ 
+│ Buduj wytrzymałość tlenową bez dużego zmęczenia.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 3–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2  [ 3] [ 4]   5    6    7    8    9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap             Dawka  Cel / wysiłek               
+│ ──────────────  ──────  ────────────────────────────
+│ 1. Rozgrzewka    5 min  według odczucia · RPE 2–3/10
+│ 2. Praca        31 min  według odczucia · RPE 3–4/10
+│ 3. Schłodzenie   4 min  według odczucia · RPE 1–2/10
+│ 
+│ ID: c-8e047b2e-2026-11-02-run-0
+╰───────────────────────────────────────────────────────────────
+
+╭ Zamiennik · 2026-11-04 06:00 · Pływanie
+│ Spokojna wytrzymałość · 29 min 36 s · 1200 m
+│ Spokojny trening tlenowy
+│ 
+│ Cel
+│ 
+│ Buduj wytrzymałość tlenową bez dużego zmęczenia.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 3–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2  [ 3] [ 4]   5    6    7    8    9   10 
+│ 
+│ 
+│ Przebieg treningu
+│ 
+│ Etap            Dawka      Cel / wysiłek                  
+│ ──────────────  ─────────  ───────────────────────────────
+│ 1. Rozgrzewka   225 m      2:20/100 m · RPE 2–3/10 · kraul
+│ 2. Praca        8 × 100 m  2:12/100 m · RPE 3–4/10 · kraul
+│ Przerwa po 2    20 s       według odczucia · RPE 1–2/10
+│ 3. Praca        50 m       2:20/100 m · RPE 2–3/10 · kraul
+│ 4. Schłodzenie  125 m      2:20/100 m · RPE 1–2/10 · kraul
+│ 
+│ ID: c-8e047b2e-replacement-1
+│ Zamiennik jednostki: c-8e047b2e-2026-11-02-run-0
+╰───────────────────────────────────────────────────────────────
+
+→ MS-2: zamiana sportu jest świadomą alternatywą, bez przelicznika równoważności fizjologicznej.
+→ Zachowana ogólna aktywność tlenowa.
+→ Praktyka specyficzna dla sportu oryginalnej jednostki pozostaje niezrealizowana.
+→ Pływanie nie zachowuje mechaniki biegu ani tolerancji obciążeń udarowych.
+→ Sąsiedni akcent wyklucza dodanie kolejnej intensywnej sesji.
+→ Wpływ na objętość tygodnia: 2026-11-02
+→ Bieganie: 55.0 → 15.0 min (Zmiana: -40.0 min); 0 → 0 m
+→ Rower: 166.0 → 166.0 min (Zmiana: 0.0 min); 0 → 0 m
+→ Pływanie: 178.0 → 207.6 min (Zmiana: 29.6 min); 7100 → 8300 m
+→ Zajęty czas wraz z przygotowaniem: 484.0 → 473.6 min
+→ Tygodniowy udział sportów zmienia się zgodnie z podglądem; cel i pozostałe sesje pozostają bez zmian.
+
+→ trainctl replace --apply a41d5b30-6a01-4c03-8ba1-31a8873c885c
+
+$ trainctl replace --apply a41d5b30-6a01-4c03-8ba1-31a8873c885c
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i ważność propozycji idą za nią
+✓ Zastosowano propozycję.
+Oryginał:   Bieganie · 40 min
+Zamiennik:  Pływanie · 29 min 36 s · 1200 m
+→ MS-2: zamiana sportu jest świadomą alternatywą, bez przelicznika równoważności fizjologicznej.
+→ Zachowana ogólna aktywność tlenowa.
+→ Praktyka specyficzna dla sportu oryginalnej jednostki pozostaje niezrealizowana.
+→ Pływanie nie zachowuje mechaniki biegu ani tolerancji obciążeń udarowych.
+→ Sąsiedni akcent wyklucza dodanie kolejnej intensywnej sesji.
+→ Wpływ na objętość tygodnia: 2026-11-02
+→ Bieganie: 55.0 → 15.0 min (Zmiana: -40.0 min); 0 → 0 m
+→ Rower: 166.0 → 166.0 min (Zmiana: 0.0 min); 0 → 0 m
+→ Pływanie: 178.0 → 207.6 min (Zmiana: 29.6 min); 7100 → 8300 m
+→ Zajęty czas wraz z przygotowaniem: 484.0 → 473.6 min
+→ Tygodniowy udział sportów zmienia się zgodnie z podglądem; cel i pozostałe sesje pozostają bez zmian.
+
+→ trainctl today --session c-8e047b2e-replacement-1
+
+$ trainctl today --date 2026-11-04 --sport swim
+⚠ data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i ważność propozycji idą za nią
+
+Plan sportowy: Przykładowy triathlon
+Dzień · 2026-11-04
+────────────────────────────────────────────────────────────────
+
+Treningi:                        1
+Czas treningów:                  29 min 36 s
+Z przygotowaniem i przejściami:  39 min 36 s
+
+╭ 2026-11-04 06:00 · Pływanie
+│ Spokojna wytrzymałość · 29 min 36 s · 1200 m
+│ Spokojny trening tlenowy
+│ 
+│ Cel
+│ 
+│ Buduj wytrzymałość tlenową bez dużego zmęczenia.
+│ 
+│ Intensywność
+│ 
+│ Najmocniejszy etap (plan): RPE 3–4/10
+│  ▁▁   ▂▂   ▃▃   ▄▄   ▅▅   ▅▅   ▆▆   ▇▇   ██   ██ 
+│   1    2  [ 3] [ 4]   5    6    7    8    9   10 
+│ 1–2 bardzo lekko · 3–4 lekko · 5–6 umiarkowanie · 7–8 mocno · 9–10 bardzo mocno. Nawiasy [ ] wskazują
+│ zaplanowany zakres.
+│ 
+│ Przebieg treningu
+│ 
+│ 1. Rozgrzewka · 225 m
+│ 
+│ Cel etapu:  2:20/100 m
+│ RPE:        2–3/10
+│ Styl:       kraul
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Zacznij bardzo spokojnie; stopniowo ustabilizuj rytm i oddech.
+│ 
+│ 2. Praca · 8 × 100 m
+│ 
+│ Cel etapu:  2:12/100 m
+│ RPE:        3–4/10
+│ Styl:       kraul
+│ Swobodny wydech do wody; technika bez napięcia.
+│ Utrzymuj równy rytm i jakość ruchu od pierwszego do ostatniego odcinka.
+│ 
+│ Przerwa po odcinku:  20 s @ według odczucia · RPE 1–2/10
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Odpocznij przy ścianie po każdym odcinku, również ostatnim.
+│ 
+│ 3. Praca · 50 m
+│ 
+│ Cel etapu:  2:20/100 m
+│ RPE:        2–3/10
+│ Styl:       kraul
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Dopłyń spokojnie; utrzymaj swobodną sylwetkę.
+│ 
+│ 4. Schłodzenie · 125 m
+│ 
+│ Cel etapu:  2:20/100 m
+│ RPE:        1–2/10
+│ Styl:       kraul
+│ Bardzo lekko; spokojny, swobodny oddech.
+│ Stopniowo zmniejsz wysiłek i rozluźnij ruch.
+│ 
+│ Dlaczego ten trening
+│ 
+│ Faza: Baza. Cel planu: Przykładowy triathlon (1500 m). Dawkę ograniczają poziom doświadczenia i dostępny czas;
+│ progresja nie wymaga zwiększania intensywności. Doświadczenie: wytrenowany. Spokojna intensywność pozwala
+│ rozwijać regularność i technikę bez dodawania kolejnego akcentu.
+│ 
+│ Wskazówki wykonania
+│ 
+│ • Utrzymaj swobodny oddech i stabilną technikę; zakończ z zapasem sił.
+│ • Zapisz czas, odczuwany wysiłek RPE i ewentualne zmniejszenie liczby powtórzeń.
+│ 
+│ Dostosowanie
+│ 
+│ • Jeśli wysiłek lub technika wykraczają poza wskazówki, zwolnij albo skróć serię. Nie nadrabiaj pominiętych
+│   odcinków.
+│ 
+│ ID: c-8e047b2e-replacement-1
+│ Zamiennik jednostki: c-8e047b2e-2026-11-02-run-0
+╰───────────────────────────────────────────────────────────────

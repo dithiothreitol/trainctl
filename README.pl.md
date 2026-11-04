@@ -1,8 +1,8 @@
 # trainctl
 
-Nowości w **0.5.0**: rower, pływanie i multisport, odwracalne zamiany
-treningów, samodzielna paczka pluginu Codexa oraz czytelniejsze CLI z opcjami
-`--color` i `--plain`. [Lista zmian](CHANGELOG.md#050--2026-11-04).
+Nowości w **0.6.0**: szczegółowe cele i instrukcje treningów, jednostki rowerowe
+i pływackie dopasowane do fazy, czytelne podglądy zamian oraz kolorowa skala RPE.
+[Lista zmian](CHANGELOG.md#060--2026-11-04) · [Przykłady terminala](docs/examples/x-thread-2026-11-04/index.html).
 
 ```sh
 trainctl init --agent claude      # profil + konfiguracja pluginu dla agenta
@@ -56,6 +56,10 @@ historia gita.
 ---
 
 ## Instalacja
+
+**Wersja 0.6.0 jest dostępna w [GitHub Releases](https://github.com/dithiothreitol/trainctl/releases/tag/v0.6.0).**
+Pobierz ZIP z CLI/MCP i pluginem Codexa, a następnie wykonaj kroki z `INSTALL.txt`.
+Ta wersja nie jest opublikowana w npm; poniższe polecenia instalują wydanie z npm.
 
 ```bash
 npx trainctl init          # bez instalacji

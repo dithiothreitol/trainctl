@@ -1,0 +1,242 @@
+$ trainctl week --date 2026-11-16
+[33m⚠[0m data symulowana 2026-11-02 (TRAINCTL_TODAY) — „dziś”, ochrona przeszłości i ważność propozycji idą za nią
+
+[1m[36mPlan sportowy: Przykładowy triathlon[0m[0m
+[2mTydzień · 2026-11-16 – 2026-11-22[0m
+[2m────────────────────────────────────────────────────────────────[0m
+
+[2mTreningi:                      [0m  [1m8[0m
+[2mCzas treningów:                [0m  414 min 27 s
+[2mZ przygotowaniem i przejściami:[0m  499 min 27 s
+
+[36m╭[0m [1m[36m2026-11-16 06:00 · Pływanie[0m[0m
+[36m│[0m Długa wytrzymałość · 68 min 55 s · 2925 m
+[36m│[0m Spokojna wytrzymałość długotrwała
+[36m│[0m 
+[36m│[0m [1m[36mCel[0m[0m
+[36m│[0m 
+[36m│[0m Wydłużaj czas utrzymania swobodnego wysiłku i stabilnej techniki.
+[36m│[0m 
+[36m│[0m [1m[35mIntensywność[0m[0m
+[36m│[0m 
+[36m│[0m [1m[32mNajmocniejszy etap (plan): RPE 3–4/10[0m[0m
+[36m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[36m│[0m [36m  1 [0m [36m  2 [0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[36m│[0m [2m[0m
+[36m│[0m 
+[36m│[0m [1m[34mPrzebieg treningu[0m[0m
+[36m│[0m 
+[36m│[0m [1mEtap          [0m  [1mDawka     [0m  [1mCel / wysiłek                  [0m
+[36m│[0m [2m──────────────  ──────────  ───────────────────────────────[0m
+[36m│[0m [32m1. Rozgrzewka [0m  525 m       2:20/100 m · RPE 2–3/10 · kraul
+[36m│[0m [32m2. Praca      [0m  10 × 200 m  2:12/100 m · RPE 3–4/10 · kraul
+[36m│[0m [36mPrzerwa po 2  [0m  20 s        według odczucia · RPE 1–2/10
+[36m│[0m [32m3. Praca      [0m  125 m       2:20/100 m · RPE 2–3/10 · kraul
+[36m│[0m [36m4. Schłodzenie[0m  275 m       2:20/100 m · RPE 1–2/10 · kraul
+[36m│[0m 
+[36m│[0m [2mID: c-8e047b2e-2026-11-16-swim-2[0m
+[36m╰───────────────────────────────────────────────────────────────[0m
+
+[33m╭[0m [1m[33m2026-11-17 06:00 · Rower[0m[0m
+[33m│[0m Interwały · 68 min
+[33m│[0m Moc tlenowa: krótkie odcinki
+[33m│[0m 
+[33m│[0m [1m[36mCel[0m[0m
+[33m│[0m 
+[33m│[0m Rozwijaj tolerancję powtarzanych mocnych odcinków bez sprintowania.
+[33m│[0m 
+[33m│[0m [1m[35mIntensywność[0m[0m
+[33m│[0m 
+[33m│[0m [1m[35mNajmocniejszy etap (plan): RPE 7–8/10[0m[0m
+[33m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[33m│[0m [36m  1 [0m [36m  2 [0m [32m  3 [0m [32m  4 [0m [33m  5 [0m [33m  6 [0m [35m[1m[ 7][0m[0m [35m[1m[ 8][0m[0m [31m  9 [0m [31m 10 [0m
+[33m│[0m [2m[0m
+[33m│[0m 
+[33m│[0m [1m[34mPrzebieg treningu[0m[0m
+[33m│[0m 
+[33m│[0m [1mEtap          [0m  [1mDawka    [0m  [1mCel / wysiłek                [0m
+[33m│[0m [2m──────────────  ─────────  ─────────────────────────────[0m
+[33m│[0m [32m1. Rozgrzewka [0m  10 min     150 W (60% FTP) · RPE 2–3/10
+[33m│[0m [35m2. Praca      [0m  5 × 3 min  275 W (110% FTP) · RPE 7–8/10
+[33m│[0m [36mPrzerwa po 2  [0m  3 min      125 W (50% FTP) · RPE 1–2/10
+[33m│[0m [32m3. Praca      [0m  23 min     150 W (60% FTP) · RPE 2–3/10
+[33m│[0m [36m4. Schłodzenie[0m  5 min      125 W (50% FTP) · RPE 1–2/10
+[33m│[0m 
+[33m│[0m [2mID: c-8e047b2e-2026-11-16-bike-0[0m
+[33m╰───────────────────────────────────────────────────────────────[0m
+
+[32m╭[0m [1m[32m2026-11-18 06:00 · Bieganie[0m[0m
+[32m│[0m Spokojna wytrzymałość · 40 min
+[32m│[0m Spokojny trening tlenowy
+[32m│[0m 
+[32m│[0m [1m[36mCel[0m[0m
+[32m│[0m 
+[32m│[0m Buduj wytrzymałość tlenową bez dużego zmęczenia.
+[32m│[0m 
+[32m│[0m [1m[35mIntensywność[0m[0m
+[32m│[0m 
+[32m│[0m [1m[32mNajmocniejszy etap (plan): RPE 3–4/10[0m[0m
+[32m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[32m│[0m [36m  1 [0m [36m  2 [0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[32m│[0m [2m[0m
+[32m│[0m 
+[32m│[0m [1m[34mPrzebieg treningu[0m[0m
+[32m│[0m 
+[32m│[0m [1mEtap          [0m  [1m Dawka[0m  [1mCel / wysiłek               [0m
+[32m│[0m [2m──────────────  ──────  ────────────────────────────[0m
+[32m│[0m [32m1. Rozgrzewka [0m  [1m 5 min[0m  według odczucia · RPE 2–3/10
+[32m│[0m [32m2. Praca      [0m  [1m31 min[0m  według odczucia · RPE 3–4/10
+[32m│[0m [36m3. Schłodzenie[0m  [1m 4 min[0m  według odczucia · RPE 1–2/10
+[32m│[0m 
+[32m│[0m [2mID: c-8e047b2e-2026-11-16-run-0[0m
+[32m╰───────────────────────────────────────────────────────────────[0m
+
+[36m╭[0m [1m[36m2026-11-19 06:00 · Pływanie[0m[0m
+[36m│[0m Interwały · 54 min 58 s · 2150 m
+[36m│[0m Szybkość z kontrolą techniki
+[36m│[0m 
+[36m│[0m [1m[36mCel[0m[0m
+[36m│[0m 
+[36m│[0m Utrzymuj sprawny chwyt wody i rytm przy krótkich, mocnych odcinkach.
+[36m│[0m 
+[36m│[0m [1m[35mIntensywność[0m[0m
+[36m│[0m 
+[36m│[0m [1m[35mNajmocniejszy etap (plan): RPE 6–7/10[0m[0m
+[36m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[36m│[0m [36m  1 [0m [36m  2 [0m [32m  3 [0m [32m  4 [0m [33m  5 [0m [33m[1m[ 6][0m[0m [35m[1m[ 7][0m[0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[36m│[0m [2m[0m
+[36m│[0m 
+[36m│[0m [1m[34mPrzebieg treningu[0m[0m
+[36m│[0m 
+[36m│[0m [1mEtap          [0m  [1mDawka    [0m  [1mCel / wysiłek                  [0m
+[36m│[0m [2m──────────────  ─────────  ───────────────────────────────[0m
+[36m│[0m [32m1. Rozgrzewka [0m  400 m      2:20/100 m · RPE 2–3/10 · kraul
+[36m│[0m [35m2. Praca      [0m  12 × 25 m  1:56/100 m · RPE 6–7/10 · kraul
+[36m│[0m [36mPrzerwa po 2  [0m  30 s       według odczucia · RPE 1–2/10
+[36m│[0m [32m3. Praca      [0m  1225 m     2:20/100 m · RPE 2–3/10 · kraul
+[36m│[0m [36m4. Schłodzenie[0m  225 m      2:20/100 m · RPE 1–2/10 · kraul
+[36m│[0m 
+[36m│[0m [2mID: c-8e047b2e-2026-11-16-swim-0[0m
+[36m╰───────────────────────────────────────────────────────────────[0m
+
+[36m╭[0m [1m[36m2026-11-20 06:00 · Pływanie[0m[0m
+[36m│[0m Technika · 54 min 34 s · 1875 m
+[36m│[0m Technika i spokojny rytm
+[36m│[0m 
+[36m│[0m [1m[36mCel[0m[0m
+[36m│[0m 
+[36m│[0m Popraw pozycję ciała, wydech i spokojny powrót ramienia, następnie przenieś je do kraula.
+[36m│[0m 
+[36m│[0m [1m[35mIntensywność[0m[0m
+[36m│[0m 
+[36m│[0m [1m[32mNajmocniejszy etap (plan): RPE 2–4/10[0m[0m
+[36m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[36m│[0m [36m  1 [0m [36m[1m[ 2][0m[0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[36m│[0m [2m[0m
+[36m│[0m 
+[36m│[0m [1m[34mPrzebieg treningu[0m[0m
+[36m│[0m 
+[36m│[0m [1mEtap                   [0m  [1mDawka    [0m  [1mCel / wysiłek                                      [0m
+[36m│[0m [2m───────────────────────  ─────────  ───────────────────────────────────────────────────[0m
+[36m│[0m [32m1. Rozgrzewka          [0m  400 m      2:20/100 m · RPE 2–3/10 · kraul
+[36m│[0m [32m2. Ćwiczenie techniczne[0m  12 × 25 m  według odczucia · RPE 2–3/10 · ćwiczenie techniczne
+[36m│[0m [36mPrzerwa po 2           [0m  20 s       według odczucia · RPE 1–2/10
+[36m│[0m [32m3. Praca               [0m  19 × 50 m  2:18/100 m · RPE 2–4/10 · kraul
+[36m│[0m [36mPrzerwa po 3           [0m  20 s       według odczucia · RPE 1–2/10
+[36m│[0m [36m4. Schłodzenie         [0m  225 m      2:20/100 m · RPE 1–2/10 · kraul
+[36m│[0m 
+[36m│[0m [2mID: c-8e047b2e-2026-11-16-swim-1[0m
+[36m╰───────────────────────────────────────────────────────────────[0m
+
+[33m╭[0m [1m[33m2026-11-21 07:00 · Rower[0m[0m
+[33m│[0m Spokojna wytrzymałość · 40 min
+[33m│[0m Rower przed zakładką
+[33m│[0m 
+[33m│[0m [1m[36mCel[0m[0m
+[33m│[0m 
+[33m│[0m Utrzymaj równy wysiłek i zakończ rower z zapasem na bieg.
+[33m│[0m 
+[33m│[0m [1m[35mIntensywność[0m[0m
+[33m│[0m 
+[33m│[0m [1m[32mNajmocniejszy etap (plan): RPE 3–4/10[0m[0m
+[33m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[33m│[0m [36m  1 [0m [36m  2 [0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[33m│[0m [2m[0m
+[33m│[0m 
+[33m│[0m [1m[34mPrzebieg treningu[0m[0m
+[33m│[0m 
+[33m│[0m [1mEtap          [0m  [1m Dawka[0m  [1mCel / wysiłek               [0m
+[33m│[0m [2m──────────────  ──────  ────────────────────────────[0m
+[33m│[0m [32m1. Rozgrzewka [0m  [1m 5 min[0m  150 W (60% FTP) · RPE 2–3/10
+[33m│[0m [32m2. Praca      [0m  [1m31 min[0m  163 W (65% FTP) · RPE 3–4/10
+[33m│[0m [36m3. Schłodzenie[0m  [1m 4 min[0m  125 W (50% FTP) · RPE 1–2/10
+[33m│[0m 
+[33m│[0m [2mID: c-8e047b2e-2026-11-16-bike-2[0m
+[33m│[0m [2mGrupa powiązanych sesji: c-8e047b2e-2026-11-16-brick[0m
+[33m╰───────────────────────────────────────────────────────────────[0m
+
+[32m╭[0m [1m[32m2026-11-21 07:55 · Bieganie[0m[0m
+[32m│[0m Spokojna wytrzymałość · 20 min
+[32m│[0m Bieg po rowerze
+[32m│[0m 
+[32m│[0m [1m[36mCel[0m[0m
+[32m│[0m 
+[32m│[0m Przećwicz przejście do biegu; zacznij spokojnie i ustabilizuj krok.
+[32m│[0m 
+[32m│[0m [1m[35mIntensywność[0m[0m
+[32m│[0m 
+[32m│[0m [1m[32mNajmocniejszy etap (plan): RPE 3–4/10[0m[0m
+[32m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[32m│[0m [36m  1 [0m [36m  2 [0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[32m│[0m [2m[0m
+[32m│[0m 
+[32m│[0m [1m[34mPrzebieg treningu[0m[0m
+[32m│[0m 
+[32m│[0m [1mEtap          [0m  [1m Dawka[0m  [1mCel / wysiłek               [0m
+[32m│[0m [2m──────────────  ──────  ────────────────────────────[0m
+[32m│[0m [32m1. Rozgrzewka [0m  [1m 3 min[0m  według odczucia · RPE 2–3/10
+[32m│[0m [32m2. Praca      [0m  [1m15 min[0m  według odczucia · RPE 3–4/10
+[32m│[0m [36m3. Schłodzenie[0m  [1m 2 min[0m  według odczucia · RPE 1–2/10
+[32m│[0m 
+[32m│[0m [2mID: c-8e047b2e-2026-11-16-run-1[0m
+[32m│[0m [2mGrupa powiązanych sesji: c-8e047b2e-2026-11-16-brick[0m
+[32m╰───────────────────────────────────────────────────────────────[0m
+
+[33m╭[0m [1m[33m2026-11-22 06:00 · Rower[0m[0m
+[33m│[0m Spokojna wytrzymałość · 68 min
+[33m│[0m Spokojny trening tlenowy
+[33m│[0m 
+[33m│[0m [1m[36mCel[0m[0m
+[33m│[0m 
+[33m│[0m Buduj wytrzymałość tlenową bez dużego zmęczenia.
+[33m│[0m 
+[33m│[0m [1m[35mIntensywność[0m[0m
+[33m│[0m 
+[33m│[0m [1m[32mNajmocniejszy etap (plan): RPE 3–4/10[0m[0m
+[33m│[0m [36m ▁▁ [0m [36m ▂▂ [0m [32m ▃▃ [0m [32m ▄▄ [0m [33m ▅▅ [0m [33m ▅▅ [0m [35m ▆▆ [0m [35m ▇▇ [0m [31m ██ [0m [31m ██ [0m
+[33m│[0m [36m  1 [0m [36m  2 [0m [32m[1m[ 3][0m[0m [32m[1m[ 4][0m[0m [33m  5 [0m [33m  6 [0m [35m  7 [0m [35m  8 [0m [31m  9 [0m [31m 10 [0m
+[33m│[0m [2m[0m
+[33m│[0m 
+[33m│[0m [1m[34mPrzebieg treningu[0m[0m
+[33m│[0m 
+[33m│[0m [1mEtap          [0m  [1m Dawka[0m  [1mCel / wysiłek               [0m
+[33m│[0m [2m──────────────  ──────  ────────────────────────────[0m
+[33m│[0m [32m1. Rozgrzewka [0m  [1m 5 min[0m  150 W (60% FTP) · RPE 2–3/10
+[33m│[0m [32m2. Praca      [0m  [1m58 min[0m  163 W (65% FTP) · RPE 3–4/10
+[33m│[0m [36m3. Schłodzenie[0m  [1m 5 min[0m  125 W (50% FTP) · RPE 1–2/10
+[33m│[0m 
+[33m│[0m [2mID: c-8e047b2e-2026-11-16-bike-1[0m
+[33m╰───────────────────────────────────────────────────────────────[0m
+
+[1m[34mObjętość według sportu[0m[0m
+
+[1mSport   [0m  [1mCzas        [0m  [1mDystans[0m  [1mIntensywność                                                   [0m
+[2m────────  ────────────  ───────  ───────────────────────────────────────────────────────────────[0m
+[32mBieganie[0m  60 min        [1m    0 m[0m  Spokojnie 100%
+[33mRower   [0m  176 min       [1m    0 m[0m  Spokojnie 83% · Akcent 8.5% · Odpoczynek 8.5%
+[36mPływanie[0m  178 min 27 s  [1m 6950 m[0m  Spokojnie 69.1% · Akcent 3.3% · Odpoczynek 11% · Technika 16.6%
+
+[2mPlanowana intensywność wynika z ról kroków, nie z pomiaru stref. Rozgrzewka i schłodzenie są spokojne, wszystkie[0m
+[2mprzerwy to odpoczynek. Interwały bez kalibracji i mieszane segmenty biegu bez podziału czasu pozostają[0m
+[2mnieokreślone.[0m
+[34m→[0m Grupa powiązanych sesji: c-8e047b2e-2026-11-16-brick · Przejścia między etapami zawodów (sekundy): 300
