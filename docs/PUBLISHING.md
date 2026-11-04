@@ -12,7 +12,8 @@ Historia wydań: `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.5.0`.
 0.6.0 dodaje szczegółowe cele i struktury jednostek, instrukcje pływania,
 kontrolę kalibracji, zachowanie pełnych powtórzeń przy skracaniu oraz kolorowe
 sekcje i skalę RPE w CLI. Wydanie obejmuje GitHub Release i samodzielny ZIP
-pluginu z CLI/MCP. Zgodnie z decyzją właściciela nie publikujemy 0.6.0 w npm.
+pluginu z CLI/MCP. Po wydaniu GitHub właściciel zatwierdził także publikację
+wszystkich sześciu paczek 0.6.0 w npm (2026-11-04), z tagiem `latest`.
 Zakres i ograniczenia opisuje [CHANGELOG.md](../CHANGELOG.md).
 Dostępność paczek w npm sprawdzamy osobno od tagu i GitHub Release;
 sama zmiana wersji w repozytorium nie oznacza publikacji do rejestru.

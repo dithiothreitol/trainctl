@@ -59,7 +59,7 @@ historia gita.
 
 **Wersja 0.6.0 jest dostępna w [GitHub Releases](https://github.com/dithiothreitol/trainctl/releases/tag/v0.6.0).**
 Pobierz ZIP z CLI/MCP i pluginem Codexa, a następnie wykonaj kroki z `INSTALL.txt`.
-Ta wersja nie jest opublikowana w npm; poniższe polecenia instalują wydanie z npm.
+Wszystkie sześć paczek jest też dostępnych w npm w wersji **0.6.0**, oznaczonej jako `latest`.
 
 ```bash
 npx trainctl init          # bez instalacji

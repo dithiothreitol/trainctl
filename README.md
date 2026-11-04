@@ -58,7 +58,7 @@ training is your git history.
 
 **Version 0.6.0 is available on [GitHub Releases](https://github.com/dithiothreitol/trainctl/releases/tag/v0.6.0).**
 Download the bundled CLI/MCP and Codex plugin ZIP and follow `INSTALL.txt`.
-This version is not published to npm; the commands below install the npm release.
+All six packages are also available on npm at **0.6.0**; `latest` points to this version.
 
 ```bash
 npx trainctl init          # no install at all

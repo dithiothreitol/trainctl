@@ -39,8 +39,8 @@ change between minor versions — a regenerated plan can differ.
 
 ### Distribution and limits
 
-- GitHub-only release with a self-contained Codex plugin and terminal examples.
-  Version 0.6.0 is not published to npm.
+- Available on npm as six packages at version 0.6.0 (`latest`), and on GitHub
+  with a self-contained Codex plugin and terminal examples.
 - Training recipe parameters remain documented engineering choices; independent
   coaching review and tests on physical Garmin/Suunto watches are still pending.
 - FIT step notes may be truncated to 254 UTF-8 bytes; full instructions remain
