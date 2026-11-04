@@ -4,7 +4,7 @@
 
 **Status:** **Wydanie 0.3.0** (2026-09-06) na npm; na gałęzi `dev/plan-v0.4` niewydane etapy A–E planu [docs/PLAN-v0.4.md](docs/PLAN-v0.4.md) (faza 15 niżej). Sześć pakietów: silnik (`trainctl-core`), CLI (`trainctl`, 20 komend, dwujęzyczny), MCP (`trainctl-mcp`, 19 narzędzi, zasoby i prompty), sync intervals.icu (`trainctl-sync-intervalsicu`), pliki aktywności (`trainctl-sync-files`) i eksport (`trainctl-export`); plugin Claude Code/Codex w `plugin/`. Testy: patrz `pnpm test` (backtest na korpusie pomija się bez korpusu). Repozytorium publiczne od 2026-08-07 (MIT). Historia i procedura wydania: `docs/PUBLISHING.md`.
 
-**Sync zweryfikowany e2e na żywym koncie 2026-08-05** (szczegóły: `docs/integrations/intervalsicu.md` §2a) — składnia treningów parsowana poprawnie, cele tempa zapisane, idempotencja działa. Otwarte: dostarczenie na fizyczny zegarek — wymaga zegarka spiętego z intervals.icu **bezpośrednio**, nie przez Stravę (§1.8.1). Dalej: kolejne sporty (`SportModule`), REST API/hosting.
+**Sync zweryfikowany e2e na żywym koncie 2026-08-05** (szczegóły: `docs/integrations/intervalsicu.md` §2a) — składnia treningów parsowana poprawnie, cele tempa zapisane, idempotencja działa. Otwarte: dostarczenie na fizyczny zegarek — wymaga zegarka spiętego z intervals.icu **bezpośrednio**, nie przez Stravę (§1.8.1). Rozszerzenie sportów w schemacie 2 opisano w §12; powyższa weryfikacja żywego API dotyczyła biegania. Dalej: REST API/hosting.
 
 **Nazwa:** `trainctl` — zdecydowana przy rename całego projektu (2026-08-06); wolna na npm i GitHubie w chwili sprawdzenia.
 
@@ -83,15 +83,15 @@ trainctl/
    ├─ examples/          CI (ci-check), trener-reviewer (coach-review), Actions review
    └─ adr/               decyzje architektoniczne
 
-Docelowo (poza v1): sport-running/ jako plugin portu SportModule — dziś logika
-biegowa mieszka w core, port powstanie razem z drugim sportem, nie wcześniej.
+Schemat v2: core/sports/ — SportModule, kroki, kalendarz, cele i zamiany.
+Biegowy silnik pozostaje w core; jego adapter w CLI zachowuje regenerację v1.
 ```
 
 **Zasady modularności** (uzasadnienie wyboru stacku — patrz ADR-001):
 
-- Nowy sport = nowy pakiet implementujący `SportModule` (model stref, słownik
-  jednostek treningowych, metryki obciążenia, predyktory wyniku). `core` nie wie,
-  czym jest bieganie.
+- Nowy sport implementuje logiczny `SportModule` (kalibracja, dawka i jednostki).
+  W schemacie 2 moduły są w `core/sports`; oddzielne pakiety npm pozostają opcją
+  po stabilizacji kontraktu. Istniejący silnik biegowy nie jest kopiowany (ADR-041).
 - Nowa integracja = nowy adapter `SyncProvider`. `core` nie zna intervals.icu.
 - CLI i MCP to bliźniacze, cienkie adaptery nad wspólną warstwą use-case'ów —
   każda operacja dostępna z obu.
@@ -347,3 +347,16 @@ dane strukturalne MCP i samodzielny eksport mobilny. Opis poleceń i granic:
 | 038 | 2026-10-21 | Makrocykl kończy się **blokiem przejściowym**, nie tygodniem startu: po ≥HM dwa tygodnie (~50% spokojnie, potem ~100% z jednym akcentem), po krótszym jeden (~70%); nowy cel wpisany w trakcie bloku zaczyna cykl po nim | narzędzie, które milczy dzień po starcie, zostawia biegacza w najgorszym momencie; R-1/R-2 opisują pierwsze dni, kształt kolejnych tygodni zmierzono na korpusie (n=3) zamiast go zgadywać |
 | 039 | 2026-10-21 | `goal.kind: base` z datą `until` — plan bez zawodów: tylko baza z odciążeniem, plateau na udokumentowanym szczycie, bez taperu i predykcji; liczba tygodni jako `weeks` celowo nieobsługiwana | większość tygodni roku nie ma celu; wymuszanie fikcyjnego startu produkowałoby fikcyjny taper. „12 tygodni od dziś" przesuwałoby koniec planu przy każdej regeneracji — data końca jest deterministyczna |
 | 040 | 2026-10-21 | `--commit` commituje wyłącznie pliki zmienione przez komendę (pathspec przy `git commit`), nigdy sekretów ani `sync.json`; brak gita to informacja, nie błąd | AGENTS.md każe commitować po każdej zmianie planu — flaga robi to, co i tak jest zalecane, bez stawania się klientem gita i bez zabierania cudzych zmian z indeksu |
+
+## 12. Rower, pływanie i multisport (2026-11-03, zmiany robocze)
+
+Kontrakt i przykłady: [MULTISPORT](docs/MULTISPORT.md). Wyniki: [weryfikacja](docs/MULTISPORT-VALIDATION.md).
+
+| # | Data | Decyzja | Uzasadnienie |
+|---|---|---|---|
+| 041 | 2026-11-03 | Schemat sesji v2 ma trwałe ID, osobne profile i kalibracje oraz logiczne moduły sportów w core. Czytniki v1 pozostają; migracja i adapter running zachowują źródła, decyzje i pełny silnik biegania. | Kilka jednostek na datę i zamiana dyscypliny wymagają tożsamości niezależnej od daty. Wydzielanie nowych paczek npm nie jest konieczne do tego kontraktu. |
+| 042 | 2026-11-03 | Zapisy wielu plików mają trwały dziennik before/after i blokadę procesu; po przerwaniu rollback albo jawne resume. Propozycje sprawdzają odcisk ponownie pod blokadą. | Częściowa migracja konfiguracji/planu/dziennika nie może pozostać niewykryta; ręczne zmiany po przerwaniu blokują odzyskiwanie. |
+| 043 | 2026-11-03 | Zamiana zapisuje oryginał, następcę, kierunek, cel zachowany/utracony i ograniczenia. Kalendarz stosuje deterministyczne wyszukiwanie z limitem; metryki pozostają osobne dla sportów. | Nie ma wspólnego kilometra ani fizjologicznego przelicznika; limit wyszukiwania nie dowodzi niewykonalności. Reguły MS-1–MS-5 jawnie rozdzielają dowody i parametry inżynierskie. |
+| 044 | 2026-11-03 | Wykonanie używa klucza źródło + externalId, zachowuje części i rozpoznaje konserwatywnie kopie; kilka aktywności może być jawnie przypisanych do sesji. | Kopie z huba/pliku nie mogą podwajać wykonania; nieznane lub odgadnięte dane nie są automatycznie pominięciem ani wykonaniem. |
+| 045 | 2026-11-03 | Cofnięcie zamiany odtwarza zapisany poprzednik pod nowym ID i ponownie sprawdza kalendarz. Spontaniczne wykonanie innego sportu zapisuje actual/planned sport w dzienniku bez zmiany historycznego planu. Intensywność jest podziałem czasu według ról kroków, z osobnymi przerwami i kategorią unknown. | Odwrotna zamiana nie jest odtworzeniem oryginału; wykonany rower nie zalicza biegu. RPE/notatki nadal są wyłącznie cytowane (ADR-027). T1/T2 i wyjątki dat są deklaracjami kalendarza, nie modelem obciążenia. |
+| 046 | 2026-11-03 | Wycofane przez regenerację sesje pozostają w archiwum z `retiredSessionIds`; mogą wrócić pod tym samym ID. Oryginały zamian nie podlegają reaktywacji generatora. Eksport ICS utrzymuje odciski treści, SEQUENCE i czas zmiany w `plan/calendar.json`, zapisywanym transakcyjnie razem z ICS. | Usunięcie sesji z aktywnego planu nie może zgubić jej tożsamości przed sprzątaniem kalendarza. Liczba zatwierdzonych propozycji nie wersjonuje rekalibracji ani ręcznych edycji YAML; odcisk eksportowanego zdarzenia obejmuje obie ścieżki bez modyfikowania planu podczas eksportu. |

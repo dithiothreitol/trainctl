@@ -126,6 +126,8 @@ export function parseGpxActivity(text: string): ParsedActivity | undefined {
   const part: ActivityPart = {
     startMs: first.timeMs,
     type: typeRaw === undefined ? classifyByPace(distanceM, moving) : gpxType(typeRaw),
+    classification: typeRaw === undefined ? 'inferred' : 'reported',
+    ...(typeRaw ? {sourceSubtype:typeRaw} : {}),
     distanceM,
     movingTimeSec: moving,
     elapsedTimeSec: (last.timeMs - first.timeMs) / 1000,

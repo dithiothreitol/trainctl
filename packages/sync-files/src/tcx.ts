@@ -18,7 +18,7 @@ import { localDateFromIso, parseIsoMs } from './dates.ts'
 import { elevationGainM } from './measure.ts'
 import { attr, childNumber, childText, element, elements, stripComments, without, type XmlElement } from './xml.ts'
 
-const SPORTS: Record<string, ActivityType> = { running: 'Run', biking: 'Ride' }
+const SPORTS: Record<string, ActivityType> = { running: 'Run', biking: 'Ride', swimming: 'Swim', transition: 'Transition' }
 
 interface TcxPart {
   part: ActivityPart
@@ -89,14 +89,14 @@ function activityPart(activity: XmlElement): TcxPart | undefined {
  * Tekst TCX → aktywność. `undefined`, gdy dokument nie zawiera aktywności
  * z czasem startu (np. sam kurs `Courses` albo pusty eksport).
  */
-export function parseTcxActivity(text: string): ParsedActivity | undefined {
+export function parseTcxActivity(text: string, opts: { preserveParts?: boolean } = {}): ParsedActivity | undefined {
   const doc = stripComments(text)
   const activities = elements(doc, 'Activity')
   if (activities.length === 0) return undefined
   // Kilka `Activity` w zwykłym pliku to historia wielu treningów — bierzemy
   // pierwszą. Łączymy wyłącznie części jednej sesji multisportowej.
   const multisport = element(doc, 'MultiSportSession') !== undefined
-  const parts = (multisport ? activities : activities.slice(0, 1))
+  const parts = (multisport || opts.preserveParts ? activities : activities.slice(0, 1))
     .map(activityPart)
     .filter((p): p is TcxPart => p !== undefined)
   const combined = combineParts(parts.map((p) => p.part))
@@ -104,5 +104,9 @@ export function parseTcxActivity(text: string): ParsedActivity | undefined {
   const first = parts.reduce((a, b) => (b.part.startMs < a.part.startMs ? b : a))
   const date = localDateFromIso(first.startIso)
   if (date === undefined) return undefined
-  return toParsed(combined, date, first.name)
+  const result = toParsed(combined, date, first.name)
+  if (opts.preserveParts && parts.length > 1) result.parts = [...parts]
+    .sort((a,b) => a.part.startMs - b.part.startMs)
+    .map(p => toParsed(p.part, localDateFromIso(p.startIso)!, p.name))
+  return result
 }

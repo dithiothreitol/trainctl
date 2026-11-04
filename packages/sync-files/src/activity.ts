@@ -17,8 +17,16 @@ export type ActivityType =
   | 'Swim'
   | 'WeightTraining'
   | 'Other'
+  | 'Transition'
 
 export interface ParsedActivity {
+  parts?: ParsedActivity[]
+  classification?: 'reported' | 'inferred' | 'unknown'
+  sourceSubtype?: string
+  utcOffsetMinutes?: number
+  avgPowerWatts?: number
+  avgCadence?: number
+  poolLengthM?: number
   /** Lokalna data startu `YYYY-MM-DD` (strefa: patrz README — ograniczenia TCX/GPX). */
   date: string
   /** Chwila startu w UTC (ISO 8601) — do sortowania; `SyncedActivity` jej nie niesie. */
@@ -39,6 +47,12 @@ export const isRunType = (type: ActivityType): boolean =>
 
 /** Fragment aktywności: sesja FIT albo `Activity` z multisportowego TCX. */
 export interface ActivityPart {
+  classification?: 'reported' | 'inferred' | 'unknown'
+  sourceSubtype?: string
+  utcOffsetMinutes?: number
+  avgPowerWatts?: number
+  avgCadence?: number
+  poolLengthM?: number
   /** Start w ms od epoki uniksowej (UTC). */
   startMs: number
   type: ActivityType
@@ -97,10 +111,14 @@ export function toParsed(part: ActivityPart, date: string, name?: string): Parse
     type: part.type,
   }
   if (name) parsed.name = name
+  for (const key of ['classification','sourceSubtype','utcOffsetMinutes'] as const) if (part[key] !== undefined) Object.assign(parsed,{[key]:part[key]})
   if (part.distanceM !== undefined) parsed.distanceM = part.distanceM
   if (part.movingTimeSec !== undefined) parsed.movingTimeSec = Math.round(part.movingTimeSec)
   if (part.elapsedTimeSec !== undefined) parsed.elapsedTimeSec = Math.round(part.elapsedTimeSec)
   if (part.elevationGainM !== undefined) parsed.elevationGainM = Math.round(part.elevationGainM)
   if (part.avgHr !== undefined) parsed.avgHr = Math.round(part.avgHr)
+  if (part.avgPowerWatts !== undefined) parsed.avgPowerWatts = part.avgPowerWatts
+  if (part.avgCadence !== undefined) parsed.avgCadence = part.avgCadence
+  if (part.poolLengthM !== undefined) parsed.poolLengthM = part.poolLengthM
   return parsed
 }

@@ -1083,7 +1083,7 @@ export const cliPl: CliMessages = {
     logRpe:
       'wysiłek sesji jako liczba całkowita 1–10 (CR-10, 10 = maksymalny). Zapytaj biegacza po sesji — nigdy nie zgaduj.',
     logStrength: 'done | skipped — zapis sesji siłowej zamiast biegu (działają tylko minutes i note).',
-    logMinutes: 'czas sesji siłowej w minutach',
+    logMinutes: 'rzeczywisty czas sesji w minutach',
     logNote: 'samopoczucie, warunki, uwagi',
     shift:
       'Renegocjacja tygodnia: zamień treningi między dwiema datami TEGO SAMEGO tygodnia ' +
@@ -1193,6 +1193,16 @@ export const cliPl: CliMessages = {
 
 Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
 (albo CLI \`trainctl\`) i pełnisz rolę trenera, nie tylko wykonawcy komend.
+
+## Bieganie, rower, pływanie i multisport (schemat 2)
+
+- Sprawdź schemaVersion przed wyborem poleceń. W schemacie 2 używaj ID sesji: dzień może zawierać kilka sportów i zakładkę.
+- Dyscyplinę zamieniaj przez trainctl_replace: pokaż zachowany/utracony cel i ID przejrzanej propozycji. Nie przeliczaj kilometrów biegu na kilometry roweru lub pływania.
+- Podsumowuj czas, dystans i intensywność osobno dla sportów. RPE jest zapisaną obserwacją, nie prognozą urazu lub gotowości.
+- Wyniki biegowe są w athlete.sports.run.results; FTP i CSS należą do własnych profili, wraz z datą i źródłem pomiaru.
+- Migracja korzysta z trainctl_migrate prepare/apply; oryginały zostają w plan/migrations. Przerwany zapis można wznowić albo wycofać przez migrate --recover.
+- Przy wielu źródłach stosuj ID z przestrzenią źródła. Kilka aktywności może wykonać jedną sesję; niepewne rozpoznanie sportu wymaga jawnego wskazania.
+- Cele liczbowe, progresja i limity zamiany zawierają ustawienia inżynierskie (MS-1…MS-5). Wyjaśniaj ograniczenia; nie deklaruj naukowej walidacji całego wygenerowanego planu.
 
 ## Rytuały
 

@@ -1,3 +1,5 @@
+import { isSportsWorkspace } from './sports-store.ts'
+import { sportsCommand } from './sports-commands.ts'
 /**
  * `trainctl status` — jeden ekran stanu katalogu treningowego.
  *
@@ -33,6 +35,7 @@ export interface StatusResult {
 }
 
 export function cmdStatus(cwd: string): StatusResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'status')
   try {
     return statusImpl(cwd)
   } catch (e) {

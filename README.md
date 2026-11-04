@@ -251,6 +251,8 @@ a key is configured). `trainctl adapt` compares execution with the plan and
 | `log` | record a completed session (no flags in a terminal: asks) | `--status`, `--km`, `--time`, `--test-time`, `--rpe`, `--note`, `--commit` |
 | `shift` | swap two sessions inside a week | `--from`, `--to` (or pick from a list), `--commit` |
 | `reschedule` | re-solve the week around busy days | `--block`, `--time`, `--pin`, `--preparation`, `--strategy`, `--apply`, `--commit` |
+| `replace` | Replace a session across running, cycling and swimming; preview and `--apply <id>` |
+| `migrate` | Review migration of a running plan to session schema v2, preserving originals |
 | `adapt` | analyse execution, propose corrections | `--date`, `--prepare`, `--apply <id>`, `--commit` |
 | `shorten` | fit one session into the time you have, as a proposal | `--minutes`, `--date`, `--apply <id>`, `--commit` |
 | `review` | pull + adapt + week in one call | `--days`, `--date`, `--prepare` |
@@ -461,7 +463,7 @@ The tools run over the same handlers the CLI uses, so the agent and your
 terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
 `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
-`trainctl_adapt`, `trainctl_shorten`, `trainctl_desk`, `trainctl_reschedule`,
+`trainctl_adapt`, `trainctl_replace`, `trainctl_migrate`, `trainctl_shorten`, `trainctl_desk`, `trainctl_reschedule`,
 `trainctl_export`, `trainctl_review`, `trainctl_status`, `trainctl_rule`. The
 server also exposes `plan/PLAN.md`, `trainctl.yaml`, `AGENTS.md` and every rule as
 resources (`trainctl://plan`, `trainctl://rules/I-7`, …), and the weekly review
@@ -621,7 +623,7 @@ pnpm install
 pnpm check       # typecheck + tests — what CI runs
 ```
 
-641 tests. Seven of them backtest the engine against the coaching corpus, which
+953 tests (2026-11-03). Seven of them backtest the engine against the coaching corpus, which
 is not distributed; without it that suite reports itself as one skipped test
 rather than quietly disappearing.
 
@@ -639,3 +641,9 @@ what a change to an engine rule needs to carry:
 ## Licence
 
 MIT — see [LICENSE](LICENSE).
+
+## Cycling, swimming and multisport
+
+Create a workspace with `trainctl init --sports run,bike,swim`. Each sport has its own profile and time volume. Stable session IDs support six substitution directions. Review migration of an existing running plan with `trainctl migrate --prepare`, then `trainctl migrate --apply <id>`.
+
+See [configuration, examples and supported capabilities](docs/MULTISPORT.md). V2 defaults are explicit engineering templates; the established running engine remains active after migration. The terminal wizard, intent-aware substitutions, progression, taper, recovery and crash recovery are covered by the [validation report](docs/MULTISPORT-VALIDATION.md).

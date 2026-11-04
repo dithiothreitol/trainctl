@@ -5,7 +5,7 @@ description: "Fit a planned trainctl session into limited time (\"only 40 minute
 
 # Only N minutes today
 
-1. Call `trainctl_shorten` with `minutes` (and `date` if not today). The budget includes preparation and strength.
+1. Select the session ID in schema 2 (a date may contain several sports). Call `trainctl_shorten` with `minutes` (and `date` if not today). The budget includes preparation and strength.
 2. Show the exact before and after, the estimated minutes, and any lost purpose — an easy run replacing quality work
    must be said out loud, never substituted silently.
 3. Apply with `trainctl_shorten` `apply=<id>` only after the user agrees. A new calendar day or changed inputs expire the proposal.

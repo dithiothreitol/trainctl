@@ -8,6 +8,17 @@ import type { PlannedDay } from '../domain/types.ts'
 export interface SyncedActivity {
   externalId: string
   date: string
+  startTime?: string
+  parentActivityId?: string
+  partIndex?: number
+  plannedSessionId?: string
+  importSource?: string
+  classification?: 'reported' | 'inferred' | 'unknown'
+  sourceSubtype?: string
+  utcOffsetMinutes?: number
+  avgPowerWatts?: number
+  avgCadence?: number
+  poolLengthM?: number
   type: string
   name?: string
   distanceKm?: number
@@ -44,11 +55,13 @@ export interface SyncedWellness {
 export interface PushableWorkout {
   externalId: string
   date: string
+  startTime?: string
   name: string
   /** Opis w formacie docelowego serwisu (np. składnia „steps" intervals.icu). */
   description: string
   /** Siła to osobny tor (ADR-023): w kalendarzu osobny wpis, nigdy trening biegowy. */
-  sport: 'run' | 'strength'
+  sport: 'run' | 'bike' | 'swim' | 'strength'
+  durationSec?: number
   distanceKm?: number
   /** Start (A/B/C) zamiast treningu — serwis może go pokazać jako zawody. */
   race?: { priority: 'A' | 'B' | 'C' }

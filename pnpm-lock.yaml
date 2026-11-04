@@ -8,9 +8,15 @@ importers:
 
   .:
     devDependencies:
+      '@garmin/fitsdk':
+        specifier: 21.218.0
+        version: 21.218.0
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
+      ical.js:
+        specifier: 2.2.1
+        version: 2.2.1
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -232,6 +238,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@garmin/fitsdk@21.218.0':
+    resolution: {integrity: sha512-Jbhedp3AJ/xJBSuiPBlPpwH5QISXd+GYtfnAUZ3u68hUqkzHiRWUhla8xj4tW/05w6gKsErEt+7GQCFap+a2kQ==}
 
   '@hono/node-server@2.1.0':
     resolution: {integrity: sha512-XovyyCCnBzW+zKu+z/zq8hwNs4KOR5rEMAOxo2f40Q5xoOI37IMm6MIg2COOUtUApo0i6850MTBKH2u4QLGIqg==}
@@ -659,6 +668,9 @@ packages:
   http-errors@2.0.1:
     resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
     engines: {node: '>= 0.8'}
+
+  ical.js@2.2.1:
+    resolution: {integrity: sha512-yK/UlPbEs316igb/tjRgbFA8ZV75rCsBJp/hWOatpyaPNlgw0dGDmU+FoicOcwX4xXkeXOkYiOmCqNPFpNPkQg==}
 
   iconv-lite@0.7.3:
     resolution: {integrity: sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==}
@@ -1091,6 +1103,8 @@ snapshots:
   '@esbuild/win32-x64@0.28.1':
     optional: true
 
+  '@garmin/fitsdk@21.218.0': {}
+
   '@hono/node-server@2.1.0(hono@4.13.0)':
     dependencies:
       hono: 4.13.0
@@ -1508,6 +1522,8 @@ snapshots:
       setprototypeof: 1.2.0
       statuses: 2.0.2
       toidentifier: 1.0.1
+
+  ical.js@2.2.1: {}
 
   iconv-lite@0.7.3:
     dependencies:

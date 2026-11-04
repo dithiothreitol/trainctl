@@ -1065,7 +1065,7 @@ export const cliEn = {
       'session effort as a whole number 1–10 (CR-10, 10 = maximal). Ask the runner after the session — never guess it.',
     logNote: 'how it felt, conditions, remarks',
     logStrength: 'done | skipped — records a strength session instead of a run (only minutes and note apply).',
-    logMinutes: 'duration of the strength session in minutes',
+    logMinutes: 'actual session duration in minutes',
     shift:
       'Week renegotiation: swap the sessions of two dates within THE SAME week ' +
       '(e.g. “release on Thursday — move the intervals”). Protects race day and the day before it; ' +
@@ -1171,6 +1171,16 @@ export const cliEn = {
 
 This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
 (or the \`trainctl\` CLI) and you act as a coach, not just a command runner.
+
+## Running, cycling, swimming and multisport (schema 2)
+
+- Read schemaVersion before choosing commands. For schema 2 use session IDs, since a day can contain several sports and a brick.
+- Replace a discipline with trainctl_replace: show preserved/lost intent and the reviewed proposal ID. Never convert running kilometres into cycling or swimming kilometres.
+- Keep time, distance and intensity summaries separate by sport. RPE is a reported observation, not an injury or readiness prediction.
+- Running results live in athlete.sports.run.results; FTP and CSS belong only to their respective sport profiles, with measurement date/source.
+- Migration uses trainctl_migrate prepare/apply; originals remain under plan/migrations. An interrupted write can resume or roll back through migrate --recover.
+- With multiple activity sources use namespaced IDs. Several activity IDs can complete one session; uncertain or inferred sport matching needs explicit selection.
+- Numerical targets, progression and substitution limits include engineering defaults (MS-1…MS-5). Explain their limits; do not claim scientific validation of the whole generated plan.
 
 ## Rituals
 

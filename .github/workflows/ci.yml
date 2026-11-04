@@ -46,13 +46,19 @@ jobs:
       # The plugin's skills are generated from the AGENTS.md text; a stale copy
       # would give the agent a different coach than `trainctl init` writes.
       - run: node tools/plugin/render-skills.ts --check
+      - run: pnpm simulate:multisport
+      - run: pnpm benchmark:multisport
 
   # What the repository cannot see about itself: the published packages run from
   # node_modules, where Node refuses to strip TypeScript types. 0.1.0 shipped
   # broken because every other check runs from the source tree.
   dist:
-    name: install from tarballs and run
-    runs-on: ubuntu-latest
+    name: ${{ matrix.os }} · install from tarballs and run
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
@@ -64,29 +70,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
-      - name: pack every package
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/tgz
-          for p in core export sync-intervalsicu sync-files cli mcp; do
-            (cd "packages/$p" && pnpm pack --pack-destination /tmp/tgz)
-          done
-          ls -1 /tmp/tgz
-
-      - name: install as a user would and run the CLI
-        run: |
-          set -euo pipefail
-          cd /tmp/tgz
-          npm init -y > /dev/null
-          npm install ./trainctl-core-*.tgz ./trainctl-export-*.tgz \
-                      ./trainctl-sync-intervalsicu-*.tgz ./trainctl-sync-files-*.tgz ./trainctl-mcp-*.tgz \
-                      ./trainctl-[0-9]*.tgz
-          ./node_modules/.bin/trainctl --version
-          ./node_modules/.bin/trainctl init --template
-          ./node_modules/.bin/trainctl plan --date 2026-08-08 | grep -q 'weeks of plan'
-          ./node_modules/.bin/trainctl check
-          ./node_modules/.bin/trainctl status --json | grep -q '"code": 0'
-          node --input-type=module -e "import('trainctl-sync-files').then((m) => { if (typeof m.FileActivitySource !== 'function') process.exit(1) })"
-          echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
-            | TRAINCTL_DIR=/tmp/tgz timeout 30 ./node_modules/.bin/trainctl-mcp \
-            | grep -q '"serverInfo"'
+      - name: install as a user would, simulate CLI and call MCP over stdio
+        run: pnpm verify:distribution --online

@@ -38,6 +38,19 @@ const provider = (handler: Parameters<typeof fakeFetch>[0]) => {
   }
 }
 
+it('publishes distinct Ride and Swim events with session IDs, time and distance', async () => {
+  const {provider:p,calls}=provider(()=>({body:[]}))
+  const r=await p.pushWorkouts([
+    {externalId:'trainctl-p-bike1',date:'2026-11-03',startTime:'07:30',name:'Bike',description:'- 1800s 130w',sport:'bike',durationSec:1800},
+    {externalId:'trainctl-p-swim1',date:'2026-11-03',startTime:'18:00',name:'Swim',description:'- 1000mtr',sport:'swim',durationSec:1200,distanceKm:1},
+  ])
+  expect(r.pushed).toBe(2)
+  const body=JSON.parse(calls[0]!.init!.body as string)
+  expect(body.map((w:{type:string})=>w.type)).toEqual(['Ride','Swim'])
+  expect(body[0]).toMatchObject({moving_time:1800,start_date_local:'2026-11-03T07:30:00'})
+  expect(body[1]).toMatchObject({distance_target:1000,external_id:'trainctl-p-swim1'})
+})
+
 describe('autoryzacja', () => {
   it('Basic auth z username API_KEY (§1.1)', async () => {
     const { provider: p, calls } = provider(() => ({ body: { id: 'i123', name: 'Test' } }))

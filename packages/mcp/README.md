@@ -17,7 +17,7 @@ Tools over the same handlers the CLI uses, so the agent and your
 terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
 `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
-`trainctl_adapt`, `trainctl_desk`, `trainctl_reschedule`, `trainctl_export`,
+`trainctl_adapt`, `trainctl_replace`, `trainctl_migrate`, `trainctl_desk`, `trainctl_reschedule`, `trainctl_export`,
 `trainctl_review`, `trainctl_shorten`, `trainctl_status`, `trainctl_rule`.
 Resources: `trainctl://plan`, `trainctl://config`, `trainctl://agents`,
 `trainctl://rules/{id}`. Prompts: `weekly-review`, `debrief`.
@@ -32,6 +32,14 @@ session in context. For “review my week and show changes to approve”, use
 `trainctl_review({prepare: true})`. Show the returned diff and warnings, then
 call `trainctl_adapt({apply: "<id>"})` after approval. Changed inputs or a new
 local calendar day invalidate the proposal.
+
+In schema 2, select workouts by `session` ID. `trainctl_replace({session, toSport})`
+previews a substitution with per-sport weekly volume changes; apply its proposal ID.
+Use `trainctl_replace({session, restore: true})` to preview restoring the saved
+original. For an already completed alternative, `trainctl_log({session,
+actualSport: "bike", minutes: 40})` records the actual sport without rewriting
+the historical plan. Swimming logs also accept `sets: "1=6,2=4"` for completed
+repetitions of numbered planned steps. Review keeps RPE and notes as reported.
 
 `trainctl init` leaves an `AGENTS.md` in the training directory that turns the
 agent into a coach rather than a command runner: ask before regenerating a plan,

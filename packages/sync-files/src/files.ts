@@ -94,12 +94,12 @@ function decodeXml(bytes: Uint8Array): string {
   return new TextDecoder('utf-8').decode(bytes)
 }
 
-function parse(format: Format, bytes: Uint8Array): ParsedActivity | undefined {
+function parse(format: Format, bytes: Uint8Array, preserveParts: boolean): ParsedActivity | undefined {
   switch (format) {
     case 'fit':
-      return parseFitActivity(bytes)
+      return parseFitActivity(bytes, { preserveParts })
     case 'tcx':
-      return parseTcxActivity(decodeXml(bytes))
+      return parseTcxActivity(decodeXml(bytes), { preserveParts })
     case 'gpx':
       return parseGpxActivity(decodeXml(bytes))
   }
@@ -107,7 +107,7 @@ function parse(format: Format, bytes: Uint8Array): ParsedActivity | undefined {
 
 type Outcome = { parsed: ParsedActivity; externalId: string } | { reason: SkipReason }
 
-function readActivityFile(file: string, kind: FileKind): Outcome {
+function readActivityFile(file: string, kind: FileKind, preserveParts: boolean): Outcome {
   let raw: Uint8Array
   try {
     if (statSync(file).size > MAX_FILE_BYTES) return { reason: 'unsupported' }
@@ -126,7 +126,7 @@ function readActivityFile(file: string, kind: FileKind): Outcome {
   }
   let parsed: ParsedActivity | undefined
   try {
-    parsed = parse(kind.format, bytes)
+    parsed = parse(kind.format, bytes, preserveParts)
   } catch {
     return { reason: 'unreadable' }
   }
@@ -173,7 +173,7 @@ const sameFamily = (a: ParsedActivity['type'], b: ParsedActivity['type']) => a =
 /** Dystans podobny albo nieznany w którymś pliku (wtedy rozstrzygają start i rodzina). */
 function similarDistance(a: ParsedActivity, b: ParsedActivity): boolean {
   if (a.distanceM === undefined || b.distanceM === undefined) return true
-  const tolerance = Math.max(DUPLICATE_DISTANCE_MIN_M, DUPLICATE_DISTANCE_SHARE * Math.max(a.distanceM, b.distanceM))
+  const tolerance = Math.max(a.type === 'Swim' ? 25 : DUPLICATE_DISTANCE_MIN_M, DUPLICATE_DISTANCE_SHARE * Math.max(a.distanceM, b.distanceM))
   return Math.abs(a.distanceM - b.distanceM) <= tolerance
 }
 
@@ -184,7 +184,7 @@ function similarDistance(a: ParsedActivity, b: ParsedActivity): boolean {
  * rozszerzeniu trafia do `skipped` jako `unsupported`.
  * Rzuca błąd systemu plików (np. `ENOENT`), gdy samej ścieżki nie ma.
  */
-export function scanActivityFiles(path: string): ScanResult {
+export function scanActivityFiles(path: string, opts: { preserveParts?: boolean } = {}): ScanResult {
   const skipped: SkippedFile[] = []
   const candidates: string[] = []
   if (statSync(path).isDirectory()) {
@@ -200,14 +200,25 @@ export function scanActivityFiles(path: string): ScanResult {
   for (const file of candidates) {
     const kind = activityFileKind(basename(file))
     if (!kind) continue
-    const outcome = readActivityFile(file, kind)
+    const outcome = readActivityFile(file, kind, opts.preserveParts === true)
     if ('reason' in outcome) {
       skipped.push({ file, reason: outcome.reason })
       continue
     }
     if (seen.has(outcome.externalId)) continue
     seen.add(outcome.externalId)
-    found.push({ parsed: outcome.parsed, activity: toSynced(outcome.parsed, outcome.externalId, kind.stem), format: kind.format, file })
+    const parts = opts.preserveParts ? outcome.parsed.parts ?? [outcome.parsed] : [outcome.parsed]
+    parts.forEach((parsed, index) => {
+      const id = parts.length > 1 ? `${outcome.externalId}-part-${index}` : outcome.externalId
+      const activity = toSynced(parsed, id, kind.stem)
+      if (opts.preserveParts) {
+        activity.startTime = parsed.startTime
+        if (parsed.distanceM !== undefined) activity.distanceKm = parsed.distanceM / 1000
+        if (parts.length > 1) { activity.parentActivityId = outcome.externalId; activity.partIndex = index }
+        for (const key of ['avgPowerWatts','avgCadence','poolLengthM','classification','sourceSubtype','utcOffsetMinutes'] as const) if (parsed[key] !== undefined) Object.assign(activity,{[key]:parsed[key]})
+      }
+      found.push({ parsed, activity, format: kind.format, file })
+    })
   }
 
   // duplikaty między formatami: po starcie w czasie, z przesuwanym oknem — O(n log n)
@@ -218,7 +229,7 @@ export function scanActivityFiles(path: string): ScanResult {
   for (const f of timed) {
     let twin = -1
     for (let k = kept.length - 1; k >= 0 && f.at - kept[k]!.at <= DUPLICATE_WINDOW_MS; k--) {
-      if (sameFamily(kept[k]!.parsed.type, f.parsed.type) && similarDistance(kept[k]!.parsed, f.parsed)) {
+      if ((!opts.preserveParts || kept[k]!.file !== f.file) && sameFamily(kept[k]!.parsed.type, f.parsed.type) && similarDistance(kept[k]!.parsed, f.parsed)) {
         twin = k
         break
       }

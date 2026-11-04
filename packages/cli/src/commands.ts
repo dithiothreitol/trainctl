@@ -1,3 +1,8 @@
+import { isSportsWorkspace, sportsTemplate } from './sports-store.ts'
+import { sportsCommand, type SportsOptions } from './sports-commands.ts'
+import { sportsSyncCommand } from './sports-sync.ts'
+import { sportMessages } from 'trainctl-core'
+export { sportMessages } from 'trainctl-core'
 /** Handlery komend CLI — czyste funkcje (cwd, argumenty) → { output, code }. */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
@@ -77,6 +82,8 @@ export { buildExecution } from './execution.ts'
 
 /** Prefiks identyfikatorów, które tworzy `trainctl` — granica tego, co wolno nam kasować. */
 const OUR_EXTERNAL_ID_PREFIX = 'trainctl-'
+/** Nowe selektory nie mogą zostać po cichu zignorowane przez zapis v1. */
+const sessionOptions = (opts: object): boolean => ['session','sport','actualSport','meters','activity','sets'].some(key=>Reflect.get(opts,key)!==undefined)
 
 /** Kolor semantyczny jednostki treningowej — spójny w całym CLI. */
 export const KIND_COLOR: Record<string, ColorName> = {
@@ -289,7 +296,8 @@ function protectSecrets(cwd: string): string[] {
   return missing
 }
 
-export function cmdInit(cwd: string, content?: string, opts: { commit?: CommitOption; agent?: string | undefined } = {}): CmdResult {
+export function cmdInit(cwd: string, content?: string, opts: { commit?: CommitOption; agent?: string | undefined; sports?: string | undefined } = {}): CmdResult {
+  if (opts.sports) { try { content = sportsTemplate(opts.sports) } catch (e) { return fail(e) } }
   if (opts.agent !== undefined && !(AGENTS as readonly string[]).includes(opts.agent)) {
     return fail(new Error(ui().init.agentUnknown(opts.agent, AGENTS.join(', '))))
   }
@@ -354,6 +362,7 @@ function initImpl(cwd: string, content: string | undefined, agent: AgentChoice |
 }
 
 export function cmdPlan(cwd: string, opts: { date?: string | undefined; fresh?: boolean | undefined; commit?: CommitOption } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'plan', opts)
   const result = planImpl(cwd, opts)
   const goal = (result.data?.['plan'] as StoredPlan | undefined)?.goal
   return withCommit(result, cwd, opts.commit, PLAN_FILES, ui().commit.plan(goal?.name ?? '', goal?.date ?? ''))
@@ -505,7 +514,9 @@ function freshDropped(existing: StoredPlan): string {
   ].join(', ')
 }
 
-export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
+export function cmdToday(cwd: string, opts: { session?: string | undefined; sport?: string | undefined; date?: string | undefined } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'today', opts)
+  if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   try {
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
@@ -581,7 +592,9 @@ export function cmdToday(cwd: string, opts: { date?: string | undefined } = {}):
   }
 }
 
-export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
+export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport?: string | undefined; date?: string | undefined } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'week', opts)
+  if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   try {
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
@@ -626,6 +639,7 @@ export function cmdWeek(cwd: string, opts: { date?: string | undefined } = {}): 
 }
 
 type LogOptions = {
+  session?: string | undefined; sport?: string | undefined; actualSport?: string | undefined; sets?: string | undefined; meters?: string | undefined; activity?: string | undefined
   date?: string | undefined
   /** Zapis siły zamiast biegu: done | skipped. */
   strength?: string | undefined
@@ -639,6 +653,8 @@ type LogOptions = {
 }
 
 export function cmdLog(cwd: string, opts: LogOptions & { commit?: CommitOption } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'log', opts)
+  if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   const result = logImpl(cwd, opts)
   const entry = result.data?.['entry'] as LogEntry | undefined
   return withCommit(result, cwd, opts.commit, [LOG_FILE], ui().commit.log(entry?.date ?? '', entry?.status ?? ''))
@@ -735,7 +751,9 @@ function logStrength(cwd: string, plan: StoredPlan, date: string, opts: LogOptio
   return okDoc(blocks, { entry, planned: planned ?? null })
 }
 
-export function cmdShift(cwd: string, opts: { from: string; to: string; commit?: CommitOption }): CmdResult {
+export function cmdShift(cwd: string, opts: { session?: string | undefined; sport?: string | undefined; from: string; to: string; commit?: CommitOption }): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'shift', opts)
+  if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   return withCommit(shiftImpl(cwd, opts), cwd, opts.commit, PLAN_FILES, ui().commit.shift(opts.from, opts.to))
 }
 
@@ -765,7 +783,9 @@ function shiftImpl(cwd: string, opts: { from: string; to: string }): CmdResult {
   }
 }
 
-export function cmdWhy(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
+export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?: string | undefined; date?: string | undefined } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'why', opts)
+  if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   try {
     const date = opts.date ?? localToday()
     parseIso(date)
@@ -820,6 +840,7 @@ export async function cmdPush(
   opts: { from?: string | undefined; to?: string | undefined; days?: string | undefined } = {},
   factory: ProviderFactory = defaultProviderFactory,
 ): Promise<CmdResult> {
+  if (isSportsWorkspace(cwd)) return sportsSyncCommand(cwd, 'push', opts, factory)
   try {
     const today = localToday()
     const days = Number(opts.days ?? 14)
@@ -879,6 +900,7 @@ export async function cmdPull(
   opts: { days?: string | undefined; date?: string | undefined; from?: string | undefined } = {},
   factory: ProviderFactory = defaultProviderFactory,
 ): Promise<CmdResult> {
+  if (isSportsWorkspace(cwd)) return sportsSyncCommand(cwd, 'pull', opts, factory)
   try {
     const today = opts.date ?? localToday()
     const days = Number(opts.days ?? 28)
@@ -1042,6 +1064,7 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
 }
 
 export function cmdAdapt(cwd: string, opts: { date?: string | undefined; prepare?: boolean | undefined; apply?: string | undefined; commit?: CommitOption } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'adapt', opts)
   const result = adaptImpl(cwd, opts)
   return opts.apply ? withCommit(result, cwd, opts.commit, PLAN_FILES, ui().commit.apply(opts.apply)) : result
 }
@@ -1073,7 +1096,9 @@ function proposalBlocks(saved: PlanProposal): Block[] {
   ]
 }
 
-export function cmdShorten(cwd: string, opts: { date?: string | undefined; minutes?: string | number | undefined; apply?: string | undefined; commit?: CommitOption } = {}): CmdResult {
+export function cmdShorten(cwd: string, opts: { session?: string | undefined; sport?: string | undefined; date?: string | undefined; minutes?: string | number | undefined; apply?: string | undefined; commit?: CommitOption } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'shorten', opts)
+  if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   try {
     if (opts.apply) {
       if (opts.minutes !== undefined || opts.date !== undefined) throw new Error(ui().coach.options)
@@ -1096,6 +1121,7 @@ export function cmdDesk(
   cwd: string,
   opts: { date?: string | undefined; heavy?: boolean | undefined } = {},
 ): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'desk', opts)
   try {
     const date = opts.date ?? localToday()
     const config = loadConfig(cwd)
@@ -1160,11 +1186,14 @@ export function cmdDesk(
   }
 }
 
-type RescheduleOptions = { block?: string[] | undefined; date?: string | undefined; apply?: boolean | undefined;
+type RescheduleOptions = { block?: string[] | undefined; date?: string | undefined; apply?: boolean | string | undefined;
+  sport?: string | undefined;
   time?: string[] | undefined; pin?: string[] | undefined; preparation?: string | undefined;
   strategy?: string | undefined }
 
 export function cmdReschedule(cwd: string, opts: RescheduleOptions & { commit?: CommitOption } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'reschedule', opts)
+  if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   const result = rescheduleImpl(cwd, opts)
   if (result.code !== 0) return result
   const weekStart = mondayOf(opts.date ?? opts.block?.[0] ?? localToday())
@@ -1304,8 +1333,10 @@ function rescheduleImpl(cwd: string, opts: RescheduleOptions): CmdResult {
 
 export function cmdExport(
   cwd: string,
-  opts: { what?: string | undefined; date?: string | undefined } = {},
+  opts: { session?: string | undefined; sport?: string | undefined; what?: string | undefined; date?: string | undefined } = {},
 ): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'export', opts)
+  if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   try {
     const what = (opts.what ?? 'print') as ExportWhat
     if (!['plan', 'workout', 'print', 'calendar', 'race', 'mobile'].includes(what)) {
@@ -1352,6 +1383,7 @@ export async function cmdReview(
   opts: { date?: string | undefined; days?: string | undefined; prepare?: boolean | undefined } = {},
   factory: ProviderFactory = defaultProviderFactory,
 ): Promise<CmdResult> {
+  if (isSportsWorkspace(cwd)) return sportsSyncCommand(cwd, 'review', opts, factory)
   try {
     const today = opts.date ?? localToday()
     parseIso(today)
@@ -1652,6 +1684,7 @@ function describeIssue(issue: PlanIssue): string {
 }
 
 export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'check', opts)
   try {
     // Czytamy surowy dokument, nie `loadPlan`: lint jest jedyną komendą, która ma
     // o połamanym pliku opowiedzieć zamiast odmówić działania.
@@ -1699,7 +1732,7 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
 export function cmdRules(opts: { id?: string | undefined } = {}): CmdResult {
   try {
     const t = ui().rulesCmd
-    const ids = [...Object.keys(ui().rules), 'E-1'].sort((a, z) => a.localeCompare(z, 'en', { numeric: true }))
+    const ids = [...Object.keys(ui().rules), 'E-1', 'MS-1', 'MS-2', 'MS-3', 'MS-4', 'MS-5'].sort((a, z) => a.localeCompare(z, 'en', { numeric: true }))
     const url = foundationsUrl()
     if (!opts.id) {
       return okDoc([
@@ -1832,6 +1865,7 @@ function diffAgainstPlanFile(stored: StoredPlan, path: string): CmdResult {
 }
 
 export function cmdDiff(cwd: string, opts: { plan?: string | undefined } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'diff', opts)
   try {
     const stored = loadPlan(cwd)
     if (opts.plan) {
@@ -1902,3 +1936,8 @@ function pick(source: ActivitySource): Pick<ActivitySource, 'listActivities' | '
 export function daysToRace(plan: { goal: { date: string } }, today: string): number {
   return diffDays(today, plan.goal.date)
 }
+
+export function cmdReplace(cwd: string, opts: SportsOptions = {}): CmdResult {
+  return isSportsWorkspace(cwd) ? sportsCommand(cwd, 'replace', opts) : fail(new Error(sportMessages().migrate))
+}
+export function cmdMigrate(cwd: string, opts: SportsOptions = {}): CmdResult { return sportsCommand(cwd, 'migrate', opts) }

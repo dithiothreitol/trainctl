@@ -18,10 +18,52 @@ day there is no build: the CLI and the MCP server run TypeScript directly
 through Node's native type stripping, so what you edit is what runs. Publishing
 is different — Node refuses to strip types under `node_modules`, so `pnpm build`
 emits `dist/` and that is what the registry gets. `packaging.test.ts` guards the
-manifests against pointing at `.ts` again, and CI installs the packed tarballs
-and runs the CLI from `node_modules`.
+manifests against pointing at `.ts` again. CI installs tarballs on Linux and
+Windows, runs the multisport CLI scenarios from `node_modules`, and calls the
+installed MCP process over stdio. Run the same check locally after building:
 
-The full suite is 641 tests. Seven of them backtest the engine against a corpus
+```
+pnpm build
+pnpm verify:distribution --online
+```
+
+Without `--online`, installation uses only the pnpm cache and fails if a dependency
+is missing. The online option allows dependency downloads from npm; neither mode
+publishes packages or connects to a training account. The check creates isolated
+temporary directories and removes them on completion.
+
+The installed CLI simulation has a 30-second deadline for each command and a
+10-minute deadline for the full sequence. Dependency installation and individual
+packaging steps retain their three-minute deadline. Timeout errors identify the
+command before attempting to parse its JSON output.
+
+The root development dependency `@garmin/fitsdk` is pinned for independent FIT
+validation. `packages/export/src/fit-sdk.test.ts` checks decoded workout fields,
+CRC handling and UTF-8 names with Garmin's decoder. The multisport simulation
+also decodes every exported FIT file, both from source and from installed tarballs.
+
+The pinned root development dependency `ical.js` independently parses ICS in
+`ics-parser.test.ts`, calendar lifecycle tests, and both CLI simulations. These
+parsers are test tools and do not become runtime dependencies of published packages.
+To retain synthetic exports for a calendar or watch acceptance test, run:
+
+```
+pnpm simulate:multisport --artifacts
+```
+
+The command prints a new directory under ignored `artifacts/`. It contains ICS
+versions before/after replacement, withdrawal and reactivation, FIT/HTML files,
+source plans, a SHA-256 manifest and Polish instructions. Manual results start
+as `pending`; parser success does not imply success on a particular device/client.
+
+The test runner extends `VitestTestRunner` through its public Runner API.
+Before each attempt it awaits an empty `onTaskUpdate` round trip, allowing the
+worker to receive reporting acknowledgements before another synchronous file
+or CLI operation. A single `setImmediate` yield proved insufficient on Windows
+with Node 22. Timeouts, assertions, snapshots and unhandled-error checks keep
+their standard behavior; an empty update cannot mark any test as passed.
+
+The suite includes seven cases that backtest the engine against a corpus
 of real coaching plans; that corpus contains personal data and is not in the
 repository, so without it the suite reports one skipped test in its place —
 visible rather than silent.
@@ -32,7 +74,7 @@ visible rather than silent.
 |---|---|
 | `trainctl-core` | the engine: zones, macro/microcycles, solver, adaptation, plan lint, both message catalogues for domain text |
 | `trainctl` | the CLI: command handlers as pure `(cwd, args) → {output, code}` functions |
-| `trainctl-mcp` | the MCP server — 17 tools over those same handlers |
+| `trainctl-mcp` | the MCP server — tools over those same handlers |
 | `trainctl-export` | `.fit`, `.ics`, printable HTML, race-day pack |
 | `trainctl-sync-intervalsicu` | the intervals.icu adapter |
 | `trainctl-sync-files` | exported activity files (FIT, TCX, GPX) as a pull-only source |

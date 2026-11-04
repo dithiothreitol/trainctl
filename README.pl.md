@@ -256,6 +256,8 @@ Twoimi plecami.
 | `log` | zapis wykonania (bez flag w terminalu: pyta) | `--status`, `--km`, `--time`, `--test-time`, `--rpe`, `--note`, `--commit` |
 | `shift` | zamiana dwóch jednostek w tygodniu | `--from`, `--to` (albo wybór z listy), `--commit` |
 | `reschedule` | przestawia tydzień wokół zajętych dni | `--block`, `--time`, `--pin`, `--preparation`, `--strategy`, `--apply`, `--commit` |
+| `replace` | Zamiana jednostki między bieganiem, rowerem i pływaniem; propozycja i `--apply <id>` |
+| `migrate` | Jawna migracja planu biegowego do schematu sesji v2 z kopiami oryginałów |
 | `adapt` | analiza wykonania → propozycje korekt | `--date`, `--prepare`, `--apply <id>`, `--commit` |
 | `shorten` | dopasowuje jednostkę do dostępnego czasu, jako propozycja | `--minutes`, `--date`, `--apply <id>`, `--commit` |
 | `review` | pull + adapt + week w jednym | `--days`, `--date`, `--prepare` |
@@ -471,7 +473,7 @@ Narzędzia działają nad tymi samymi handlerami, z których korzysta CLI, więc
 agent i terminal nie mogą się rozjechać: `trainctl_plan`, `trainctl_today`,
 `trainctl_week`, `trainctl_log`, `trainctl_shift`, `trainctl_why`,
 `trainctl_diff`, `trainctl_check`, `trainctl_init`, `trainctl_push`,
-`trainctl_pull`, `trainctl_adapt`, `trainctl_shorten`, `trainctl_desk`,
+`trainctl_pull`, `trainctl_adapt`, `trainctl_replace`, `trainctl_migrate`, `trainctl_shorten`, `trainctl_desk`,
 `trainctl_reschedule`, `trainctl_export`, `trainctl_review`, `trainctl_status`,
 `trainctl_rule`. Serwer wystawia też `plan/PLAN.md`, `trainctl.yaml`, `AGENTS.md`
 i każdą regułę jako zasoby (`trainctl://plan`, `trainctl://rules/I-7`, …), a
@@ -634,7 +636,7 @@ pnpm install
 pnpm check       # typecheck + testy — to samo, co robi CI
 ```
 
-641 testów. Siedem z nich porównuje silnik z korpusem planów trenerskich, który
+953 testy (2026-11-03). Siedem z nich porównuje silnik z korpusem planów trenerskich, który
 nie jest dystrybuowany; bez niego ten zestaw zgłasza się jako jeden pominięty
 test, zamiast po cichu zniknąć.
 
@@ -661,3 +663,9 @@ python tools/corpus/parse_plans.py     # → corpus/parsed/corpus.json
 ## Licencja
 
 MIT — zob. [LICENSE](LICENSE).
+
+## Rower, pływanie i multisport
+
+Nowe katalogi: `trainctl init --sports run,bike,swim`. Każda dyscyplina ma własny profil i objętość w minutach. Sesje mają trwałe ID; zamiany działają w sześciu kierunkach. Istniejący plan biegowy migruj przez `trainctl migrate --prepare` i `trainctl migrate --apply <id>`.
+
+Przykłady, schemat konfiguracji i granice obsługi: [multisport](docs/MULTISPORT.md). Domyślne szablony v2 są jawnymi wyborami inżynierskimi; dotychczasowy silnik biegowy działa również po migracji. Kreator, zamiany uwzględniające cel, progresję, taper, powrót i odzyskiwanie zapisu opisuje [raport weryfikacji](docs/MULTISPORT-VALIDATION.md).

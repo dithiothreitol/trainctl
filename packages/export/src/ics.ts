@@ -39,7 +39,7 @@ export function escapeIcs(text: string): string {
     .replace(/\\/g, '\\\\')
     .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
-    .replace(/\r?\n/g, '\\n')
+    .replace(/\r\n|\r|\n/g, '\\n')
 }
 
 const compact = (iso: string) => iso.replace(/-/g, '')

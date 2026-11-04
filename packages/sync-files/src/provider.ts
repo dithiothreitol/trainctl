@@ -11,17 +11,20 @@ import { scanActivityFiles, type SkippedFile } from './files.ts'
 
 export interface FileActivitySourceOptions {
   /** Katalog z eksportem (przeszukiwany rekurencyjnie) albo pojedynczy plik. */
+  preserveParts?: boolean
   path: string
 }
 
 export class FileActivitySource implements ActivitySource {
   // UWAGA: bez „parameter properties" — natywny type-stripping Node ich nie obsługuje.
   readonly name = 'files'
+  readonly preserveParts: boolean
   readonly path: string
   private skipped: SkippedFile[] = []
 
   constructor(opts: FileActivitySourceOptions) {
     this.path = opts.path
+    this.preserveParts = opts.preserveParts === true
   }
 
   /** Pliki pominięte w ostatnim skanie (wszystkie, bez względu na zakres dat). */
@@ -31,7 +34,7 @@ export class FileActivitySource implements ActivitySource {
 
   /** Aktywności z zakresu `oldest`…`newest` włącznie (daty `YYYY-MM-DD`, lokalne). */
   async listActivities(oldest: string, newest: string): Promise<SyncedActivity[]> {
-    const { activities, skipped } = scanActivityFiles(this.path)
+    const { activities, skipped } = scanActivityFiles(this.path, { preserveParts: this.preserveParts })
     this.skipped = skipped
     return activities.filter((a) => a.date >= oldest && a.date <= newest)
   }

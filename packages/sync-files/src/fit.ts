@@ -267,6 +267,8 @@ export function fitSportType(sport: number | undefined, subSport: number | undef
       return 'Run'
     case 2:
       return 'Ride'
+    case 3:
+      return 'Transition'
     case 5:
       return 'Swim'
     case 11:
@@ -309,10 +311,15 @@ function sessionPart(f: FitFields, fallbackType: ActivityType | undefined): Acti
   const part: ActivityPart = {
     startMs: fitTimeToMs(startTime),
     type: fitSportType(f.get(5), f.get(6)) ?? fallbackType ?? 'Other',
+    sourceSubtype: `fit:${f.get(5) ?? '?'}:${f.get(6) ?? '?'}`,
+    classification: fitSportType(f.get(5), f.get(6)) || fallbackType ? 'reported' : 'unknown',
   }
   if (distance !== undefined) part.distanceM = distance
   if (timer !== undefined) part.movingTimeSec = timer
   if (elapsed !== undefined) part.elapsedTimeSec = elapsed
+  if (f.has(20)) part.avgPowerWatts = f.get(20)!
+  if (f.has(18)) part.avgCadence = f.get(18)!
+  if (f.has(44)) part.poolLengthM = f.get(44)! / 100
   const hr = f.get(16) // avg_heart_rate [bpm]
   if (hr !== undefined) part.avgHr = hr
   const ascent = f.get(22) // total_ascent [m]
@@ -334,6 +341,7 @@ function recordsPart(records: RecordSample[], sportType: ActivityType | undefine
   const part: ActivityPart = {
     startMs: fitTimeToMs(first.t),
     type: sportType ?? classifyByPace(distance, moving),
+    classification: sportType ? 'reported' : 'inferred',
     elapsedTimeSec: last.t - first.t,
   }
   if (distance !== undefined) part.distanceM = distance
@@ -352,7 +360,7 @@ function recordsPart(records: RecordSample[], sportType: ActivityType | undefine
  * aktywnością (np. trening, kurs, ustawienia) albo nie niesie żadnych danych.
  * Rzuca błąd, gdy plik jest uszkodzony (zła sygnatura, długość, CRC).
  */
-export function parseFitActivity(bytes: Uint8Array): ParsedActivity | undefined {
+export function parseFitActivity(bytes: Uint8Array, opts: { preserveParts?: boolean } = {}): ParsedActivity | undefined {
   let fileType: number | undefined
   const sessions: FitFields[] = []
   const records: RecordSample[] = []
@@ -405,5 +413,8 @@ export function parseFitActivity(bytes: Uint8Array): ParsedActivity | undefined 
     offset !== undefined && Math.abs(offset) <= MAX_UTC_OFFSET_SEC
       ? dateWithOffset(part.startMs, offset)
       : localDateFromMs(part.startMs)
-  return toParsed(part, date)
+  if (offset !== undefined && Math.abs(offset) <= MAX_UTC_OFFSET_SEC) { part.utcOffsetMinutes = offset / 60; for (const p of parts) p.utcOffsetMinutes = offset / 60 }
+  const result = toParsed(part, date)
+  if (opts.preserveParts && parts.length > 1) result.parts = [...parts].sort((a,b) => a.startMs - b.startMs).map(p => toParsed(p, offset !== undefined && Math.abs(offset) <= MAX_UTC_OFFSET_SEC ? dateWithOffset(p.startMs, offset) : localDateFromMs(p.startMs)))
+  return result
 }

@@ -5,7 +5,8 @@ description: "Weekly review of a trainctl training plan: what happened, what it 
 
 # Weekly review
 
-1. Call `trainctl_review` (one call instead of pull + adapt + week). Pass `date` only when the user names a different week.
+1. In schema 2, keep running, cycling and swimming totals separate; inspect activity matching and replacement history.
+   Call `trainctl_review` (one call instead of pull + adapt + week). Pass `date` only when the user names a different week.
 2. Relay it in plain language: the days behind against the plan, the signals worth acting on, the key session ahead.
    Quote RPE and notes from the journal verbatim; never turn feelings into numbers.
 3. Propose at most two things to do. Unknown sessions are unknown, not skipped — ask before treating them as missed.

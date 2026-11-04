@@ -7,12 +7,16 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Command, InvalidArgumentError, type Option } from 'commander'
-import { resolveLocale, setLocale } from 'trainctl-core'
+import { resolveLocale, setLocale, sportMessages } from 'trainctl-core'
+import { runSportsPicker, runSportsWeekBrowser, runSportsWizard } from './sports-interactive.ts'
+import { isSportsWorkspace } from './sports-store.ts'
 import { readConfigLanguage } from './config.ts'
 import { loadEnvFile, ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import {
   cmdAdapt,
+  cmdReplace,
+  cmdMigrate,
   cmdCheck,
   cmdDesk,
   cmdDiff,
@@ -193,15 +197,19 @@ commitOption(
     .command('init')
     .description(ui().cmd.init)
     .option('--template', ui().cmd.initTemplate)
+    .option('--sports <list>', sportMessages().sports)
     .option('--from-intervals', ui().cmd.initFromIntervals)
     .option('--agent <name>', ui().cmd.optAgent),
 ).action(async (opts) => {
-  const interactive = opts.template !== true && tty
+  if (opts.sports && opts.template !== true && tty) {
+    try { return print(cmdInit(cwd, await runSportsWizard(opts.sports,localToday(),theme), {commit:opts.commit,agent:opts.agent})) } catch(e) {return print({code:1,output:e instanceof Error ? e.message : String(e)})}
+  }
+  const interactive = opts.template !== true && !opts.sports && tty
   if (!interactive) {
     if (opts.fromIntervals === true) {
       return print(await spin(ui().cmd.spinnerInit, () => cmdInitFromIntervals(cwd)))
     }
-    return print(cmdInit(cwd, undefined, { commit: opts.commit, agent: opts.agent }))
+    return print(cmdInit(cwd, undefined, { commit: opts.commit, agent: opts.agent, sports: opts.sports }))
   }
   try {
     const answers = await runWizard(theme, {
@@ -249,6 +257,7 @@ program
   .option('-i, --interactive', ui().cmd.weekInteractive)
   .action(async (opts) => {
     if (opts.interactive !== true || !tty) return print(cmdWeek(cwd, opts))
+    if (isSportsWorkspace(cwd)) return print(await runSportsWeekBrowser(cwd,opts.date ?? localToday(),theme))
     printInteractive(await runWeekBrowser(cwd, opts.date ?? localToday(), theme))
   })
 
@@ -271,9 +280,10 @@ withExamples(
 ).action(async (opts, command: Command) => {
   // Bez żadnej flagi w terminalu: pytania zamiast cichego „dziś: done".
   // Poza terminalem (skrypt, agent) zachowanie bez zmian.
-  const flags = ['date', 'km', 'time', 'testTime', 'rpe', 'note', 'commit', 'strength', 'minutes'].some((k) => opts[k] !== undefined) ||
+  const flags = ['date', 'km', 'time', 'testTime', 'rpe', 'note', 'commit', 'strength', 'minutes', 'session', 'sport', 'actualSport', 'sets', 'meters', 'activity'].some((k) => opts[k] !== undefined) ||
     command.getOptionValueSource('status') !== 'default'
-  if (!flags && tty) return printInteractive(await runLogPrompt(cwd, localToday(), theme))
+  if (!flags && tty && isSportsWorkspace(cwd)) return print(await runSportsPicker(cwd,'log',localToday(),theme))
+  if (!flags && tty && !isSportsWorkspace(cwd)) return printInteractive(await runLogPrompt(cwd, localToday(), theme))
   print(cmdLog(cwd, opts))
 })
 
@@ -284,8 +294,10 @@ commitOption(
     .option('--from <iso>', ui().cmd.optFrom, ahead)
     .option('--to <iso>', ui().cmd.optTo, ahead),
 ).action(async (opts) => {
-  if (opts.from && opts.to) return print(cmdShift(cwd, opts))
-  if (opts.from || opts.to || !tty) {
+  if ((opts.from || opts.session) && opts.to) return print(cmdShift(cwd, { ...opts, from: opts.from ?? '' }))
+  if ((opts.session !== undefined || opts.sport !== undefined) && !isSportsWorkspace(cwd)) return print(cmdShift(cwd,{...opts,from:opts.from??'',to:opts.to??''}))
+  if (!opts.from && !opts.to && !opts.session && !opts.sport && tty && isSportsWorkspace(cwd)) return print(await runSportsPicker(cwd,'shift',localToday(),theme))
+  if (opts.from || opts.to || opts.sport || !tty || isSportsWorkspace(cwd)) {
     return print({ code: 1, output: ui().shift.bothDates })
   }
   printInteractive(await runShiftPicker(cwd, localToday(), theme))
@@ -356,7 +368,8 @@ withExamples(
     .option('--date <iso>', ui().cmd.optExportDate, ahead),
   'export',
 ).action(async (opts) => {
-  if (opts.what) return print(cmdExport(cwd, opts))
+  if (!opts.what && !opts.session && !opts.sport && tty && isSportsWorkspace(cwd)) return print(await runSportsPicker(cwd,'export',localToday(),theme))
+  if (opts.what || opts.session !== undefined || opts.sport !== undefined || isSportsWorkspace(cwd)) return print(cmdExport(cwd, opts))
   if (!tty) {
     return print({
       code: 1,
@@ -374,12 +387,13 @@ withExamples(
       .command('reschedule')
       .description(ui().cmd.reschedule)
       .option('--time <budget...>', ui().improve.time, budgetArg)
-      .option('--pin <iso...>', ui().improve.pin, datesArg('forward'))
+      .option('--pin <id...>', ui().improve.pin, (value: string, previous: string[]) => isSportsWorkspace(cwd) ? [...(previous ?? []), value] : datesArg('forward')(value, previous))
       .option('--preparation <minutes>', ui().improve.preparation)
+       .option('--sport <sport>', sportMessages().targetSport)
       .option('--strategy <kind>', ui().improve.strategy)
       .option('--block <iso...>', ui().cmd.optBlock, datesArg('forward'))
       .option('--date <iso>', ui().cmd.optWhichWeek, ahead)
-      .option('--apply', ui().cmd.optApply),
+      .option('--apply [id]', ui().cmd.optApply),
   ),
   'reschedule',
 ).action((opts) => print(cmdReschedule(cwd, opts)))
@@ -462,4 +476,22 @@ program.addHelpText(
     theme.dim(ui().cmd.colorsHint),
 )
 
+
+commitOption(program.command('replace').description(sportMessages().replace)
+  .option('--restore', sportMessages().restore)
+  .option('--variant <kind>', 'endurance | quality')
+  .option('--session <id>', sportMessages().session).option('--date <iso>', ui().cmd.optDate, ahead)
+  .option('--sport <sport>', sportMessages().sports).option('--to-sport <sport>', sportMessages().targetSport)
+  .option('--minutes <n>', sportMessages().budget).option('--reason <text>', sportMessages().reason)
+  .option('--prepare', sportMessages().prepare).option('--apply <id>', sportMessages().apply))
+  .action(async opts => { if (tty && !Object.keys(opts).length) return print(await runSportsPicker(cwd,'replace',localToday(),theme)); print(cmdReplace(cwd,opts)) })
+commitOption(program.command('migrate').description(sportMessages().migration)
+  .option('--recover <mode>', 'resume | rollback')
+  .option('--prepare', sportMessages().prepare).option('--apply <id>', sportMessages().apply))
+  .action(opts => print(cmdMigrate(cwd, opts)))
+for (const name of ['today','week','log','shift','why','shorten','export']) {
+  const command = program.commands.find(c => c.name() === name)!
+  command.option('--session <id>', sportMessages().session).option('--sport <sport>', sportMessages().sports)
+  if (name === 'log') command.option('--meters <n>', sportMessages().meters).option('--activity <id>', sportMessages().source).option('--actual-sport <sport>', sportMessages().actualSport).option('--sets <steps>',sportMessages().sets)
+}
 await program.parseAsync()

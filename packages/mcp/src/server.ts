@@ -11,6 +11,9 @@ import { packageVersion } from './version.ts'
 import { ui } from 'trainctl'
 import {
   cmdAdapt,
+  cmdReplace,
+  cmdMigrate,
+  sportMessages,
   cmdCheck,
   cmdDesk,
   cmdDiff,
@@ -68,13 +71,14 @@ export function createTrainctlServer(
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: false, openWorldHint: true },
       inputSchema: {
+        sports: z.string().optional().describe(sportMessages().sports),
         fromIntervals: z.boolean().optional().describe(t.initFromIntervals),
         agent: z.enum(AGENTS).optional().describe(t.initAgent),
         commit: commitParam(),
       },
     },
     async (args) =>
-      toTool(args?.fromIntervals === true ? await cmdInitFromIntervals(dir, {}, factory) : cmdInit(dir, undefined, { commit: args?.commit, agent: args?.agent })),
+      toTool(args?.fromIntervals === true ? await cmdInitFromIntervals(dir, {}, factory) : cmdInit(dir, undefined, { commit: args?.commit, agent: args?.agent, sports: args?.sports })),
   )
 
   server.registerTool(
@@ -94,7 +98,7 @@ export function createTrainctlServer(
       description: t.today,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
-      inputSchema: { date: isoDate().optional() },
+      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(), date: isoDate().optional() },
     },
     async (args) => toTool(cmdToday(dir, args)),
   )
@@ -105,7 +109,7 @@ export function createTrainctlServer(
       description: t.week,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
-      inputSchema: { date: isoDate().optional().describe(t.weekDate) },
+      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(), date: isoDate().optional().describe(t.weekDate) },
     },
     async (args) => toTool(cmdWeek(dir, args)),
   )
@@ -116,16 +120,20 @@ export function createTrainctlServer(
       description: t.log,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: false, openWorldHint: false },
-      inputSchema: {
+      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(),
         date: isoDate().optional(),
         status: z.enum(['done', 'skipped', 'modified']).optional().describe(t.logStatus),
+        meters: z.string().optional().describe(sportMessages().meters),
+        actualSport: z.enum(['run','bike','swim']).optional().describe(sportMessages().actualSport),
+        sets: z.string().optional().describe(sportMessages().sets),
+        activity: z.string().optional().describe(sportMessages().source),
         km: z.string().optional().describe(t.logKm),
         time: z.string().optional().describe(t.logTime),
         testTime: z.string().optional().describe(ui().improve.testTime),
         rpe: z.string().optional().describe(t.logRpe),
         note: z.string().optional().describe(t.logNote),
         strength: z.enum(['done', 'skipped']).optional().describe(t.logStrength),
-        minutes: z.number().int().min(1).max(300).optional().describe(t.logMinutes),
+        minutes: z.number().min(0).max(3000).optional().describe(t.logMinutes),
         commit: commitParam(),
       },
     },
@@ -138,13 +146,13 @@ export function createTrainctlServer(
       description: t.shift,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: false, openWorldHint: false },
-      inputSchema: {
-        from: isoDate().describe(t.shiftFrom),
+      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(),
+        from: isoDate().optional().describe(t.shiftFrom),
         to: isoDate().describe(t.shiftTo),
         commit: commitParam(),
       },
     },
-    async (args) => toTool(cmdShift(dir, args)),
+    async (args) => toTool(cmdShift(dir, { ...args, from: args.from ?? '' })),
   )
 
   server.registerTool(
@@ -153,7 +161,7 @@ export function createTrainctlServer(
       description: t.why,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
-      inputSchema: { date: isoDate().optional() },
+      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(), date: isoDate().optional() },
     },
     async (args) => toTool(cmdWhy(dir, args)),
   )
@@ -194,7 +202,7 @@ export function createTrainctlServer(
       description: ui().coach.shortenMcp,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: false, openWorldHint: false },
-      inputSchema: {
+      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(),
         date: isoDate().optional(),
         minutes: z.number().int().min(0).max(1440).optional().describe(ui().coach.minutes),
         apply: z.string().optional().describe(ui().improve.apply),
@@ -210,8 +218,8 @@ export function createTrainctlServer(
       description: t.export,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: false, openWorldHint: false },
-      inputSchema: {
-        what: z.enum(['plan', 'workout', 'calendar', 'print', 'race', 'mobile']),
+      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(),
+        what: z.enum(['plan', 'workout', 'calendar', 'print', 'race', 'mobile', 'all', 'fit', 'ics', 'html', 'racepack']),
         date: isoDate().optional().describe(t.exportDate),
       },
     },
@@ -227,11 +235,12 @@ export function createTrainctlServer(
       inputSchema: {
         block: z.array(isoDate()).optional().describe(t.rescheduleBlock),
         time: z.array(z.string()).optional().describe(ui().improve.time),
-        pin: z.array(isoDate()).optional().describe(ui().improve.pin),
+        pin: z.array(z.string()).optional().describe(ui().improve.pin),
         preparation: z.string().optional().describe(ui().improve.preparation),
+        sport: z.enum(['run','bike','swim']).optional(),
         strategy: z.enum(['long', 'quality']).optional().describe(ui().improve.strategy),
         date: isoDate().optional().describe(t.rescheduleDate),
-        apply: z.boolean().optional().describe(t.rescheduleApply),
+        apply: z.union([z.boolean(),z.string()]).optional().describe(t.rescheduleApply),
         commit: commitParam(),
       },
     },
@@ -364,6 +373,18 @@ export function createTrainctlServer(
     },
     async (args) => toTool(cmdCheck(dir, args)),
   )
+
+
+  server.registerTool('trainctl_replace', { description: sportMessages().replace, outputSchema: toolOutputSchema,
+    annotations: {readOnlyHint:false, openWorldHint:false}, inputSchema: {
+      session:z.string().optional(),date:isoDate().optional(),sport:z.enum(['run','bike','swim']).optional(),
+      restore:z.boolean().optional().describe(sportMessages().restore),
+      variant:z.enum(['endurance','quality']).optional(),toSport:z.enum(['run','bike','swim']).optional(),minutes:z.number().min(5).max(1440).optional(),
+      reason:z.string().optional(),prepare:z.boolean().optional(),apply:z.string().optional(),commit:commitParam()
+    }}, async args => toTool(cmdReplace(dir,args)))
+  server.registerTool('trainctl_migrate', { description:sportMessages().migration,outputSchema:toolOutputSchema,
+    annotations:{readOnlyHint:false,openWorldHint:false},inputSchema:{recover:z.enum(['resume','rollback']).optional(),prepare:z.boolean().optional(),apply:z.string().optional(),commit:commitParam()}
+  },async args => toTool(cmdMigrate(dir,args)))
 
   return server
 }

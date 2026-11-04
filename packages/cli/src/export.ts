@@ -208,43 +208,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
 
   if (req.what === 'race' && plan.goal.kind === 'base') throw new Error(t.noRaceInBase)
   if (req.what === 'race') {
-    // `key` jest stabilny między językami — po nim wybieramy scenariusz na opaskę;
-    // `label` idzie na wydruk i zmienia się z językiem.
-    const scenarios: (RaceScenario & { key: string })[] = []
-    if (plan.goal.targetTimeSec) {
-      scenarios.push({ key: 'goal', label: t.scenarioGoal, totalSec: plan.goal.targetTimeSec })
-    }
-    if (plan.prediction) {
-      scenarios.push(
-        { key: 'bold', label: t.scenarioBold, totalSec: plan.prediction.loSec },
-        { key: 'safe', label: t.scenarioSafe, totalSec: plan.prediction.hiSec },
-      )
-    }
-    if (scenarios.length === 0) {
-      throw new Error(t.needTargetOrPrediction)
-    }
-    scenarios.sort((a, b) => a.totalSec - b.totalSec)
-    // Na opaskę: cel, jeśli jest; bez celu — wariant ostrożny. Pęknięcie w drugiej
-    // połowie kosztuje więcej, niż zbyt zachowawcze otwarcie (W-1: przedział, nie punkt).
-    const bandScenario = plan.goal.targetTimeSec
-      ? scenarios.findIndex((s) => s.key === 'goal')
-      : scenarios.length - 1
-    const provenance = plan.prediction
-      ? t.provenanceWithPrediction(plan.prediction.method, plan.generatedAt)
-      : t.provenanceGoalOnly(plan.generatedAt)
-    const bandLabel = scenarios[bandScenario]!.label
-    const heatTable = heatTableFor(plan.goal.distanceKm, scenarios[bandScenario]!.totalSec, bandLabel)
-    const rp = ui().racePack
-    const html = toRacePackHtml({
-      raceName: plan.goal.name,
-      raceDate: plan.goal.date,
-      distanceKm: plan.goal.distanceKm,
-      scenarios,
-      bandScenario,
-      provenance,
-      ...(heatTable ? { heatTable } : {}),
-      labels: { lang: getLocale(), ...rp },
-    })
+    const { html, scenarios } = runningRacePack(plan)
     const file = join(dir, `${safeName(plan.goal.name)}-${safeName(t.fileRacePack)}.html`)
     writeFileSync(file, html, 'utf-8')
     files.push({
@@ -293,3 +257,47 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   })
   return files
 }
+
+/** Same running race pack for v1 and a migrated v2 running goal. */
+function runningRacePack(plan: StoredPlan): { html: string; scenarios: RaceScenario[] } {
+  const t = ui().exportCmd
+    // `key` jest stabilny między językami — po nim wybieramy scenariusz na opaskę;
+    // `label` idzie na wydruk i zmienia się z językiem.
+    const scenarios: (RaceScenario & { key: string })[] = []
+    if (plan.goal.targetTimeSec) {
+      scenarios.push({ key: 'goal', label: t.scenarioGoal, totalSec: plan.goal.targetTimeSec })
+    }
+    if (plan.prediction) {
+      scenarios.push(
+        { key: 'bold', label: t.scenarioBold, totalSec: plan.prediction.loSec },
+        { key: 'safe', label: t.scenarioSafe, totalSec: plan.prediction.hiSec },
+      )
+    }
+    if (scenarios.length === 0) {
+      throw new Error(t.needTargetOrPrediction)
+    }
+    scenarios.sort((a, b) => a.totalSec - b.totalSec)
+    // Na opaskę: cel, jeśli jest; bez celu — wariant ostrożny. Pęknięcie w drugiej
+    // połowie kosztuje więcej, niż zbyt zachowawcze otwarcie (W-1: przedział, nie punkt).
+    const bandScenario = plan.goal.targetTimeSec
+      ? scenarios.findIndex((s) => s.key === 'goal')
+      : scenarios.length - 1
+    const provenance = plan.prediction
+      ? t.provenanceWithPrediction(plan.prediction.method, plan.generatedAt)
+      : t.provenanceGoalOnly(plan.generatedAt)
+    const bandLabel = scenarios[bandScenario]!.label
+    const heatTable = heatTableFor(plan.goal.distanceKm, scenarios[bandScenario]!.totalSec, bandLabel)
+    const rp = ui().racePack
+    const html = toRacePackHtml({
+      raceName: plan.goal.name,
+      raceDate: plan.goal.date,
+      distanceKm: plan.goal.distanceKm,
+      scenarios,
+      bandScenario,
+      provenance,
+      ...(heatTable ? { heatTable } : {}),
+      labels: { lang: getLocale(), ...rp },
+    })
+  return { html, scenarios }
+}
+export const runningRacePackHtml = (plan: StoredPlan): string => runningRacePack(plan).html

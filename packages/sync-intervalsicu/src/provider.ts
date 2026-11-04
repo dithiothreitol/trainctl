@@ -34,6 +34,8 @@ interface RawActivity {
   total_elevation_gain?: number
   average_heartrate?: number
   average_speed?: number
+  average_watts?: number
+  average_cadence?: number
   icu_rpe?: number
   source?: string
 }
@@ -87,6 +89,9 @@ export class IntervalsIcuProvider implements SyncProvider {
         date: (a.start_date_local ?? '').slice(0, 10),
         type: a.type ?? 'Unknown',
       }
+      if (a.start_date_local?.includes('T')) activity.startTime = a.start_date_local
+      if (a.average_watts !== undefined) activity.avgPowerWatts = a.average_watts
+      if (a.average_cadence !== undefined) activity.avgCadence = a.average_cadence
       if (a.source) activity.source = a.source
       if (dataWithheld) activity.dataWithheld = true
       if (a.name) activity.name = a.name
@@ -147,12 +152,13 @@ export class IntervalsIcuProvider implements SyncProvider {
   private async bulk(workouts: PushableWorkout[], category: (w: PushableWorkout) => string): Promise<void> {
     const payload = workouts.map((w) => ({
       category: category(w),
-      start_date_local: `${w.date}T00:00:00`,
-      type: w.sport === 'strength' ? 'WeightTraining' : 'Run',
+      start_date_local: `${w.date}T${w.startTime ?? '00:00'}:00`,
+      type: ({ run: 'Run', bike: 'Ride', swim: 'Swim', strength: 'WeightTraining' })[w.sport],
       name: w.name,
       description: w.description,
       external_id: w.externalId,
-      ...(w.distanceKm && !w.race && w.sport === 'run' ? { distance_target: Math.round(w.distanceKm * 1000) } : {}),
+      ...(w.durationSec !== undefined ? { moving_time: w.durationSec } : {}),
+      ...(w.distanceKm && !w.race && w.sport !== 'strength' ? { distance_target: Math.round(w.distanceKm * 1000) } : {}),
     }))
     await this.client.request(this.client.athletePath('/events/bulk?upsert=true'), {
       method: 'POST',
@@ -171,7 +177,7 @@ export class IntervalsIcuProvider implements SyncProvider {
    */
   async pushWorkouts(workouts: PushableWorkout[]): Promise<PushResult> {
     if (workouts.length === 0) return { pushed: 0, externalIds: [] }
-    const runs = workouts.filter((w) => w.sport === 'run' && !w.race)
+    const runs = workouts.filter((w) => w.sport !== 'strength' && !w.race)
     const races = workouts.filter((w) => w.race)
     const strength = workouts.filter((w) => w.sport === 'strength')
     const pushed: PushableWorkout[] = []

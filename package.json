@@ -32,10 +32,15 @@
     "check": "pnpm typecheck && pnpm test",
     "trainctl": "node packages/cli/src/bin.ts",
     "release:dry": "pnpm publish -r --dry-run --no-git-checks",
-    "build": "pnpm -r run build"
+    "build": "pnpm -r run build",
+    "simulate:multisport": "node scripts/simulate-multisport.ts",
+    "benchmark:multisport": "node scripts/benchmark-multisport.ts",
+    "verify:distribution": "node scripts/verify-distribution.ts"
   },
   "devDependencies": {
+    "@garmin/fitsdk": "21.218.0",
     "@types/node": "^24.0.0",
+    "ical.js": "2.2.1",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }

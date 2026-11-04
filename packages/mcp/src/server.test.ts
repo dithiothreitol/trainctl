@@ -75,8 +75,8 @@ describe('serwer MCP trainctl', () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual([
-      'trainctl_adapt', 'trainctl_check', 'trainctl_desk', 'trainctl_diff', 'trainctl_export', 'trainctl_init', 'trainctl_log',
-      'trainctl_plan', 'trainctl_pull', 'trainctl_push', 'trainctl_reschedule', 'trainctl_review', 'trainctl_rule', 'trainctl_shift', 'trainctl_shorten',
+      'trainctl_adapt', 'trainctl_check', 'trainctl_desk', 'trainctl_diff', 'trainctl_export', 'trainctl_init', 'trainctl_log', 'trainctl_migrate',
+      'trainctl_plan', 'trainctl_pull', 'trainctl_push', 'trainctl_replace', 'trainctl_reschedule', 'trainctl_review', 'trainctl_rule', 'trainctl_shift', 'trainctl_shorten',
       'trainctl_status', 'trainctl_today', 'trainctl_week', 'trainctl_why',
     ])
   })
@@ -258,8 +258,8 @@ describe('serwer MCP trainctl', () => {
 })
 
 describe('trainctl_init fromIntervals — profil z historii przez agenta', () => {
-  // handler MCP używa prawdziwego „dziś" — historia musi być względna do daty uruchomienia testu
-  const TODAY_MONDAY = mondayOf(localToday())
+  // Historia i zegar handlera muszą używać tego samego kontrolowanego dnia.
+  const TODAY_MONDAY = mondayOf('2026-08-01')
   let icuDir: string
   let icuClient: Client
 

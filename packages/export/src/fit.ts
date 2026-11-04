@@ -10,8 +10,8 @@
  * w mm/s (m/s × 1000), zamieniając s/km na m/s. Szybsze tempo = wyższa prędkość,
  * więc granice zakresu zamieniają się miejscami.
  */
-import { messages } from 'trainctl-core'
-import type { PlannedWorkout, PaceRange } from 'trainctl-core'
+import { messages, sportMessages } from 'trainctl-core'
+import type { PlannedWorkout, PaceRange, TrainingSession } from 'trainctl-core'
 
 // ---------------------------------------------------------------- prymitywy
 
@@ -63,9 +63,15 @@ class ByteWriter {
   u8(v: number) { this.bytes.push(v & 0xff) }
   u16(v: number) { this.u8(v); this.u8(v >> 8) }
   u32(v: number) { this.u16(v); this.u16(v >> 16) }
-  str(v: string, size: number) {
-    const encoded = new TextEncoder().encode(v)
-    for (let i = 0; i < size; i++) this.u8(i < encoded.length ? encoded[i]! : 0)
+  str(v: string, size: number, terminated = true) {
+    const encoded: number[] = [], encoder = new TextEncoder()
+    const limit = terminated ? Math.max(0, size - 1) : size
+    for (const character of v) {
+      const bytes = encoder.encode(character)
+      if (encoded.length + bytes.length > limit) break
+      encoded.push(...bytes)
+    }
+    for (let i = 0; i < size; i++) this.u8(encoded[i] ?? 0)
   }
   raw(): Uint8Array { return Uint8Array.from(this.bytes) }
   get length() { return this.bytes.length }
@@ -118,7 +124,7 @@ interface FitStep {
   durationType: 0 | 1 | 6
   durationValue: number
   /** 0 = prędkość, 2 = brak celu (open). */
-  targetType: 0 | 2
+  targetType: 0 | 2 | 4 | 11
   targetValue: number
   low: number
   high: number
@@ -279,13 +285,45 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
 const NAME_SIZE = 32
 const STEP_NAME_SIZE = 24
 
+/** Garmin FIT profile: power absolute values use +1000 W; swimming uses stroke targets.
+ * Send-off timers require device-specific capabilities and are rejected, never flattened.
+ * https://developer.garmin.com/fit/file-types/workout
+ */
+export function toSessionFitSteps(session: TrainingSession): FitStep[] {
+  if (session.legacyWorkout) return toFitSteps(session.legacyWorkout)
+  if (session.sport === 'strength' || session.steps.some(s => s.sendoffSec !== undefined)) throw new Error(sportMessages().exportUnsupported)
+  const result: FitStep[] = []
+  for (const step of session.steps) {
+    const start = result.length, target = step.target
+    const pace = target.kind === 'pace' ? Math.round(target.perM / target.seconds * 1000) : 0
+    const stroke = step.stroke ? { freestyle: 0, backstroke: 1, breaststroke: 2, butterfly: 3, drill: 4 }[step.stroke] : undefined
+    const swimming = session.sport === 'swim' && stroke !== undefined
+    result.push({ name: `${step.role}${target.kind === 'pace' ? ` ${target.seconds}s/${target.perM}m` : ''}`, durationType: step.distanceM ? 1 : 0,
+      durationValue: Math.round(step.distanceM ? step.distanceM * 100 : step.durationSec * 1000), targetType: swimming ? 11 : target.kind === 'power' ? 4 : target.kind === 'pace' ? 0 : 2,
+      targetValue: swimming ? stroke! : 0, low: swimming ? 0 : target.kind === 'power' ? target.watts + 1000 : pace,
+      high: swimming ? 0 : target.kind === 'power' ? target.watts + 1000 : pace,
+      intensity: step.role === 'rest' ? 1 : step.role === 'warmup' ? 2 : step.role === 'cooldown' ? 3 : 0 })
+    if (step.restSec) result.push({ name: 'Rest', durationType: 0, durationValue: Math.round(step.restSec * 1000), targetType: 2, targetValue: 0, low: 0, high: 0, intensity: 1 })
+    if ((step.repeat ?? 1) > 1) result.push({ name: 'Repeat', durationType: 6, durationValue: start, targetType: 2, targetValue: step.repeat!, low: 0, high: 0, intensity: 0 })
+  }
+  if (!result.length || result.length > 100) throw new Error(sportMessages().exportUnsupported)
+  return result
+}
+
+export function encodeSessionFit(session: TrainingSession, name: string, opts: { createdAtSec?: number } = {}): Uint8Array {
+  return encodeSteps(toSessionFitSteps(session), name, { ...opts, sport: session.sport === 'bike' ? 2 : session.sport === 'swim' ? 5 : 1, ...(session.poolLengthM ? { poolLengthM: session.poolLengthM } : {}) })
+}
+
 /** Trening → bajty pliku .fit. */
 export function encodeWorkoutFit(
   workout: PlannedWorkout,
   name: string,
   opts: { createdAtSec?: number } = {},
 ): Uint8Array {
-  const steps = toFitSteps(workout)
+  return encodeSteps(toFitSteps(workout), name, opts)
+}
+
+function encodeSteps(steps: FitStep[], name: string, opts: { createdAtSec?: number; sport?: number; poolLengthM?: number } = {}): Uint8Array {
   const body = new ByteWriter()
 
   const fileId: Message = {
@@ -318,8 +356,9 @@ export function encodeWorkoutFit(
       { num: 6, type: 'uint16' }, // num_valid_steps
       { num: 8, type: 'string', size: NAME_SIZE }, // wkt_name
     ],
-    values: [1, 0, steps.length, name.slice(0, NAME_SIZE - 1)],
+    values: [opts.sport ?? 1, 0, steps.length, name],
   }
+  if (opts.poolLengthM) { workoutMsg.fields.push({ num: 14, type: 'uint16' }, { num: 15, type: 'enum' }); workoutMsg.values.push(Math.round(opts.poolLengthM * 100), 0) }
   writeDefinition(body, workoutMsg)
   writeData(body, workoutMsg)
 
@@ -342,7 +381,7 @@ export function encodeWorkoutFit(
       fields: stepFields,
       values: [
         index,
-        step.name.slice(0, STEP_NAME_SIZE - 1),
+        step.name,
         step.durationType,
         step.durationValue,
         step.targetType,
@@ -365,7 +404,7 @@ export function encodeWorkoutFit(
   header.u8(0x20) // protokół 2.0
   header.u16(2100) // profil
   header.u32(data.length)
-  header.str('.FIT', 4)
+  header.str('.FIT', 4, false)
   const headerNoCrc = header.raw()
   const headerCrc = fitCrc(headerNoCrc)
   const full = new ByteWriter()
