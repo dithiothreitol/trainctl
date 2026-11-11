@@ -97,6 +97,28 @@ const firstRunOffset = (cls: GoalClass) => (cls === 'marathon' || cls === 'ultra
  * (`peakWeeklyKm`) albo +15% bieżącej objętości i tam się wypłaszcza.
  */
 const BASE_GROWTH = 1.15
+/** R-11 (inż.): powrót po przerwie liczy się do 6 tygodni od `since`; później bieżąca objętość mówi sama. */
+const RETURN_WINDOW_DAYS = 42
+/** R-11 (inż.): plan po przerwie startuje z 50–60% objętości sprzed niej. */
+const RETURN_START_SHARE = { min: 0.5, max: 0.6 }
+
+/**
+ * Objętość, od której plan startuje, i poziom formy, od którego liczy szczyt. Po
+ * przerwie (R-11) start leży w paśmie 50–60% objętości sprzed niej, a cel szczytu
+ * liczy się od tej objętości — bieżąca średnia z przerwą w środku jej nie mówi.
+ */
+export function volumeBase(athlete: AthleteProfile, today: string): { start: number; level: number; returning: boolean } {
+  const ret = athlete.returning
+  const active = ret !== undefined && diffDays(ret.since, today) <= RETURN_WINDOW_DAYS
+  if (!active) return { start: athlete.recentWeeklyKm, level: athlete.recentWeeklyKm, returning: false }
+  const lo = RETURN_START_SHARE.min * ret.previousWeeklyKm
+  const hi = RETURN_START_SHARE.max * ret.previousWeeklyKm
+  return {
+    start: Math.round(Math.min(hi, Math.max(lo, athlete.recentWeeklyKm))),
+    level: Math.max(athlete.recentWeeklyKm, ret.previousWeeklyKm),
+    returning: true,
+  }
+}
 
 /**
  * B3 (inż.): fala w bloku — tygodnie ładowania rosną 0,94 → 0,97 → 1,00 poziomu bloku,
@@ -209,6 +231,24 @@ function volumeSchedule(loadWeeks: number, start: number, peak: number, baseOnly
   return { weeks, peakLevel: level }
 }
 
+/**
+ * B8: najwcześniejsza niedziela startu, przy której plan dojdzie do szczytu P-7/P-8
+ * dla dystansu: wzrost w tempie P-3 od startu (R-11 po przerwie), odciążenie co
+ * czwarty tydzień, taper dystansu. Brak — próg nieosiągalny przy tym profilu: sufit
+ * z historii albo pojemność dni są niżej (wtedy pomoże `peakWeeklyKm`, nie data).
+ */
+export function earliestFeasibleRaceDate(athlete: AthleteProfile, goal: RaceGoal, today: string): string | undefined {
+  if (goal.kind === 'base') return undefined
+  const recommended = recommendedPeakKm(goal)
+  const { start, level } = volumeBase(athlete, today)
+  const historyCap = Math.min(athlete.peakWeeklyKm ?? level * 1.4, SANITY_CAP_KM)
+  const qualityPerWeek = athlete.daysAvailable.length >= 4 ? 2 : 1
+  if (historyCap < recommended || weekCapacityKm(athlete, qualityPerWeek, recommended) < recommended) return undefined
+  const loading = Math.max(1, Math.ceil(Math.log(recommended / Math.max(1, start)) / Math.log(RAMP_PER_LOAD_WEEK)) + 1)
+  const weeks = loading + Math.floor(loading / (DELOAD_EVERY - 1)) + taperWeeksFor(goal).weeks
+  return addDays(mondayOf(today), 7 * (weeks - 1) + 6)
+}
+
 /** Tygodnie po starcie celu A — makrocykl nie kończy się w dniu zawodów. */
 function transitionWeeks(goal: RaceGoal, weeks: WeekSkeleton[]): WeekSkeleton[] {
   const raceWeek = weeks.at(-1)
@@ -272,10 +312,11 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
 
   const qualityPerWeek = athlete.daysAvailable.length >= 4 ? 2 : 1 // I-8
 
-  // Objętość: ramp od recentWeeklyKm do osiągalnego szczytu (P-3), sufit z historii
-  const start = athlete.recentWeeklyKm
+  // Objętość: ramp od recentWeeklyKm do osiągalnego szczytu (P-3), sufit z historii.
+  // Po przerwie start i poziom formy według R-11 (volumeBase).
+  const { start, level, returning } = volumeBase(athlete, today)
   // E-3 (inż.): bez `peakWeeklyKm` sufit to bieżąca objętość +40% — brak źródła
-  const historyCap = Math.min(athlete.peakWeeklyKm ?? start * 1.4, SANITY_CAP_KM)
+  const historyCap = Math.min(athlete.peakWeeklyKm ?? level * 1.4, SANITY_CAP_KM)
   const recommended = recommendedPeakKm(goal)
   const loadOnly = Math.max(0, loadWeeks - Math.floor(loadWeeks / DELOAD_EVERY))
   const reachable = start * Math.pow(RAMP_PER_LOAD_WEEK, Math.max(0, loadOnly - 1))
@@ -283,8 +324,8 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   // rekomendacji utrzymujemy (lekko rozwijamy) jego wolumen zamiast go ciąć.
   // E-3 (inż.): plan ze startem celuje w bieżącą objętość +15% (sufit z historii), nie niżej niż rekomendacja P-7/P-8
   const targetPeak = baseOnly
-    ? Math.min(athlete.peakWeeklyKm ?? start * BASE_GROWTH, historyCap)
-    : Math.max(recommended, Math.min(start * 1.15, historyCap))
+    ? Math.min(athlete.peakWeeklyKm ?? level * BASE_GROWTH, historyCap)
+    : Math.max(recommended, Math.min(level * 1.15, historyCap))
   // ile szczytu plan miałby bez limitu dni — ostrzeżenie mówi, co daje dodatkowy dzień
   const withoutDays = Math.round(Math.min(targetPeak, historyCap, reachable))
   // B1: szczyt nie wyższy niż to, co dni biegacza mieszczą pod sufitami jednostek
@@ -295,6 +336,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       messages().macro.peakBelowRecommended(peakPlanned, recommended, goal.distanceKm),
     )
   }
+  if (returning) feasibilityWarnings.push(messages().macro.returnBlock(start, athlete.returning!.previousWeeklyKm))
 
   // Fazy przed taperem: base/build piramidalnie (I-1), peak polaryzacja (I-2).
   // Podział 40% bazy i 20% szczytu to E-3 (inż.) — źródła podają kolejność faz, nie proporcje.
@@ -317,6 +359,9 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
 
   const weeks: WeekSkeleton[] = []
   const volume = volumeSchedule(loadWeeks, start, peakPlanned, baseOnly, baseOnly ? undefined : longGoalKm(goal))
+  // R-11: po przerwie pierwszy blok wyłącznie spokojnie — z odciążeniem, które go zamyka
+  const firstDeload = volume.weeks.findIndex((w) => w.deload)
+  const easyBlockEnd = returning ? (firstDeload === -1 ? loadWeeks : firstDeload + 1) : 0
   // rytm kalibracji: liczony od ostatniego wyniku, resetowany startem kontrolnym (W-12)
   const lastResult = lastResultBefore(athlete, firstWeek)
   const resultDates = athlete.results.map((r) => r.date)
@@ -364,7 +409,9 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       accentProgress = planned.accentProgress
       if (planned.longKm !== undefined) longKm = planned.longKm
       ruleRefs.push(...(deload ? ['P-2'] : ['P-1', 'P-3']), intensityModel === 'pyramidal' ? 'I-1' : 'I-2')
+      if (i < easyBlockEnd) ruleRefs.push('R-11')
     }
+    const easyOnly = !inTaper && i < easyBlockEnd
 
     // Start kontrolny B/C: mini-taper bez ruszania makrocyklu (T-9).
     // Trajektoria zostaje nietknięta — obniżamy tylko realizację tego tygodnia,
@@ -388,6 +435,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
     const weeksToGoal = totalWeeks - 1 - i
     const wantsTest =
       !tuneUp &&
+      !easyOnly && // R-11: w pierwszym bloku po przerwie bez pomiaru
       // cała jednostka z ramą, nie sam dystans pomiaru, mieści się w udziale jednej sesji (B2)
       COACH_STYLE.warmupKm + testDistanceKm(goal) + COACH_STYLE.cooldownKm <= SESSION_SHARE_MAX * targetKm &&
       !inTaper &&
@@ -415,7 +463,8 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       // start kontrolny liczy się jako akcent tygodnia (T-12), sprawdzian też (W-13)
       // przy jednym akcencie w tygodniu start albo sprawdzian go zastępuje, a nie dochodzi obok
       qualitySessions:
-        phase === 'race' ? 1 : tuneUp || wantsTest ? qualityPerWeek - 1 : qualityPerWeek,
+        phase === 'race' ? 1 : easyOnly ? 0 : tuneUp || wantsTest ? qualityPerWeek - 1 : qualityPerWeek,
+      ...(easyOnly ? { easyOnly } : {}),
       ...(longKm !== undefined ? { longKm } : {}),
       accentProgress,
       ...(phase === 'race' ? { raceDate: goal.date } : {}),

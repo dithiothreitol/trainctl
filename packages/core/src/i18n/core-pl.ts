@@ -194,6 +194,9 @@ export const corePl: CoreMessages = {
     baseEndInPast: 'Data końca planu bazowego (goal.until) jest w przeszłości',
     transitionWeek: (week: number, total: number) => `po starcie: tydzień ${week} z ${total} powrotu do treningu (R-8)`,
     ultraTaperExtrapolated: 'T-8: ultra — ekstrapolacja bez źródła',
+    returnBlock: (start: number, previous: number) =>
+      `powrót po przerwie: pierwszy blok wyłącznie spokojnie, od ${n(start)} km/tydz. (około połowy ${n(previous)} km/tydz. sprzed przerwy), ` +
+      'wzrost w granicach P-3 — R-11, wartości inżynierskie bez badań nad parametrami',
     daysCapVolume: (planned: number, wanted: number, days: number) =>
       `${days === 1 ? 'przy 1 dniu biegowym' : `przy ${days} dniach biegowych`} tydzień mieści ${planned} km bez przeciążenia jednej jednostki (S-10, E-3) — ` +
       `plan zatrzymuje szczyt na tej wartości zamiast ${wanted} km/tydz.; resztę da kolejny dzień biegowy`,

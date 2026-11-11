@@ -64,6 +64,11 @@ export interface AthleteProfile {
   results: RaceResult[]
   /** Starty kontrolne w sezonie — wpinane w makrocykl (T-9…T-12). */
   tuneUpRaces?: TuneUpRace[]
+  /**
+   * Powrót po przerwie ≥ 2 tygodni (R-11): `since` — pierwszy dzień biegania po
+   * przerwie, `previousWeeklyKm` — objętość tygodniowa sprzed niej.
+   */
+  returning?: { since: string; previousWeeklyKm: number }
 }
 
 /** Rozkład intensywności planu (FOUNDATIONS I-1/I-2). */
@@ -91,6 +96,8 @@ export interface WeekSkeleton {
   sessionCount?: number
   /** Liczba sesji jakościowych w tygodniu (I-8). */
   qualitySessions: number
+  /** Pierwszy blok po przerwie (R-11): wyłącznie spokojnie — bez akcentów i podbiegów. */
+  easyOnly?: boolean
   /**
    * Tor długiego wybiegania (B4): najkrótsze długie tego tygodnia, rosnące do celu
    * dystansu w ostatnim bloku ładowania. Brak = długie z udziału w tygodniu

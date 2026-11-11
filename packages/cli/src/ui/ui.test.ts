@@ -151,6 +151,14 @@ describe('kreator init — parsery', () => {
     expect(yaml).toContain('workStart: "09:00"')
   })
 
+  it('powrót po przerwie trafia do profilu (R-11)', () => {
+    const yaml = toYaml({
+      goalName: 'Bieg', goalDate: '2026-11-29', goalDistanceKm: 21.0975, recentWeeklyKm: 12,
+      returning: { since: '2026-10-19', previousWeeklyKm: 45 }, daysAvailable: ['tue', 'thu', 'sat'],
+    })
+    expect(yaml).toContain('returning: { since: "2026-10-19", previousWeeklyKm: 45 }')
+  })
+
   it('bez wyniku startu zostawia czytelną podpowiedź zamiast pustej listy', () => {
     const yaml = toYaml({
       goalName: 'Bieg',

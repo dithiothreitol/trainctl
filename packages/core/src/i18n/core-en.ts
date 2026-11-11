@@ -188,6 +188,9 @@ export const coreEn = {
     baseEndInPast: 'The end date of the base plan (goal.until) is in the past',
     transitionWeek: (week: number, total: number) => `after the race: week ${week} of ${total} back to training (R-8)`,
     ultraTaperExtrapolated: 'T-8: ultra — extrapolated, no direct source',
+    returnBlock: (start: number, previous: number) =>
+      `return after a break: the first block is easy running only, from ${n(start)} km/week (about half of the ${n(previous)} km/week before the break), ` +
+      'growing back within P-3 — R-11, engineering values with no study behind the parameters',
     daysCapVolume: (planned: number, wanted: number, days: number) =>
       `${days === 1 ? '1 running day holds' : `${days} running days hold`} ${planned} km/week without overloading one session (S-10, E-3) — ` +
       `the plan stops there instead of ${wanted} km/week; another running day would add the rest`,

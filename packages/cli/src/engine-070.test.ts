@@ -10,6 +10,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
 import { cmdPlan, cmdRules, cmdWhy } from './commands.ts'
 import { loadPlan } from './planfile.ts'
+import { inferredConfigYaml } from './config.ts'
+import { parse } from 'yaml'
 
 const config = (weeklyKm: number, days: string) => `athlete:
   recentWeeklyKm: ${weeklyKm}
@@ -65,12 +67,44 @@ describe.each(['pl', 'en'] as const)('B1, B2 w komendach · %s', (lang) => {
     expect(cmdWhy(dir, { date: other.date }).output).not.toContain(text)
   })
 
-  it('plan: długie poniżej progu dystansu ma ostrzeżenie z liczbami (B4, J-2)', () => {
+  it('plan: werdykt wykonalności — trzy liczby i wyjścia jednym blokiem (B4, B8)', () => {
     const { output, plan } = planFor(12, 'tue, wed, thu, sat, sun')
     const longest = Math.max(...plan.weeks.flatMap((w) => w.days).filter((d) => d.workout?.kind === 'long').map((d) => d.workout!.distanceKm))
-    expect(output).toContain(lang === 'pl' ? `Najdłuższe wybieganie planu ma ${longest} km, a dystans wymaga ponad 21 km` : `The longest run in this plan is ${longest} km; the distance needs more than 21 km`)
-    // P1: próg spełniony — bez ostrzeżenia
-    expect(planFor(45, 'tue, wed, thu, sat, sun').output).not.toMatch(/Najdłuższe wybieganie planu|The longest run in this plan/)
+    const fmt = (km: number) => (lang === 'pl' ? String(km).replace('.', ',') : String(km))
+    expect(output).toContain(lang === 'pl'
+      ? `szczyt ${plan.peakKmPlanned} km/tydz. wobec 42 km/tydz. (P-7/P-8), najdłuższe wybieganie ${fmt(longest)} km wobec ponad 21 km`
+      : `it peaks at ${plan.peakKmPlanned} km/week against 42 km/week (P-7/P-8), and its longest run is ${fmt(longest)} km against more than 21 km`)
+    expect(output).toContain('athlete.peakWeeklyKm')
+    expect(output).toContain('goal.kind: base')
+    // jedno ostrzeżenie zamiast dwóch: bez osobnego zdania o szczycie
+    expect(plan.feasibilityWarnings.filter((w) => /P-7\/P-8/.test(w))).toHaveLength(1)
+    // P1: progi spełnione — bez werdyktu
+    expect(planFor(45, 'tue, wed, thu, sat, sun').output).not.toMatch(/nie dochodzi do progów|stays below the thresholds/)
+  })
+
+  it('plan: werdykt podaje datę startu, od której plan zdąży urosnąć, gdy sufit z historii na to pozwala', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 12', 'recentWeeklyKm: 12\n  peakWeeklyKm: 50').replace('2027-03-28', '2026-12-27'), 'utf-8')
+    const r = cmdPlan(dir)
+    expect(r.code).toBe(0)
+    expect(r.output).toMatch(lang === 'pl' ? /start nie wcześniej niż 2027-\d\d-\d\d/ : /a race on or after 2027-\d\d-\d\d/)
+  })
+
+  it('plan po przerwie (R-11): pierwszy blok spokojny, start od połowy objętości sprzed przerwy', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 12', 'recentWeeklyKm: 12\n  returning: { since: "2026-10-19", previousWeeklyKm: 45 }'), 'utf-8')
+    const r = cmdPlan(dir)
+    expect(r.code).toBe(0)
+    expect(r.output).toContain(lang === 'pl' ? 'powrót po przerwie: pierwszy blok wyłącznie spokojnie' : 'return after a break: the first block is easy running only')
+    const first = loadPlan(dir).weeks.slice(0, 4)
+    expect(first[0]!.skeleton.targetKm).toBeGreaterThanOrEqual(Math.round(0.5 * 45 * 0.94))
+    for (const w of first) expect(w.days.some((d) => d.workout && ['quality_intervals', 'quality_continuous', 'easy_hills', 'test'].includes(d.workout.kind))).toBe(false)
+  })
+
+  it('trainctl.yaml: athlete.returning z błędną datą albo objętością zatrzymuje plan', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, sat').replace('recentWeeklyKm: 12', 'recentWeeklyKm: 12\n  returning: { since: "wczoraj", previousWeeklyKm: 0 }'), 'utf-8')
+    const r = cmdPlan(dir)
+    expect(r.code).toBe(1)
+    expect(r.output).toContain('athlete.returning.since')
+    expect(r.output).toContain('athlete.returning.previousWeeklyKm')
   })
 
   it('B6: akcent dzień po długim cytuje S-9b, długie dzień po sprawdzianie — T-11', () => {
@@ -98,5 +132,16 @@ describe.each(['pl', 'en'] as const)('B1, B2 w komendach · %s', (lang) => {
   it('plan: szczyt ograniczony przez dni ma ostrzeżenie z liczbami (S-10, E-3)', () => {
     const { output, plan } = planFor(70, 'tue, thu, sat')
     expect(output).toContain(lang === 'pl' ? `przy 3 dniach biegowych tydzień mieści ${plan.peakKmPlanned} km` : `3 running days hold ${plan.peakKmPlanned} km/week`)
+  })
+})
+
+describe('B8: profil z historii proponuje powrót po przerwie', () => {
+  it('trainctl.yaml z historii ma athlete.returning z komentarzem R-11', () => {
+    const yaml = inferredConfigYaml({
+      recentWeeklyKm: 42, returning: { since: '2026-08-05', previousWeeklyKm: 42 }, daysAvailable: ['tue', 'thu', 'sat'],
+      weeklyKm: [], raceCandidates: [], caveats: [], window: { oldest: '2026-04-13', newest: '2026-08-02' }, recentBasis: 'mediana',
+    })
+    expect((parse(yaml) as { athlete: { returning: unknown } }).athlete.returning).toEqual({ since: '2026-08-05', previousWeeklyKm: 42 })
+    expect(yaml).toContain('R-11')
   })
 })

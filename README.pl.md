@@ -298,6 +298,7 @@ athlete:
   sex: unspecified          # male | female | unspecified
   recentWeeklyKm: 45        # średnia z ostatnich ~4 tygodni
   peakWeeklyKm: 65          # najwyższa utrzymana objętość (opcjonalne)
+  # returning: { since: "2026-10-01", previousWeeklyKm: 45 }  # po 2+ tygodniach bez biegania: start od połowy (R-11)
   daysAvailable: [tue, wed, thu, sat, sun]
   longRunDay: sat
   results:                  # kalibracja stref — ze startów, nie z zegarka

@@ -10,6 +10,7 @@ import {
   generateMicrocycle,
   shortenWorkout,
   weekTotals,
+  earliestFeasibleRaceDate,
   getLocale,
   longRunThreshold,
   messages,
@@ -177,14 +178,25 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
     if (opts.budgetWarnings !== false) plan.feasibilityWarnings.push(...budgetWarnings(plan, config, today))
   }
-  // B4: długie poniżej progu dystansu mówi o sobie liczbami (J-2, P-7/P-8), ten sam
-  // próg co lint kształtu `longBelowGoal`; liczone na planie po budżecie czasu
+  // B8: werdykt wykonalności — szczyt i najdłuższe wybieganie wobec progów dystansu
+  // (P-7/P-8, J-2; ten sam próg co lint `longBelowGoal`) i trzy wyjścia, jednym blokiem
+  // zamiast dwóch ostrzeżeń. Liczony na planie po budżecie czasu.
   const threshold = goal.kind === 'base' ? undefined : longRunThreshold(goal)
-  if (threshold) {
-    const longest = Math.max(0, ...cycleWeeksOf(plan).filter((w) => ['base', 'build', 'peak'].includes(w.skeleton.phase))
-      .flatMap((w) => w.days).filter((d) => d.workout?.kind === 'long').map((d) => d.workout!.distanceKm))
-    const meets = threshold.inclusive ? longest >= threshold.km : longest > threshold.km
-    if (longest > 0 && !meets) plan.feasibilityWarnings.push(ui().planMd.longBelowGoal(longest, threshold.km, threshold.inclusive, threshold.ruleRefs.join(', ')))
+  const longest = Math.max(0, ...cycleWeeksOf(plan).filter((w) => ['base', 'build', 'peak'].includes(w.skeleton.phase))
+    .flatMap((w) => w.days).filter((d) => d.workout?.kind === 'long').map((d) => d.workout!.distanceKm))
+  const longShort = threshold !== undefined && longest > 0 && !(threshold.inclusive ? longest >= threshold.km : longest > threshold.km)
+  const peakShort = goal.kind !== 'base' && macro.peakKmPlanned < macro.peakKmRecommended
+  if (peakShort || longShort) {
+    const peakText = messages().macro.peakBelowRecommended(macro.peakKmPlanned, macro.peakKmRecommended, goal.distanceKm)
+    plan.feasibilityWarnings = plan.feasibilityWarnings.filter((w) => w !== peakText)
+    const reachableFrom = earliestFeasibleRaceDate(athlete, goal, today)
+    plan.feasibilityWarnings.push(ui().planMd.verdict({
+      distanceKm: goal.distanceKm,
+      peakKm: plan.peakKmPlanned,
+      recommendedKm: plan.peakKmRecommended,
+      ...(threshold && longest > 0 ? { longest: { km: longest, thresholdKm: threshold.km, atLeast: threshold.inclusive, rules: threshold.ruleRefs.join(', ') } } : {}),
+      ...(reachableFrom && reachableFrom > goal.date ? { reachableFrom } : {}),
+    }))
   }
   plan.generatedDays = Object.fromEntries(plan.weeks.flatMap((w) => w.days).map((d) => [d.date, dayFingerprint(d)]))
   return plan

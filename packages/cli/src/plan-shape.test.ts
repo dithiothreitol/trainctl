@@ -72,7 +72,7 @@ describe('DoD etapu 2 (PLAN-v0.7 §4): macierz bez lintów kształtu', () => {
     // szczyt zatrzymany sufitem (historia albo pojemność dni): ostatnie bloki stoją na nim
     // i plan mówi o tym wprost — tak B0 opisuje zamknięcie lintu ostrzeżeniem wykonalności
     for (const r of matrix().filter((x) => !x.profile.budget && x.shape.some((i) => i.code === 'staleProgression'))) {
-      expect(r.plan.feasibilityWarnings.join(' '), r.profile.id).toMatch(/below the \d+ km\/week recommended|running days? holds? \d+ km\/week/)
+      expect(r.plan.feasibilityWarnings.join(' '), r.profile.id).toMatch(/stays below the thresholds|running days? holds? \d+ km\/week/)
     }
   })
   it('bez budżetu czasu odciążenie jest lżejsze od tygodni ładowania (P-2); budżet to B7', () => {

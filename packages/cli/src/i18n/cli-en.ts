@@ -655,6 +655,9 @@ export const cliEn = {
     yourRunning: 'Your running',
     recentVolume: 'Volume over recent weeks [km]',
     peakVolume: 'All-time weekly peak [km]',
+    returningPrevious: 'Coming back after two weeks or more without running? Weekly km before the break',
+    returningSince: 'First day running again',
+    hintReturning: 'Enter = no break',
     trainingDays: 'Training days',
     resultHeader: 'Race result for zone calibration',
     resultWhy: 'We compute zones from a race result — threshold readings from a watch run too fast.',
@@ -918,10 +921,19 @@ export const cliEn = {
       `(${n(recommended)} km/week recommended for this distance, P-7/P-8). More minutes, or a closer goal, changes that (E-2).`,
     timeDayTooShort: (dates: string) =>
       `These sessions do not fit the day's time budget even shortened (races and time trials are never cut): ${dates} (E-2).`,
-    /** B4: najdłuższe wybieganie poniżej progu dystansu (J-2, P-7/P-8); `atLeast` = próg włącznie (maraton ≥25 km). */
-    longBelowGoal: (longest: number, threshold: number, atLeast: boolean, rules: string) =>
-      `The longest run in this plan is ${n(longest)} km; the distance needs ${atLeast ? 'at least' : 'more than'} ${n(threshold)} km (${rules}). ` +
-      'The weekly volume cannot carry a longer one without one run taking too much of the week.',
+    /**
+     * B8: werdykt wykonalności — trzy liczby (szczyt, próg, najdłuższe) i wyjścia. `atLeast`
+     * = próg włącznie (maraton ≥25 km); `reachableFrom` — data startu, od której plan zdąży urosnąć.
+     */
+    verdict: (v: { distanceKm: number; peakKm: number; recommendedKm: number; longest?: { km: number; thresholdKm: number; atLeast: boolean; rules: string }; reachableFrom?: string }) =>
+      `This plan stays below the thresholds for ${n(v.distanceKm)} km: it peaks at ${n(v.peakKm)} km/week against ${n(v.recommendedKm)} km/week (P-7/P-8)` +
+      (v.longest ? `, and its longest run is ${n(v.longest.km)} km against ${v.longest.atLeast ? 'at least' : 'more than'} ${n(v.longest.thresholdKm)} km (${v.longest.rules})` : '') +
+      '. Ways out: ' +
+      [
+        ...(v.reachableFrom ? [`a race on or after ${v.reachableFrom}, which leaves time to build up`] : []),
+        'athlete.peakWeeklyKm, or athlete.returning after a break, if you have run more before — the plan grows back to it within P-3 and R-11',
+        'a base goal (goal.kind: base) that grows volume without a race date (P-11)',
+      ].join('; ') + '.',
     timeWeekOver: (weeks: string) => `These weeks stay over the weekly time budget: ${weeks} (E-2).`,
     trailOnlyCalibration:
       'Zones come from a trail result — terrain slows a trail race, so road paces may be too easy. Add a road result (Z-10).',
@@ -940,6 +952,7 @@ export const cliEn = {
       sex: 'male | female | unspecified',
       recentWeeklyKm: 'average of the last ~4 weeks',
       peakWeeklyKm: 'highest volume you have held (optional)',
+      returning: 'after 2+ weeks without running: the plan restarts at about half (R-11)',
       results: 'race results for zone calibration (Z-6: not from a watch!)',
       exampleResultName: 'example 10 km',
       tuneUpRaces: 'tune-up races on the way (B = mini-taper, C = run through)',
@@ -973,6 +986,7 @@ export const cliEn = {
       '# These are proposals — correct anything that does not match reality.',
     ],
     inferredPeak: 'highest full week in the window',
+    inferredReturning: 'no running for 2+ weeks at the end of the window: the plan restarts at about half (R-11)',
     inferredDays: 'days holding ≥10% of the window’s runs',
     inferredLongRun: 'dominant day of your longest runs',
     inferredResults: 'add a race result once you have confirmed the candidates printed by the command',

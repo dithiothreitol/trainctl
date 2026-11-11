@@ -668,6 +668,9 @@ export const cliPl: CliMessages = {
     yourRunning: 'Twoje bieganie',
     recentVolume: 'Objętość z ostatnich tygodni [km]',
     peakVolume: 'Historyczne maksimum tygodniowe [km]',
+    returningPrevious: 'Wracasz po co najmniej dwóch tygodniach bez biegania? Kilometry tygodniowo przed przerwą',
+    returningSince: 'Pierwszy dzień biegania po przerwie',
+    hintReturning: 'Enter = bez przerwy',
     trainingDays: 'Dni treningowe',
     resultHeader: 'Wynik startu do kalibracji stref',
     resultWhy:
@@ -933,9 +936,15 @@ export const cliPl: CliMessages = {
       `(rekomendowane dla tego dystansu: ${n(recommended)} km/tydz., P-7/P-8). Zmieni to więcej minut albo bliższy cel (E-2).`,
     timeDayTooShort: (dates: string) =>
       `Te jednostki nie mieszczą się w budżecie dnia nawet po skróceniu (startów i sprawdzianów nie skracamy): ${dates} (E-2).`,
-    longBelowGoal: (longest: number, threshold: number, atLeast: boolean, rules: string) =>
-      `Najdłuższe wybieganie planu ma ${n(longest)} km, a dystans wymaga ${atLeast ? 'co najmniej' : 'ponad'} ${n(threshold)} km (${rules}). ` +
-      'Objętość tygodnia nie uniesie dłuższego bez przeciążenia jednego biegu.',
+    verdict: (v: { distanceKm: number; peakKm: number; recommendedKm: number; longest?: { km: number; thresholdKm: number; atLeast: boolean; rules: string }; reachableFrom?: string }) =>
+      `Ten plan nie dochodzi do progów dla ${n(v.distanceKm)} km: szczyt ${n(v.peakKm)} km/tydz. wobec ${n(v.recommendedKm)} km/tydz. (P-7/P-8)` +
+      (v.longest ? `, najdłuższe wybieganie ${n(v.longest.km)} km wobec ${v.longest.atLeast ? 'co najmniej' : 'ponad'} ${n(v.longest.thresholdKm)} km (${v.longest.rules})` : '') +
+      '. Wyjścia: ' +
+      [
+        ...(v.reachableFrom ? [`start nie wcześniej niż ${v.reachableFrom} — wtedy plan zdąży urosnąć`] : []),
+        'athlete.peakWeeklyKm albo athlete.returning po przerwie, jeśli biegałeś już więcej — plan wróci do tej objętości w granicach P-3 i R-11',
+        'cel bazowy (goal.kind: base) — objętość rośnie bez daty startu (P-11)',
+      ].join('; ') + '.',
     timeWeekOver: (weeks: string) => `Te tygodnie zostają ponad budżetem tygodnia: ${weeks} (E-2).`,
     trailOnlyCalibration:
       'Strefy pochodzą z wyniku na trailu — teren spowalnia bieg, więc tempa szosowe mogą być za łatwe. Dopisz wynik szosowy (Z-10).',
@@ -953,6 +962,7 @@ export const cliPl: CliMessages = {
       sex: 'male | female | unspecified',
       recentWeeklyKm: 'średnia z ostatnich ~4 tygodni',
       peakWeeklyKm: 'historycznie utrzymywalne maksimum (opcjonalne)',
+      returning: 'po co najmniej 2 tygodniach bez biegania: plan startuje od około połowy (R-11)',
       results: 'wyniki startów do kalibracji stref (Z-6: nie z zegarka!)',
       exampleResultName: 'przykładowa dycha',
       tuneUpRaces: 'starty kontrolne w drodze do celu (B = mini-taper, C = wbiegany)',
@@ -986,6 +996,7 @@ export const cliPl: CliMessages = {
       '# To propozycje — popraw wszystko, co nie zgadza się z rzeczywistością.',
     ],
     inferredPeak: 'najwyższy pełny tydzień okna',
+    inferredReturning: 'co najmniej 2 tygodnie bez biegania na końcu okna: plan startuje od około połowy (R-11)',
     inferredDays: 'dni z ≥10% biegów okna',
     inferredLongRun: 'dominujący dzień najdłuższych biegów',
     inferredResults: 'dopisz wynik startu po potwierdzeniu kandydatów z wyjścia komendy',

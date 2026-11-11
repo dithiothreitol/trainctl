@@ -56,9 +56,18 @@ change between minor versions — a regenerated plan can differ.
 - `trainctl rules` explains the rules the engine now cites: S-9b–S-12, P-12,
   J-1, J-2, J-4–J-6, J-8–J-10 and N-19. A rule ID with a letter suffix (`S-9b`)
   is found whatever its case.
+- When the plan stays below the distance's thresholds, `plan` gives one verdict
+  instead of two warnings: the plan peak, the recommended peak and the longest
+  run, with the ways out — a later race date when the profile allows it,
+  `peakWeeklyKm` or `returning` if you have run more before, or a base goal.
 
 ### Added
 
+- `athlete.returning: { since, previousWeeklyKm }` for a return after two
+  weeks or more without running (R-11): the plan restarts at 50–60% of the
+  earlier volume, keeps the first block easy with no time trial, and grows back
+  within P-3. `init` asks for it, and `init --from-intervals` proposes it when
+  the history ends with two weeks off.
 - `trainctl rules E-3` lists the engine's fixed values that have no source
   (easy-run cap, accent share, phase split, recoveries, race-week sessions),
   each marked in code for review.

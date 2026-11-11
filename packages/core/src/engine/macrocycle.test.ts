@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AthleteProfile, RaceGoal } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
-import { longGoalKm, planMacrocycle, recommendedPeakKm, taperWeeksFor } from './macrocycle.ts'
+import { earliestFeasibleRaceDate, longGoalKm, planMacrocycle, recommendedPeakKm, taperWeeksFor } from './macrocycle.ts'
 
 const athlete: AthleteProfile = {
   recentWeeklyKm: 50,
@@ -326,5 +326,48 @@ describe('B5: krok dawki akcentu w sezonie', () => {
   it('taper trzyma dawkę ostatniego bloku (T-1), blok po starcie zaczyna od zera (R-8)', () => {
     for (const w of plan.weeks.filter((x) => x.phase === 'taper' || x.phase === 'race')) expect(w.accentProgress).toBe(1)
     for (const w of plan.weeks.filter((x) => x.phase === 'transition')) expect(w.accentProgress).toBe(0)
+  })
+})
+
+describe('B8: powrót po przerwie (R-11) i data, od której próg jest osiągalny', () => {
+  const today = '2026-10-22'
+  const half: RaceGoal = { name: 'HM', date: '2027-03-28', distanceKm: 21.0975, priority: 'A' }
+  const runner: AthleteProfile = { recentWeeklyKm: 12, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] }
+  const back = { ...runner, returning: { since: '2026-10-19', previousWeeklyKm: 45 } }
+
+  it('start z 50–60% objętości sprzed przerwy, szczyt liczony od niej', () => {
+    const plan = planMacrocycle({ today, goal: half, athlete: back })
+    const first = plan.weeks[0]!
+    expect(first.targetKm).toBeGreaterThanOrEqual(Math.round(0.5 * 45 * 0.94))
+    expect(first.targetKm).toBeLessThanOrEqual(Math.round(0.6 * 45))
+    expect(plan.peakKmPlanned).toBeGreaterThan(planMacrocycle({ today, goal: half, athlete: runner }).peakKmPlanned)
+    expect(plan.feasibilityWarnings.join(' ')).toContain('R-11')
+  })
+
+  it('pierwszy blok z odciążeniem wyłącznie spokojnie, bez sprawdzianu', () => {
+    const plan = planMacrocycle({ today, goal: half, athlete: { ...back, results: [] } })
+    const firstDeload = plan.weeks.findIndex((w) => w.deload)
+    for (const w of plan.weeks.slice(0, firstDeload + 1)) {
+      expect(w.qualitySessions).toBe(0)
+      expect(w.easyOnly).toBe(true)
+      expect(w.testPlanned).toBeUndefined()
+      expect(w.ruleRefs).toContain('R-11')
+    }
+    expect(plan.weeks[firstDeload + 1]!.easyOnly).toBeUndefined()
+  })
+
+  it('powrót sprzed ponad 6 tygodni już nie działa — bieżąca objętość mówi sama', () => {
+    const old = { ...runner, returning: { since: '2026-08-01', previousWeeklyKm: 45 } }
+    expect(planMacrocycle({ today, goal: half, athlete: old }).weeks[0]!.targetKm).toBe(planMacrocycle({ today, goal: half, athlete: runner }).weeks[0]!.targetKm)
+  })
+
+  it('najwcześniejsza data startu: jest przy sufice z historii, nie ma bez niego', () => {
+    expect(earliestFeasibleRaceDate(runner, half, today)).toBeUndefined()
+    const date = earliestFeasibleRaceDate({ ...runner, peakWeeklyKm: 50 }, half, today)!
+    expect(date > today).toBe(true)
+    expect(new Date(date + 'T00:00:00Z').getUTCDay()).toBe(0)
+    // plan z tą datą dochodzi do rekomendowanego szczytu
+    const plan = planMacrocycle({ today, goal: { ...half, date }, athlete: { ...runner, peakWeeklyKm: 50 } })
+    expect(plan.peakKmPlanned).toBeGreaterThanOrEqual(recommendedPeakKm(half))
   })
 })

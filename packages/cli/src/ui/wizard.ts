@@ -7,6 +7,7 @@ import { createInterface, type Interface } from 'node:readline/promises'
 import type { InferenceOutcome, InferredProfile } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
 import { kmLabel, parseDecimal } from '../format.ts'
+import { clockToday } from '../clock.ts'
 import { sparkline, Theme } from './theme.ts'
 
 export interface WizardAnswers {
@@ -16,6 +17,8 @@ export interface WizardAnswers {
   targetTimeSec?: number
   recentWeeklyKm: number
   peakWeeklyKm?: number
+  /** Powrót po przerwie od dwóch tygodni (R-11). */
+  returning?: { since: string; previousWeeklyKm: number }
   daysAvailable: string[]
   longRunDay?: string
   resultDate?: string
@@ -110,6 +113,7 @@ export function toYaml(a: WizardAnswers): string {
     'athlete:',
     `  recentWeeklyKm: ${a.recentWeeklyKm}`,
     ...(a.peakWeeklyKm ? [`  peakWeeklyKm: ${a.peakWeeklyKm}`] : []),
+    ...(a.returning ? [`  returning: { since: "${a.returning.since}", previousWeeklyKm: ${a.returning.previousWeeklyKm} }`] : []),
     `  daysAvailable: [${a.daysAvailable.join(', ')}]`,
     ...(a.longRunDay ? [`  longRunDay: ${a.longRunDay}`] : []),
     '  results:',
@@ -249,6 +253,15 @@ export async function runWizard(
       optional: true,
       ...(inferred?.peakWeeklyKm !== undefined ? { default: String(inferred.peakWeeklyKm) } : {}),
     })
+    // R-11: powrót po przerwie — kilometry sprzed niej (Enter = bez przerwy), potem dzień powrotu
+    const previousWeeklyKm = await ask(rl, theme, w.returningPrevious, parseKm, {
+      hint: w.hintReturning,
+      optional: true,
+      ...(inferred?.returning ? { default: String(inferred.returning.previousWeeklyKm) } : {}),
+    })
+    const returning = previousWeeklyKm
+      ? { since: (await ask(rl, theme, w.returningSince, parseDateInput, { hint: w.hintDate, default: inferred?.returning?.since ?? clockToday() }))!, previousWeeklyKm }
+      : undefined
     const daysAvailable = (await ask(rl, theme, w.trainingDays, parseDaysInput, {
       hint: w.hintDays,
       ...(inferred
@@ -306,6 +319,7 @@ export async function runWizard(
       ...(targetTimeSec ? { targetTimeSec } : {}),
       recentWeeklyKm,
       ...(peakWeeklyKm ? { peakWeeklyKm } : {}),
+      ...(returning ? { returning } : {}),
       daysAvailable,
       ...(inferred?.longRunDay ? { longRunDay: inferred.longRunDay } : {}),
       ...(resultDate ? { resultDate } : {}),

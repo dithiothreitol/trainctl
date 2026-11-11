@@ -17,6 +17,8 @@ export const INFER_WINDOW_WEEKS = 16
 const RECENT_BLOCK_WEEKS = 4
 /** Przerwa, którą silnik adaptacji traktuje jako restart (ta sama granica co w adapt.ts). */
 const LAYOFF_DAYS = 10
+/** R-11: przerwa od dwóch tygodni bez biegania to powrót — profil dostaje `returning`. */
+const RETURN_GAP_DAYS = 14
 
 export interface RaceCandidate {
   date: string
@@ -30,6 +32,8 @@ export interface RaceCandidate {
 export interface InferredProfile {
   recentWeeklyKm: number
   peakWeeklyKm?: number
+  /** Propozycja powrotu po przerwie (R-11): okno kończy się co najmniej dwoma tygodniami bez biegania. */
+  returning?: { since: string; previousWeeklyKm: number }
   daysAvailable: Weekday[]
   longRunDay?: Weekday
   /** Pełne tygodnie okna, rosnąco — do pokazania użytkownikowi (sparkline). */
@@ -211,6 +215,8 @@ export function inferProfile(activities: SyncedActivity[], today: string): Infer
     profile: {
       recentWeeklyKm,
       ...(peakWeeklyKm > recentWeeklyKm ? { peakWeeklyKm } : {}),
+      // blok odniesienia leży przed przerwą, więc to objętość sprzed niej; plan wraca od dziś
+      ...(tailGap >= RETURN_GAP_DAYS ? { returning: { since: today, previousWeeklyKm: recentWeeklyKm } } : {}),
       daysAvailable,
       ...(longRunDay ? { longRunDay } : {}),
       weeklyKm,

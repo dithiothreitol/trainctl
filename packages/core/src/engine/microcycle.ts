@@ -600,7 +600,8 @@ function planNormalWeek(
   // jednostki — inaczej przy małej objętości „wypadałby" co tydzień
   // (przy dwóch dniach podbiegów i tak nie ma: dzień zajmują długie i akcent)
   const hillsFit = buildHillsDay(MIN_EASY_KM, style, zones).distanceKm <= SESSION_SHARE_MAX * target
-  let hillsWd = inTaper || recovering || !hillsFit
+  // R-11: pierwszy blok po przerwie bez podbiegów (easyOnly)
+  let hillsWd = inTaper || recovering || !hillsFit || skeleton.easyOnly
     ? undefined
     : style.hillsDayPreference.find(
         (wd) => free.includes(wd) && wd !== longWd && !qualityWds.includes(wd),

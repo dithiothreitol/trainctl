@@ -293,6 +293,7 @@ athlete:
   sex: unspecified          # male | female | unspecified
   recentWeeklyKm: 45        # average of the last ~4 weeks
   peakWeeklyKm: 65          # highest volume you have held (optional)
+  # returning: { since: "2026-10-01", previousWeeklyKm: 45 }  # after 2+ weeks off: restart at about half (R-11)
   daysAvailable: [tue, wed, thu, sat, sun]
   longRunDay: sat
   results:                  # zone calibration — from races, not from a watch

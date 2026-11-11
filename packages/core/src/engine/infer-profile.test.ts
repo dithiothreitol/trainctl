@@ -90,6 +90,17 @@ describe('inferProfile — przerwy i dziury', () => {
     if (!r.ok) return
     expect(r.profile.caveats.some((c) => c.includes('restart po przerwie'))).toBe(true)
     expect(r.profile.recentWeeklyKm).toBe(42) // z bloku sprzed przerwy, nie 0
+    // R-11: dwa tygodnie bez biegania to powrót — od dziś, z objętości sprzed przerwy
+    expect(r.profile.returning).toEqual({ since: TODAY, previousWeeklyKm: 42 })
+  })
+
+  it('krótsza przerwa (10–13 dni) i regularna historia: bez propozycji powrotu (R-11)', () => {
+    // ostatni bieg w sobotę 2026-07-25: 11 dni do środy 2026-08-05
+    const activities = [...Array.from({ length: 14 }, (_, i) => regularWeek(i + 2)).flat()].filter((a) => a.date <= '2026-07-25')
+    const short = inferProfile(activities, TODAY)
+    expect(short.ok && short.profile.returning).toBeUndefined()
+    const regular = inferProfile(Array.from({ length: 16 }, (_, i) => regularWeek(i + 1)).flat(), TODAY)
+    expect(regular.ok && regular.profile.returning).toBeUndefined()
   })
 
   it('dziura urlopowa w bloku odniesienia: mediana z tygodni aktywnych + caveat', () => {

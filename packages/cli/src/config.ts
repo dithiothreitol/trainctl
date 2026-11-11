@@ -94,6 +94,7 @@ export function configTemplate(): string {
     pad('  sex: unspecified', t.templateAthlete.sex),
     pad('  recentWeeklyKm: 45', t.templateAthlete.recentWeeklyKm),
     pad('  peakWeeklyKm: 65', t.templateAthlete.peakWeeklyKm),
+    pad('  # returning: { since: "2026-10-01", previousWeeklyKm: 45 }', t.templateAthlete.returning),
     '  daysAvailable: [tue, wed, thu, sat, sun]',
     '  longRunDay: sat',
     pad('  results:', t.templateAthlete.results),
@@ -147,6 +148,15 @@ export function loadConfig(cwd: string): TrainctlConfig {
     if (typeof a.recentWeeklyKm !== 'number' || !Number.isFinite(a.recentWeeklyKm) || a.recentWeeklyKm <= 0)
       errors.push(v.numberGtZero('athlete.recentWeeklyKm'))
     if (a.peakWeeklyKm !== undefined && (!Number.isFinite(a.peakWeeklyKm) || a.peakWeeklyKm <= 0)) errors.push(v.numberGtZero('athlete.peakWeeklyKm'))
+    if (a.returning !== undefined) {
+      const r = a.returning as Partial<NonNullable<AthleteProfile['returning']>> | null
+      if (!r || typeof r !== 'object') errors.push(v.required('athlete.returning'))
+      else {
+        if (!ISO_RE.test(String(r.since))) errors.push(v.isoDate('athlete.returning.since'))
+        if (typeof r.previousWeeklyKm !== 'number' || !Number.isFinite(r.previousWeeklyKm) || r.previousWeeklyKm <= 0)
+          errors.push(v.numberGtZero('athlete.returning.previousWeeklyKm'))
+      }
+    }
     if (!Array.isArray(a.daysAvailable) || a.daysAvailable.length === 0)
       errors.push(v.nonEmptyDays('athlete.daysAvailable'))
     else
@@ -279,6 +289,9 @@ export function inferredConfigYaml(p: InferredProfile): string {
     pad(`  recentWeeklyKm: ${p.recentWeeklyKm}`, p.recentBasis),
     ...(p.peakWeeklyKm !== undefined
       ? [pad(`  peakWeeklyKm: ${p.peakWeeklyKm}`, t.inferredPeak)]
+      : []),
+    ...(p.returning
+      ? [pad(`  returning: { since: "${p.returning.since}", previousWeeklyKm: ${p.returning.previousWeeklyKm} }`, t.inferredReturning)]
       : []),
     pad(`  daysAvailable: [${p.daysAvailable.join(', ')}]`, t.inferredDays),
     ...(p.longRunDay ? [pad(`  longRunDay: ${p.longRunDay}`, t.inferredLongRun)] : []),
