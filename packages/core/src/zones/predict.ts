@@ -6,7 +6,7 @@ import type { RaceResult } from '../domain/types.ts'
 import { diffDays } from '../util/dates.ts'
 import { predictTimeSec, vdotFromRace } from './daniels.ts'
 import { messages } from '../i18n/index.ts'
-import { goalClass } from '../domain/goal-class.ts'
+import { distanceClass } from '../domain/goal-class.ts'
 
 export interface RacePrediction {
   distanceKm: number
@@ -37,8 +37,8 @@ const HM_TO_MARATHON_MAE = 0.0567
 
 /** Wynik na dystansie półmaratonu (wąski zakres tolerancji pomiaru) — nie klasa celu. */
 const isHm = (km: number) => km >= 20.9 && km <= 21.3
-/** Klasa celu z tej samej funkcji co taper i szczyt (goalClass). */
-const targetClass = (km: number) => goalClass({ kind: 'race', distanceKm: km })
+/** Klasa dystansu celu z tej samej funkcji co taper i szczyt (distanceClass). */
+const targetClass = distanceClass
 
 function pickSource(results: RaceResult[], targetKm: number, today?: string): RaceResult {
   const valid = results.filter((r) => r.distanceKm > 0 && r.timeSec > 0)

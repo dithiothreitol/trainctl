@@ -8,8 +8,8 @@ import { appendFileSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFi
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { setLocale, vdotFromRace } from 'trainctl-core'
-import { cmdDesk, cmdLog, cmdPlan, cmdReschedule, cmdReview, cmdRules, cmdShift, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
+import { distanceClass, goalClass, setLocale, vdotFromRace } from 'trainctl-core'
+import { cmdAdapt, cmdDesk, cmdLog, cmdPlan, cmdReschedule, cmdReview, cmdRules, cmdShift, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices, parseKmText, parseRpeText, plannedKmDefault } from './interactive.ts'
 import { recalibrationToday, roundVdot, zoneCalibration, zoneSource } from './calibration.ts'
@@ -811,5 +811,36 @@ describe('dwudziesta druga runda: shift i reschedule przy uszkodzonym dzienniku'
     setLocale('en')
     expect(workoutKm({ distanceKm: 0, raceDistanceKm: 42.195 })).toBe('42.2 km')
     expect(workoutKm({ distanceKm: 10.25 })).toBe('10.25 km')
+  })
+})
+
+describe('dwudziesta trzecia runda: adapt i review przy uszkodzonym dzienniku, klasa dystansu', () => {
+  const breakLog = () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-29'
+    cmdLog(dir, { date: '2026-10-27', status: 'done', km: '8' })
+    appendFileSync(join(dir, 'log.jsonl'), '{"date": "2026-10-28", "status": "done",\n')
+  }
+
+  it('adapt nie stawia diagnozy z niepełnego dziennika', () => {
+    breakLog()
+    const r = cmdAdapt(dir, {})
+    expect(r.code).not.toBe(0)
+    expect(r.output).toContain('cannot read line 2')
+  })
+
+  it('review ostrzega, że dziennik jest niepełny', async () => {
+    breakLog()
+    const r = await cmdReview(dir, {})
+    expect(r.code).toBe(0)
+    expect(r.output).toContain('cannot read line 2')
+  })
+
+  it('distanceClass: te same granice co goalClass', () => {
+    expect(distanceClass(42.195)).toBe('marathon')
+    expect(distanceClass(50)).toBe('ultra')
+    expect(distanceClass(21.0975)).toBe('half')
+    expect(distanceClass(10)).toBe('short')
+    expect(goalClass({ kind: 'base', distanceKm: 0 })).toBe('base')
   })
 })

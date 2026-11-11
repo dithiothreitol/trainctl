@@ -13,7 +13,7 @@ import { ui } from './i18n/index.ts'
 import { clockToday } from './clock.ts'
 import { packageVersion } from './version.ts'
 import { CONFIG_FILE } from './config.ts'
-import { lineSeparator, LOG_FILE, LOG_KM_MAX, parseTime } from './logfile.ts'
+import { lineSeparator, LOG_FILE, LOG_KM_MAX, LOG_LIMITS, parseTime } from './logfile.ts'
 import { logStatusText, parseDecimal } from './format.ts'
 import { PLAN_MD, PLAN_YAML } from './planfile.ts'
 import { commitFiles } from './git.ts'
@@ -175,7 +175,7 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
       const testTimeSec = o.testTime === undefined ? undefined : parseTime(o.testTime)
       if (testTimeSec !== undefined && (s.sport !== 'run' || spontaneous || status === 'skipped' || !(s.purpose === 'race' || s.legacyWorkout?.kind === 'test') || (durationSec !== undefined && testTimeSec > durationSec))) throw new Error(t.invalid)
       const rpe = o.rpe === undefined ? undefined : number(o.rpe, 1, 10)
-      if ((rpe !== undefined && !Number.isInteger(rpe)) || (status === 'skipped' && ((durationSec ?? 0) > 0 || (distanceM ?? 0) > 0))) throw new Error(t.invalid)
+      if ((rpe !== undefined && !LOG_LIMITS.rpe(rpe)) || (status === 'skipped' && ((durationSec ?? 0) > 0 || (distanceM ?? 0) > 0))) throw new Error(t.invalid)
       const activityIds = o.activity?.split(',').map(id=>id.trim()).filter(Boolean)
       const completedRepeats = o.sets === undefined ? undefined : o.sets.split(',').map(value=>{
         const match=/^(\d+)=(\d+)$/.exec(value.trim())

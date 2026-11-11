@@ -1007,7 +1007,8 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     const plan = loadPlan(cwd)
     const config = loadConfig(cwd)
     const snapshot = readSnapshot(cwd)
-    const logs = readLog(cwd)
+    // diagnoza prowadzi do zmiany planu — z niepełnego dziennika byłaby błędna
+    const logs = readLogForChanges(cwd)
     const execution = buildExecution(plan, snapshot?.activities ?? [], logs, today)
 
     const currentWeek = plan.weeks.find((w) => w.days.some((d) => d.date === today))
@@ -1474,6 +1475,7 @@ export async function cmdReview(
     const done = execution.filter(e => e.status === 'done').length
     const missed = rows.filter((r) => r.status === 'missed')
     blocks.push(
+      ...(journal.broken.length ? [b.warn(ui().common.logBroken(LOG_FILE, journal.broken.join(', ')))] : []),
       b.section(ui().review.pastWeek),
       b.kv([
         [ui().review.volume, ui().review.volumeValue(Math.round(actualKm), Math.round(plannedKm))],
@@ -1522,15 +1524,17 @@ export async function cmdReview(
     if (wellnessLines.length) blocks.push(b.section(ui().review.wellness), b.bullets(wellnessLines))
 
     // 3) sygnały adaptacji — sekcja pojawia się tylko wtedy, gdy jest co powiedzieć
-    const adapt = cmdAdapt(cwd, { date: today })
-    if (adapt.code !== 0) return adapt
-    const adaptation = adapt.data?.proposal as ReturnType<typeof analyzeExecution> | undefined
+    // Przy uszkodzonym dzienniku (ostrzeżenie na górze) sygnałów nie liczymy: diagnoza
+    // z niepełnego zapisu byłaby błędna, a przegląd faktów ma się dalej pokazać.
+    const adapt = journal.broken.length ? undefined : cmdAdapt(cwd, { date: today })
+    if (adapt && adapt.code !== 0) return adapt
+    const adaptation = adapt?.data?.proposal as ReturnType<typeof analyzeExecution> | undefined
     const meaningful = adaptation?.actions.some((a) => a.type !== 'hold-course') === true
-    if (adapt.code === 0 && meaningful) {
+    if (adapt && meaningful) {
       blocks.push(b.section(ui().review.signals))
       const lines = adaptation?.actions.filter((a) => a.type !== 'hold-course').map((a) => a.detail) ?? []
       blocks.push(b.bullets(lines.length ? lines : [ui().review.seeAdapt]))
-    } else {
+    } else if (adapt) {
       blocks.push(adaptation?.dataStatus === 'complete' ? b.success(ui().review.noSignals) : b.warn(messages().adapt.incompleteData))
     }
 

@@ -15,7 +15,7 @@
 import type { RaceResult, WorkoutKind } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
 import { diffDays } from '../util/dates.ts'
-import { goalClass } from '../domain/goal-class.ts'
+import { distanceClass } from '../domain/goal-class.ts'
 
 export interface ExecutionRecord {
   date: string
@@ -121,7 +121,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   if (input.lastRace) {
     const sinceRace = diffDays(input.lastRace.date, input.today)
     if (sinceRace >= 0 && sinceRace <= 6) {
-      const ultra = goalClass({ kind: 'race', distanceKm: input.lastRace.distanceKm }) === 'ultra'
+      const ultra = distanceClass(input.lastRace.distanceKm) === 'ultra'
       diagnosis.push(m.adapt.postRaceDiagnosis(sinceRace, input.lastRace.distanceKm))
       actions.push({
         type: 'post-race-recovery',

@@ -141,8 +141,8 @@ const isLoading = (w: Microcycle) => LOADING_PHASES.has(w.skeleton.phase) && !w.
 export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanceKm'>; weeks: Microcycle[]; cycleStart?: string | undefined }, rows = seasonProfile(plan.weeks)): ShapeIssue[] {
   const issues: ShapeIssue[] = []
   // Plan z historią trzyma tygodnie poprzednich cykli. Oceniamy bieżący cykl (od
-  // `cycleStart`, a bez niego od pierwszego tygodnia ładowania po ostatnim bloku
-  // przejściowym): inaczej długie 30 km z poprzedniego maratonu „spełniałoby" próg
+  // `cycleStart`, a bez niego od pierwszego tygodnia po ostatnim bloku przejściowym,
+  // także taperu albo startu): inaczej długie 30 km z poprzedniego maratonu „spełniałoby" próg
   // nowego półmaratonu, a bloki i odciążenia porównywałyby się między cyklami.
   const from = plan.cycleStart ?? currentCycleStart(plan.weeks)
   const weeks = from ? plan.weeks.filter((w) => w.weekStart >= from) : plan.weeks

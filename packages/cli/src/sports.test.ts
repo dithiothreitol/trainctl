@@ -109,6 +109,7 @@ describe('multisport CLI workflows',()=>{
     expect(cmdLog(dir, { session: run.id, status: 'done', km: '800' }).code).toBe(1)
     expect(cmdLog(dir, { session: run.id, status: 'done', meters: '1,500' }).code).toBe(1)
     expect(cmdLog(dir, { session: run.id, status: 'done', meters: '800000' }).code).toBe(1)
+    expect(cmdLog(dir, { session: run.id, status: 'done', rpe: '7.5' }).code).toBe(1)
     const ok = cmdLog(dir, { session: run.id, status: 'done', km: '8,5' })
     expect(ok.code, ok.output).toBe(0)
     expect(ok.data!.entry).toMatchObject({ distanceM: 8500 })

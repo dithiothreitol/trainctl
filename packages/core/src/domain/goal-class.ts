@@ -8,10 +8,14 @@ import type { RaceGoal } from './types.ts'
 
 export type GoalClass = 'base' | 'ultra' | 'marathon' | 'half' | 'short'
 
-export function goalClass(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): GoalClass {
-  if (goal.kind === 'base') return 'base'
-  if (goal.distanceKm > 42.5) return 'ultra'
-  if (goal.distanceKm >= 42.0) return 'marathon'
-  if (goal.distanceKm >= 20.9) return 'half'
+/** Klasa samego dystansu startu (bez celu bazowego). */
+export function distanceClass(km: number): Exclude<GoalClass, 'base'> {
+  if (km > 42.5) return 'ultra'
+  if (km >= 42.0) return 'marathon'
+  if (km >= 20.9) return 'half'
   return 'short'
+}
+
+export function goalClass(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): GoalClass {
+  return goal.kind === 'base' ? 'base' : distanceClass(goal.distanceKm)
 }

@@ -1,8 +1,9 @@
 /**
  * Macierz profili syntetycznych do testów kształtu sezonu (docs/PLAN-v0.7.md, B0).
  * Bez danych osobowych: wynik 10 km 43:00, dni z korpusowego wzorca tygodnia.
- * Używa jej `plan-shape.test.ts` i skrypt przeglądu trenerskiego (F1). Plik
- * `.fixture.ts` nie trafia do paczki npm (package.json `files`, tsconfig.build).
+ * Używa jej `plan-shape.test.ts`; te same profile mają posłużyć wydrukom do przeglądu
+ * trenerskiego (F1). Plik `.fixture.ts` nie trafia do paczki npm (package.json
+ * `files`, tsconfig.build).
  */
 import { addDays, seasonLine, seasonProfile, seasonShapeIssues, type SeasonRow, type ShapeIssue, type Weekday } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
