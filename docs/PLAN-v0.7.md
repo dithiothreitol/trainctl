@@ -29,10 +29,12 @@ w korpusie albo od reguły w FOUNDATIONS. Prezentacja dostaje jedną notację
 i jeden model wiersza dla biegu i multisportu. Ocena wykonania pozostaje opisem
 faktów, bez automatycznych wniosków (ADR-011, ADR-027).
 
-**Decyzje właściciela** z §9 zostały przyjęte 2026-11-11 zgodnie
-z rekomendacjami. **Realizacja** ma cztery etapy (§2). Praca jest opisana
-w pakietach A–F (§3–§8). Po każdym etapie są testy i `/code-review` w zakresie
-etapu (§0).
+**Decyzje właściciela** z §10 zostały przyjęte 2026-11-11 zgodnie
+z rekomendacjami. Po etapie 1, tego samego dnia, plan dostał pięć dodatków:
+przerwę w trakcie planu (B11), tętno jako drugą miarę celu (C8), mile (C9),
+skróty klubowe jako opcję (C10) i pakiet terenowy (G). **Realizacja** ma cztery
+etapy (§2), pakiet G startuje po nich. Praca jest opisana w pakietach A–G
+(§3–§9). Po każdym etapie są testy i `/code-review` w zakresie etapu (§0).
 
 ---
 
@@ -75,8 +77,14 @@ poprzedniego.
    względem `main`. Zakres przeglądu to zakres etapu.
 5. Każde potwierdzone znalezisko w zakresie etapu dostaje poprawkę i test,
    który bez poprawki zawodzi. Po poprawkach wracają kroki 1–4. Przegląd
-   powtarza się do braku potwierdzonych znalezisk w zakresie etapu.
-6. Znalezisko spoza zakresu etapu trafia do rejestru w §13 i nie jest naprawiane
+   kończy się na pierwszej rundzie bez błędu, który użytkownik może spotkać.
+   Błąd to zły wynik, awaria albo utrata danych w komendzie, w MCP albo przy
+   pliku, który użytkownik edytuje. Sugestie porządkowe (nazwy, powtórzony
+   kod, komentarze, styl) trafiają do rejestru w §14. Mogą wejść razem
+   z poprawkami błędów, ale same nie otwierają kolejnej rundy. Warunek
+   obowiązuje od etapu 2. Etap 1 miał warunek „zero potwierdzonych znalezisk"
+   i nie zbiegł po 24 rundach.
+6. Znalezisko spoza zakresu etapu trafia do rejestru w §14 i nie jest naprawiane
    w tym etapie.
 7. CHANGELOG, SPEC z nowymi ADR-ami, oba README.
 8. Scalenie gałęzi i wydanie to działania właściciela.
@@ -177,16 +185,18 @@ danych w jednym przeglądzie ze zmianą silnika nie dałaby się ocenić.
 | Etap | Wydanie | Zakres | Testy własne etapu |
 |---|---|---|---|
 | **1. Fundament** | 0.6.1 | pakiet A; B0; B9; wszystkie pomiary (`tools/corpus/season_profile.py`) i wpisy FOUNDATIONS z punktów „Nauka" w B1–B8; wskaźnik bieżącego planu w `CLAUDE.md` | migawka macierzy utworzona na niezmienionym silniku i bez różnic na końcu etapu; `tools/corpus/test_parse_plans.py` |
-| **2. Silnik biegowy** | 0.7.0 | B1–B8, B10; pola segmentu i poprawki zapisu z C1; linty kształtu podpięte do `check` | macierz bez pięciu lintów kształtu; DoD pakietu B na P1–P3; `regenerate.test.ts`, `cycle.test.ts`, `engine-060.test.ts`, `time-budgets.test.ts`; backtest lokalnie; `pnpm simulate:coaching`, `pnpm simulate:multisport` |
-| **3. Widoki i wykonanie** | 0.8.0 | C1–C7, D1–D5, F3 | migawki przy 60, 80, 100, 120 kolumnach w PL, EN i ASCII; budżety wierszy z C2; MCP bez ANSI; syntetyczne FIT i TCX; `pnpm plugin:build` i `scripts/verify-plugin.mjs` |
+| **2. Silnik biegowy** | 0.7.0 | B1–B8, B10, B11; pola segmentu i poprawki zapisu z C1; linty kształtu podpięte do `check` | macierz bez pięciu lintów kształtu; DoD pakietu B na P1–P3; `regenerate.test.ts`, `cycle.test.ts`, `engine-060.test.ts`, `time-budgets.test.ts`; przerwa w trakcie planu w `adapt.test.ts` i `adapt-desk.test.ts`; backtest lokalnie; `pnpm simulate:coaching`, `pnpm simulate:multisport` |
+| **3. Widoki i wykonanie** | 0.8.0 | C1–C10, D1–D5, F3 | migawki przy 60, 80, 100, 120 kolumnach w PL, EN i ASCII, także w milach; budżety wierszy z C2; pułap tętna według Z-2; MCP bez ANSI; syntetyczne FIT i TCX; `pnpm plugin:build` i `scripts/verify-plugin.mjs` |
 | **4. Jeden model danych** | 0.9.0 | pakiet E | ten sam kształt sezonu w v1 i v2 na macierzy; lista parytetu; migracja; `pnpm simulate:multisport --artifacts`; weryfikacja pluginu |
 
-**Stan (2026-11-11):** etap 1 zrealizowany na gałęzi `plan-0.7/etap-1`, czeka na
-scalenie. Bramka: `pnpm check` 1204 testy, `pnpm build`, `verify:distribution`
-PASS, testy korpusu. Przegląd `/code-review high`: 24 rundy, każde przyjęte
-znalezisko z testem sprawdzonym mutacją. Rundy nie zbiegły do zera — późne rundy
-dawały pojedyncze przypadki brzegowe (głównie odczyt ręcznie edytowanego
-`log.jsonl`) i sugestie porządkowe. Odrzucone sugestie są w §13.
+**Stan (2026-11-11):** etap 1 zrealizowany na gałęzi `plan-0.7/etap-1`,
+scalenie zatwierdzone przez właściciela. Bramka: `pnpm check` 1204 testy,
+`pnpm build`, `verify:distribution` PASS, testy korpusu. Przegląd
+`/code-review high`: 24 rundy, każde przyjęte znalezisko z testem sprawdzonym
+mutacją. Rundy nie zbiegły do zera. Późne rundy dawały pojedyncze przypadki
+brzegowe (głównie odczyt ręcznie edytowanego `log.jsonl`) i sugestie
+porządkowe. Odrzucone sugestie są w §14. Po etapie 1 zmienił się warunek końca
+przeglądu (§0, krok 5) i doszły punkty B11, C8–C10 oraz pakiet G.
 
 **Etap 1** nie zmienia żadnej liczby w silniku ani zapisanych planów. Pierwszy
 commit tworzy migawkę macierzy na silniku z 0.6.0. Linty kształtu działają
@@ -196,18 +206,23 @@ Wynik etapu to lista odpaleń lintów na macierzy i tabela pomiarów
 w FOUNDATIONS. Jeśli pomiar przeczy propozycji z pakietu B, punkt jest
 korygowany w tym dokumencie przed startem etapu 2.
 
-**Etap 2**, kolejność commitów: B1 z B2, B3, B4, B5, B6, B8, B7, B10. B7 jest
-na końcu, bo budżet przycina gotowy kształt. Etap ma jedną zmianę wersji
+**Etap 2**, kolejność commitów: B1 z B2, B3, B4, B5, B6, B8, B11, B7, B10.
+B11 idzie po B8, bo korzysta z tego samego protokołu powrotu. B7 jest na końcu,
+bo budżet przycina gotowy kształt. Etap ma jedną zmianę wersji
 silnika i jedną zmianę przyszłych dni przy regeneracji, dlatego obejmuje też
 nowe pola segmentu i poprawki zapisu opisów (decyzja 4).
 
-**Etap 3**, kolejność commitów: C1, C2, C3 z C4, C5 z C6, D1, D2 z D3, D4 z D5,
-C7 z F3.
+**Etap 3**, kolejność commitów: C1, C2, C3 z C4, C5 z C6, C8, C9, D1, D2 z D3,
+D4 z D5, C10, C7 z F3. C8 rozszerza notację z C1 i karty z C5. C9 idzie przed
+pakietem D, żeby tabela `review` od razu znała mile. C10 jest ostatni przed
+dokumentacją. Jeśli etap urośnie, C10 przechodzi do następnego planu jako
+pierwszy.
 
 **Etap 4**: kroki 1–4 pakietu E w podanej kolejności.
 
 **Poza etapami**, działania właściciela: wydanie po każdym etapie; F1 po
-etapie 2, z wynikiem przed startem etapu 4; F2 przez cały sezon.
+etapie 2, z wynikiem przed startem etapu 4; F2 przez cały sezon. Pakiet G (§9)
+startuje po etapie 4, od pomiaru.
 
 ---
 
@@ -291,7 +306,7 @@ CHANGELOG „Fixed", bez zmian w silniku i w `plan.yaml`.
 
 ## 4. Pakiet B: silnik biegowy (etapy 1 i 2)
 
-B0, B9 i pomiary z punktów „Nauka" należą do etapu 1. B1–B8 i B10 to etap 2,
+B0, B9 i pomiary z punktów „Nauka" należą do etapu 1. B1–B8, B10 i B11 to etap 2,
 w jednym wydaniu 0.7.0. Wartości oznaczone „inż." to propozycje do potwierdzenia pomiarem. Bez pomiaru
 zostają w kodzie z komentarzem „inż." i wpisem w FOUNDATIONS.
 
@@ -493,14 +508,49 @@ Reguła 4 z `CLAUDE.md`. Do oznaczenia albo podparcia regułą:
 ### B10. Zamknięcie pakietu
 
 FOUNDATIONS §10 (J-8, J-9, R-11, zmiany E-2, etykiety z B9) i §11; SPEC: nowe
-ADR-y z §10 tego planu, „znane uproszczenia silnika"; oba README (pole
-`athlete.returning`); CHANGELOG „Changed" z opisem, co zmieni pierwsza
+ADR-y z §11 tego planu, „znane uproszczenia silnika"; oba README (pole
+`athlete.returning`, zapis przerwy w `log`); CHANGELOG „Changed" z opisem, co zmieni pierwsza
 regeneracja; `backtest` uruchomiony lokalnie, wynik w opisie PR.
+
+### B11. Przerwa w trakcie planu
+
+Punkt dopisany po etapie 1 (decyzja 9 z §10).
+
+- **Objaw:** choroba albo wyjazd w środku planu nie mają ścieżki. `adapt`
+  rozpoznaje przerwę od 10 dni (`adapt.ts:74`) i podaje objętość restartu
+  ×0,55 (R-5), ale tej propozycji nie da się przyjąć (`proposals.ts:126`,
+  `manualRecovery`). Przerwy nie da się zapisać z przyczyną ani z góry. Plan po
+  powrocie pokazuje tygodnie sprzed przerwy.
+- **Nauka:** R-5 (po chorobie objętość ×0,5–0,6 i zero Z3 przez 5–7 dni),
+  R-11 z B8 (przerwa bez choroby), R-6 i R-7 (objawy do lekarza, bez porad
+  medycznych). R-5 to ekstrapolacja, R-11 wartość inżynierska. Propozycja
+  zachowuje dzisiejsze ostrzeżenie `restartExtrapolated`.
+- **Zmiana:**
+  1. zapis przerwy w dzienniku: `log` przyjmuje zakres dni (`--date` z `--to`)
+     i przyczynę (`--reason illness|injury|travel|other`). Każdy dzień dostaje
+     wpis `skipped` z przyczyną. Zapis z góry, np. przed wyjazdem, działa tak
+     samo. Te same pola przyjmują kreator dziennika i `trainctl_log` w MCP;
+  2. `adapt` po zapisanej albo wykrytej przerwie proponuje blok powrotu do
+     przyjęcia. Choroba: R-5. Inna przyczyna: R-11. Wzrost w granicach P-3 do
+     objętości sprzed przerwy, potem plan wraca do swojego kształtu;
+  3. przyczyna `injury` nie dostaje propozycji objętości. `adapt` podaje R-6
+     i R-7: powrót ustala specjalista;
+  4. po przyjęciu regeneracja przebudowuje dni od powrotu. Dni przeszłe,
+     zalogowane, przypięte i edytowane ręcznie zostają (ADR-033). Silnik
+     niczego nie zmienia bez zgody (ADR-011, ADR-029);
+  5. gdy blok powrotu spycha szczyt poniżej progu dystansu, `plan` pokazuje
+     werdykt wykonalności z B8 liczony od dnia powrotu.
+- **Test:** `adapt.test.ts`: przerwa z chorobą i bez, `injury` bez objętości;
+  `adapt-desk.test.ts`: przyjęcie propozycji, dni przeszłe bez zmian, pierwszy
+  tydzień bez Z3 po chorobie; `log` z zakresem i przyczyną, także w MCP;
+  macierz B0 bez nowych odpaleń lintów po bloku powrotu.
 
 **DoD pakietu B (etap 2):** macierz B0 bez `longNotLongest`, `deloadNotLighter`,
 `sessionShareHigh`, `postRaceAccentHeavy`, `staleProgression`; P1 osiąga
 długie >21 km; P3 zachowuje kształt; P2b dostaje werdykt wykonalności
-z wyjściami; każda nowa i stara stała ma ID albo etykietę.
+z wyjściami; przerwa zapisana w środku planu daje propozycję `adapt`, którą
+można przyjąć, a bez zgody plan się nie zmienia; każda nowa i stara stała ma
+ID albo etykietę.
 
 ---
 
@@ -519,7 +569,7 @@ z wyjściami; każda nowa i stara stała ma ID albo etykietę.
      wspólna dla `PlannedWorkout` i kroków v2;
   3. opis słowny zostaje w `plan.yaml` i w `why`. Dwie poprawki zapisu:
      „2-minutowe" zamiast „2 minutowe" (`core-pl.ts:22–23`) i `×` zamiast `*`.
-     To zmienia tekst przyszłych dni przy regeneracji (patrz §12).
+     To zmienia tekst przyszłych dni przy regeneracji (patrz §13).
   Punkty 1 i 3 wchodzą w etapie 2 razem ze zmianą silnika, żeby przyszłe dni
   zmieniły się raz. Punkt 2 to etap 3.
 - **Specyfikacja notacji:**
@@ -647,11 +697,70 @@ wt 27.10 · interwały · 8 km · około 66 min · tydz. 2/25 baza
 
 Oba README, `docs/MULTISPORT.md`, `docs/REVIEWED-ADAPTATION.md`, generator
 `AGENTS.md` (`agents-md.ts`) i skille pluginu (`plugin-skills.ts`), jeśli
-cytują stare wyjście. ADR dla komendy `season` i notacji.
+cytują stare wyjście. ADR dla komendy `season` i notacji. Pola profilu z C8–C10
+(`athlete.hrMax`, `units`, `notation`) w obu README.
+
+### C8. Tętno jako druga miara celu
+
+Punkty C8–C10 dopisane po etapie 1 (decyzje 2, 7 i 10 z §10).
+
+- **Dziś:** cele biegowe są w tempie. Profil nie ma tętna maksymalnego. Część
+  biegaczy trenuje po tętnie, a tempo zawodzi w terenie i w upale.
+- **Nauka:** Z-3 (tempo dokładniejsze od tętna, zostaje celem głównym), Z-2
+  (LT1 przy 78,9% HRmax u mężczyzn i 83,6% u kobiet), N-13 (bez wspólnego
+  %HRmax dla obu płci), Z-5 (ostrzeżenie przy HRmax szacowanym), Z-6 (bez
+  progów z zegarka).
+- **Zmiana:**
+  1. profil: opcjonalne `athlete.hrMax: { bpm, measured }` z walidacją
+     w `config.ts`. Kreator `init` pyta o nie. `init --from-intervals` może
+     zaproponować najwyższe tętno z historii jako wartość szacowaną;
+  2. biegi spokojne i długie dostają pułap tętna z Z-2 według `athlete.sex`.
+     Tempo zostaje celem głównym, pułap jest dopisany do wiersza i karty. Bez
+     płci w profilu pułapu nie ma (N-13), a `why` mówi dlaczego;
+  3. przy `measured: false` widok z pułapem pokazuje raz ostrzeżenie Z-5;
+  4. akcenty zostają przy tempie. `review` i `adapt` nie oceniają tętna (D3);
+  5. eksport do intervals.icu: sprawdzić w składni treningu, czy krok przyjmuje
+     drugi cel. Jeśli nie, pułap trafia do opisu kroku.
+- **Test:** pułap dla obu płci z Z-2; brak pułapu bez płci; ostrzeżenie Z-5;
+  akcent bez pułapu; `review` bez oceny tętna; eksport.
+
+### C9. Mile i tempo na milę
+
+- **Dziś:** wyjście zna tylko kilometry i tempo na kilometr, także po
+  angielsku.
+- **Zmiana:**
+  1. `units: metric | imperial` w `trainctl.yaml` i flaga globalna `--units`.
+     Domyślnie `metric`. Jednostka nie zależy od języka;
+  2. przeliczenie tylko w warstwie widoku: `kmLabel`, tempo, notacja z C1,
+     wiersz z C2, `PLAN.md` oraz eksporty `print` i `mobile`;
+  3. `plan.yaml`, `log.jsonl`, `--json`, `structuredContent` i synchronizacja
+     zostają w kilometrach;
+  4. dystans wpisywany w `log` i w kreatorze jest w jednostce z profilu,
+     a zapis w kilometrach.
+- **Test:** migawki `week`, `today` i `season` w milach po polsku i po
+  angielsku; `log` w milach zapisuje kilometry; `--json` bez zmian; brak „km"
+  w wyjściu tekstowym przy `imperial`.
+
+### C10. Skróty klubowe jako opcja notacji
+
+- **Dziś:** notacja z C1 używa skrótów neutralnych (`RG`, `SCH`, `p.`),
+  zgodnie z decyzją 2.
+- **Zmiana:**
+  1. `notation: neutral | club` w `trainctl.yaml`, domyślnie `neutral`;
+  2. `club` drukuje kody znane z polskich planów klubowych (np. OWB1, BC1–BC3,
+     BNP, WT, RT) przypisane do typów jednostek i stref silnika. Szkoły różnią
+     się definicjami, więc przypisanie ma etykietę „inż.", wpis w FOUNDATIONS
+     i legendę pod widokiem;
+  3. kody tylko w wyjściu polskim. Po angielsku `club` daje notację neutralną;
+  4. dane się nie zmieniają: `plan.yaml`, `--json` i eksport do intervals.icu
+     zostają przy strukturze.
+- **Test:** notacja `club` dla każdego typu segmentu; legenda; `neutral` bez
+  zmian; angielskie wyjście bez kodów klubowych.
 
 **DoD pakietu C:** jeden model wiersza obsługuje plan v1 i v2; budżety wierszy
 z C2 spełnione; MCP dostaje krótszy tekst i te same dane; `PLAN.md` i eksporty
-w tym samym układzie.
+w tym samym układzie; mile i skróty klubowe zmieniają tylko tekst, a `--json`
+zostaje bez zmian; pułap tętna tylko przy biegach spokojnych i długich.
 
 ---
 
@@ -710,7 +819,7 @@ odcinków i tempami wobec celu; brak okrążeń jest nazwany wprost.
   karty i trzy sporty, a bieganie owija przez `legacyWorkout` (ADR-041). Dwie
   ścieżki komend (`commands.ts`, `sports-commands.ts`), dwa walidatory, dwa
   zestawy tekstów.
-- **Kroki** (decyzja 5 z §9: v2 jedynym modelem po osiągnięciu parytetu):
+- **Kroki** (decyzja 5 z §10: v2 jedynym modelem po osiągnięciu parytetu):
   1. segmenty biegowe generują kroki v2 z celem tempa, tak by karty i eksporty
      nie potrzebowały `legacyWorkout`;
   2. lista parytetu v2 wobec v1: `reschedule`, `adapt`, `desk`, `shorten`,
@@ -735,27 +844,58 @@ odcinków i tempami wobec celu; brak okrążeń jest nazwany wprost.
   kolejnych pomiarów.
 - **F3. Świeżość danych.** Hook pluginu przy starcie sesji dopisuje do
   kontekstu wiek `sync.json` ze `status`. Bez pobierania w tle.
-- **F4. Dostęp poza terminalem i tętno.** Rozstrzygnięte decyzjami 6 i 7 z §9.
-  README opisuje ścieżkę telefonu w etapie 3.
+- **F4. Dostęp poza terminalem.** Rozstrzygnięty decyzją 6 z §10. README
+  opisuje ścieżkę telefonu w etapie 3. Tętno przeszło do C8 (decyzja 7).
 
 ---
 
-## 9. Decyzje właściciela (przyjęte 2026-11-11)
+## 9. Pakiet G: teren i ultra (po etapie 4)
+
+Pakiet dopisany po etapie 1 (decyzja 11 z §10). Nie jest piątym etapem tego
+planu.
+
+- **Dziś:** pole `terrain` wyniku zmienia tylko kalibrację: wynik z terenu nie
+  ustala stref dla celu szosowego. Treść planu do startu terenowego i do ultra
+  zostaje szosowa: jednostki w tempie i kilometrach, długie z sufitem N-19,
+  blok po ultra bez źródła (R-3).
+- **Dlaczego po etapie 4:** jednostki terenowe trzeba rozpisywać czasem
+  i wysiłkiem, a nie tempem i dystansem. Kroki v2 to potrafią, a po etapie 4
+  v2 jest jedynym modelem.
+- **Najpierw pomiar:** własne starty terenowe z F2 i starty górskie z korpusu,
+  jeśli są: czas długiego, przewyższenie, udział marszu, taper przed ultra. Bez
+  pomiaru pakiet nie zmienia silnika (§0, „Najpierw nauka, potem kod").
+- **Zakres wstępny:**
+  1. cel z przewyższeniem i terenem;
+  2. długie i akcenty rozpisane czasem i wysiłkiem, z podbiegami i zbiegami;
+  3. taper i blok po starcie dla ultra;
+  4. predykcja wyniku w terenie wyłączona do czasu pomiaru.
+- **Realizacja:** po pomiarze pakiet dostaje własną gałąź i tę samą procedurę
+  zamknięcia (§0) albo przechodzi do następnego planu.
+
+---
+
+## 10. Decyzje właściciela (przyjęte 2026-11-11)
+
+Decyzje 9–12 i zmiany decyzji 2 i 7 przyjęto po etapie 1, tego samego dnia.
 
 | # | Decyzja | Skutek w planie |
 |---|---|---|
 | 1 | Wzorzec korpusu obowiązuje w zakresie objętości, który korpus pokrywa. Poniżej tego zakresu silnik używa wartości „inż." z jawną etykietą | B1, B2, ADR-049 |
-| 2 | Notacja używa skrótów neutralnych (`RG`, `SCH`, `p.`). Skróty klubowe (OWB1, BC2, BNP, WT) są poza zakresem | C1, §11 |
+| 2 | Notacja domyślnie używa skrótów neutralnych (`RG`, `SCH`, `p.`). Skróty klubowe (OWB1, BC2, BNP, WT) są opcją profilu z przypisaniem „inż." i legendą | C1, C10, ADR-057 |
 | 3 | Widok sezonu to nowa komenda `season`, tylko do odczytu | C2, ADR-052 |
 | 4 | Opisy słowne dostają poprawki zapisu („2-minutowe", `×`) razem ze zmianą silnika | etap 2 |
 | 5 | Schemat v2 zostaje jedynym modelem po osiągnięciu parytetu z planem biegowym | etap 4, po etapach 2 i 3 |
-| 6 | Bez hostingu i zdalnego MCP. Telefon obsługują kalendarz intervals.icu, zegarek i `export --what mobile` | §11, README w etapie 3 |
-| 7 | Plan biegowy nie dostaje celów tętna | §11 |
+| 6 | Bez hostingu i zdalnego MCP. Telefon obsługują kalendarz intervals.icu, zegarek i `export --what mobile` | §12, README w etapie 3 |
+| 7 | Tempo zostaje celem głównym (Z-3). Tętno to pułap biegów spokojnych i długich z pola profilu, z ostrzeżeniem Z-5 przy wartości szacowanej | C8, ADR-056 |
 | 8 | Przy ciasnym budżecie ostrzeżenie pyta o wybór między bieganiem a siłą. Silnik nie tnie siły sam | B7 |
+| 9 | Przerwa w trakcie planu: zapis w dzienniku i blok powrotu jako propozycja `adapt` do przyjęcia | B11, ADR-055 |
+| 10 | Mile i tempo na milę jako opcja widoku. Dane zostają w kilometrach | C9, ADR-057 |
+| 11 | Teren i ultra jako pakiet po etapie 4, od pomiaru | §9 |
+| 12 | Przegląd etapu kończy się na pierwszej rundzie bez błędu, który użytkownik może spotkać. Sugestie porządkowe trafiają do rejestru | §0, krok 5 |
 
 ---
 
-## 10. Kandydaci ADR (następny wolny numer: 047)
+## 11. Kandydaci ADR (047 wpisany w etapie 1, następny wolny numer: 048)
 
 | # | Decyzja (skrót) | Sedno uzasadnienia |
 |---|---|---|
@@ -767,10 +907,13 @@ odcinków i tempami wobec celu; brak okrążeń jest nazwany wprost.
 | 052 | Trzy poziomy szczegółowości i wspólny model wiersza dla v1 i v2; komenda `season` | dwa style widoków i 173 wiersze tygodnia w v2 |
 | 053 | Okrążenia w porcie sync; porównanie akcentów jest opisem, nie wnioskiem | dystans nie mówi, czy akcent został wykonany; ADR-011 i ADR-027 zostają |
 | 054 | Powrót po przerwie jako pole profilu i reguła R-11 | dziś mała baza kończy się ostrzeżeniem bez wyjścia |
+| 055 | Przerwa w trakcie planu to zapis w dzienniku i propozycja `adapt` do przyjęcia (R-5, R-11) | dziś `adapt` widzi przerwę, ale propozycji nie da się przyjąć, a plan po chorobie pokazuje tygodnie sprzed przerwy |
+| 056 | Tętno jest pułapem pomocniczym biegów spokojnych i długich, tempo zostaje celem głównym | Z-3: tempo dokładniejsze; Z-2 i N-13: kotwice według płci; Z-5: błąd przy szacowanym HRmax |
+| 057 | Mile i skróty klubowe to opcje widoku; dane zostają w kilometrach i w strukturze | MCP, synchronizacja i eksporty czytają jeden model; przeliczenie w widoku nie dotyka planu |
 
 ---
 
-## 11. Poza zakresem
+## 12. Poza zakresem
 
 - Zdalny serwer MCP, REST API i hosting (PLAN-v0.4 §8, bez zmian).
 - Pozycje odrzucone na stałe w PLAN-v0.4 §8: autopilot HRV, gamifikacja, pogoda
@@ -779,12 +922,12 @@ odcinków i tempami wobec celu; brak okrążeń jest nazwany wprost.
 - Nowa metodyka roweru i pływania. Pakiet E ujednolica model, a biblioteka
   jednostek v2 czeka na przegląd trenerski (F1).
 - Double threshold (J-7, N-16).
-- Cele tętna w planie biegowym (decyzja 7).
-- Skróty klubowe w notacji (decyzja 2).
+- Cele tętna dla akcentów i ocena wykonania po tętnie (C8, Z-3, Z-6).
+- Teren i ultra w etapach 1–4 (pakiet G po etapie 4).
 
 ---
 
-## 12. Ryzyka
+## 13. Ryzyka
 
 - **Regeneracja po etapie 2 zmienia wszystkie przyszłe dni.** Mitygacja: jedna
   zmiana wersji silnika w całym planie, wpis „Changed", komunikat w `plan` przez
@@ -804,14 +947,21 @@ odcinków i tempami wobec celu; brak okrążeń jest nazwany wprost.
   z §2, testy macierzy po każdym commicie, przegląd na całej różnicy gałęzi.
   Poprawka po przeglądzie dostaje test, który bez niej zawodzi, żeby runda
   poprawek nie wprowadzała regresji jak w 0.4.0.
-- **Przegląd wychodzi poza zakres etapu.** Mitygacja: rejestr w §13. Znalezisko
+- **Przegląd wychodzi poza zakres etapu.** Mitygacja: rejestr w §14. Znalezisko
   spoza różnicy gałęzi nie blokuje zamknięcia etapu.
+- **Opcje mnożą warianty planu, których nikt nie ocenił** (tętno, mile, skróty
+  klubowe). Mitygacja: opcje zmieniają widok albo dopisują pułap, a kształt
+  sezonu zostaje ten sam. Macierz B0 biegnie bez opcji, a migawki widoków
+  obejmują każdą opcję osobno.
+- **Przerwa w trakcie planu przebudowuje przyszłe dni.** Mitygacja: istniejąca
+  ścieżka propozycji z przyjęciem, ochrona dni z ADR-033, testy weryfikowane
+  mutacją.
 - **Backtest działa tylko lokalnie.** Zmiany silnika wymagają uruchomienia na
   maszynie z korpusem przed wydaniem; wynik trafia do opisu PR.
 
 ---
 
-## 13. Rejestr znalezisk spoza zakresu etapu
+## 14. Rejestr znalezisk spoza zakresu etapu
 
 Wypełniany w trakcie realizacji przez krok 6 zamknięcia etapu.
 
