@@ -219,14 +219,14 @@ export const coreEn = {
     timeSecPlaceholder: '<time in seconds>',
     restartAfterLayoff: (weeklyKm: number, days: number) =>
       `Restart: volume ×0.5–0.6 (≈${weeklyKm} km/week) after ${days} days off, ` +
-      'no Z3 sessions for 5–7 days, then normal progression. ' +
+      'the first block easy only until the next deload (R-11), then the plan grows back within P-3. ' +
       'We do not make up the missed kilometres.',
     restartExtrapolated:
-      'The post-layoff restart protocol is an extrapolation with no direct source (R-5) — ' +
+      'The post-layoff restart protocol is an extrapolation with no direct source (R-5, R-11) — ' +
       'treat it as a starting point, not a rule.',
     restartAfterIllness: (weeklyKm: number, days: number) =>
       `Return after illness: volume ×0.5–0.6 (≈${weeklyKm} km/week) after ${days} days off, ` +
-      'the first week easy only, then the plan grows back within P-3. ' +
+      'at least 7 days easy only (to the end of the week they end in, R-5), then the plan grows back within P-3. ' +
       'We do not make up the missed kilometres.',
     injuryReturn:
       'The break was an injury: the engine proposes no volume. When and how much to run again is a decision ' +

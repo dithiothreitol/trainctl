@@ -222,6 +222,22 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(latestByDate(readLog(dir)).get(day.date)?.status).toBe('done')
   })
 
+  it('przerwa zapisana z góry: bieg zsynchronizowany potem w dniu przerwy się liczy', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-10-24'
+    // wyjazd zapisany z góry, bez statusu: zakres i przyczyna to przerwa (skipped)
+    const r = cmdLog(dir, { date: '2026-10-26', to: '2026-10-30', reason: 'travel' })
+    expect(r.code, r.output).toBe(0)
+    expect(readLog(dir).every((e) => e.status === 'skipped' && e.reason === 'travel')).toBe(true)
+    // w trakcie wyjazdu jednak bieg, zsynchronizowany po powrocie
+    process.env['TRAINCTL_TODAY'] = '2026-10-31'
+    const run = { externalId: 'trip-run', date: '2026-10-27', type: 'Run', distanceKm: 7 }
+    writeSnapshot(dir, { pulledAt: '2026-10-31', activities: [run], wellness: [] })
+    const execution = buildExecution(loadPlan(dir), [run], readLog(dir), '2026-10-31')
+    expect(execution.find((e) => e.date === '2026-10-27')).toMatchObject({ actualKm: 7 })
+    expect(execution.find((e) => e.date === '2026-10-27')?.status).not.toBe('missed')
+  })
+
   it('log --to: dzień z biegiem z synchronizacji zostaje, przerwa go nie zeruje', () => {
     setup()
     process.env['TRAINCTL_TODAY'] = '2026-10-31'
@@ -267,7 +283,8 @@ describe('B11: przerwa w trakcie planu', () => {
 
   it('log: przyczyna i zakres tylko przy opuszczeniu; zła przyczyna, odwrócony i za długi zakres', () => {
     setup()
-    expect(cmdLog(dir, { date: '2026-10-26', reason: 'illness' }).output).toContain('skipped sessions only')
+    expect(cmdLog(dir, { date: '2026-10-26', status: 'done', reason: 'illness' }).output).toContain('skipped sessions only')
+    expect(cmdLog(dir, { date: '2026-10-26', status: 'done', to: '2026-10-28' }).output).toContain('skipped sessions only')
     expect(cmdLog(dir, { date: '2026-10-26', status: 'skipped', reason: 'flu' }).output).toContain('Unknown reason "flu"')
     expect(cmdLog(dir, { date: '2026-10-30', to: '2026-10-26', status: 'skipped' }).output).toContain('ends before it starts')
     expect(cmdLog(dir, { date: '2026-10-26', to: '2027-01-26', status: 'skipped' }).output).toContain('more than 60 days')

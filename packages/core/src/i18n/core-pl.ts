@@ -228,15 +228,15 @@ export const corePl: CoreMessages = {
     restartAfterLayoff: (weeklyKm: number, days: number) =>
       `Restart: objętość ×0,5–0,6 (≈${weeklyKm} km/tydz.) po ${days} ` +
       `${pluralPl(days, { one: 'dniu', few: 'dniach', other: 'dniach' })} przerwy, ` +
-      'bez sesji Z3 przez 5–7 dni, potem normalna progresja. ' +
+      'pierwszy blok do najbliższego odciążenia wyłącznie spokojnie (R-11), potem plan wraca w granicach P-3. ' +
       'Nie nadrabiamy opuszczonych kilometrów.',
     restartExtrapolated:
-      'Protokół restartu po przerwie to ekstrapolacja bez bezpośredniego źródła (R-5) — ' +
+      'Protokół restartu po przerwie to ekstrapolacja bez bezpośredniego źródła (R-5, R-11) — ' +
       'traktuj jako punkt wyjścia, nie normę.',
     restartAfterIllness: (weeklyKm: number, days: number) =>
       `Powrót po chorobie: objętość ×0,5–0,6 (≈${weeklyKm} km/tydz.) po ${days} ` +
       `${pluralPl(days, { one: 'dniu', few: 'dniach', other: 'dniach' })} przerwy, ` +
-      'pierwszy tydzień wyłącznie spokojnie, potem plan wraca w granicach P-3. ' +
+      'co najmniej 7 dni wyłącznie spokojnie (do końca tygodnia, w którym mijają, R-5), potem plan wraca w granicach P-3. ' +
       'Nie nadrabiamy opuszczonych kilometrów.',
     injuryReturn:
       'Przerwa z powodu kontuzji: silnik nie proponuje objętości. Kiedy i ile znowu biegać, ustalasz ze ' +

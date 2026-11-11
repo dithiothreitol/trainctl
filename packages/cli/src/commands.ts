@@ -693,7 +693,8 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     const plan = loadPlan(cwd)
     if (!findDay(plan, date)) return fail(new Error(ui().log.outsidePlan(date)))
     if (opts.strength !== undefined) return logStrength(cwd, plan, date, opts)
-    const status = (opts.status ?? 'done') as 'done' | 'skipped' | 'modified'
+    // B11: zakres dni albo przyczyna bez statusu to przerwa — „skipped”, jak mówi pomoc `--to`
+    const status = (opts.status ?? (opts.to !== undefined || opts.reason !== undefined ? 'skipped' : 'done')) as 'done' | 'skipped' | 'modified'
     if (!['done', 'skipped', 'modified'].includes(status)) {
       return fail(new Error(ui().log.unknownStatus(String(opts.status))))
     }

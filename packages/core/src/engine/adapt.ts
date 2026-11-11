@@ -132,7 +132,9 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const breakEntries = (input.breakLog ?? [])
     .filter((l) => l.date <= input.today && (lastRunEver === undefined || l.date > lastRunEver))
     .sort((a, z) => a.date.localeCompare(z.date))
-  const breakReason = input.breakReason ?? (['injury', 'illness'] as const).find((r) => breakEntries.some((l) => l.reason === r)) ?? breakEntries.at(-1)?.reason
+  // przyczyna podana wprost to jeszcze jeden wpis — nie omija reguły „kontuzja pierwsza”
+  const reasons = [...breakEntries.map((l) => l.reason), ...(input.breakReason ? [input.breakReason] : [])]
+  const breakReason = (['injury', 'illness'] as const).find((r) => reasons.includes(r)) ?? reasons.at(-1)
   const layoffFound = dataStatus === 'complete' && layoff >= LAYOFF_DAYS
   if (layoffFound) {
     diagnosis.push(m.adapt.layoffDiagnosis(layoff))

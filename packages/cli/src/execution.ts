@@ -28,7 +28,9 @@ export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], l
     const plannedKm = day?.workout?.kind === 'race'
       ? day.workout.raceDistanceKm ?? (plan.goal.date === date ? plan.goal.distanceKm : plan.weeks.find(w => w.skeleton.tuneUp?.date === date)?.skeleton.tuneUp?.distanceKm ?? 0)
       : day?.workout?.distanceKm ?? 0
-    const skipped = log?.status === 'skipped'
+    // Wpis przerwy (z przyczyną, B11) zapisany z góry nie chowa biegu z synchronizacji: jeśli
+    // biegacz w dniu przerwy pobiegł, bieg się odbył. Zwykłe „skipped” bez przyczyny zostaje decyzją.
+    const skipped = log?.status === 'skipped' && !(log.reason !== undefined && (runs.get(date) ?? 0) > 0)
     const actualKm = skipped ? 0 : log?.km ?? runs.get(date) ?? (log?.status === 'done' ? plannedKm : undefined)
     const done = !skipped && (log?.status === 'done' || (actualKm ?? 0) > 0)
     return {
