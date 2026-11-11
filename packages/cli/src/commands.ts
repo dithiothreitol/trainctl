@@ -393,7 +393,7 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
     const weeksToRace = cycle.length
     const blocks: Block[] = [
       b.title(
-        plan.goal.kind === 'base' ? plan.goal.name : `${plan.goal.name} · ${plan.goal.distanceKm} km`,
+        plan.goal.kind === 'base' ? plan.goal.name : `${plan.goal.name} · ${formatNumber(getLocale(), plan.goal.distanceKm)} km`,
         `${plan.goal.kind === 'base' ? ui().plan.baseUntil(plan.goal.date) : plan.goal.date} · ${ui().plan.weeksOfPlan(weeksToRace)}`,
       ),
       b.kv([
@@ -401,7 +401,7 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
         ...(plan.peakKmRecommended > 0 ? ([[ui().plan.recommendedForDistance, messages().units.kmPerWeek(plan.peakKmRecommended)]] as [string, string][]) : []),
         [
           ui().plan.vdot,
-          `${plan.vdot} (${plan.vdotSource === 'result' ? ui().plan.vdotFromResult : ui().plan.vdotFromGoal})`,
+          `${formatNumber(getLocale(), plan.vdot)} (${plan.vdotSource === 'result' ? ui().plan.vdotFromResult : ui().plan.vdotFromGoal})`,
         ],
       ]),
     ]
@@ -548,7 +548,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
       const w = day.workout
       blocks.push(
         b.panel(
-          `${kindLabel(w.kind)} · ${w.raceDistanceKm ?? w.distanceKm} km`,
+          `${kindLabel(w.kind)} · ${formatNumber(getLocale(), w.raceDistanceKm ?? w.distanceKm)} km`,
           [workoutText(day)],
           KIND_COLOR[w.kind] ?? 'accent',
         ),
@@ -573,7 +573,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
     if (entry) {
       blocks.push(
         b.success(
-          ui().today.logged(entry.status) +
+          ui().today.logged(ui().log.statusWord[entry.status]) +
             (entry.km ? `, ${entry.km} km` : '') +
             (entry.rpe !== undefined ? `, RPE ${entry.rpe}` : '') +
             (entry.note ? ` — ${entry.note}` : ''),
@@ -581,7 +581,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
       )
     }
     const strengthEntry = readStrengthLog(cwd).filter((e) => e.date === date).at(-1)
-    if (strengthEntry) blocks.push(b.success(ui().today.strengthLogged(strengthEntry.status)))
+    if (strengthEntry) blocks.push(b.success(ui().today.strengthLogged(ui().log.statusWord[strengthEntry.status])))
     const estimatedMinutes = (day.workout ? estimateWorkoutMinutes(day.workout, plan.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
     // Dla biegacza zza biurka dwie najważniejsze liczby dnia: ile to potrwa i co dalej.
     if ((day.workout || day.strength) && Number.isFinite(estimatedMinutes)) blocks.push(b.text(ui().today.estimate(estimatedMinutes), 'muted'))
@@ -612,13 +612,13 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     for (const day of week.days) {
       const entry = logFor(cwd, day.date)
       // status słowem, nie symbolem: to samo wyjście czyta agent przez MCP
-      const mark = entry ? ` [${entry.status}]` : ''
+      const mark = entry ? ` [${ui().log.statusWord[entry.status]}]` : ''
       const kind = day.workout?.kind
       const strength = day.strength ? ` ${ui().week.strengthTag(day.strength.durationMin)}` : ''
       rows.push([
         weekdayShort(day.weekday),
         day.date.slice(5),
-        day.workout ? `${day.workout.raceDistanceKm ?? day.workout.distanceKm} km` : '—',
+        day.workout ? `${formatNumber(getLocale(), day.workout.raceDistanceKm ?? day.workout.distanceKm)} km` : '—',
         day.workout ? `${workoutText(day)}${strength}${mark}` : `${ui().week.rest}${strength}`,
       ])
       accents.push(kind ? KIND_COLOR[kind] : 'muted')
@@ -705,7 +705,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
       ? [kindLabel(workout.kind), `${formatNumber(getLocale(), workout.raceDistanceKm ?? workout.distanceKm)} km`, ...(knownMinutes !== null ? [`~${knownMinutes} min`] : [])].join(' · ')
       : ui().week.rest
     const recorded = [
-      entry.status,
+      ui().log.statusWord[entry.status],
       ...(entry.km !== undefined ? [`${formatNumber(getLocale(), entry.km)} km`] : []),
       ...(entry.timeSec !== undefined ? [fmtTime(entry.timeSec)] : []),
       ...(entry.testTimeSec !== undefined ? [ui().log.testTime(fmtTime(entry.testTimeSec))] : []),
@@ -713,7 +713,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
       ...(entry.note ? [`“${entry.note}”`] : []),
     ].join(' · ')
     const blocks: Block[] = [
-      b.success(ui().log.saved(date, status)),
+      b.success(ui().log.saved(date, ui().log.statusWord[status])),
       b.kv([[ui().log.planned, planned], [ui().log.recorded, recorded]]),
     ]
     if (!workout && status !== 'skipped') blocks.push(b.info(ui().log.unplanned))
@@ -748,7 +748,7 @@ function logStrength(cwd: string, plan: StoredPlan, date: string, opts: LogOptio
   appendLog(cwd, entry)
   const planned = findDay(plan, date)!.day.strength
   const blocks: Block[] = [
-    b.success(t.strengthSaved(date, entry.status)),
+    b.success(t.strengthSaved(date, ui().log.statusWord[entry.status])),
     b.kv([[t.planned, planned ? ui().today.strengthTitle(planned.durationMin) : ui().week.rest]]),
   ]
   if (!planned && entry.status === 'done') blocks.push(b.info(t.strengthUnplanned))
@@ -823,8 +823,9 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     if (!day.workout && !day.strength) blocks.push(b.text(ui().why.restDay))
     blocks.push(b.section(ui().improve.calibration))
     if (plan.calibration) {
-      blocks.push(b.text(ui().improve.calibrationPolicy), b.bullets(plan.calibration.candidates.map((c) =>
-        [c.result.date, c.result.name ?? String(c.result.distanceKm) + ' km', 'VDOT ' + c.vdot.toFixed(1), ui().improve[c.reason], ui().improve.age(c.ageDays), c.result.exclusionReason ?? ''].filter(Boolean).join(' · '))))
+      const now = localToday()
+      blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c) =>
+        [c.result.date, c.result.name ?? formatNumber(getLocale(), c.result.distanceKm) + ' km', 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[c.reason], ui().improve.age(diffDays(c.result.date, now)), c.result.exclusionReason ?? ''].filter(Boolean).join(' · '))))
     } else blocks.push(b.info(ui().improve.calibrationMissing))
     const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...(day.strength?.ruleRefs ?? [])])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
     // Jedna lista reguł: ID, treść i pochodzenie razem. Wcześniej te same ID stały
@@ -1091,7 +1092,7 @@ function adaptImpl(cwd: string, opts: { date?: string | undefined; prepare?: boo
 function proposalBlocks(saved: PlanProposal): Block[] {
   return [
     b.section(ui().improve.changedDays),
-    b.kv([[ui().plan.vdot, `${saved.vdotBefore} → ${saved.plan.vdot}`]]),
+    b.kv([[ui().plan.vdot, `${formatNumber(getLocale(), saved.vdotBefore)} → ${formatNumber(getLocale(), saved.plan.vdot)}`]]),
     b.table([ui().improve.date, ui().improve.before, ui().improve.after], saved.changes.map((c) => [c.date, c.before, c.after])),
     b.info(ui().improve.protected), b.info(ui().improve.changedConfig),
     b.table([ui().improve.date, ui().week.columns.km], saved.plan.weeks.filter((w) => w.days.some((d) => saved.changes.some((c) => c.date === d.date))).map((w) => [w.weekStart, String(w.totalKm)])),
@@ -1150,7 +1151,7 @@ export function cmdDesk(
     if (workout) {
       blocks.push(
         b.panel(
-          `${kindLabel(workout.kind)} · ${workout.distanceKm} km`,
+          `${kindLabel(workout.kind)} · ${formatNumber(getLocale(), workout.distanceKm)} km`,
           day.recommended
             ? [ui().desk.proposedWindow(day.recommended.label, day.recommended.from, day.recommended.to)]
             : [ui().desk.noWindowFits],
@@ -1452,8 +1453,8 @@ export async function cmdReview(
           : []),
       ]),
     )
-    blocks.push(b.section(ui().coach.reviewFacts), b.table([ui().improve.date, ui().improve.before, ui().improve.after, ui().improve.data],
-      execution.filter(e => e.kind || e.status === 'unplanned').map(e => [e.date, `${e.plannedKm} km`, e.actualKm === undefined ? ui().compare.unknown : `${e.actualKm} km`, ui().coach.status[e.status]])))
+    blocks.push(b.section(ui().coach.reviewFacts), b.table([ui().improve.date, ui().review.columns.planned, ui().review.columns.actual, ui().review.columns.status],
+      execution.filter(e => e.kind || e.status === 'unplanned').map(e => [e.date, `${formatNumber(getLocale(), e.plannedKm)} km`, e.actualKm === undefined ? ui().compare.unknown : `${formatNumber(getLocale(), e.actualKm)} km`, ui().coach.status[e.status]])))
     const unknown = execution.filter(e => e.status === 'unknown').map(e => e.date)
     if (unknown.length) blocks.push(b.warn(ui().coach.reviewUnknown(unknown.join(', '))))
 
@@ -1528,7 +1529,7 @@ export async function cmdReview(
           [ui().review.volume, ui().review.volumeAhead(Math.round(upcoming.reduce((s, d) => s + (d.workout?.distanceKm ?? 0), 0) * 10) / 10, week.totalKm, upcoming.length)],
           ...(plan.goal.kind === 'base'
             ? ([[ui().review.baseEnd, plan.goal.date]] as [string, string][])
-            : ([[ui().review.toRace, raceDistanceLine(plan, diffDays(today, plan.goal.date))]] as [string, string][])),
+            : ([[ui().review.toRace, ui().status.daysToRace(diffDays(today, plan.goal.date))]] as [string, string][])),
         ]),
       )
       const race = upcoming.find((d) => d.workout?.kind === 'race')
@@ -1562,7 +1563,7 @@ export async function cmdReview(
     const nextRace = (config.athlete.tuneUpRaces ?? []).find((r) => r.date > today)
     if (nextRace) {
       todo.push(
-        ui().review.todoNextRace(nextRace.date, nextRace.name ?? `${nextRace.distanceKm} km`),
+        ui().review.todoNextRace(nextRace.date, nextRace.name ?? `${formatNumber(getLocale(), nextRace.distanceKm)} km`),
       )
     }
     blocks.push(b.section(ui().review.todo), b.bullets(todo))

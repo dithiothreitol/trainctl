@@ -191,7 +191,7 @@ export const cliPl: CliMessages = {
     goalConservative: (target: string) => `Cel ${target} jest zachowawczy względem predykcji.`,
     goalInRange: (target: string) => `Cel ${target} mieści się w przedziale predykcji.`,
     structure: 'Struktura',
-    phaseSpan: (phase: string, from: number, to: number) => `${phase}: tyg. ${from}–${to}`,
+    phaseSpan: (phase: string, from: number, to: number) => from === to ? `${phase}: tyg. ${from}` : `${phase}: tyg. ${from}–${to}`,
     regenSection: 'Co zmienia regeneracja',
     sameCycle: (start: string) =>
       `Ten sam cykl treningowy: fazy zostają zakotwiczone w ${start}; przyszłe dni idą za trainctl.yaml.`,
@@ -263,7 +263,7 @@ export const cliPl: CliMessages = {
     title: (index: number, total: number, weekStart: string) =>
       `Tydzień ${index}/${total} · od ${weekStart}`,
     subtitle: (phase: string, model: string, targetKm: number, plannedKm: number) =>
-      `${phase} (${model}) · cel ${n(targetKm)} km · zaplanowano ${n(plannedKm)} km`,
+      targetKm === plannedKm ? `${phase} (${model}) · ${n(plannedKm)} km` : `${phase} (${model}) · cel ${n(targetKm)} km · zaplanowano ${n(plannedKm)} km`,
     deloadUpper: 'ODCIĄŻENIE',
     columns: { day: 'dzień', date: 'data', km: 'km', workout: 'trening' },
     rest: 'wolne',
@@ -278,6 +278,7 @@ export const cliPl: CliMessages = {
     badRpe: (rpe: string) =>
       `RPE „${rpe}” wypada poza skalę — podaj liczbę całkowitą 1–10 (10 = wysiłek maksymalny).`,
     saved: (date: string, status: string) => `Zalogowano ${date}: ${status}.`,
+    statusWord: { done: 'wykonany', skipped: 'opuszczony', modified: 'zmieniony' },
     planned: 'W planie',
     recorded: 'Zapis',
     testTime: (time: string) => `odcinek pomiarowy ${time}`,
@@ -633,6 +634,7 @@ export const cliPl: CliMessages = {
       return remainingKm === totalKm ? `${n(totalKm)} km ${w}` : `zostało ${n(remainingKm)} z ${n(totalKm)} km ${w}`
     },
     toRace: 'Do startu',
+    columns: { planned: 'Plan', actual: 'Wykonanie', status: 'Status' },
     baseEnd: 'Plan bazowy do',
     toRaceValue: (days: number) =>
       `${days} ${pluralPl(days, { one: 'dzień', few: 'dni', other: 'dni' })}`,

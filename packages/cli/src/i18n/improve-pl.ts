@@ -31,6 +31,7 @@ export const improvePl: typeof improveEn = {
   calibrationPolicy: 'Zasada: najwyższy VDOT z niewykluczonych wyników z ostatnich 540 dni. To heurystyka wyboru, nie miara pewności.',
   calibrationMissing: 'Ten starszy plan nie zapisuje wyników użytych do kalibracji stref.',
   selected: 'Użyty do stref', 'lower-vdot': 'Niższy VDOT', excluded: 'Wykluczony przez Ciebie', future: 'Wynik z przyszłości', stale: 'Starszy niż 540 dni',
+  calibratedOn: (date: string) => `Strefy planu skalibrowano ${date}; wiek wyników poniżej liczony od dziś.`,
   age: (days: number) => `sprzed ${days} dni`,
   unclassified: 'Sprawdź regułę źródłową; pochodzenie niesklasyfikowane',
   terrain: 'Wynik z trailu — nie kalibruje stref szosowych (Z-10)',

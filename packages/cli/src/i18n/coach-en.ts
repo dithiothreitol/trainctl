@@ -1,3 +1,7 @@
+import { formatNumber } from 'trainctl-core'
+
+const n = (value: number) => formatNumber('en', value)
+
 export const coachEn = {
   shorten: 'fit a session into your available time; save a proposal for approval',
   shortenMcp: 'Use when the runner has limited time, e.g. 40 minutes today. Call with minutes and optional date to save a proposal without changing the plan. Show the before/after, time accounting, lost purpose and warnings. After approval call trainctl_adapt with apply=the saved ID. Do not regenerate or sync between preview and approval.',
@@ -17,10 +21,10 @@ export const coachEn = {
   applyHint: (id: string) => `Review this proposal, then approve exactly these changes: trainctl adapt --apply ${id}`,
   heuristic: 'E-1: engineering choices: retain at least half of quality work, 60% of a long run, the original preparation before hills, and at least 15 min for an easy replacement. These cutoffs do not establish physiological equivalence.',
   context: 'How this session fits your plan',
-  goal: (name: string, distance: number, date: string, days: number) => `Goal: ${name}, ${distance} km on ${date}; ${days} days from this session.`,
-  goalBehind: (name: string, distance: number, date: string, days: number) => `Goal behind you: ${name}, ${distance} km on ${date}; this session is ${days} days after it.`,
+  goal: (name: string, distance: number, date: string, days: number) => `Goal: ${name}, ${n(distance)} km on ${date}; ${days} days from this session.`,
+  goalBehind: (name: string, distance: number, date: string, days: number) => `Goal behind you: ${name}, ${n(distance)} km on ${date}; this session is ${days} days after it.`,
   goalBase: (name: string, date: string) => `Goal: ${name} — base training without a race, until ${date} (P-11).`,
-  weekContext: (phase: string, actual: number, target: number, share: number) => `Phase: ${phase}. Week: ${actual} km against a ${target} km target; ${share}% easy running.`,
+  weekContext: (phase: string, actual: number, target: number, share: number) => `Phase: ${phase}. Week: ${n(actual)} km against a ${n(target)} km target; ${share}% easy running.`,
   deload: 'This is a reduced-volume week in the stored plan.',
   taper: 'The stored taper reduces volume while aiming to retain intensity and session frequency.',
   dose: 'The actual prescription',

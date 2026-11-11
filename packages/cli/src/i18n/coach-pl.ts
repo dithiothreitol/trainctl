@@ -1,4 +1,7 @@
+import { formatNumber } from 'trainctl-core'
 import type { coachEn } from './coach-en.ts'
+
+const n = (value: number) => formatNumber('pl', value)
 export const coachPl: typeof coachEn = {
   shorten: 'dopasuj trening do dostępnego czasu; zapisz propozycję do zatwierdzenia',
   shortenMcp: 'Użyj, gdy biegacz ma mało czasu, np. dziś tylko 40 minut. Wywołaj z minutes i opcjonalnym date, aby zapisać propozycję bez zmiany planu. Pokaż przed/po, podział czasu, utracony cel i ostrzeżenia. Po zatwierdzeniu wywołaj trainctl_adapt z apply równym zapisanemu ID. Nie regeneruj ani nie synchronizuj między podglądem a zatwierdzeniem.',
@@ -18,10 +21,10 @@ export const coachPl: typeof coachEn = {
   applyHint: (id: string) => `Przejrzyj propozycję, następnie zatwierdź dokładnie te zmiany: trainctl adapt --apply ${id}`,
   heuristic: 'E-1: wybory inżynierskie: zachowujemy co najmniej połowę pracy jakościowej, 60% długiego biegu, pierwotne wprowadzenie przed podbiegami i co najmniej 15 min spokojnego zamiennika. Te progi nie dowodzą równoważności fizjologicznej.',
   context: 'Miejsce tej jednostki w Twoim planie',
-  goalBehind: (name: string, distance: number, date: string, days: number) => `Cel za Tobą: ${name}, ${distance} km dnia ${date}; ta jednostka wypada ${days} dni po nim.`,
+  goalBehind: (name: string, distance: number, date: string, days: number) => `Cel za Tobą: ${name}, ${n(distance)} km dnia ${date}; ta jednostka wypada ${days} dni po nim.`,
   goalBase: (name: string, date: string) => `Cel: ${name} — budowanie bazy bez startu, do ${date} (P-11).`,
-  goal: (name: string, distance: number, date: string, days: number) => `Cel: ${name}, ${distance} km, ${date}; od tej jednostki pozostaje ${days} dni.`,
-  weekContext: (phase: string, actual: number, target: number, share: number) => `Faza: ${phase}. Tydzień: ${actual} km przy celu ${target} km; ${share}% spokojnego biegania.`,
+  goal: (name: string, distance: number, date: string, days: number) => `Cel: ${name}, ${n(distance)} km, ${date}; od tej jednostki pozostaje ${days} dni.`,
+  weekContext: (phase: string, actual: number, target: number, share: number) => `Faza: ${phase}. Tydzień: ${n(actual)} km przy celu ${n(target)} km; ${share}% spokojnego biegania.`,
   deload: 'W zapisanym planie ten tydzień ma obniżoną objętość.',
   taper: 'Zapisany taper zmniejsza objętość przy założeniu utrzymania intensywności i częstotliwości sesji.',
   dose: 'Konkretna dawka treningu',

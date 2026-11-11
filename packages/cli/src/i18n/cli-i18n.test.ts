@@ -100,6 +100,8 @@ describe('polski nie jest kalką', () => {
         'status.columns.id',
         'status.git',
         'status.plan',
+        'review.columns.planned',
+        'review.columns.status',
       ].sort(),
     )
   })

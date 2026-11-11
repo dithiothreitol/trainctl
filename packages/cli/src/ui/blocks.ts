@@ -54,6 +54,9 @@ export const b = {
   hint: (text: string): Block => ({ t: 'hint', text }),
 }
 
+/** URL albo ścieżka (Windows, POSIX, względna) — tokeny, których nie tniemy. */
+const UNBREAKABLE = /^(?:[a-z][a-z0-9+.-]*:\/\/|[A-Za-z]:[\\/]|\.{0,2}[\\/]|~[\\/])\S+$/i
+
 /** Zawijanie tekstu do szerokości, po słowach. */
 export function wrap(text: string, width: number, indent = ''): string[] {
   const available = Math.max(1, width - visibleLength(indent))
@@ -66,7 +69,12 @@ export function wrap(text: string, width: number, indent = ''): string[] {
         lines.push(indent + line)
         line = ''
       }
-      if (visibleLength(word) > available) {
+      if (visibleLength(word) > available && UNBREAKABLE.test(word)) {
+        // Adres albo ścieżka w całości, we własnym wierszu: pocięte po znakach
+        // przestają być klikalne i nie dają się skopiować. Resztę zawinie terminal.
+        if (line) lines.push(indent + line)
+        line = word
+      } else if (visibleLength(word) > available) {
         for (const part of graphemes(word)) {
           if (line && visibleLength(line + part) > available) {
             lines.push(indent + line)

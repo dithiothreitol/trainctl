@@ -6,6 +6,23 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
+### Fixed
+
+- `review`: the day-by-day execution table is headed Plan / Actual / Status
+  instead of reusing the before/after labels of plan changes; the days-to-race
+  line no longer repeats its label.
+- Decimal numbers follow the output language everywhere (`21,1 km` and
+  `VDOT 47,7` in Polish, `21.1 km` in English) instead of raw values such as
+  `21.0975`.
+- Journal statuses are words from the catalogue (`wykonany`, `opuszczony`,
+  `zmieniony` in Polish); `--json` and MCP data keep the raw enum.
+- A one-week phase reads `taper: week 22`, not `weeks 22–22`.
+- Wrapping keeps URLs and file paths whole on their own line, so links stay
+  clickable.
+- `why` counts the age of each race result from today, like `status`, and
+  names the date the plan's zones were calibrated.
+- `week` prints one volume when the target equals the planned total.
+
 ## [0.6.0] — 2026-11-04
 
 ### Fixed

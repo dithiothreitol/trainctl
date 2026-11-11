@@ -211,7 +211,7 @@ describe('serwer MCP trainctl', () => {
     })
     expect(log.isError).toBe(false)
     const week = await call('trainctl_week', { date: '2026-08-05' })
-    expect(week.text).toContain('[done]')
+    expect(week.text).toContain('[wykonany]')
     // odprawa cytuje odczucie dosłownie — materiał do rozmowy, nie do liczenia (ADR-027)
     const review = await call('trainctl_review', { date: '2026-08-05' })
     expect(review.text).toContain('RPE 6')

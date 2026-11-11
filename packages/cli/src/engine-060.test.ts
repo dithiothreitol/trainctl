@@ -144,8 +144,9 @@ describe('E-2 · budżet czasu z profilu', () => {
     const capped = plan(`${BASE}time:\n  weeklyMinutes: 200\n`)
     const week = capped.weeks.find((w) => w.skeleton.timeCappedKm !== undefined && w.skeleton.timeCappedKm < w.skeleton.targetKm - 5)!
     const out = cmdWeek(dir, { date: week.days[0]!.date }).output
-    expect(out).toContain('target ')
-    expect(out).not.toContain(`target ${week.skeleton.targetKm} km`)
+    // cel po budżecie równy rozpisanej sumie — jedna liczba, bez zamiaru makrocyklu
+    expect(out).toContain(`${week.skeleton.timeCappedKm} km`)
+    expect(out).not.toContain(`${week.skeleton.targetKm} km`)
   })
   it('plan z budżetem wygenerowany drugi raz bez zmian na wejściu jest „aktualny"', () => {
     plan(`${BASE}time:\n  weeklyMinutes: 240\n  weekdayMinutes: 50\n`)

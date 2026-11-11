@@ -118,7 +118,7 @@ function statusImpl(cwd: string): StatusResult {
     [SYNC_FILE, snapshot
       ? t.syncValue(snapshot.pulledAt, snapshot.activities.length, snapshot.activities.filter((a) => a.dataWithheld).length)
       : t.never],
-    [LOG_FILE, last ? t.logValue(logs.length, last.date, last.status) : t.empty],
+    [LOG_FILE, last ? t.logValue(logs.length, last.date, ui().log.statusWord[last.status]) : t.empty],
   ]))
   if (env.unprotected) blocks.push(b.warn(ui().envFile.unprotected(ENV_FILE, '.gitignore')))
   if (unconfirmed.length) blocks.push(b.info(t.unconfirmed(unconfirmed.join(', '))))

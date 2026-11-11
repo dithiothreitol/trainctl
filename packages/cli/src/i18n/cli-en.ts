@@ -178,7 +178,7 @@ export const cliEn = {
     goalConservative: (target: string) => `The goal of ${target} is conservative against the prediction.`,
     goalInRange: (target: string) => `The goal of ${target} sits inside the predicted range.`,
     structure: 'Structure',
-    phaseSpan: (phase: string, from: number, to: number) => `${phase}: weeks ${from}–${to}`,
+    phaseSpan: (phase: string, from: number, to: number) => from === to ? `${phase}: week ${from}` : `${phase}: weeks ${from}–${to}`,
     regenSection: 'What the regeneration changes',
     sameCycle: (start: string) =>
       `Same training cycle: phases stay anchored to ${start}; future days follow trainctl.yaml.`,
@@ -250,7 +250,7 @@ export const cliEn = {
     title: (index: number, total: number, weekStart: string) =>
       `Week ${index}/${total} · from ${weekStart}`,
     subtitle: (phase: string, model: string, targetKm: number, plannedKm: number) =>
-      `${phase} (${model}) · target ${n(targetKm)} km · planned ${n(plannedKm)} km`,
+      targetKm === plannedKm ? `${phase} (${model}) · ${n(plannedKm)} km` : `${phase} (${model}) · target ${n(targetKm)} km · planned ${n(plannedKm)} km`,
     deloadUpper: 'DELOAD',
     columns: { day: 'day', date: 'date', km: 'km', workout: 'workout' },
     rest: 'rest',
@@ -265,6 +265,7 @@ export const cliEn = {
     badRpe: (rpe: string) =>
       `RPE "${rpe}" is off the scale — use a whole number 1–10 (10 = maximal effort).`,
     saved: (date: string, status: string) => `Logged ${date}: ${status}.`,
+    statusWord: { done: 'done', skipped: 'skipped', modified: 'modified' } as Record<'done' | 'skipped' | 'modified', string>,
     planned: 'Planned',
     recorded: 'Recorded',
     testTime: (time: string) => `test segment ${time}`,
@@ -613,6 +614,7 @@ export const cliEn = {
       return remainingKm === totalKm ? `${n(totalKm)} km ${across}` : `${n(remainingKm)} of ${n(totalKm)} km left ${across}`
     },
     toRace: 'To race day',
+    columns: { planned: 'Plan', actual: 'Actual', status: 'Status' },
     toRaceValue: (days: number) => `${days} days`,
     baseEnd: 'Base plan until',
     raceThisWeek: (date: string) =>
