@@ -9,7 +9,7 @@ import { addDays, formatNumber, getLocale, messages, type Microcycle, type Plann
 import { cmdLog, cmdShift, cmdWeek, kindLabel } from './commands.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, shownKm } from './format.ts'
-import { latestByDate, LOG_LIMITS, parseTime, readLog } from './logfile.ts'
+import { LOG_LIMITS, parseTime, readLog } from './logfile.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 import { renderAnsi } from './ui/blocks.ts'
 import { clampIndex, keyAction, type KeyEvent } from './ui/keys.ts'
@@ -150,7 +150,8 @@ export async function runLogPrompt(cwd: string, today: string, theme = new Theme
     return { code: 1, output: e instanceof Error ? e.message : String(e) }
   }
   const q = ui().log.prompt
-  const logged = new Map([...latestByDate(readLog(cwd))].map(([date, e]) => [date, e.status] as const))
+  // ostatni wpis daty wygrywa (jak latestByDate) — Map nadpisuje wcześniejszy
+  const logged = new Map(readLog(cwd).map((e) => [e.date, e.status] as const))
   const choices = logChoices(plan, today, logged)
   if (choices.length === 0) return { code: 1, output: ui().log.outsidePlan(today) }
   const date = await select(q.which, choices, theme)

@@ -31,7 +31,7 @@ import {
   type PlannedDay,
 } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
-import { sameSelection } from './calibration.ts'
+import { sameResults, sameSelection } from './calibration.ts'
 import { budgetWarnings, computePlan, dayFingerprint, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
@@ -228,6 +228,8 @@ export function rebuildPlan(
     // wynik, z którego policzono strefy, to też treść planu: `why` porównuje go
     // z dzisiejszym profilem — bez zapisu podpowiedź „uruchom trainctl plan" by nie znikła
     sameSelection(plan.calibration?.selected, existing.calibration?.selected) &&
+    // nowy wynik bez zmiany wyboru: lista wyników w `why` też ma być aktualna
+    sameResults(plan.calibration?.results, existing.calibration?.results) &&
     JSON.stringify(plan.goal) === JSON.stringify(existing.goal) &&
     plan.locale === existing.locale &&
     plan.engineVersion === existing.engineVersion &&

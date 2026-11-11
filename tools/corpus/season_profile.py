@@ -13,7 +13,6 @@ Wyjście: liczby na stdout + corpus/parsed/season-profile.json (gitignore).
 """
 import io
 import json
-import re
 import statistics
 import sys
 from collections import Counter, defaultdict
@@ -21,6 +20,9 @@ from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+# `python -I` nie dodaje katalogu skryptu do sys.path — dodajemy własny katalog jawnie
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from races import race_km  # noqa: E402  (wspólna reguła startów, races.py)
 REP_WORK = {'intervals', 'hills', 'pickups', 'hills_drills', 'time_block', 'steady_time'}
 EASY = {'easy', 'warmup', 'cooldown'}
 NON_RUN = {'cross', 'strength_session'}
@@ -34,24 +36,6 @@ def km(w):
 
 def types(w):
     return [s.get('type') for s in w.get('segments', [])]
-
-
-def race_km(w):
-    race = w.get('race') or {}
-    if isinstance(race.get('distance_km'), (int, float)):
-        return float(race['distance_km'])
-    raw = (race.get('raw') or '').upper()
-    # jawny dystans ma pierwszeństwo: „ULTRAMARATON 60 KM" to 60 km, nie maraton
-    m = re.search(r'(?<![\d,.])(\d{1,3}(?:[.,]\d+)?)\s*KM', raw)
-    if m:
-        return float(m.group(1).replace(',', '.'))
-    if re.search(r'P[OÓ]ŁMARATON|POLMARATON|HALF', raw):
-        return 21.0975
-    if re.search(r'ULTRA', raw):
-        return None
-    if re.search(r'MARAT[HO]', raw):
-        return 42.195
-    return None
 
 
 def is_run(w):

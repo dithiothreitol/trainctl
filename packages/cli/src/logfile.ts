@@ -89,10 +89,11 @@ function fromText(key: string, text: string): number {
 /**
  * Granice wartości dziennika — jedne dla `trainctl log` (walidacja wejścia) i dla
  * odczytu ręcznie edytowanego log.jsonl. RPE całkowite 1–10 (CR-10 bez zera, P-6),
- * minuty siły całkowite 1–300, dystans nieujemny, czasy dodatnie.
+ * minuty siły całkowite 1–300, dystans 0–500 km, czasy dodatnie.
  */
 export const LOG_LIMITS = {
-  km: (v: number): boolean => Number.isFinite(v) && v >= 0,
+  // 500 km (inż.): sufit literówki („8500" zamiast „8.5"), z zapasem dla ultra
+  km: (v: number): boolean => Number.isFinite(v) && v >= 0 && v <= 500,
   timeSec: (v: number): boolean => Number.isFinite(v) && v > 0,
   testTimeSec: (v: number): boolean => Number.isFinite(v) && v > 0,
   rpe: (v: number): boolean => Number.isInteger(v) && v >= 1 && v <= 10,
@@ -128,12 +129,12 @@ export function readJournal(cwd: string): { runs: LogEntry[]; strength: Strength
 
 /** Wpisy biegowe — to, z czego liczy się wykonanie planu. */
 export function readLog(cwd: string): LogEntry[] {
-  return readAll(cwd).filter((e): e is LogEntry => !isStrength(e))
+  return readJournal(cwd).runs
 }
 
 /** Wpisy siły; ostatni wpis dnia wygrywa, jak w dzienniku biegów. */
 export function readStrengthLog(cwd: string): StrengthLogEntry[] {
-  return readAll(cwd).filter(isStrength)
+  return readJournal(cwd).strength
 }
 
 /** Ostatni wpis dla daty (późniejszy nadpisuje wcześniejszy w interpretacji). */

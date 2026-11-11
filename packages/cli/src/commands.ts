@@ -76,7 +76,7 @@ import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 import { buildExecution, isRunningActivity } from './execution.ts'
-import { recalibrationToday, resultKey } from './calibration.ts'
+import { recalibrationToday, resultKey, sameResults } from './calibration.ts'
 import { applyProposal, prepareProposal, prepareShortening, raceDayKm, recordedDates, type PlanProposal } from './proposals.ts'
 import { explainSession } from './explain-session.ts'
 export { buildExecution } from './execution.ts'
@@ -702,7 +702,8 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
       date,
       status,
       // opuszczona sesja nie ma dystansu (0 km to brak informacji, nie wynik)
-      ...(km !== undefined && status !== 'skipped' ? { km } : {}),
+      // dokładność 0,1 m (4 miejsca): echo i today pokazują dokładnie to, co zapisano
+      ...(km !== undefined && status !== 'skipped' ? { km: Math.round(km * 1e4) / 1e4 } : {}),
       ...(timeSec !== undefined ? { timeSec } : {}),
       ...(testTimeSec !== undefined ? { testTimeSec } : {}),
       ...(rpe !== undefined ? { rpe } : {}),
@@ -843,7 +844,7 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     const now = localToday()
     const config = plan.calibration ? (() => { try { return loadConfig(cwd) } catch { return undefined } })() : undefined
     const recalibration = plan.calibration && config
-      ? recalibrationToday(plan.calibration, config.athlete.results, now, config.goal) : null
+      ? recalibrationToday({ calibration: plan.calibration, vdot: plan.vdot, vdotSource: plan.vdotSource }, config.athlete.results, now, config.goal) : null
     if (plan.calibration) {
       blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c) => {
         const age = diffDays(c.result.date, now)
@@ -1054,7 +1055,7 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       execution,
       currentWeeklyKm,
       ...(newResults.length ? { newResults } : {}),
-      calibrationChanged: plan.calibration !== undefined && JSON.stringify(config.athlete.results.map(resultKey).sort()) !== JSON.stringify(plan.calibration.results.map(resultKey).sort()),
+      calibrationChanged: plan.calibration !== undefined && !sameResults(config.athlete.results, plan.calibration.results),
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: tuneUpByDate.get(lastRaceDay.date) ?? plan.goal.distanceKm } } : {}),
       ...(uncalibratedTests.length ? { uncalibratedTests } : {}),
     })

@@ -227,8 +227,8 @@ export const cliEn = {
   },
 
   today: {
-    daysToRace: (days: number) => `${days} days to race`,
-    daysAfterRace: (days: number) => `${days} ${pluralEn(days, { one: 'day', other: 'days' })} after the race`,
+    daysToRace: (days: number) => `${dayCount(days)} to race`,
+    daysAfterRace: (days: number) => `${dayCount(days)} after the race`,
     weekOf: (index: number, total: number) => `week ${index}/${total}`,
     deload: 'deload',
     restDayTitle: 'Rest day',

@@ -8,7 +8,7 @@ import { appendFileSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFi
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { setLocale } from 'trainctl-core'
+import { setLocale, vdotFromRace } from 'trainctl-core'
 import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices, plannedKmDefault } from './interactive.ts'
@@ -467,15 +467,21 @@ describe('why: kalibracja stref — decyzje z dnia kalibracji i podpowiedź na d
     expect(why.data).toMatchObject({ recalibration: null })
   })
 
-  it('recalibrationToday: ten sam wynik, inny wynik, brak wyniku', () => {
+  it('recalibrationToday: ten sam wynik, inny wynik, brak wyniku, zmiana czasu docelowego', () => {
     const a = { date: '2026-09-27', distanceKm: 10, timeSec: 2580 }
     const b = { date: '2026-10-25', distanceKm: 5, timeSec: 1200 }
-    const stored = { evaluatedAt: '2026-10-22', policy: 'best-vdot-540-days' as const, results: [a], selected: a, candidates: [] }
-    expect(recalibrationToday(stored, [a], '2026-10-29', { kind: 'race' })).toEqual({ selected: a, source: 'result', changed: false })
-    expect(recalibrationToday(stored, [a, b], '2026-10-29', { kind: 'race' })).toMatchObject({ selected: b, changed: true })
-    expect(recalibrationToday(stored, [{ ...a, excluded: true }], '2026-10-29', { kind: 'race' })).toEqual({ selected: null, source: 'none', changed: true })
-    const { selected: _, ...withoutResult } = stored
-    expect(recalibrationToday(withoutResult, [], '2026-10-29', { kind: 'race' })).toEqual({ selected: null, source: 'none', changed: false })
+    const goal = { kind: 'race', distanceKm: 21.0975 }
+    const calibration = { evaluatedAt: '2026-10-22', policy: 'best-vdot-540-days' as const, results: [a], selected: a, candidates: [] }
+    const fromResult = { calibration, vdot: Math.round(vdotFromRace(10, 2580) * 10) / 10, vdotSource: 'result' }
+    expect(recalibrationToday(fromResult, [a], '2026-10-29', goal)).toEqual({ selected: a, source: 'result', changed: false })
+    expect(recalibrationToday(fromResult, [a, b], '2026-10-29', goal)).toMatchObject({ selected: b, changed: true })
+    expect(recalibrationToday(fromResult, [{ ...a, excluded: true }], '2026-10-29', goal)).toEqual({ selected: null, source: 'none', changed: true })
+    // plan z czasu docelowego: bez wyniku nic się nie zmienia, póki ten sam czas; inny czas albo brak — zmiana
+    const { selected: _, ...noResult } = calibration
+    const fromGoal = { calibration: noResult, vdot: Math.round(vdotFromRace(21.0975, 5700) * 10) / 10, vdotSource: 'goal-target' }
+    expect(recalibrationToday(fromGoal, [], '2026-10-29', { ...goal, targetTimeSec: 5700 })).toMatchObject({ source: 'goal-target', changed: false })
+    expect(recalibrationToday(fromGoal, [], '2026-10-29', { ...goal, targetTimeSec: 5400 })).toMatchObject({ source: 'goal-target', changed: true })
+    expect(recalibrationToday(fromGoal, [], '2026-10-29', goal)).toMatchObject({ source: 'none', changed: true })
   })
 })
 
@@ -651,5 +657,32 @@ describe('szesnasta runda: źródło stref, siła „zmieniona", kreator init', 
     expect(parseDistanceInput('21,1')).toBe(21.1)
     expect(() => parseDistanceInput('0x10')).toThrow()
     expect(() => parseDistanceInput('1e2')).toThrow()
+  })
+})
+
+describe('siedemnasta runda: dni do startu, zbiór wyników, granice dziennika', () => {
+  it('today po angielsku: „1 day to race"', () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2027-03-27'
+    expect(cmdToday(dir).output).toContain('1 day to race')
+  })
+
+  it('nowy, słabszy wynik w trainctl.yaml: plan zapisany, why pokazuje go na liście', () => {
+    const r1 = '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }'
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(r1, `${r1}\n    - { date: "2026-10-15", distanceKm: 5, timeSec: 1500 }`), 'utf-8')
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-29'
+    expect(cmdPlan(dir).data).toMatchObject({ regeneration: { upToDate: false } })
+    expect(cmdWhy(dir, { date: '2026-10-29' }).output).toMatch(/2026-10-15 · 5 km · VDOT [\d.]+ · Lower VDOT/)
+    expect(cmdPlan(dir).data).toMatchObject({ regeneration: { upToDate: true } })
+  })
+
+  it('log: dystans ponad 500 km odrzucony, zapis z dokładnością 0,1 m', () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    expect(cmdLog(dir, { date: '2026-10-27', status: 'done', km: '8500' }).code).not.toBe(0)
+    const saved = cmdLog(dir, { date: '2026-10-27', status: 'done', km: '8.123456' })
+    expect(readLog(dir).at(-1)).toMatchObject({ km: 8.1235 })
+    expect(saved.output).toContain('8.1235 km')
   })
 })

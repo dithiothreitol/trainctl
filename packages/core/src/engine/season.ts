@@ -143,8 +143,9 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
   for (const week of weeks) {
     const runs = week.days.flatMap((d) => (d.workout ? [{ date: d.date, w: d.workout }] : []))
     const long = runs.find((r) => r.w.kind === 'long')
-    const easy = runs.filter((r) => r.w.kind === 'easy')
-    const longest = Math.max(0, ...easy.map((r) => r.w.distanceKm))
+    // J-1/S-2: długie jest najdłuższym biegiem tygodnia — także wobec akcentów i podbiegów
+    const others = runs.filter((r) => r.w !== long?.w && !['race', 'test', 'sharpener'].includes(r.w.kind))
+    const longest = Math.max(0, ...others.map((r) => r.w.distanceKm))
     // S-2/J-1: długie jest najdłuższym biegiem tygodnia
     if (long && longest > long.w.distanceKm) issues.push({ code: 'longNotLongest', date: week.weekStart, ruleRefs: ['S-2', 'J-1'], values: [long.w.distanceKm, longest] })
     // jedna jednostka nie dźwiga tygodnia (inż.)
@@ -172,15 +173,28 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
   // sufitu). Blok to tygodnie ładowania między odciążeniami; liczy się ostatni z akcentami
   // innymi niż podbiegi. Plan z historią może mieć kilka cykli — każdy tydzień przejściowy
   // porównujemy z blokiem, który go poprzedza, nie z budowaniem następnego cyklu.
-  let blockHard: number[] = []
-  let ceilingHard: number[] = []
+  // Plan bez budowania (krótki horyzont) albo z samymi podbiegami w budowaniu: sufit
+  // z ostatniego bloku ładowania przed startem (baza, szczyt), żeby R-8 nie znikało.
+  let buildBlock: number[] = [], buildCeiling: number[] = []
+  let loadBlock: number[] = [], loadCeiling: number[] = []
   for (const r of rows) {
-    if (r.phase === 'build') {
-      if (r.deload) { if (blockHard.length) ceilingHard = blockHard; blockHard = []; continue }
-      if (!r.flags.length) blockHard.push(...r.accents.filter((a) => a.kind !== 'easy_hills').map((a) => a.hardKm))
+    if (LOADING_PHASES.has(r.phase)) {
+      if (r.phase !== 'build' && buildBlock.length) { buildCeiling = buildBlock; buildBlock = [] }
+      if (r.deload) {
+        if (buildBlock.length) buildCeiling = buildBlock
+        if (loadBlock.length) loadCeiling = loadBlock
+        buildBlock = []; loadBlock = []
+        continue
+      }
+      if (r.flags.length) continue
+      const hard = r.accents.filter((a) => a.kind !== 'easy_hills').map((a) => a.hardKm)
+      loadBlock.push(...hard)
+      if (r.phase === 'build') buildBlock.push(...hard)
       continue
     }
-    if (blockHard.length) { ceilingHard = blockHard; blockHard = [] }
+    if (buildBlock.length) { buildCeiling = buildBlock; buildBlock = [] }
+    if (loadBlock.length) { loadCeiling = loadBlock; loadBlock = [] }
+    const ceilingHard = buildCeiling.length ? buildCeiling : loadCeiling
     if (r.phase !== 'transition' || !ceilingHard.length) continue
     const ceiling = median(ceilingHard)
     for (const a of r.accents) if (a.kind !== 'easy_hills' && a.hardKm > ceiling) issues.push({ code: 'postRaceAccentHeavy', date: r.weekStart, ruleRefs: ['R-8'], values: [a.hardKm, ceiling] })

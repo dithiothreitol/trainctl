@@ -12,7 +12,6 @@ Wyjście: liczby na stdout + corpus/parsed/post-race-profile.json (gitignore).
 """
 import io
 import json
-import re
 import statistics
 import sys
 from datetime import date, timedelta
@@ -20,22 +19,12 @@ from pathlib import Path
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 ROOT = Path(__file__).resolve().parents[2]
+# `python -I` nie dodaje katalogu skryptu do sys.path — dodajemy własny katalog jawnie
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from races import race_km  # noqa: E402  (wspólna reguła startów, races.py)
 QUALITY = {'intervals', 'hills', 'progression', 'alternating', 'steady', 'steady_time', 'time_block', 'pickups', 'hills_drills'}
 MIN_RACE_KM = 21.0
 HORIZON = 14
-
-
-def race_km(workout):
-    race = workout.get('race') or {}
-    if isinstance(race.get('distance_km'), (int, float)):
-        return float(race['distance_km'])
-    raw = (race.get('raw') or workout.get('raw') or '').upper()
-    if re.search(r'P[OÓ]{1}[ŁL]MARATON|HALF', raw):
-        return 21.0975
-    if re.search(r'MARATON', raw):
-        return 42.195
-    m = re.search(r'(\d{2,3})\s*KM', raw)
-    return float(m.group(1)) if m else None
 
 
 def km(workout):

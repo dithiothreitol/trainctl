@@ -1,7 +1,8 @@
 """Testy pomocników season_profile. Uruchomienie: python -m unittest discover tools/corpus -v"""
 import unittest
 
-from season_profile import is_run, med, p90, race_km
+from races import race_km
+from season_profile import is_run, med, p90
 
 
 class TestStats(unittest.TestCase):

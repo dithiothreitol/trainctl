@@ -29,13 +29,25 @@ export const sameSelection = (a: RaceResult | undefined, b: RaceResult | undefin
  * wyniku albo bez wyniku. Opisy zapisanych wyników w `why` zostają decyzjami z dnia
  * kalibracji; ta jedna odpowiedź mówi, co się od tego czasu zmieniło.
  */
-export function recalibrationToday(stored: Calibration, results: RaceResult[], today: string, goal: GoalForZones):
-  { selected: RaceResult | null; source: ZoneSource; changed: boolean } {
+export function recalibrationToday(
+  plan: { calibration: Calibration; vdot: number; vdotSource: string },
+  results: RaceResult[], today: string, goal: GoalForZones,
+): { selected: RaceResult | null; source: ZoneSource; changed: boolean } {
   const selected = inspectCalibration(results, today, isRoadGoal(goal)).selected ?? null
-  return { selected, source: zoneSource(selected ?? undefined, goal), changed: !sameSelection(selected ?? undefined, stored.selected) }
+  const source = zoneSource(selected ?? undefined, goal)
+  // VDOT zaokrąglony jak w computePlan; bez źródła stref plan się zatrzyma
+  const vdot = source === 'result' ? vdotFromRace(selected!.distanceKm, selected!.timeSec)
+    : source === 'goal-target' ? vdotFromRace(goal.distanceKm, goal.targetTimeSec!) : undefined
+  const changed = !sameSelection(selected ?? undefined, plan.calibration.selected) || source !== plan.vdotSource ||
+    (vdot !== undefined && Math.round(vdot * 10) / 10 !== plan.vdot)
+  return { selected, source, changed }
 }
 
-type GoalForZones = { kind?: string | undefined; terrain?: string | undefined; targetTimeSec?: number | undefined }
+type GoalForZones = { kind?: string | undefined; terrain?: string | undefined; targetTimeSec?: number | undefined; distanceKm: number }
+
+/** Ten sam zbiór wyników (bez kolejności i nazw) — regeneracja zapisuje plan, gdy się zmienił. */
+export const sameResults = (a: RaceResult[] | undefined, b: RaceResult[] | undefined): boolean =>
+  JSON.stringify((a ?? []).map(resultKey).sort()) === JSON.stringify((b ?? []).map(resultKey).sort())
 export type ZoneSource = 'result' | 'goal-target' | 'none'
 
 /**
@@ -43,7 +55,7 @@ export type ZoneSource = 'result' | 'goal-target' | 'none'
  * i `targetTimeSec`) albo znikąd — wtedy `trainctl plan` zatrzymuje się błędem.
  * Jedna reguła dla computePlan i podpowiedzi `why`.
  */
-export function zoneSource(selected: RaceResult | undefined, goal: GoalForZones): ZoneSource {
+export function zoneSource(selected: RaceResult | undefined, goal: Pick<GoalForZones, 'kind' | 'targetTimeSec'>): ZoneSource {
   if (selected) return 'result'
   return goal.targetTimeSec && goal.kind !== 'base' ? 'goal-target' : 'none'
 }

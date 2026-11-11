@@ -154,3 +154,25 @@ describe('linty oceniają bieżący cykl', () => {
     expect(codes('2027-01-04')).toContain('longBelowGoal')
   })
 })
+
+describe('siedemnasta runda: długie wobec akcentów, R-8 bez budowania', () => {
+  const continuous = (main: number): PlannedWorkout => ({
+    kind: 'quality_continuous', distanceKm: 4 + main, ruleRefs: [],
+    segments: [
+      { type: 'warmup', distanceKm: 3, description: '' },
+      { type: 'steady', distanceKm: main, description: '' },
+      { type: 'cooldown', distanceKm: 1, description: '' },
+    ],
+  })
+  it('akcent dłuższy od długiego to longNotLongest (J-1, S-2)', () => {
+    const weeks = [week('2027-01-04', { tue: continuous(8), sat: long(10) })]
+    expect(seasonShapeIssues({ goal: half, weeks }).some((i) => i.code === 'longNotLongest')).toBe(true)
+  })
+  it('plan bez budowania: R-8 z ostatniego bloku ładowania (szczyt)', () => {
+    const weeks = [
+      week('2027-01-04', { tue: continuous(3), sat: long(16) }, 'peak'),
+      week('2027-01-11', { tue: continuous(6), sat: long(8) }, 'transition'),
+    ]
+    expect(seasonShapeIssues({ goal: half, weeks }).some((i) => i.code === 'postRaceAccentHeavy')).toBe(true)
+  })
+})

@@ -38,7 +38,8 @@ change between minor versions — a regenerated plan can differ.
   would now calibrate them from a different result or from none.
 - `trainctl log` reads numbers with one rule for `--km`, `--rpe`, `--minutes`
   and the interactive prompt: a decimal comma (`8,5`) is accepted, hex and
-  exponent forms are not, and the distance is echoed as entered.
+  exponent forms are not, and the distance is stored to 0.1 m and echoed as
+  stored.
 - Hand-edited `log.jsonl` values are read with the limits `trainctl log`
   applies: numbers written as text or with a comma are accepted, values the
   CLI would reject are ignored, and a missing final newline no longer merges
