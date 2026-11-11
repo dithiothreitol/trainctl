@@ -8,7 +8,7 @@ import { createInterface } from 'node:readline/promises'
 import { addDays, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
 import { cmdLog, cmdShift, cmdWeek, kindLabel } from './commands.ts'
 import { ui } from './i18n/index.ts'
-import { kmLabel } from './format.ts'
+import { kmLabel, logStatusText } from './format.ts'
 import { parseTime, readLog } from './logfile.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 import { renderAnsi } from './ui/blocks.ts'
@@ -98,8 +98,8 @@ export function logChoices(plan: StoredPlan, today: string, logged: Map<string, 
       label: `${messages().weekdayShort[day.weekday]} ${day.date.slice(5)}`,
       value: day.date,
       hint: [
-        day.workout ? `${kindLabel(day.workout.kind)} · ${day.workout.raceDistanceKm ?? day.workout.distanceKm} km` : ui().week.rest,
-        logged.has(day.date) ? `[${ui().log.prompt.logged}: ${logged.get(day.date)}]` : '',
+        day.workout ? `${kindLabel(day.workout.kind)} · ${kmLabel(day.workout.raceDistanceKm ?? day.workout.distanceKm)}` : ui().week.rest,
+        logged.has(day.date) ? `[${ui().log.prompt.logged}: ${logStatusText(logged.get(day.date)!)}]` : '',
       ].filter(Boolean).join(' '),
     }))
 }

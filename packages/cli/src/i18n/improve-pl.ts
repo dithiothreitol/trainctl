@@ -45,7 +45,6 @@ export const improvePl: typeof improveEn = {
   mobilePurpose: 'Cel', mobileSteps: 'Twój trening', mobileWhy: 'Dlaczego ta jednostka',
   mobileSnapshot: 'Zapisana kopia planu. Po zmianach wyeksportuj ponownie.',
   mobileRest: 'Dzień wolny', mobileStrength: 'Siła',
-  data: 'Dane wykonania',
   dataStatus: (status: string, unknown: number) => 'Kompletność: ' + (({ complete: 'pełne', incomplete: 'niepełne', empty: 'brak danych' } as Record<string, string>)[status] ?? status) + '; sesje bez danych: ' + unknown + '.',
   syncedAt: (date: string) => `Ostatnia synchronizacja: ${date}. Brakujące wpisy pozostają niepotwierdzone.`,
   proposalOptions: 'Użyj albo --prepare, albo --apply ID.',

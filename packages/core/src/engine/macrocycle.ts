@@ -160,7 +160,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   const reachable = start * Math.pow(RAMP_PER_LOAD_WEEK, Math.max(0, loadOnly - 1))
   // P-7/P-8 to podłoga dla niedotrenowanych, nie sufit: atlecie z bazą powyżej
   // rekomendacji utrzymujemy (lekko rozwijamy) jego wolumen zamiast go ciąć.
-  // E-3 (inż.): plan ze startem rozwija bazę ponad rekomendację o najwyżej 15%
+  // E-3 (inż.): plan ze startem celuje w bieżącą objętość +15% (sufit `cap`), nie niżej niż rekomendacja P-7/P-8
   const targetPeak = baseOnly
     ? Math.min(athlete.peakWeeklyKm ?? start * BASE_GROWTH, cap)
     : Math.max(recommended, Math.min(start * 1.15, cap))

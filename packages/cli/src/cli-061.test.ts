@@ -11,6 +11,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
 import { cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
+import { logChoices } from './interactive.ts'
+import { loadPlan } from './planfile.ts'
+import { shortenDetail } from './proposals.ts'
 import { renderAnsi, wrap } from './ui/blocks.ts'
 import { Theme, visibleLength } from './ui/theme.ts'
 
@@ -166,7 +169,7 @@ describe('poprawki po przeglądzie etapu 1', () => {
       .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
     for (const f of files) {
       const src = readFileSync(join(import.meta.dirname, f), 'utf-8')
-      expect(src, f).not.toMatch(/\$\{[\w.!?]*(?:km|Km)\} km/)
+      expect(src, f).not.toMatch(/\$\{[^}]*(?:km|Km)\} km/)
       expect(src, f).not.toContain('String(w.totalKm)')
     }
   })
@@ -252,5 +255,45 @@ describe('poprawki po trzeciej rundzie przeglądu etapu 1', () => {
     const build = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'tsconfig.build.json'), 'utf-8')) as { exclude: string[] }
     expect(pkg.files).toContain('!src/**/*.fixture.ts')
     expect(build.exclude).toContain('src/**/*.fixture.ts')
+  })
+})
+
+describe('poprawki po czwartej rundzie przeglądu etapu 1', () => {
+  it('wybór dnia w interaktywnym log: status i dystans w języku', () => {
+    setLocale('pl')
+    const choices = logChoices(loadPlan(dir), '2027-03-29', new Map([['2027-03-28', 'done']]))
+    const race = choices.find((c) => c.value === '2027-03-28')!
+    expect(race.hint).toContain('21,1 km')
+    expect(race.hint).toContain('wykonany')
+    expect(race.hint).not.toContain('done')
+  })
+
+  it('review dzień przed startem: „1 day"', async () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2027-03-27'
+    expect((await cmdReview(dir, {})).output).toContain('To race day: 1 day\n')
+  })
+
+  it('review nie pada na km zapisane tekstem w log.jsonl', async () => {
+    process.env['TRAINCTL_TODAY'] = '2026-10-29'
+    appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'done', km: '8', loggedAt: '2026-10-27T10:00:00Z' }) + '\n')
+    const out = await cmdReview(dir, {})
+    expect(out.code).toBe(0)
+    expect(out.output).toContain('8 km')
+  })
+
+  it('historia skrócenia w plan.yaml nie zależy od języka CLI', () => {
+    setLocale('pl')
+    expect(shortenDetail('2026-10-27', 10.25, 8, 40, 'shortened')).toBe('2026-10-27: 10.25 → 8 km; 40 min; shortened')
+  })
+
+  it('why: wynik z trailu, dziś starszy niż 540 dni, jest przeterminowany', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
+      '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }\n    - { date: "2025-05-10", distanceKm: 21.1, timeSec: 7200, terrain: trail }'), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-11-30'
+    const out = cmdWhy(dir, { date: '2026-12-01' }).output
+    expect(out).toMatch(/2025-05-10 · 21\.1 km · VDOT [\d.]+ · Older than 540 days/)
   })
 })

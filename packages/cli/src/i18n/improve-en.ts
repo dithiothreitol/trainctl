@@ -44,7 +44,6 @@ export const improveEn = {
   mobilePurpose: 'Purpose', mobileSteps: 'Your session', mobileWhy: 'Why this session',
   mobileSnapshot: 'Saved snapshot of the plan. Export again after changing it.',
   mobileRest: 'Rest day', mobileStrength: 'Strength',
-  data: 'Execution data',
   dataStatus: (status: string, unknown: number) => `Coverage: ${status}; sessions without records: ${unknown}.`,
   syncedAt: (date: string) => `Last synchronization: ${date}. Missing records remain unconfirmed.`,
   proposalOptions: 'Use either --prepare or --apply ID.',

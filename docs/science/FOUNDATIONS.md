@@ -1865,11 +1865,11 @@ w kodzie komentarzem „E-3 (inż.)". Lista służy przeglądowi trenerskiemu
 | Stała | Wartość | Miejsce |
 |---|---|---|
 | sufit bez `peakWeeklyKm` | bieżąca objętość × 1,4 | `macrocycle.ts` |
-| rozwój bazy w planie ze startem | × 1,15 | `macrocycle.ts` |
+| cel szczytu w planie ze startem | bieżąca objętość × 1,15, nie mniej niż rekomendacja P-7/P-8 | `macrocycle.ts` |
 | podział faz przed taperem | 40% baza, 20% szczyt, reszta budowanie | `macrocycle.ts` |
-| część główna akcentu | 22% tygodnia minus rozgrzewka i schłodzenie | `microcycle.ts` |
+| część główna akcentu | 22% tygodnia minus rozgrzewka i schłodzenie, co najmniej 3 km | `microcycle.ts` |
 | spokojne przed podbiegami | 5–8 km, ~10% tygodnia | `microcycle.ts` |
-| sufit biegu spokojnego | 18 km | `microcycle.ts` (`EASY_RUN_CAP_KM`) |
+| bieg spokojny | wstępnie co najmniej 5 km, najwyżej 18 km | `microcycle.ts` (`EASY_RUN_CAP_KM`) |
 | kilometry poza Z1 | najwyżej 25% tygodnia | `microcycle.ts` |
 | przerwy w interwałach | 2' marsz (@T, 1 km), 3' trucht (@T 3 km, @I) | `microcycle.ts` |
 | akcent tygodnia startowego | 5×300 m @I, p. 1' | `microcycle.ts` |

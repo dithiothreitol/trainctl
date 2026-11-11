@@ -618,7 +618,7 @@ export const cliEn = {
     },
     toRace: 'To race day',
     columns: { planned: 'Plan', actual: 'Actual', status: 'Status' },
-    toRaceValue: (days: number) => `${days} days`,
+    toRaceValue: (days: number) => `${days} ${pluralEn(days, { one: 'day', other: 'days' })}`,
     baseEnd: 'Base plan until',
     raceThisWeek: (date: string) =>
       `Race this week: ${date} — the day before stays clear (T-10).`,

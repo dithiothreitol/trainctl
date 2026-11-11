@@ -22,6 +22,11 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(race_km({'race': {'raw': 'START NA 21,0975 KM'}}), 21.0975)
         self.assertEqual(race_km({'race': {'raw': 'START NA 10 KM'}}), 10.0)
 
+    def test_marathon_names(self):
+        self.assertEqual(race_km({'race': {'raw': 'ULTRAMARATON 60 KM'}}), 60.0)
+        self.assertEqual(race_km({'race': {'raw': 'BERLIN MARATHON'}}), 42.195)
+        self.assertIsNone(race_km({'race': {'raw': 'ULTRAMARATON GÓRSKI'}}))
+
     def test_run_without_segments(self):
         self.assertTrue(is_run({'distance_km_est': [8, 10], 'segments': []}))
         self.assertFalse(is_run({'distance_km_est': [0, 45], 'segments': [{'type': 'cross'}]}))

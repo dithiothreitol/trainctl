@@ -482,6 +482,7 @@ function planNormalWeek(
 
   // objętość
   const longKm = longWd ? Math.min(Math.round(style.longRunShare * target), style.longRunCapKm) : 0
+  // E-3 (inż.): część główna akcentu co najmniej 3 km
   let qualityMainKm = Math.max(3, Math.round(QUALITY_MAIN_SHARE * target) - style.warmupKm - style.cooldownKm)
   const hillsRepsKm = (style.hillsReps * style.hillsRepM) / 1000
   // E-3 (inż.): spokojne wprowadzenie przed podbiegami 5–8 km, ~10% tygodnia
@@ -502,6 +503,7 @@ function planNormalWeek(
 
     const usedKm = [...plan.values()].reduce((s, w) => s + w.distanceKm, 0)
     const remaining = Math.max(0, target - usedKm)
+    // E-3 (inż.): wstępny przydział biegu spokojnego co najmniej 5 km
     const perEasy = easyWds.length
       ? Math.min(EASY_RUN_CAP_KM, Math.max(5, Math.round(remaining / easyWds.length)))
       : 0

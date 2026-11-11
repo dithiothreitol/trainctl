@@ -830,7 +830,9 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
         // wtedy był z przyszłości albo w terminie, a dziś wygląda inaczej, dostaje opis
         // stanu dzisiejszego — inaczej etykieta i wiek przeczyłyby sobie.
         const age = diffDays(c.result.date, now)
-        const reason = c.reason === 'future' && age >= 0 ? 'newer' : c.reason === 'lower-vdot' && age > 540 ? 'stale' : c.reason === 'selected' && age > 540 ? 'selectedStale' : c.reason
+        const reason = c.reason === 'excluded' ? c.reason
+          : age > 540 ? (c.reason === 'selected' ? 'selectedStale' : 'stale')
+            : c.reason === 'future' && age >= 0 ? 'newer' : c.reason
         return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
       })))
     } else blocks.push(b.info(ui().improve.calibrationMissing))
@@ -1536,7 +1538,7 @@ export async function cmdReview(
           [ui().review.volume, ui().review.volumeAhead(Math.round(upcoming.reduce((s, d) => s + (d.workout?.distanceKm ?? 0), 0) * 10) / 10, week.totalKm, upcoming.length)],
           ...(plan.goal.kind === 'base'
             ? ([[ui().review.baseEnd, plan.goal.date]] as [string, string][])
-            : ([[ui().review.toRace, ((days) => days >= 0 ? ui().review.toRaceValue(days) : ui().today.daysAfterRace(-days))(diffDays(today, plan.goal.date))]] as [string, string][])),
+            : ([[ui().review.toRace, raceDistanceValue(diffDays(today, plan.goal.date))]] as [string, string][])),
         ]),
       )
       const race = upcoming.find((d) => d.workout?.kind === 'race')
@@ -1930,6 +1932,11 @@ function strengthRow(plan: StoredPlan, entries: StrengthLogEntry[], from: string
   const done = [...latest.values()].filter((e) => e.status === 'done').length
   const skipped = [...latest.values()].filter((e) => e.status === 'skipped').length
   return [[ui().review.strength, ui().review.strengthValue(done, planned, skipped)]]
+}
+
+/** Wartość pod etykietą „Do startu": „N dni" przed startem, „N dni po starcie" po nim. */
+function raceDistanceValue(toRace: number): string {
+  return toRace >= 0 ? ui().review.toRaceValue(toRace) : ui().today.daysAfterRace(-toRace)
 }
 
 /** „N dni do startu", „N dni po starcie" albo koniec planu bazowego (P-11). */

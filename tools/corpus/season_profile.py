@@ -41,12 +41,17 @@ def race_km(w):
     if isinstance(race.get('distance_km'), (int, float)):
         return float(race['distance_km'])
     raw = (race.get('raw') or '').upper()
+    # jawny dystans ma pierwszeństwo: „ULTRAMARATON 60 KM" to 60 km, nie maraton
+    m = re.search(r'(?<![\d,.])(\d{1,3}(?:[.,]\d+)?)\s*KM', raw)
+    if m:
+        return float(m.group(1).replace(',', '.'))
     if re.search(r'P[OÓ]ŁMARATON|POLMARATON|HALF', raw):
         return 21.0975
-    if re.search(r'MARATON', raw):
+    if re.search(r'ULTRA', raw):
+        return None
+    if re.search(r'MARAT[HO]', raw):
         return 42.195
-    m = re.search(r'(?<![\d,.])(\d{1,3}(?:[.,]\d+)?)\s*KM', raw)
-    return float(m.group(1).replace(',', '.')) if m else None
+    return None
 
 
 def is_run(w):

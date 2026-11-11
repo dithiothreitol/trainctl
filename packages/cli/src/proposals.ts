@@ -1,12 +1,11 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { addDays, estimateWorkoutMinutes, formatNumber, getLocale, mondayOf, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
+import { addDays, estimateWorkoutMinutes, mondayOf, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
 import { logFor, readLog, LOG_FILE } from './logfile.ts'
 import { budgetWarnings, computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, scaleToBaseline, settleMixedWeek, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
-import { kmLabel } from './format.ts'
 import { readSnapshot } from './sync.ts'
 import { runningKmByDate } from './execution.ts'
 import { clockToday } from './clock.ts'
@@ -31,6 +30,15 @@ export interface PlanProposal {
 const hash = (text: string): string => createHash('sha256').update(text).digest('hex')
 /** Prawdziwy (albo jawnie symulowany) dzień kalendarzowy — granica ochrony przeszłości. */
 export const calendarToday = (): string => clockToday()
+
+/**
+ * Wpis historii zmian w plan.yaml: dane, nie widok — surowe liczby i enum,
+ * niezależne od języka CLI, którym zatwierdzono zmianę.
+ */
+export function shortenDetail(date: string, from: number, to: number, budget: number, status: string): string {
+  return `${date}: ${from} → ${to} km; ${budget} min; ${status}`
+}
+
 export function workspaceHash(cwd: string): string {
   return hash(JSON.stringify([PLAN_YAML, CONFIG_FILE, LOG_FILE, 'sync.json'].map((name) => {
     const path = join(cwd, name)
@@ -100,7 +108,7 @@ export function prepareShortening(cwd: string, date: string, minutes: number): {
   // Keep the generation fingerprint: an approved exception must survive adaptation.
   Object.assign(week!, weekTotals(week!.days))
   plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map(w => w.totalKm))
-  plan.changes.push({ at: calendarToday(), action: 'shorten', detail: `${date}: ${formatNumber(getLocale(), before.workout!.distanceKm)} → ${kmLabel(day.workout.distanceKm)}; ${budget} min; ${adjustment.status}` })
+  plan.changes.push({ at: calendarToday(), action: 'shorten', detail: shortenDetail(date, before.workout!.distanceKm, day.workout.distanceKm, budget, adjustment.status) })
   const proposal = saveProposal(cwd, { schemaVersion: 1, kind: 'shorten', preparedOn: calendarToday(), createdFor: date, baseHash,
     adjustment, vdotBefore: plan.vdot, plan,
     changes: [{ date, before: describeDay(before), after: describeDay(day), beforeKm: before.workout!.distanceKm, afterKm: day.workout.distanceKm }],
