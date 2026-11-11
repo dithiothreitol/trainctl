@@ -151,7 +151,7 @@ describe('poprawki po przeglądzie etapu 1', () => {
 
   it('komórka tabeli z długą ścieżką trzyma szerokość kolumny', () => {
     const theme = new Theme({ color: false, unicode: true, width: 40 })
-    const out = renderAnsi([{ t: 'table', head: ['a', 'b'], rows: [['x', 'C:\Users\someone\AppData\Local\Temp\very\long\dir']] }], theme)
+    const out = renderAnsi([{ t: 'table', head: ['a', 'b'], rows: [['x', 'https://github.com/dithiothreitol/trainctl/blob/v0.6.0/docs/science/FOUNDATIONS.md']] }], theme)
     for (const line of out.split('\n')) expect(visibleLength(line)).toBeLessThanOrEqual(40)
   })
 
