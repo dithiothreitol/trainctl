@@ -56,6 +56,12 @@ change between minor versions — a regenerated plan can differ.
 - `trainctl rules` explains the rules the engine now cites: S-9b–S-12, P-12,
   J-1, J-2, J-4–J-6, J-8–J-10 and N-19. A rule ID with a letter suffix (`S-9b`)
   is found whatever its case.
+- `check` and the MCP `trainctl_check` tool report the season shape checks as
+  warnings: a long run shorter than another run, a deload no lighter than its
+  loading weeks, one session over 35% of a week beside the long run, a heavy
+  accent after the race and a block that repeats the previous one (ADR-047).
+  `check --strict` fails on them; a plan from an earlier engine shows them
+  until `trainctl plan` regenerates it.
 - The weekly time budget caps the macrocycle's peak instead of trimming each
   week on its own (E-2): the peak is the most a loading week can hold in the
   budget with that week's strength, and deloads and the taper are counted from
@@ -90,8 +96,7 @@ change between minor versions — a regenerated plan can differ.
 - Season shape checks in the engine (`seasonProfile`, `seasonShapeIssues`):
   long run not the longest, deload not lighter, one session carrying the week,
   heavy accent after the race, repeated blocks, long run below the distance
-  threshold. In this release they run only in the test matrix of 576
-  synthetic profiles; `check` will use them once the engine changes.
+  threshold, run on a test matrix of 576 synthetic profiles.
 - FOUNDATIONS §10.15: corpus measurements of run count, volume and long-run
   trajectory, accent dose and weekend order, with rules S-9b–S-12, P-12,
   J-8–J-10 and the return-after-break heuristic R-11.

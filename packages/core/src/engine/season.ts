@@ -233,7 +233,9 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
       const x = a.at(-back)!, y = z.at(-back)!
       if (!x.flags.length && !y.flags.length) pairs.push([x, y])
     }
-    if (pairs.length && pairs.every(([x, y]) => signature(x) === signature(y))) {
+    // co najmniej dwa porównywalne tygodnie: jeden tydzień (np. ostatni tydzień ładowania
+    // przed taperem po odciążeniu) to szczyt, a nie powtórzony blok
+    if (pairs.length >= 2 && pairs.every(([x, y]) => signature(x) === signature(y))) {
       issues.push({ code: 'staleProgression', date: z.at(-1)!.weekStart, ruleRefs: ['P-1'], values: [a.at(-1)!.index + 1, z.at(-1)!.index + 1] })
     }
   }

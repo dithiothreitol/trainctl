@@ -540,6 +540,19 @@ export const cliEn = {
       `${date} (${kind}): missing a warm-up or a cool-down — an accent carries both`,
     taperNotMonotonic: (weekStart: string, km: number, prevKm: number) =>
       `week ${weekStart}: ${n(km)} km is more than the week before (${n(prevKm)} km) — taper volume falls monotonically`,
+    /** Linty kształtu sezonu (B0, ADR-047): wartości z `ShapeIssue.values`. */
+    shape: {
+      longNotLongest: (weekStart: string, long: number, other: number) =>
+        `week ${weekStart}: the long run (${n(long)} km) is shorter than another run of the week (${n(other)} km)`,
+      deloadNotLighter: (weekStart: string, deload: number, loading: number) =>
+        `week ${weekStart}: the deload (${n(deload)} km) is not lighter than the loading weeks around it (${n(loading)} km)`,
+      sessionShareHigh: (date: string, km: number, week: number) =>
+        `${date}: one session carries ${n(km)} km of a ${n(week)} km week — more than 35% beside the long run`,
+      postRaceAccentHeavy: (weekStart: string, hard: number, ceiling: number) =>
+        `week ${weekStart}: the accent after the race (${n(hard)} km of work) is heavier than the last build block (${n(ceiling)} km)`,
+      staleProgression: (weekStart: string, previous: number, current: number) =>
+        `week ${weekStart}: the block ending in week ${current} repeats the block ending in week ${previous} — same long run and accents`,
+    },
   },
 
   exportCmd: {

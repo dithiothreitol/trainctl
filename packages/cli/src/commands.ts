@@ -21,6 +21,7 @@ import {
   planDeskDay,
   plannedWeekKm,
   reschedule,
+  seasonShapeIssues,
   validatePlan,
   weekTotals,
   COACH_STYLE,
@@ -30,6 +31,7 @@ import {
   type ActivitySource,
   type InferenceOutcome,
   type PlanIssue,
+  type ShapeIssue,
   type PlannedWorkout,
   type SyncedActivity,
   type Weekday,
@@ -1767,6 +1769,18 @@ function describeIssue(issue: PlanIssue): string {
   return issue.ruleRefs.length ? `${text} [${issue.ruleRefs.join(', ')}]` : text
 }
 
+/** Lint kształtu sezonu → zdanie w języku interfejsu, z ID reguł jak `describeIssue`. */
+function describeShapeIssue(issue: ShapeIssue): string {
+  const s = ui().check.shape
+  const [a = 0, z = 0] = issue.values
+  const text = issue.code === 'longNotLongest' ? s.longNotLongest(issue.date, a, z)
+    : issue.code === 'deloadNotLighter' ? s.deloadNotLighter(issue.date, a, z)
+      : issue.code === 'sessionShareHigh' ? s.sessionShareHigh(issue.date, a, z)
+        : issue.code === 'postRaceAccentHeavy' ? s.postRaceAccentHeavy(issue.date, a, z)
+          : s.staleProgression(issue.date, a, z)
+  return `${text} [${issue.ruleRefs.join(', ')}]`
+}
+
 export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {}): CmdResult {
   if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'check', opts)
   try {
@@ -1776,15 +1790,20 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
     const plan = (doc && typeof doc === 'object' ? doc : {}) as Partial<StoredPlan>
     const issues = validatePlan({ weeks: plan.weeks, goal: plan.goal })
     const errors = issues.filter((i) => i.severity === 'error')
-    const warns = issues.filter((i) => i.severity === 'warn')
     const t = ui().check
+    // B10 (ADR-047): linty kształtu sezonu na pliku, który przechodzi kontrolę integralności.
+    // Długie poniżej progu dystansu to ostrzeżenie wykonalności w `plan`, nie lint tygodnia.
+    const shape = errors.length === 0 && plan.goal && Array.isArray(plan.weeks)
+      ? seasonShapeIssues({ goal: plan.goal, weeks: plan.weeks, cycleStart: plan.cycleStart }).filter((i) => i.code !== 'longBelowGoal')
+      : []
+    const warns: string[] = [...issues.filter((i) => i.severity === 'warn').map(describeIssue), ...shape.map(describeShapeIssue)]
     // Wersja silnika to informacja, nie ustalenie lintu: nie liczy się do --strict.
     const versionNotes = plan.goal && Array.isArray(plan.weeks) ? compatibilityNotes(plan as StoredPlan) : []
 
-    if (issues.length === 0) {
+    if (issues.length === 0 && shape.length === 0) {
       const weeks = plan.weeks ?? []
       const sessions = weeks.reduce((sum, w) => sum + w.days.filter((d) => d.workout).length, 0)
-      return okDoc([b.success(t.passed(weeks.length, sessions)), ...versionNotes], { issues: [], errors: 0, warnings: 0 })
+      return okDoc([b.success(t.passed(weeks.length, sessions)), ...versionNotes], { issues: [], shape: [], errors: 0, warnings: 0 })
     }
 
     const blocks: Block[] = [b.title(t.title, t.subtitle(PLAN_YAML)), ...versionNotes]
@@ -1794,7 +1813,7 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
     }
     if (warns.length) {
       blocks.push(b.section(t.warnsSection))
-      for (const issue of warns) blocks.push(b.warn(describeIssue(issue)))
+      for (const text of warns) blocks.push(b.warn(text))
     }
     blocks.push(b.blank(), b.text(t.summary(errors.length, warns.length)))
     const failed = errors.length > 0 || (opts.strict === true && warns.length > 0)
@@ -1803,7 +1822,7 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
     } else if (!failed && warns.length > 0) {
       blocks.push(b.hint(t.strictHint))
     }
-    return { output: renderPlain(blocks), code: failed ? 1 : 0, blocks, data: { issues, errors: errors.length, warnings: warns.length } }
+    return { output: renderPlain(blocks), code: failed ? 1 : 0, blocks, data: { issues, shape, errors: errors.length, warnings: warns.length } }
   } catch (e) {
     return fail(e)
   }

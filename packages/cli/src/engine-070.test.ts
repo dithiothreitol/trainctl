@@ -8,9 +8,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
-import { cmdAdapt, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
+import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
 import { readLog } from './logfile.ts'
-import { loadPlan } from './planfile.ts'
+import { loadPlan, writePlan } from './planfile.ts'
 import { inferredConfigYaml } from './config.ts'
 import { parse } from 'yaml'
 
@@ -144,6 +144,32 @@ describe('B8: profil z historii proponuje powrót po przerwie', () => {
     })
     expect((parse(yaml) as { athlete: { returning: unknown } }).athlete.returning).toEqual({ since: '2026-08-05', previousWeeklyKm: 42 })
     expect(yaml).toContain('R-11')
+  })
+})
+
+describe('B10: linty kształtu w check (ADR-047)', () => {
+  beforeEach(() => setLocale('en'))
+  it('świeży plan przechodzi; zamienione długie i spokojne (te same sumy) dają ostrzeżenie S-2, J-1, a --strict zawodzi', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    const fresh = cmdCheck(dir, { strict: true })
+    expect(fresh.code, fresh.output).toBe(0)
+    expect((fresh.data as { shape: unknown[] }).shape).toEqual([])
+
+    const plan = loadPlan(dir)
+    const week = plan.weeks.find((w) => w.days.some((d) => d.workout?.kind === 'long') && w.days.some((d) => d.workout?.kind === 'easy'))!
+    const long = week.days.find((d) => d.workout?.kind === 'long')!.workout!
+    const easy = week.days.find((d) => d.workout?.kind === 'easy')!.workout!
+    const [l, e] = [long.distanceKm, easy.distanceKm]
+    long.distanceKm = e; long.segments[0]!.distanceKm = e
+    easy.distanceKm = l; easy.segments[0]!.distanceKm = l
+    writePlan(dir, plan)
+    const r = cmdCheck(dir, {})
+    expect(r.code).toBe(0)
+    expect(r.output).toContain(`week ${week.weekStart}: the long run`)
+    expect(r.output).toContain('[S-2, J-1]')
+    expect((r.data as { shape: { code: string }[] }).shape.map((i) => i.code)).toContain('longNotLongest')
+    expect(cmdCheck(dir, { strict: true }).code).toBe(1)
   })
 })
 

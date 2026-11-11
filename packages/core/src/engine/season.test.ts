@@ -283,4 +283,12 @@ describe('etap 2: linty kształtu na syntetycznych tygodniach', () => {
     const flat = [block('2027-01-04', 18), block('2027-01-11', 18), block('2027-01-18', 18), deload, block('2027-02-01', 18), block('2027-02-08', 18), test('2027-02-15')]
     expect(codes(flat)).toContain('staleProgression')
   })
+
+  it('staleProgression: jeden porównywalny tydzień to za mało — szczyt przed taperem nie jest powtórzonym blokiem', () => {
+    const block = (start: string, km: number) => week(start, { tue: quality(4), sat: long(km) })
+    const deload = week('2027-01-25', { tue: quality(3), sat: long(12) })
+    deload.skeleton.deload = true
+    const peakWeek = [block('2027-01-04', 18), block('2027-01-11', 20), block('2027-01-18', 22), deload, block('2027-02-01', 22)]
+    expect(codes(peakWeek)).not.toContain('staleProgression')
+  })
 })

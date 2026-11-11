@@ -547,6 +547,18 @@ export const cliPl: CliMessages = {
       `${date} (${kind}): brak rozgrzewki albo truchtu na koniec — akcent ma jedno i drugie`,
     taperNotMonotonic: (weekStart: string, km: number, prevKm: number) =>
       `tydzień ${weekStart}: ${n(km)} km to więcej niż tydzień wcześniej (${n(prevKm)} km) — objętość taperu spada monotonicznie`,
+    shape: {
+      longNotLongest: (weekStart: string, long: number, other: number) =>
+        `tydzień ${weekStart}: długie (${n(long)} km) jest krótsze od innego biegu tygodnia (${n(other)} km)`,
+      deloadNotLighter: (weekStart: string, deload: number, loading: number) =>
+        `tydzień ${weekStart}: odciążenie (${n(deload)} km) nie jest lżejsze od sąsiednich tygodni ładowania (${n(loading)} km)`,
+      sessionShareHigh: (date: string, km: number, week: number) =>
+        `${date}: jedna jednostka ma ${n(km)} km z ${n(week)} km tygodnia — ponad 35% obok długiego`,
+      postRaceAccentHeavy: (weekStart: string, hard: number, ceiling: number) =>
+        `tydzień ${weekStart}: akcent po starcie (${n(hard)} km pracy) jest cięższy od ostatniego bloku budowania (${n(ceiling)} km)`,
+      staleProgression: (weekStart: string, previous: number, current: number) =>
+        `tydzień ${weekStart}: blok kończący się w tygodniu ${current} powtarza blok kończący się w tygodniu ${previous} — to samo długie i te same akcenty`,
+    },
   },
 
   exportCmd: {
