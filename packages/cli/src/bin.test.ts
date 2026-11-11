@@ -65,6 +65,20 @@ describe('binarka CLI pod natywnym Node', () => {
     expect(invalid.status).toBe(2)
   }, 30_000)
 
+  it('log --to: nazwa dnia liczy się od --date, więc przerwa z tego tygodnia nie sięga w przyszłość (B11)', () => {
+    const own = mkdtempSync(join(tmpdir(), 'trainctl-bin-break-'))
+    try {
+      writeFileSync(join(own, 'trainctl.yaml'), CONFIG, 'utf-8')
+      // sobota 2026-08-15
+      const exec = (args: string[]) => execFileSync(process.execPath, [CLI_BIN, '--json', ...args], { cwd: own, encoding: 'utf-8', env: { ...process.env, TRAINCTL_LANG: 'en', TRAINCTL_TODAY: '2026-08-15' } })
+      exec(['plan'])
+      const out = JSON.parse(exec(['log', '--status', 'skipped', '--date', 'mon', '--to', 'fri', '--reason', 'illness']))
+      expect(out.data.entries.map((e: { date: string }) => e.date)).toEqual(['2026-08-10', '2026-08-11', '2026-08-12', '2026-08-13', '2026-08-14'])
+    } finally {
+      rmSync(own, { recursive: true, force: true, maxRetries: 3 })
+    }
+  }, 30_000)
+
   it('nie ignoruje --sports przy --from-intervals i nie tworzy błędnego profilu', () => {
     const empty=mkdtempSync(join(tmpdir(),'trainctl-bin-conflict-'))
     try {

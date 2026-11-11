@@ -73,7 +73,7 @@ export { pluginSkills, renderSkill, type Skill } from './plugin-skills.ts'
 export { AGENTS, type AgentChoice } from './agent-setup.ts'
 export { foundationsUrl } from './rules-explain.ts'
 import { AGENTS, writeAgentSetup, type AgentChoice } from './agent-setup.ts'
-export { resolveDateInput, type DateDirection } from './date-input.ts'
+export { resolveDateInput, resolveRangeEnd, type DateDirection } from './date-input.ts'
 export { completionScript, SHELLS, type CompletionSpec, type Shell } from './completion.ts'
 export { simulationNotice, simulatedToday, SIMULATED_TODAY_ENV } from './clock.ts'
 import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
@@ -782,12 +782,18 @@ function logBreak(cwd: string, plan: StoredPlan, from: string, toInput: string, 
   const dates = Array.from({ length: days }, (_, i) => addDays(from, i))
   const outside = dates.find((d) => !findDay(plan, d))
   if (outside) throw new Error(ui().log.outsidePlan(outside))
+  // dzień z zapisanym biegiem zostaje: najnowszy wpis wygrywa (latestByDate), więc „skipped”
+  // z zakresu schowałby wykonaną sesję przed `adapt`, `review` i regeneracją
+  const latest = latestByDate(readLog(cwd))
+  const kept = dates.filter((d) => ['done', 'modified'].includes(latest.get(d)?.status ?? ''))
   const loggedAt = new Date().toISOString()
-  const entries: LogEntry[] = dates.map((date) => ({
+  const entries: LogEntry[] = dates.filter((date) => !kept.includes(date)).map((date) => ({
     date, status: 'skipped', ...(reason ? { reason } : {}), ...(opts.note ? { note: opts.note } : {}), loggedAt,
   }))
   for (const entry of entries) appendLog(cwd, entry)
-  return okDoc([b.success(ui().log.breakRecorded(from, to, days, reason ? ui().log.reasonWord[reason] : undefined))], { entry: entries[0], entries })
+  const blocks: Block[] = [b.success(ui().log.breakRecorded(from, to, entries.length, reason ? ui().log.reasonWord[reason] : undefined))]
+  if (kept.length) blocks.push(b.info(ui().log.breakKeptRuns(kept.join(', '))))
+  return okDoc(blocks, { ...(entries[0] ? { entry: entries[0] } : {}), entries, kept })
 }
 
 function logStrength(cwd: string, plan: StoredPlan, date: string, opts: LogOptions): CmdResult {

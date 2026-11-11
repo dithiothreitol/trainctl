@@ -287,6 +287,7 @@ export const cliPl: CliMessages = {
     breakTooLong: (days: number) => `Przerwa dłuższa niż ${days} dni to nowy plan, nie przerwa — zapisz ją w krótszych częściach albo zacznij nowy plan.`,
     breakRecorded: (from: string, to: string, days: number, reason?: string) =>
       `Zapisano przerwę ${from} do ${to}: ${days} ${days === 1 ? 'dzień' : 'dni'} opuszczonych${reason ? `, przyczyna: ${reason}` : ''}. Po przerwie adapt zaproponuje powrót.`,
+    breakKeptRuns: (dates: string) => `Dni z zapisanym biegiem zostają bez zmian: ${dates}.`,
     reasonWord: { illness: 'choroba', injury: 'kontuzja', travel: 'wyjazd', other: 'inna' },
     badRpe: (rpe: string) =>
       `RPE „${rpe}” wypada poza skalę — podaj liczbę całkowitą 1–10 (10 = wysiłek maksymalny).`,

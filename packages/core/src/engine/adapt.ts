@@ -51,6 +51,11 @@ export interface AdaptationProposal {
   diagnosis: string[]
   actions: AdaptationAction[]
   warnings: string[]
+  /**
+   * B11: rozpoznana przerwa (≥ LAYOFF_DAYS) z przyczyną z dziennika. Po kontuzji
+   * propozycja zmiany planu nie powstaje — powrót ustala specjalista (R-6, R-7).
+   */
+  layoff?: { days: number; reason?: BreakReason }
 }
 
 export interface AdaptationInput {
@@ -123,7 +128,8 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const breakReason = input.breakReason ?? input.breakLog
     ?.filter((l) => l.date >= from && l.date <= input.today && (lastRun === undefined || l.date > lastRun))
     .sort((a, z) => a.date.localeCompare(z.date)).at(-1)?.reason
-  if (dataStatus === 'complete' && layoff >= LAYOFF_DAYS) {
+  const layoffFound = dataStatus === 'complete' && layoff >= LAYOFF_DAYS
+  if (layoffFound) {
     diagnosis.push(m.adapt.layoffDiagnosis(layoff))
     if (breakReason === 'injury') {
       // R-6, R-7: po kontuzji silnik nie proponuje objętości — powrót ustala specjalista
@@ -235,5 +241,6 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
     diagnosis,
     actions,
     warnings,
+    ...(layoffFound ? { layoff: { days: layoff, ...(breakReason ? { reason: breakReason } : {}) } } : {}),
   }
 }

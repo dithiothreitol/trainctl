@@ -292,11 +292,21 @@ export function applyReturnBlock(weeks: WeekSkeleton[], ret: ReturnBlock): WeekS
   const easyEnd = ret.illness ? start + 1 : firstDeload === -1 ? weeks.length : firstDeload + 1
   const rule = ret.illness ? 'R-5' : 'R-11'
   let loading = 0
+  // ostatni tydzień ładowania: krzywa i cel planu — od nich taper, start i blok po starcie
+  let last: { curve: number; planKm: number } | undefined
   return weeks.map((w, i) => {
     if (i < start) return w
     const curve = RETURN_RESTART_SHARE * ret.previousWeeklyKm * Math.pow(RAMP_PER_LOAD_WEEK, loading)
-    if (!w.deload && ['base', 'build', 'peak'].includes(w.phase)) loading++
-    const capped = Math.round(w.deload ? curve * DELOAD_FACTOR : curve)
+    let cap = w.deload ? curve * DELOAD_FACTOR : curve
+    if (!w.deload && ['base', 'build', 'peak'].includes(w.phase)) {
+      last = { curve, planKm: w.targetKm }
+      loading++
+    } else if (!w.deload && last && last.planKm > 0) {
+      // taper, start i blok po starcie w tej samej proporcji do ostatniego tygodnia ładowania
+      // co w planie — krzywa nie rośnie po szczycie, więc taper nie jest cięższy (T-4)
+      cap = last.curve * (w.targetKm / last.planKm)
+    }
+    const capped = Math.round(cap)
     const easy = i < easyEnd && !w.raceDate
     if (capped >= w.targetKm && !easy) return w
     // sprawdzian wypada z każdego tygodnia bloku, nie tylko ze spokojnych — razem ze swoją

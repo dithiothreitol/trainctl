@@ -34,7 +34,7 @@
  5 2026-11-16 base           15 3b L7.9 S2
  6 2026-11-23 base           16 3b L8.4 S2
  7 2026-11-30 base           18 2b L12 S2 quality_intervals:3×1000@4:32
- 8 2026-12-07 base↓          12 3b L6.3 S1
+ 8 2026-12-07 base↓          12 2b L6.4 S1
  9 2026-12-14 build          19 3b L10 S2 quality_intervals:3×1000@4:32
 10 2026-12-21 build          21 2b L14 S2 quality_intervals:3×1000@4:32
 11 2026-12-28 build          22 3b L11.6 S2 quality_intervals:3×1000@4:32
@@ -58,23 +58,23 @@
  1 2026-10-19 base           12 3b L4.8 S2
  2 2026-10-26 base           12 3b L5 S2
  3 2026-11-02 base           13 3b L6 S2
- 4 2026-11-09 base↓           9 3b L4 S1
+ 4 2026-11-09 base↓           9 2b L5.4 S1
  5 2026-11-16 base           13 3b L6.8 S2
  6 2026-11-23 base           13 3b L6.8 S2
  7 2026-11-30 base           13 3b L6.8 S2
- 8 2026-12-07 base↓           9 3b L4.7 S1
+ 8 2026-12-07 base↓           9 2b L4.8 S1
  9 2026-12-14 build          14 3b L7.4 S2
 10 2026-12-21 build          14 3b L7.4 S2
 11 2026-12-28 build          14 3b L7.4 S2
-12 2027-01-04 build↓         10 3b L5.3 S1
+12 2027-01-04 build↓         10 2b L5.3 S1
 13 2027-01-11 build          15 3b L7.9 S2
 14 2027-01-18 build          15 3b L7.9 S2
 15 2027-01-25 build          15 3b L7.9 S2
-16 2027-02-01 build↓         11 3b L5.8 S1
+16 2027-02-01 build↓         11 2b L5.8 S1
 17 2027-02-08 build          16 3b L8.4 S2
 18 2027-02-15 peak           16 3b L8.4 S1
 19 2027-02-22 peak           17 3b L9 S1
-20 2027-03-01 peak↓          12 3b L6.3 S1
+20 2027-03-01 peak↓          12 2b L6.4 S1
 21 2027-03-08 peak           17 3b L9 S1
 22 2027-03-15 taper          12 3b L0 S0
 23 2027-03-22 race           10 2b L0 S0 [race]

@@ -1876,7 +1876,7 @@ w kodzie komentarzem „E-3 (inż.)". Lista służy przeglądowi trenerskiemu
 | podział faz przed taperem | 40% baza, 20% szczyt, reszta budowanie | `macrocycle.ts` |
 | część główna akcentu | 22% tygodnia minus rozgrzewka i schłodzenie, co najmniej 3 km | `microcycle.ts` |
 | spokojne przed podbiegami | 5–8 km, ~10% tygodnia | `microcycle.ts` |
-| bieg spokojny | co najmniej 3 km (krótsza reszta idzie do długiego), najwyżej 18 km i 0,9 długiego (S-10); 3 km to też najniższy sufit szczytu z budżetu czasu (E-2) | `microcycle.ts` (`MIN_EASY_KM`, `EASY_RUN_CAP_KM`), `planfile.ts` |
+| bieg spokojny | co najmniej 3 km (krótsza reszta idzie do długiego, dni przebieżek też się łączą), najwyżej 18 km i 0,9 długiego (S-10), więc długie obok biegów spokojnych ma co najmniej 3,4 km; 3 km to też najniższy sufit szczytu z budżetu czasu (E-2) | `microcycle.ts` (`MIN_EASY_KM`, `EASY_RUN_CAP_KM`), `planfile.ts` |
 | odcinki kilometrowe w akcencie | co najmniej 4 | `microcycle.ts` |
 | rama akcentu przy małej objętości | gdy akcent przekroczyłby udział jednej jednostki: najpierw 3 odcinki, potem rozgrzewka 2 km; gdy i to za dużo — bieg spokojny z 6 przebieżkami po ~80 m (J-6) | `microcycle.ts` |
 | sufit udziału długiego między pasmami | interpolacja liniowa P90 z §10.15 między środkami pasm; poniżej 30 km pasmo 30–40 km | `microcycle.ts` (`longShareCeiling`) |

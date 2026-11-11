@@ -627,8 +627,12 @@ function planNormalWeek(
   // objętość
   // sufit do 0,1 km jak pozostałe biegi: pełne km spłaszczały długie przy wzroście tygodnia o 1 km
   const longCeil = Math.min(style.longRunCapKm, shares ? floor1(longShareCeiling(target) * target) : target)
+  // E-3 + S-10: bieg spokojny ma co najmniej MIN_EASY_KM i najwyżej 0,9 długiego, więc
+  // długie obok niego ma co najmniej MIN_EASY_KM / EASY_TO_LONG_MAX (gdy tydzień mieści oba)
+  const longFloorKm = Math.ceil((MIN_EASY_KM / EASY_TO_LONG_MAX) * 10) / 10
+  const longFloor = target >= longFloorKm + MIN_EASY_KM ? longFloorKm : 0
   // B4: tor długiego z makrocyklu jest podłogą; sufit udziału (P90) i 35 km — górą
-  const longKm = longWd ? Math.min(longCeil, Math.max(skeleton.longKm ?? 0, Math.min(Math.round(style.longRunShare * target), style.longRunCapKm))) : 0
+  const longKm = longWd ? Math.max(longFloor, Math.min(longCeil, Math.max(skeleton.longKm ?? 0, Math.min(Math.round(style.longRunShare * target), style.longRunCapKm)))) : 0
   // udział jednej jednostki liczony od objętości tygodnia — od zamiaru, a gdy dni go nie
   // mieszczą, od tego, co rozpisano (tak liczy lint), w drugim przebiegu niżej
   let shareCap = shares ? floor1(SESSION_SHARE_MAX * target) : Infinity
@@ -710,6 +714,14 @@ function planNormalWeek(
       remaining / (slots.length + 1) >= MIN_EASY_KM) slots.push(spare.shift()!)
     // E-3: biegu krótszego niż MIN_EASY_KM nie ma — zwykły dzień spokojny wypada
     while (!fixedCount && slots.length > strides.length && remaining + 0.05 < slots.length * MIN_EASY_KM) slots.pop()
+    // Przebieżki zastępują akcent, ale też nie są krótsze niż MIN_EASY_KM: dwa dni po 2 km
+    // to jeden po 4 km. Reszta idzie do długiego (B2).
+    while (!fixedCount && longWd && slots.length && remaining + 0.05 < slots.length * MIN_EASY_KM) {
+      const wd = slots.pop()!
+      const date = addDays(skeleton.weekStart, idxOf(wd))
+      if (strides.includes(wd)) strides.splice(strides.indexOf(wd), 1)
+      notes = notes.filter((n) => !(n.code === 'accentAsStrides' && n.date === date))
+    }
     // W tygodniu z długim i co najmniej trzema biegami żaden spokojny nie przekracza udziału
     // jednej jednostki. Bez długiego (taper, pierwszy tydzień po starcie) jego rolę ma
     // najdłuższy bieg spokojny, a przy dwóch biegach jeden ma połowę tygodnia z definicji —

@@ -423,6 +423,24 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
     expect(weeks[deload + 1]!.easyOnly).toBeUndefined()
   })
 
+  it.each([
+    ['półmaraton', half],
+    ['maraton', { name: 'M', date: '2027-03-28', distanceKm: 42.195, priority: 'A' } as RaceGoal],
+  ])('%s: taper w bloku powrotu nie jest cięższy od tygodnia przed nim (T-4), z każdego tygodnia powrotu', (_name, goal) => {
+    const base = planMacrocycle({ today: '2026-10-22', goal, athlete: { recentWeeklyKm: 60, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] } })
+    const raceAt = base.weeks.findIndex((w) => w.phase === 'race')
+    for (const [from, w] of base.weeks.entries()) {
+      if (from >= raceAt) break
+      for (const previousWeeklyKm of [30, 45, 60, 80]) for (const illness of [true, false]) {
+        const weeks = applyReturnBlock(base.weeks, { since: w.weekStart, previousWeeklyKm, illness })
+        for (let i = Math.max(1, from); i <= raceAt; i++) {
+          if (weeks[i]!.phase !== 'taper' && weeks[i]!.phase !== 'race') continue
+          expect(weeks[i]!.targetKm, `${w.weekStart} ${previousWeeklyKm} ${illness} → ${weeks[i]!.weekStart}`).toBeLessThanOrEqual(weeks[i - 1]!.targetKm)
+        }
+      }
+    }
+  })
+
   it('sprawdzian wypada z całego bloku powrotu, także z tygodni po spokojnym (kalibracja zmierzyłaby przerwę)', () => {
     const weeks = applyReturnBlock(plan.weeks, { since, previousWeeklyKm: 50, illness: true })
     const inBlock = weeks.map((w, i) => i > at && w.targetKm < plan.weeks[i]!.targetKm)

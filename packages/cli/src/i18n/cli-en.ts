@@ -281,6 +281,8 @@ export const cliEn = {
     breakTooLong: (days: number) => `A break of more than ${days} days is a new plan rather than a break — record it in shorter parts or start a new plan.`,
     breakRecorded: (from: string, to: string, days: number, reason?: string) =>
       `Logged a break ${from} to ${to}: ${days} ${days === 1 ? 'day' : 'days'} skipped${reason ? `, reason: ${reason}` : ''}. After the break, adapt proposes how to come back.`,
+    /** B11: przerwa nie nadpisuje dnia z zapisanym biegiem (done albo modified). */
+    breakKeptRuns: (dates: string) => `Days with a logged run stay as logged: ${dates}.`,
     reasonWord: { illness: 'illness', injury: 'injury', travel: 'travel', other: 'other' } as Record<'illness' | 'injury' | 'travel' | 'other', string>,
     badRpe: (rpe: string) =>
       `RPE "${rpe}" is off the scale — use a whole number 1–10 (10 = maximal effort).`,

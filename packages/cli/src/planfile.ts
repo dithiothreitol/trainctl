@@ -282,11 +282,12 @@ function blockLevels(weeks: Microcycle[]): Map<string, number> {
 /**
  * Skalowanie objętości do zatwierdzonej bazy — jedna arytmetyka dla propozycji
  * (`adapt --prepare`, ADR-029) i regeneracji z zapisaną bazą (ADR-033), żeby
- * `plan` tuż po `adapt --apply` odtwarzał zatwierdzone dni. Baza to poziom bloku:
- * każdy blok ładowania od poniedziałku decyzji trafia na nią, fala w bloku (B3)
- * zostaje, a odciążenie, taper i blok po starcie skalują się od poziomu bloku przed
- * nimi. Plan po zatwierdzonej redukcji nie rośnie ponad bazę, której biegacz nie
- * zatwierdził. Budżet czasu stosuje potem computePlan, raz, od tego samego
+ * `plan` tuż po `adapt --apply` odtwarzał zatwierdzone dni. Baza zastępuje poziom
+ * bloku w tygodniu decyzji (B3), a każdy tydzień od poniedziałku decyzji skaluje się
+ * w tej samej proporcji: fala w bloku, odciążenia, taper i wzrost kolejnych bloków
+ * zostają — biegacz „progresuje od tej bazy” (P-3). Podniesiona baza nie wyprowadza
+ * planu ponad jego szczyt sprzed decyzji (sufit z historii i pojemność dni), chyba że
+ * sama jest wyżej. Budżet czasu stosuje potem computePlan, raz, od tego samego
  * poniedziałku (`budgetFrom`); tygodnie wcześniejsze przechodzą z `reference`.
  * Siła to osobny tor: korekta objętości jej nie przestawia — też z `reference`.
  */
@@ -305,6 +306,10 @@ export function scaleToBaseline(weeks: Microcycle[], opts: {
   const zones = paceZones(opts.vdot)
   const levels = blockLevels(weeks)
   const from = mondayOf(opts.decidedOn)
+  const ahead = weeks.filter((w) => w.weekStart >= from)
+  const anchor = ahead[0] ? levels.get(ahead[0].weekStart) ?? ahead[0].skeleton.targetKm : opts.baselineKm
+  const factor = opts.baselineKm / Math.max(1, anchor)
+  const ceiling = factor > 1 ? Math.max(opts.baselineKm, ...ahead.map((w) => w.skeleton.targetKm)) : Infinity
   const strengthDays = new Map(opts.reference.flatMap((w) => w.days).map((d) => [d.date, d.strength]))
   const referenceWeeks = new Map(opts.reference.map((w) => [w.weekStart, w]))
   return weeks.map((week) => {
@@ -315,7 +320,7 @@ export function scaleToBaseline(weeks: Microcycle[], opts: {
     const skeleton = structuredClone(week.skeleton)
     delete skeleton.timeCappedKm
     delete skeleton.uncappedKm
-    skeleton.targetKm = Math.round((opts.baselineKm * skeleton.targetKm) / Math.max(1, levels.get(week.weekStart) ?? skeleton.targetKm))
+    skeleton.targetKm = Math.min(ceiling, Math.round(skeleton.targetKm * factor))
     const generated = generateMicrocycle({ skeleton, athlete: opts.config.athlete, goal: opts.goal, zones, testDistanceKm: testDistanceKm(opts.goal) })
     for (const day of generated.days) {
       const strength = strengthDays.get(day.date)

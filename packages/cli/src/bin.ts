@@ -41,6 +41,7 @@ import {
   hasApiKey,
   localToday,
   resolveDateInput,
+  resolveRangeEnd,
   simulationNotice,
   SHELLS,
   type CmdResult,
@@ -157,6 +158,11 @@ const budgetArg = (value: string, previous?: string[]): string[] => {
 }
 const ahead = dateArg('forward')
 const back = dateArg('back')
+/** `log --to`: tu tylko walidacja — nazwę dnia liczy się w akcji od `--date` (resolveRangeEnd). */
+const rangeEnd = (value: string): string => {
+  ahead(value)
+  return value
+}
 
 const s = theme.sym
 const banner =
@@ -287,7 +293,7 @@ withExamples(
       .description(ui().cmd.log)
       .option('--date <iso>', ui().cmd.optDate, back)
       .option('--status <s>', ui().cmd.optStatus, 'done')
-      .option('--to <iso>', ui().cmd.optBreakTo, ahead)
+      .option('--to <iso>', ui().cmd.optBreakTo, rangeEnd)
       .option('--reason <r>', ui().cmd.optReason)
       .option('--km <n>', ui().cmd.optKm)
       .option('--time <t>', ui().cmd.optTime)
@@ -305,7 +311,11 @@ withExamples(
     command.getOptionValueSource('status') !== 'default'
   if (!flags && tty && isSportsWorkspace(cwd)) return print(await runSportsPicker(cwd,'log',localToday(),theme))
   if (!flags && tty && !isSportsWorkspace(cwd)) return printInteractive(await runLogPrompt(cwd, localToday(), theme))
-  print(cmdLog(cwd, { ...opts, status: command.getOptionValueSource('status') === 'default' ? undefined : opts.status }))
+  print(cmdLog(cwd, {
+    ...opts,
+    ...(opts.to !== undefined ? { to: resolveRangeEnd(opts.to, opts.date ?? localToday(), localToday()) } : {}),
+    status: command.getOptionValueSource('status') === 'default' ? undefined : opts.status,
+  }))
 })
 
 commitOption(

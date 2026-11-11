@@ -73,15 +73,43 @@ describe('trainctl plan na istniejącym planie', () => {
     for (const date of ['2026-08-04', '2026-09-01', '2026-09-05']) expect(dayOf(plan, date)).toEqual(dayOf(reduced.plan, date))
   })
 
-  it('B3: zatwierdzona redukcja ustawia każdy blok na poziomie bazy, fala w bloku zostaje', () => {
-    initialize()
+  /** Poziomy kolejnych bloków ładowania od decyzji: najwyższy cel między odciążeniami. */
+  const futureBlockLevels = (plan: StoredPlan): number[] => {
+    const levels: number[][] = [[]]
+    for (const w of plan.weeks.filter((x) => x.weekStart > '2026-09-06' && ['base', 'build', 'peak'].includes(x.skeleton.phase))) {
+      if (w.skeleton.deload) levels.push([])
+      else levels.at(-1)!.push(w.skeleton.targetKm)
+    }
+    return levels.filter((l) => l.length).map((l) => Math.max(...l))
+  }
+  const targetOn = (plan: StoredPlan, weekStart: string) => plan.weeks.find((w) => w.weekStart === weekStart)!.skeleton.targetKm
+
+  it('B3: zatwierdzona redukcja zastępuje poziom bloku decyzji, kolejne bloki rosną od niej w proporcji planu (P-3)', () => {
+    const fresh = initialize()
     const reduced = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 45 }] })
-    const future = reduced.plan.weeks.filter((w) => w.weekStart > '2026-09-06' && ['base', 'build', 'peak'].includes(w.skeleton.phase) && !w.skeleton.deload)
-    expect(future.length).toBeGreaterThan(3)
-    // plan po redukcji nie rośnie ponad bazę, której biegacz nie zatwierdził
-    for (const w of future) expect(w.skeleton.targetKm).toBeLessThanOrEqual(45)
-    expect(Math.max(...future.map((w) => w.skeleton.targetKm))).toBe(45)
-    expect(Math.min(...future.filter((w) => !w.skeleton.testPlanned).map((w) => w.skeleton.targetKm))).toBeLessThan(45)
+    const levels = futureBlockLevels(reduced.plan)
+    expect(levels.length).toBeGreaterThan(1)
+    // blok decyzji kończy się na bazie, a „progresuj od tej bazy”: kolejne bloki rosną
+    expect(levels[0]).toBe(45)
+    for (let i = 1; i < levels.length; i++) expect(levels[i]!).toBeGreaterThanOrEqual(levels[i - 1]!)
+    expect(levels.at(-1)!).toBeGreaterThan(45)
+    // redukcja obniża każdy przyszły tydzień, nie tylko blok decyzji
+    for (const w of reduced.plan.weeks.filter((x) => x.weekStart > '2026-09-06')) expect(w.skeleton.targetKm).toBeLessThanOrEqual(targetOn(fresh, w.weekStart))
+  })
+  it('podniesiona baza: blok decyzji na bazie, plan nie wychodzi ponad swój szczyt sprzed decyzji', () => {
+    const fresh = initialize()
+    const freshLevels = futureBlockLevels(fresh)
+    // baza poniżej szczytu planu: proporcja wyprowadziłaby ostatni blok ponad szczyt
+    expect(freshLevels[0]! + 2).toBeLessThan(Math.max(...freshLevels))
+    const raised = prepareProposal(dir, '2026-09-06', { ...reduction, complianceKm: 1.3, actions: [{ type: 'raise-baseline' as const, detail: 'raise', suggestedWeeklyKm: freshLevels[0]! + 2, ruleRefs: [] }] })
+    const levels = futureBlockLevels(raised.plan)
+    expect(levels[0]).toBe(freshLevels[0]! + 2)
+    // podniesienie bazy nie obniża szczytu planu
+    expect(Math.max(...levels)).toBe(Math.max(...freshLevels))
+    for (const w of raised.plan.weeks.filter((x) => x.weekStart > '2026-09-06')) {
+      expect(w.skeleton.targetKm).toBeGreaterThanOrEqual(targetOn(fresh, w.weekStart))
+      expect(w.skeleton.targetKm).toBeLessThanOrEqual(Math.max(...freshLevels))
+    }
   })
   it('redukcja, którą budżet jeszcze tnie: „bez budżetu" to poziom redukcji, nie pierwotny szczyt', () => {
     config.time = { weeklyMinutes: 240 }
@@ -102,10 +130,14 @@ describe('trainctl plan na istniejącym planie', () => {
     const reduced = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 30 }] })
     const future = reduced.plan.weeks.filter((w) => w.weekStart > '2026-09-06' && w.skeleton.uncappedKm !== undefined)
     expect(future.length).toBeGreaterThan(0)
-    for (const week of future) expect(week.skeleton.uncappedKm!).toBeLessThanOrEqual(31)
+    // zamiar bez budżetu to plan po redukcji (rośnie od bazy w proporcji planu), nie pierwotny plan
+    for (const week of future) expect(week.skeleton.uncappedKm!).toBeLessThan(targetOn(fresh, week.weekStart))
     const warning = reduced.plan.feasibilityWarnings.find((w) => w.includes('time budget caps'))
     expect(warning).toBeDefined()
-    expect(Number(warning!.match(/would reach ([\d.]+) km\/week/)![1])).toBeLessThanOrEqual(30.5)
+    const withoutBudget = Number(warning!.match(/would reach ([\d.]+) km\/week/)![1])
+    const freshIntent = Math.max(...fresh.weeks.map((w) => w.skeleton.uncappedKm ?? w.skeleton.targetKm))
+    expect(withoutBudget).toBeGreaterThanOrEqual(30)
+    expect(withoutBudget).toBeLessThan(0.7 * freshIntent)
   })
   it('redukcja mieszcząca się w budżecie tygodnia: bez ostrzeżenia o budżecie', () => {
     config.time = { weeklyMinutes: 240 }

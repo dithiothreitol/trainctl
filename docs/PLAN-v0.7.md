@@ -581,7 +581,10 @@ w commicie punktu.
 - **B3.** Biegacz już na szczycie nie zaczyna od 0,7 szczytu, tylko dostaje
   falę wokół plateau. Pomiar P-12 ma n = 3, a cięcie objętości bez przyczyny
   w profilu byłoby nową regułą bez źródła. Zatwierdzona baza (`adapt --apply`)
-  jest poziomem bloku.
+  zastępuje poziom bloku w tygodniu decyzji, a kolejne tygodnie skalują się
+  w proporcji planu, więc wzrost bloków zostaje. Podniesiona baza nie wychodzi
+  ponad szczyt planu. Pierwsza wersja z etapu 2 ustawiała na bazie każdy blok;
+  przegląd (runda 2) pokazał, że podniesienie bazy obniżało wtedy szczyt.
 - **B5.** Punkt 4 jest zrealizowany jako najmniejsza rama akcentu po starcie,
   bez porównania z blokiem budowania. Tydzień ponad zamiar zwalnia najpierw
   podbiegi, potem drugi akcent (J-5, I-8).
@@ -1028,3 +1031,7 @@ Wypełniany w trakcie realizacji przez krok 6 zamknięcia etapu.
 | 2026-11-11 | 1 | `packages/cli/src/bin.test.ts` | testy uruchamiające binarkę przekraczają 30 s przy obciążonej maszynie | do rozważenia: osobny limit czasu dla tych testów |
 | 2026-11-11 | 2 | `packages/core/src/engine/microcycle.ts` (`setBreak`) | 4' marszu w połowie serii @I jest tylko w opisie: nie liczy go szacunek minut (budżet dnia), FIT ani składnia intervals.icu, a opis po skróceniu (E-1) go gubi. Stan z 0.6.0; etap 2 dodał tylko pole | etap 3 (C1 i eksporty czytają pola segmentu) |
 | 2026-11-11 | 2 | `packages/core/src/engine/macrocycle.ts` | flaga tygodnia ze startem kontrolnym zapisana po polsku (`start kontrolny B: …`) niezależnie od języka; flag nie pokazuje żaden widok, trafiają do `plan.yaml` i danych MCP. Stan z 0.6.0 | etap 3 (jeden model wiersza) albo etap 4 |
+| 2026-11-11 | 2 | `packages/core/src/engine/microcycle.ts` (pętla I-5) | dawka zaokrąglana do 0,5 km schodzi w pętli o 1 km, więc 3,5 km mogłoby spaść do 2,5 km | niepotwierdzone: sonda 428 tys. tygodni nie dała części głównej poniżej 3 km; strażnik `max(3, …)` do rozważenia przy okazji |
+| 2026-11-11 | 2 | `packages/cli/src/planfile.ts` (`computePlan`) | ostrzeżenie makrocyklu o szczycie usuwane porównaniem tekstu; lepszy byłby kod ostrzeżenia z `planMacrocycle` | sugestia porządkowa |
+| 2026-11-11 | 2 | `planfile.ts` (`weeklyBudgetPeakKm`), `microcycle.ts` (`weekCapacityKm`), `macrocycle.ts` | dwa skany pojemności tym samym próbnym tygodniem; reguła I-8 (`daysAvailable.length >= 4 ? 2 : 1`) w trzech miejscach | sugestia porządkowa: jedna funkcja `qualityPerWeek` i skan z predykatem |
+| 2026-11-11 | 2 | `packages/core/src/engine/microcycle.ts` (`weekCapacityKm`) | skan co 1 km buduje dwa mikrocykle na krok, kilka razy na `plan` | wydajność: pamięć podręczna albo krok zgrubny z dokładnym dobiciem, gdy czas `plan` urośnie |

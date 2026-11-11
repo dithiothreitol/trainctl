@@ -51,3 +51,12 @@ export function resolveDateInput(input: string, today: string, direction: DateDi
   }
   throw new Error(ui().dates.badInput(input))
 }
+
+/**
+ * Koniec zakresu (`log --to`, B11): nazwa dnia to najbliższy taki dzień nie wcześniej
+ * niż początek zakresu — „--date mon --to fri” w sobotę to ten sam tydzień, nie
+ * następny. Pozostałe zapisy liczą się od dziś, jak w resolveDateInput.
+ */
+export function resolveRangeEnd(input: string, start: string, today: string): string {
+  return normalize(input) in WEEKDAY_ALIASES ? resolveDateInput(input, start, 'forward') : resolveDateInput(input, today, 'forward')
+}

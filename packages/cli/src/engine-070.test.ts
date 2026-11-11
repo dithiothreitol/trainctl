@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { plannedWeekKm, setLocale } from 'trainctl-core'
 import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
-import { readLog } from './logfile.ts'
+import { latestByDate, readLog } from './logfile.ts'
 import { computePlan, loadPlan, writePlan } from './planfile.ts'
 import { inferredConfigYaml, loadConfig } from './config.ts'
 import { parse } from 'yaml'
@@ -199,6 +199,18 @@ describe('B11: przerwa w trakcie planu', () => {
     for (const e of entries) expect(e).toMatchObject({ status: 'skipped', reason: 'illness' })
   })
 
+  it('log --to: dzień z zapisanym biegiem zostaje, przerwa go nie nadpisuje', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-10-31'
+    const day = loadPlan(dir).weeks.flatMap((w) => w.days).find((x) => x.workout && x.date >= '2026-10-26' && x.date <= '2026-10-30')!
+    expect(cmdLog(dir, { date: day.date, status: 'done', km: '8' }).code).toBe(0)
+    const r = cmdLog(dir, { date: '2026-10-26', to: '2026-10-30', status: 'skipped', reason: 'travel' })
+    expect(r.code, r.output).toBe(0)
+    expect(r.output).toContain(`Days with a logged run stay as logged: ${day.date}`)
+    expect(r.output).toContain('4 days skipped')
+    expect(latestByDate(readLog(dir)).get(day.date)?.status).toBe('done')
+  })
+
   it('log: przyczyna i zakres tylko przy opuszczeniu; zła przyczyna, odwrócony i za długi zakres', () => {
     setup()
     expect(cmdLog(dir, { date: '2026-10-26', reason: 'illness' }).output).toContain('skipped sessions only')
@@ -232,6 +244,20 @@ describe('B11: przerwa w trakcie planu', () => {
     const r = cmdAdapt(dir, {})
     expect(r.output).toContain('R-6, R-7')
     expect((r.data as { proposal: { actions: { type: string }[] } }).proposal.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
+  })
+
+  it('adapt --prepare po kontuzji: bez zmiany planu, także gdy nowy wynik daje rekalibrację (R-6, R-7)', () => {
+    breakUntilToday('injury')
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace(
+      '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
+      '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-10-25", distanceKm: 10, timeSec: 2500 }'), 'utf-8')
+    // przypadek ma sens tylko wtedy, gdy analiza ma akcję, którą dałoby się przygotować
+    const analysis = cmdAdapt(dir, {}).data as { proposal: { actions: { type: string }[]; layoff?: { reason?: string } } }
+    expect(analysis.proposal.actions.map((a) => a.type)).toContain('recalibrate-zones')
+    expect(analysis.proposal.layoff?.reason).toBe('injury')
+    const r = cmdAdapt(dir, { prepare: true })
+    expect(r.code).toBe(1)
+    expect(r.output).toContain('individual decision')
   })
 
   type Restart = { type: string; returnBlock?: { previousWeeklyKm: number; illness: boolean } }

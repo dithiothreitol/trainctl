@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
-import { cmdInit, cmdLog, cmdPlan, cmdShift, cmdStatus, cmdToday, completionScript, resolveDateInput } from './commands.ts'
+import { cmdInit, cmdLog, cmdPlan, cmdShift, cmdStatus, cmdToday, completionScript, resolveDateInput, resolveRangeEnd } from './commands.ts'
 import { logChoices, parseLogStatus } from './interactive.ts'
 import { loadPlan } from './planfile.ts'
 
@@ -64,6 +64,15 @@ describe('daty względne (tylko CLI)', () => {
   it('odrzuca to, co nie jest datą, i niemożliwą datę', () => {
     expect(() => resolveDateInput('someday', today)).toThrow(/not a date/)
     expect(() => resolveDateInput('2026-02-30', today)).toThrow()
+  })
+  it('koniec przerwy (log --to): nazwa dnia od początku zakresu, reszta od dziś', () => {
+    // sobota 2026-11-14: „--date mon --to fri” to ten sam tydzień, nie następny
+    expect(resolveRangeEnd('fri', '2026-11-09', '2026-11-14')).toBe('2026-11-13')
+    expect(resolveRangeEnd('pt', '2026-11-09', '2026-11-14')).toBe('2026-11-13')
+    expect(resolveRangeEnd('mon', '2026-11-09', '2026-11-14')).toBe('2026-11-09')
+    expect(resolveRangeEnd('yesterday', '2026-11-09', '2026-11-14')).toBe('2026-11-13')
+    expect(resolveRangeEnd('+2', '2026-11-09', '2026-11-14')).toBe('2026-11-16')
+    expect(resolveRangeEnd('2026-11-20', '2026-11-09', '2026-11-14')).toBe('2026-11-20')
   })
 })
 

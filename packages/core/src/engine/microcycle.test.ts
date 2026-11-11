@@ -288,6 +288,24 @@ describe('B2: rama i minimalna dawka przy małej objętości', () => {
     const macro = planMacrocycle({ today: '2026-10-22', goal, athlete: { ...athlete, recentWeeklyKm: 12, peakWeeklyKm: 50, results: [] } })
     for (const w of macro.weeks.filter((x) => x.testPlanned)) expect(3 + 5 + 1).toBeLessThanOrEqual(SESSION_SHARE_MAX * w.targetKm)
   })
+  // tygodnie odciążenia planu 12 km/tydz. (macierz B0): przy długim 3 km sufit S-10 dawał
+  // biegi 2,7 km, a dwa dni przebieżek po 2,1–2,2 km zostawały mimo E-3
+  it.each([
+    ['3 dni, 10 km bez toru długiego', ['tue', 'thu', 'sat'] as Weekday[], {}],
+    ['4 dni, tor długiego, akcenty jako przebieżki', ['tue', 'thu', 'sat', 'sun'] as Weekday[], { longKm: 6, qualitySessions: 2 }],
+    ['5 dni, tor długiego', ['tue', 'wed', 'thu', 'sat', 'sun'] as Weekday[], { longKm: 6, qualitySessions: 2 }],
+  ])('tydzień 9 km (%s): żaden bieg poza długim nie jest krótszy niż 3 km (E-3, S-10)', (_name, days, over) => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ targetKm: 9, deload: true, accentProgress: 0, ...over }), athlete: { ...athlete, daysAvailable: days }, zones })
+    const runs = mc.days.filter((d) => d.workout).map((d) => d.workout!)
+    const long = runs.find((w) => w.kind === 'long')!
+    expect(mc.totalKm).toBeCloseTo(9, 1)
+    for (const w of runs.filter((x) => x !== long)) {
+      expect(w.distanceKm).toBeGreaterThanOrEqual(3)
+      expect(w.distanceKm).toBeLessThanOrEqual(long.distanceKm)
+    }
+    // uwaga o przebieżkach tylko przy dniach, które je mają
+    for (const n of mc.notes ?? []) if (n.code === 'accentAsStrides') expect(mc.days.find((d) => d.date === n.date)?.workout?.ruleRefs).toContain('J-6')
+  })
   it('przy jednym akcencie w tygodniu sprawdzian go zastępuje (T-12, W-13)', () => {
     const goal: RaceGoal = { name: 'HM', date: '2027-03-28', distanceKm: 21.0975, priority: 'A' }
     const macro = planMacrocycle({ today: '2026-10-22', goal, athlete: { ...athlete, daysAvailable: ['tue', 'thu', 'sat'], results: [] } })

@@ -19,7 +19,9 @@ change between minor versions — a regenerated plan can differ.
   loading weeks, and `plan` says when the days limit the peak.
 - Small weeks: an accent that would carry more than 35% of the week first loses
   a repetition, then gets a 2 km warm-up, and below that becomes an easy run
-  with strides (J-6). A time trial is planned only when the whole session with
+  with strides (J-6). No run besides the long run is shorter than 3 km: two
+  2 km strides days become one 4 km day, and the long run beside easy runs is
+  at least 3.4 km. A time trial is planned only when the whole session with
   warm-up and cool-down fits the same share; with one accent a week, the time
   trial replaces it instead of adding a second hard day.
 - The I-5 check (at least 75% easy) runs after the rest of the week is
@@ -32,9 +34,11 @@ change between minor versions — a regenerated plan can differ.
   8% a week (P-3). When the growth is slow, or the runner is already at the
   peak, the loading weeks of a block rise 0.94 → 0.97 → 1.00 of the block level.
   Deloads and the taper are counted from that level.
-- An approved volume baseline (`adapt --apply`) sets every later block at that
-  level and keeps the rise within each block; the plan no longer grows past a
-  baseline the runner approved.
+- An approved volume baseline (`adapt --apply`) replaces the level of the
+  current block, and every later week keeps the plan's proportions from it:
+  the wave within a block, deloads, the taper and the growth of later blocks
+  ("progress from there"). A raised baseline does not lift the plan above its
+  peak unless the baseline itself is higher.
 - The long run has its own track: it grows by at most 2 km a loading week to
   22 km for a half marathon, 30 km for a marathon and 32 km for an ultra in the
   last block before the taper (J-1, J-2, J-10, N-19), and shortens in deloads.
@@ -79,13 +83,17 @@ change between minor versions — a regenerated plan can differ.
 
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in
-  advance, and the MCP `trainctl_log` tool and the log prompt take the same
-  fields. After the break `adapt` proposes a return block you can approve:
+  advance; days with a logged run stay as logged, and a weekday name in `--to`
+  counts from `--date` (`--date mon --to fri` is one week). The MCP
+  `trainctl_log` tool and the log prompt take the same fields. After the break
+  `adapt` proposes a return block you can approve:
   about 55% of the earlier volume, the first week easy after illness (R-5) or
   the first block easy after any other break (R-11), growth within P-3 until
   the plan catches up, and no time trial in the return block. The earlier
-  volume is the last loading week of the plan, not a deload or taper week. An
-  injury gets no volume proposal (R-6, R-7). An approved return survives
+  volume is the last loading week of the plan, not a deload or taper week; the
+  taper inside a return block keeps falling. After an injury `adapt --prepare`
+  prepares no plan change at all, not even a recalibration (R-6, R-7). An
+  approved return survives
   `trainctl plan` like an approved baseline (ADR-033). A tune-up race in the
   easy part of a return stays in the plan, and `plan` says the return rule
   does not expect it.
