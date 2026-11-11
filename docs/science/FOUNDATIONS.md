@@ -1849,14 +1849,21 @@ Wartości 2, 50%, 60%, 0,1 km i 15 minut są progami inżynierskimi, nie zalecen
 fizjologicznymi. Starty i sprawdziany nie są skracane. Brak wykonalnego wariantu
 prowadzi do komunikatu o przesunięciu treningu lub dniu wolnym, bez zmiany planu.
 
-**E-2** — budżet czasu z profilu (`time` w `trainctl.yaml`): tydzień ponad
-`weeklyMinutes` dostaje niższy cel kilometrów (nadwyżka minut przeliczona po
-wolniejszej granicy tempa spokojnego, do czterech przebiegów) i jest generowany od
-nowa; dzień ponad limitem dnia (`weekdayMinutes` / `weekendMinutes`) przechodzi
-przez skracanie E-1 i niesie jawny `timeAdjustment` z pochodzeniem „profil".
-Przygotowanie 15 minut jak w E-1. Startów i sprawdzianów nie skracamy. Gdy budżet
-ogranicza szczyt poniżej progu dla dystansu (P-7/P-8), plan mówi o tym wprost.
-To wybór inżynierski: żadne badanie nie mówi, jak przeliczać minuty na bodziec.
+**E-2** — budżet czasu z profilu (`time` w `trainctl.yaml`). Budżet tygodnia
+(`weeklyMinutes`) ogranicza szczyt makrocyklu: to najwyższa objętość tygodnia
+ładowania, która mieści się w minutach razem z siłą, jaka w takim tygodniu wypada.
+Odciążenie i taper liczą się od tego szczytu, więc budżet nie odwraca kształtu
+makrocyklu (PLAN-v0.7 B7). Tydzień, który mimo to jest ponad budżetem (np. po
+zatwierdzonej bazie z `adapt --apply`), dostaje niższy cel kilometrów (nadwyżka minut
+przeliczona po wolniejszej granicy tempa spokojnego, do czterech przebiegów) i jest
+generowany od nowa — to zabezpieczenie, które tylko obniża. Dzień ponad limitem dnia
+(`weekdayMinutes` / `weekendMinutes`) przechodzi przez skracanie E-1 i niesie jawny
+`timeAdjustment` z pochodzeniem „profil". Przygotowanie 15 minut jak w E-1. Startów
+i sprawdzianów nie skracamy. Gdy budżet ogranicza szczyt, plan mówi o tym wprost:
+poniżej progu dla dystansu (P-7/P-8) i nad nim; przy włączonej sile ostrzeżenie
+zostawia wybór między jedną sesją siły tygodniowo (F-14) a większym budżetem — silnik
+siły sam nie tnie. To wybór inżynierski: żadne badanie nie mówi, jak przeliczać
+minuty na bodziec.
 
 **E-3** — stałe generatora planu biegowego bez źródła. Każda jest oznaczona
 w kodzie komentarzem „E-3 (inż.)". Lista służy przeglądowi trenerskiemu

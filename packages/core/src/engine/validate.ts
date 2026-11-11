@@ -303,7 +303,8 @@ export function validatePlan(input: ValidatePlanInput): PlanIssue[] {
   // I-5 violations remain visible, including low-volume and manually edited plans.
   for (const { week } of cleanWeeks) {
     const totals = recomputed.get(week.weekStart)!
-    if (totals.totalKm === 0 || totals.easyShare >= 0.75) continue
+    // równo 75% spełnia I-5 — tolerancja na zapis zmiennoprzecinkowy (4,3 + 4,4 + 4,3 km)
+    if (totals.totalKm === 0 || totals.easyShare >= 0.75 - 1e-9) continue
     warn({
       code: 'easyShareLow', ruleRefs: ['I-5'], date: week.weekStart,
       expected: 0.75, actual: Math.round(totals.easyShare * 100) / 100,

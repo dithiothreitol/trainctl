@@ -68,14 +68,26 @@ describe('DoD etapu 2 (PLAN-v0.7 §4): macierz bez lintów kształtu', () => {
   it('B5: akcent po starcie nie cięższy od bloku budowania (R-8): żaden profil', () => {
     expect(hit('postRaceAccentHeavy')).toEqual([])
   })
-  it('B3–B5: bez budżetu bloki rosną (P-1); wyjątek ma jawne ostrzeżenie wykonalności objętości', () => {
-    // szczyt zatrzymany sufitem (historia albo pojemność dni): ostatnie bloki stoją na nim
+  it('B3–B5, B7: bloki rosną (P-1); wyjątek ma jawne ostrzeżenie o tym, co zatrzymuje objętość', () => {
+    // szczyt zatrzymany sufitem (historia, pojemność dni, budżet czasu): bloki stoją na nim
     // i plan mówi o tym wprost — tak B0 opisuje zamknięcie lintu ostrzeżeniem wykonalności
-    for (const r of matrix().filter((x) => !x.profile.budget && x.shape.some((i) => i.code === 'staleProgression'))) {
-      expect(r.plan.feasibilityWarnings.join(' '), r.profile.id).toMatch(/stays below the thresholds|running days? holds? \d+ km\/week/)
+    for (const r of matrix().filter((x) => x.shape.some((i) => i.code === 'staleProgression'))) {
+      expect(r.plan.feasibilityWarnings.join(' '), r.profile.id).toMatch(/stays below the thresholds|running days? holds? \d+ km\/week|time budget (caps|holds) the plan/)
     }
   })
-  it('bez budżetu czasu odciążenie jest lżejsze od tygodni ładowania (P-2); budżet to B7', () => {
-    expect(hit('deloadNotLighter').filter((id) => !id.includes('min'))).toEqual([])
+  it('B7: P3 (240 min z siłą) zachowuje kształt — odciążenia lżejsze, taper nie większy niż ostatni tydzień ładowania', () => {
+    const p3 = REVIEW_PROFILES.find((p) => p.id === 'P3')!
+    const plan = matrixPlan(p3)
+    const { issues, rows } = shapeReport(p3, plan)
+    expect(issues.filter((i) => i.code === 'deloadNotLighter')).toEqual([])
+    const load = rows.filter((r) => ['base', 'build', 'peak'].includes(r.phase) && !r.deload)
+    for (const r of rows.filter((x) => x.phase === 'taper')) expect(r.km).toBeLessThanOrEqual(load.at(-1)!.km)
+    expect(validatePlan(plan).filter((i) => i.code === 'taperNotMonotonic')).toEqual([])
+    // tygodnie ładowania mieszczą się w budżecie razem z siłą — nikt ich nie przycina osobno
+    expect(plan.weeks.filter((w) => ['base', 'build', 'peak'].includes(w.skeleton.phase) && w.skeleton.uncappedKm !== undefined && w.totalKm < w.skeleton.targetKm - 0.5)).toEqual([])
   })
+  // B7: budżet czasu ogranicza szczyt, a nie każdy tydzień osobno — kształt zostaje
+  for (const code of ['deloadNotLighter', 'taperNotMonotonic'] as const) {
+    it(`${code}: żaden profil, także z budżetem czasu (P-2, T-4)`, () => expect(hit(code)).toEqual([]))
+  }
 })

@@ -56,6 +56,13 @@ change between minor versions — a regenerated plan can differ.
 - `trainctl rules` explains the rules the engine now cites: S-9b–S-12, P-12,
   J-1, J-2, J-4–J-6, J-8–J-10 and N-19. A rule ID with a letter suffix (`S-9b`)
   is found whatever its case.
+- The weekly time budget caps the macrocycle's peak instead of trimming each
+  week on its own (E-2): the peak is the most a loading week can hold in the
+  budget with that week's strength, and deloads and the taper are counted from
+  it, so a deload is lighter than a loading week and the taper keeps falling.
+  When the budget holds the plan back, `plan` says so even above the distance's
+  recommendation, and with strength on it leaves the choice to you: one strength
+  session a week (F-14) or more minutes.
 - When the plan stays below the distance's thresholds, `plan` gives one verdict
   instead of two warnings: the plan peak, the recommended peak and the longest
   run, with the ways out — a later race date when the profile allows it,

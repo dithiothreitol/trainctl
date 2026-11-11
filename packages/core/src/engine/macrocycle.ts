@@ -81,6 +81,12 @@ export interface MacrocycleInput {
   today: string
   goal: RaceGoal
   athlete: AthleteProfile
+  /**
+   * B7: sufit szczytu spoza profilu — tyle km tygodnia ładowania mieści budżet czasu
+   * (E-2). Odciążenie i taper liczą się od szczytu pod tym sufitem, więc budżet nie
+   * odwraca kształtu makrocyklu.
+   */
+  peakCapKm?: number
 }
 
 /**
@@ -364,8 +370,9 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   const targetPeak = baseOnly
     ? Math.min(athlete.peakWeeklyKm ?? level * BASE_GROWTH, historyCap)
     : Math.max(recommended, Math.min(level * 1.15, historyCap))
-  // ile szczytu plan miałby bez limitu dni — ostrzeżenie mówi, co daje dodatkowy dzień
-  const withoutDays = Math.round(Math.min(targetPeak, historyCap, reachable))
+  // ile szczytu plan miałby bez limitu dni — ostrzeżenie mówi, co daje dodatkowy dzień;
+  // sufit z budżetu czasu (B7) ma własne ostrzeżenie po stronie CLI
+  const withoutDays = Math.round(Math.min(targetPeak, historyCap, reachable, input.peakCapKm ?? Infinity))
   // B1: szczyt nie wyższy niż to, co dni biegacza mieszczą pod sufitami jednostek
   const peakPlanned = weekCapacityKm(athlete, qualityPerWeek, withoutDays)
   if (peakPlanned < withoutDays) feasibilityWarnings.push(messages().macro.daysCapVolume(peakPlanned, withoutDays, athlete.daysAvailable.length))

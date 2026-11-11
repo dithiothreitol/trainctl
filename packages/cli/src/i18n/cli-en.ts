@@ -928,9 +928,20 @@ export const cliEn = {
     noCalibration:
       'No race result from the last 18 months and no goal.targetTimeSec — ' +
       'there is nothing to calibrate the zones from (Z-6: we calibrate from results, not from a watch).',
-    timeCapsVolume: (peak: number, withoutBudget: number, recommended: number) =>
+    /** B7, decyzja 8: przy sile ostrzeżenie zostawia wybór między bieganiem a siłą — silnik siły sam nie tnie. */
+    timeCapsVolume: (peak: number, withoutBudget: number, recommended: number, strength: boolean) =>
       `Your time budget caps the plan at ${n(peak)} km/week; without it the plan would reach ${n(withoutBudget)} km/week ` +
-      `(${n(recommended)} km/week recommended for this distance, P-7/P-8). More minutes, or a closer goal, changes that (E-2).`,
+      `(${n(recommended)} km/week recommended for this distance, P-7/P-8). ` +
+      (strength
+        ? 'The choice is yours: one strength session a week instead of two keeps the gains (F-14) and frees time for running, or more minutes, or a closer goal (E-2).'
+        : 'More minutes, or a closer goal, changes that (E-2).'),
+    /** B7: budżet trzyma plan poniżej zamiaru, ale nad rekomendacją dystansu. */
+    timeHoldsVolume: (peak: number, withoutBudget: number, strength: boolean) =>
+      `Your time budget holds the plan at ${n(peak)} km/week; without it the plan would reach ${n(withoutBudget)} km/week. ` +
+      'That is enough for this distance (P-7/P-8), so the weeks stay near that level and the long run and accents carry the progression. ' +
+      (strength
+        ? 'For more running: one strength session a week instead of two keeps the gains (F-14), or more minutes (E-2).'
+        : 'More minutes would let the volume grow (E-2).'),
     timeDayTooShort: (dates: string) =>
       `These sessions do not fit the day's time budget even shortened (races and time trials are never cut): ${dates} (E-2).`,
     /**

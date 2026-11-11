@@ -69,15 +69,23 @@ describe('E-2 · budżet czasu z profilu', () => {
     const p = plan(`${BASE}time:\n  weeklyMinutes: 2000\n  weekendMinutes: 600\n`)
     expect(p.feasibilityWarnings.join(' ')).not.toContain('time budget caps')
   })
-  it('cel tygodnia zostaje zamiarem makrocyklu; budżet zapisuje swoją objętość obok (timeCappedKm)', () => {
+  it('B7: budżet tygodnia ogranicza makrocykl; zamiar bez budżetu zostaje obok (uncappedKm), rozpisana objętość w timeCappedKm', () => {
     const free = plan(BASE)
     const capped = plan(`${BASE}time:\n  weeklyMinutes: 240\n  weekdayMinutes: 50\n`)
     const pairs = capped.weeks.map((w, i) => [w, free.weeks[i]!] as const).filter(([w]) => w.skeleton.timeCappedKm !== undefined)
     expect(pairs.length).toBeGreaterThan(0)
     for (const [w, f] of pairs) {
-      expect(w.skeleton.targetKm).toBe(f.skeleton.targetKm)
+      expect(w.skeleton.targetKm).toBeLessThanOrEqual(f.skeleton.targetKm)
       expect(w.totalKm).toBeCloseTo(w.skeleton.timeCappedKm!, 0)
     }
+    // budżet obniżył zamiar makrocyklu, a zamiar bez budżetu to cel planu bez `time`
+    const lowered = pairs.filter(([w, f]) => w.skeleton.targetKm < f.skeleton.targetKm)
+    expect(lowered.length).toBeGreaterThan(0)
+    for (const [w, f] of lowered) expect(w.skeleton.uncappedKm).toBe(f.skeleton.targetKm)
+    // tygodnie ładowania pod sufitem z budżetu, odciążenia od jego poziomu (P-2)
+    const load = capped.weeks.filter((w) => ['base', 'build', 'peak'].includes(w.skeleton.phase))
+    const peak = Math.max(...load.filter((w) => !w.skeleton.deload).map((w) => w.totalKm))
+    for (const d of load.filter((w) => w.skeleton.deload)) expect(d.totalKm).toBeLessThan(peak)
   })
   it('tydzień przycięty budżetem tygodnia przechodzi własny lint (P-3); liczby w pliku bez szumu', () => {
     const capped = plan(`${BASE}time:\n  weeklyMinutes: 200\n`)
@@ -140,13 +148,13 @@ describe('E-2 · budżet czasu z profilu', () => {
       delete process.env['TRAINCTL_TODAY']
     }
   })
-  it('week pokazuje cel po budżecie czasu, nie zamiar makrocyklu', () => {
+  it('week pokazuje cel po budżecie czasu, nie zamiar bez budżetu', () => {
     const capped = plan(`${BASE}time:\n  weeklyMinutes: 200\n`)
-    const week = capped.weeks.find((w) => w.skeleton.timeCappedKm !== undefined && w.skeleton.timeCappedKm < w.skeleton.targetKm - 5)!
+    const week = capped.weeks.find((w) => w.skeleton.timeCappedKm !== undefined && (w.skeleton.uncappedKm ?? 0) > w.skeleton.timeCappedKm + 5)!
     const out = cmdWeek(dir, { date: week.days[0]!.date }).output
-    // cel po budżecie równy rozpisanej sumie — jedna liczba, bez zamiaru makrocyklu
+    // cel po budżecie równy rozpisanej sumie — jedna liczba, bez zamiaru sprzed budżetu
     expect(out).toContain(`${week.skeleton.timeCappedKm} km`)
-    expect(out).not.toContain(`${week.skeleton.targetKm} km`)
+    expect(out).not.toContain(`${week.skeleton.uncappedKm} km`)
   })
   it('plan z budżetem wygenerowany drugi raz bez zmian na wejściu jest „aktualny"', () => {
     plan(`${BASE}time:\n  weeklyMinutes: 240\n  weekdayMinutes: 50\n`)

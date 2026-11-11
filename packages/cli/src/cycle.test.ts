@@ -212,9 +212,9 @@ describe('regeneracja po zatwierdzonej propozycji', () => {
   })
   it('po zatwierdzonej bazie dni sprzed tygodnia decyzji nie trafiają do „zachowanych" — nic by się w nich nie zmieniło', () => {
     write(withBudget(RACE))
-    // baza poniżej tego, co budżet zostawia (16 km z dwiema sesjami siły): skalowanie
+    // baza poniżej sufitu z budżetu (~19 km z dwiema sesjami siły, B7): skalowanie
     // zmienia dni tygodnia decyzji, więc ochrona przeszłości ma co trzymać
-    approve('2026-09-16', 25)
+    approve('2026-09-16', 12)
     const r = cmdPlan(dir)
     expect(r.code, r.output).toBe(0)
     const past = (r.data as { regeneration: { protectedDays: { date: string; reason: string }[] } }).regeneration.protectedDays.filter((p) => p.reason === 'past')

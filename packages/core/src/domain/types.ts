@@ -130,7 +130,8 @@ export interface WeekSkeleton {
   /**
    * Objętość po budżecie czasu z profilu (E-2). `targetKm` zostaje zamiarem
    * makrocyklu — od niego liczy się skalowanie bazy (adapt, regeneracja), a lint
-   * porównuje sumy dni z tym, co budżet faktycznie zostawił.
+   * porównuje sumy dni z tym, co budżet faktycznie zostawił. Od B7 budżet tygodnia
+   * ogranicza już sam makrocykl (sufit szczytu), a zamiar bez budżetu jest w `uncappedKm`.
    */
   timeCappedKm?: number
   /**

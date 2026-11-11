@@ -86,37 +86,32 @@ staleProgression 2027-03-08 19/21 [P-1]
 longBelowGoal  9/21 [J-2,P-7]
 
 ## P3
- 1 2026-10-19 base           16 3b L8.4 S2
- 2 2026-10-26 base           16 3b L8.4 S2
- 3 2026-11-02 base           16 3b L8.4 S2
- 4 2026-11-09 base↓          22 3b L11 S1 quality_intervals:3×1000@4:32
- 5 2026-11-16 base           19 2b L10 S2 [test] test:5 km
- 6 2026-11-23 base           16 3b L8.4 S2
- 7 2026-11-30 base           16 3b L8.4 S2
- 8 2026-12-07 base↓          22 3b L11.6 S1 quality_intervals:3×1000@4:32
- 9 2026-12-14 build          16 3b L8.4 S2
-10 2026-12-21 build          16 3b L8.4 S2
-11 2026-12-28 build          21 2b L12 S2 [test] test:5 km
-12 2027-01-04 build↓         22 3b L11.6 S1 quality_intervals:3×1000@4:32
-13 2027-01-11 build          16 3b L8.4 S2
-14 2027-01-18 build          16 3b L8.4 S2
-15 2027-01-25 build          16 3b L8.4 S2
-16 2027-02-01 build↓         22 3b L11.6 S1 quality_intervals:3×1000@4:32
-17 2027-02-08 build          21 2b L12 S2 [test] test:5 km
-18 2027-02-15 peak           23 3b L12.1 S1 quality_intervals:2×1000@4:04 + 2×400@4:04 + 2×200@4:04
-19 2027-02-22 peak           23 3b L12.1 S1 quality_intervals:2×1000@4:04 + 2×400@4:04 + 2×200@4:04
-20 2027-03-01 peak↓          24 3b L12.7 S1 quality_intervals:2×1000@4:04 + 2×400@4:04 + 2×200@4:04
-21 2027-03-08 peak           23 3b L12.1 S1 quality_intervals:2×1000@4:04 + 2×400@4:04 + 2×200@4:04
-22 2027-03-15 taper          29 4b L0 S0 quality_intervals:4×1000@4:04 | quality_continuous:3 km 4:25/5:05
-23 2027-03-22 race           16 3b L0 S0 [race] sharpener:5×300@4:04
-24 2027-03-29 transition     22 3b L0 S0
-25 2027-04-05 transition     21 3b L7.7 S1 quality_intervals:3×1000@4:32
+ 1 2026-10-19 base           18 3b L6.6 S2 quality_intervals:3×1000@4:32
+ 2 2026-10-26 base           18 3b L7 S2 quality_intervals:3×1000@4:32
+ 3 2026-11-02 base           19 3b L8 S2 quality_intervals:3×1000@4:32
+ 4 2026-11-09 base↓          13 3b L6 S1
+ 5 2026-11-16 base           18 3b L9 S2 quality_intervals:3×1000@4:32
+ 6 2026-11-23 base           18 2b L12 S2 quality_intervals:3×1000@4:32
+ 7 2026-11-30 base           19 3b L10 S2 quality_intervals:3×1000@4:32
+ 8 2026-12-07 base↓          13 3b L6.8 S1
+ 9 2026-12-14 build          18 2b L12 S2 quality_intervals:3×1000@4:32
+10 2026-12-21 build          18 2b L12 S2 quality_intervals:3×1000@4:32
+11 2026-12-28 build          19 3b L10 S2 quality_intervals:3×1000@4:32
+12 2027-01-04 build↓         13 3b L6.8 S1
+13 2027-01-11 build          18 2b L12 S2 quality_intervals:3×1000@4:32
+14 2027-01-18 build          18 2b L12 S2 quality_intervals:3×1000@4:32
+15 2027-01-25 build          19 3b L10 S2 quality_intervals:3×1000@4:32
+16 2027-02-01 build↓         13 3b L6.8 S1
+17 2027-02-08 build          18 2b L12 S2 quality_intervals:3×1000@4:32
+18 2027-02-15 peak           18 2b L11.8 S1 quality_intervals:2×1000@4:04 + 2×400@4:04 + 2×200@4:04
+19 2027-02-22 peak           19 2b L12.8 S1 quality_intervals:2×1000@4:04 + 2×400@4:04 + 2×200@4:04
+20 2027-03-01 peak↓          13 3b L6.8 S1
+21 2027-03-08 peak           19 2b L12.8 S1 quality_intervals:2×1000@4:04 + 2×400@4:04 + 2×200@4:04
+22 2027-03-15 taper          13 2b L0 S0
+23 2027-03-22 race            5 1b L0 S0 [race]
+24 2027-03-29 transition      8 2b L0 S0
+25 2027-04-05 transition     16 3b L6 S1
 
-deloadNotLighter 2026-11-09 22/16 [P-2]
-deloadNotLighter 2026-12-07 22/16 [P-2]
-deloadNotLighter 2027-01-04 22/16 [P-2]
-deloadNotLighter 2027-02-01 22/16 [P-2]
-deloadNotLighter 2027-03-01 24/23 [P-2]
 staleProgression 2027-01-25 11/15 [P-1]
 staleProgression 2027-03-08 19/21 [P-1]
-longBelowGoal  12.7/21 [J-2,P-7]
+longBelowGoal  12.8/21 [J-2,P-7]

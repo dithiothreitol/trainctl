@@ -942,9 +942,18 @@ export const cliPl: CliMessages = {
     noCalibration:
       'Brak wyniku startu z ostatnich 18 miesięcy i brak goal.targetTimeSec — ' +
       'nie mam z czego skalibrować stref (Z-6: kalibrujemy z wyników, nie z zegarka).',
-    timeCapsVolume: (peak: number, withoutBudget: number, recommended: number) =>
+    timeCapsVolume: (peak: number, withoutBudget: number, recommended: number, strength: boolean) =>
       `Budżet czasu ogranicza plan do ${n(peak)} km/tydz.; bez niego plan doszedłby do ${n(withoutBudget)} km/tydz. ` +
-      `(rekomendowane dla tego dystansu: ${n(recommended)} km/tydz., P-7/P-8). Zmieni to więcej minut albo bliższy cel (E-2).`,
+      `(rekomendowane dla tego dystansu: ${n(recommended)} km/tydz., P-7/P-8). ` +
+      (strength
+        ? 'Wybór należy do ciebie: jedna sesja siły tygodniowo zamiast dwóch utrzymuje efekt (F-14) i zwalnia czas na bieganie, albo więcej minut, albo bliższy cel (E-2).'
+        : 'Zmieni to więcej minut albo bliższy cel (E-2).'),
+    timeHoldsVolume: (peak: number, withoutBudget: number, strength: boolean) =>
+      `Budżet czasu trzyma plan na ${n(peak)} km/tydz.; bez niego plan doszedłby do ${n(withoutBudget)} km/tydz. ` +
+      'To wystarcza dla tego dystansu (P-7/P-8), więc tygodnie stoją blisko tego poziomu, a progresję niosą długie i akcenty. ' +
+      (strength
+        ? 'Więcej biegania da jedna sesja siły tygodniowo zamiast dwóch, która utrzymuje efekt (F-14), albo więcej minut (E-2).'
+        : 'Objętość urośnie przy większej liczbie minut (E-2).'),
     timeDayTooShort: (dates: string) =>
       `Te jednostki nie mieszczą się w budżecie dnia nawet po skróceniu (startów i sprawdzianów nie skracamy): ${dates} (E-2).`,
     verdict: (v: { distanceKm: number; peakKm: number; recommendedKm: number; longest?: { km: number; thresholdKm: number; atLeast: boolean; rules: string }; reachableFrom?: string }) =>
