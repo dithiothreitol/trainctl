@@ -3,19 +3,19 @@
  2 2026-10-26 base           52 4b L19 S2 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
  3 2026-11-02 base           52 4b L19 S2 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
  4 2026-11-09 base↓          36 3b L13 S1 quality_intervals:4×1000@4:32
- 5 2026-11-16 base           52 5b L19 S2 [test] easy_hills:15×200 podbieg | test:5 km pomiar
+ 5 2026-11-16 base           52 5b L19 S2 [test] easy_hills:15×200 | test:5 km
  6 2026-11-23 base           52 4b L19 S2 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
  7 2026-11-30 base           52 4b L19 S2 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
  8 2026-12-07 base↓          36 3b L13 S1 quality_intervals:4×1000@4:32
  9 2026-12-14 build          52 4b L19 S2 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
 10 2026-12-21 build          52 4b L19 S2 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
-11 2026-12-28 build          52 5b L19 S2 [test] easy_hills:15×200 podbieg | test:5 km pomiar
+11 2026-12-28 build          52 5b L19 S2 [test] easy_hills:15×200 | test:5 km
 12 2027-01-04 build↓         36 3b L13 S1 quality_intervals:4×1000@4:32
 13 2027-01-11 build          52 4b L19 S2 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
 14 2027-01-18 build          52 4b L19 S2 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
 15 2027-01-25 build          52 4b L19 S2 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
 16 2027-02-01 build↓         36 3b L13 S1 quality_intervals:4×1000@4:32
-17 2027-02-08 build          52 5b L19 S2 [test] easy_hills:15×200 podbieg | test:5 km pomiar
+17 2027-02-08 build          52 5b L19 S2 [test] easy_hills:15×200 | test:5 km
 18 2027-02-15 peak           52 4b L19 S1 quality_intervals:4×1000@4:04 | quality_continuous:4 km 4:25/5:05
 19 2027-02-22 peak           52 4b L19 S1 quality_intervals:4×1000@4:04 | quality_continuous:4 km 4:25/5:05
 20 2027-03-01 peak↓          36 3b L13 S1 quality_intervals:4×1000@4:04
@@ -49,13 +49,13 @@ longBelowGoal  19/21 [J-2,P-7]
  6 2026-11-23 base           18 3b L6 S2 quality_intervals:4×1000@4:32
  7 2026-11-30 base           19 3b L7 S2 quality_intervals:4×1000@4:32
  8 2026-12-07 base↓          13 3b L5 S1
- 9 2026-12-14 build          21 4b L7 S2 [test] test:5 km pomiar
+ 9 2026-12-14 build          21 4b L7 S2 [test] test:5 km
 10 2026-12-21 build          22 3b L8 S2 quality_intervals:4×1000@4:32
 11 2026-12-28 build          24 3b L9 S2 quality_intervals:4×1000@4:32
 12 2027-01-04 build↓         17 3b L6 S1 quality_intervals:4×1000@4:32
 13 2027-01-11 build          26 3b L9 S2 quality_intervals:4×1000@4:32
 14 2027-01-18 build          28 3b L10 S2 quality_intervals:4×1000@4:32
-15 2027-01-25 build          30 4b L11 S2 [test] test:5 km pomiar
+15 2027-01-25 build          30 4b L11 S2 [test] test:5 km
 16 2027-02-01 build↓         21 3b L7 S1 quality_intervals:4×1000@4:32
 17 2027-02-08 build          33 3b L12 S2 quality_intervals:4×1000@4:32
 18 2027-02-15 peak           35 3b L12 S1 quality_intervals:4×1000@4:04
@@ -138,19 +138,19 @@ longBelowGoal  6/21 [J-2,P-7]
  2 2026-10-26 base           16 3b L6 S2 quality_intervals:4×1000@4:32
  3 2026-11-02 base           16 3b L6 S2 quality_intervals:4×1000@4:32
  4 2026-11-09 base↓          24 3b L9 S1 quality_intervals:4×1000@4:32
- 5 2026-11-16 base           14 2b L5 S2 [test] test:5 km pomiar
+ 5 2026-11-16 base           14 2b L5 S2 [test] test:5 km
  6 2026-11-23 base           16 3b L6 S2 quality_intervals:4×1000@4:32
  7 2026-11-30 base           16 3b L6 S2 quality_intervals:4×1000@4:32
  8 2026-12-07 base↓          24 3b L9 S1 quality_intervals:4×1000@4:32
  9 2026-12-14 build          16 3b L6 S2 quality_intervals:4×1000@4:32
 10 2026-12-21 build          16 3b L6 S2 quality_intervals:4×1000@4:32
-11 2026-12-28 build          14 2b L5 S2 [test] test:5 km pomiar
+11 2026-12-28 build          14 2b L5 S2 [test] test:5 km
 12 2027-01-04 build↓         24 3b L9 S1 quality_intervals:4×1000@4:32
 13 2027-01-11 build          16 3b L6 S2 quality_intervals:4×1000@4:32
 14 2027-01-18 build          16 3b L6 S2 quality_intervals:4×1000@4:32
 15 2027-01-25 build          16 3b L6 S2 quality_intervals:4×1000@4:32
 16 2027-02-01 build↓         24 3b L9 S1 quality_intervals:4×1000@4:32
-17 2027-02-08 build          14 2b L5 S2 [test] test:5 km pomiar
+17 2027-02-08 build          14 2b L5 S2 [test] test:5 km
 18 2027-02-15 peak           23 3b L8 S1 quality_intervals:4×1000@4:04
 19 2027-02-22 peak           23 3b L8 S1 quality_intervals:4×1000@4:04
 20 2027-03-01 peak↓          25 3b L9 S1 quality_intervals:4×1000@4:04

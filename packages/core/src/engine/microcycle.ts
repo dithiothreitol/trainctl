@@ -357,6 +357,16 @@ export const plannedWeekKm = (skeleton: Pick<WeekSkeleton, 'targetKm' | 'timeCap
   skeleton.timeCappedKm ?? skeleton.targetKm
 
 /**
+ * Kilometry poza Z1 jednej jednostki: wszystko poza rozgrzewką, schłodzeniem
+ * i biegiem spokojnym; podbiegi w połowie, bo `distanceKm` liczy też zbieg.
+ * Jedna definicja dla generatora (sufit mocnych km) i lintów sezonu.
+ */
+export function hardKmOf(workout: PlannedWorkout): number {
+  return workout.segments.reduce((a, s) =>
+    a + (['easy', 'warmup', 'cooldown'].includes(s.type) ? 0 : s.type === 'hills' ? (s.distanceKm ?? 0) / 2 : s.distanceKm ?? 0), 0)
+}
+
+/**
  * Sumy tygodnia liczone z dni — jedno źródło dla generatora, walidatora
  * (`trainctl check`) i `reschedule --apply`, który po przestawieniu tygodnia
  * musi je przeliczyć, inaczej zapisany plan kłamie w totalKm po odpuszczonej sesji.
@@ -519,8 +529,7 @@ function planNormalWeek(
   // Reconcile actual sessions with the macro budget. Minimum-sized accents are
   // optional; they must never force an unrequested increase in weekly distance.
   const total = () => [...plan.values()].reduce((n, w) => n + w.distanceKm, 0)
-  const hardKm = () => [...plan.values()].filter(w => w.kind !== 'race').reduce((n, w) => n + w.segments.reduce((a, s) =>
-    a + (['easy', 'warmup', 'cooldown'].includes(s.type) ? 0 : s.type === 'hills' ? (s.distanceKm ?? 0) / 2 : s.distanceKm ?? 0), 0), 0)
+  const hardKm = () => [...plan.values()].filter(w => w.kind !== 'race').reduce((n, w) => n + hardKmOf(w), 0)
   for (const kind of ['quality_continuous', 'quality_intervals', 'easy_hills'] as const) {
     for (const [wd, workout] of plan) {
       if (total() <= target && hardKm() <= target * HARD_SHARE_MAX) break

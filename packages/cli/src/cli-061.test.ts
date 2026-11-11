@@ -4,14 +4,15 @@
  * dziesiętne w formacie języka, status dziennika słowem z katalogu, adresy
  * nie cięte przy zawijaniu, wiek wyniku liczony od dziś.
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
 import { cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
-import { wrap } from './ui/blocks.ts'
+import { renderAnsi, wrap } from './ui/blocks.ts'
+import { Theme, visibleLength } from './ui/theme.ts'
 
 const CONFIG = `athlete:
   recentWeeklyKm: 45
@@ -123,5 +124,51 @@ describe('B9: stałe silnika bez źródła mają regułę E-3', () => {
     expect(cmdRules({ id: 'E-3' }).output).toContain('18 km')
     expect(cmdRules({}).output).toContain('E-3')
     expect(ruleEvidence('E-3')).toBe('engineering')
+  })
+})
+
+describe('poprawki po przeglądzie etapu 1', () => {
+  it('today pokazuje zalogowane km w formacie języka, także 0 km', () => {
+    setLocale('pl')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    cmdLog(dir, { date: '2026-10-27', status: 'modified', km: '8.5' })
+    expect(cmdToday(dir).output).toContain('8,5 km')
+    cmdLog(dir, { date: '2026-10-27', status: 'modified', km: '0' })
+    expect(cmdToday(dir).output).toContain(', 0 km')
+  })
+
+  it('why: wynik z przyszłości w dniu kalibracji, dziś już przeszły, nie jest „z przyszłości"', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
+      '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-10-25", distanceKm: 5, timeSec: 1200 }'), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-29'
+    const out = cmdWhy(dir, { date: '2026-10-27' }).output
+    expect(out).toContain('Newer than the calibration')
+    expect(out).not.toContain('Future result')
+    expect(out).not.toMatch(/-\d+ days/)
+  })
+
+  it('komórka tabeli z długą ścieżką trzyma szerokość kolumny', () => {
+    const theme = new Theme({ color: false, unicode: true, width: 40 })
+    const out = renderAnsi([{ t: 'table', head: ['a', 'b'], rows: [['x', 'C:\Users\someone\AppData\Local\Temp\very\long\dir']] }], theme)
+    for (const line of out.split('\n')) expect(visibleLength(line)).toBeLessThanOrEqual(40)
+  })
+
+  it('kv z adresem dłuższym niż kolumna wartości przechodzi w układ piętrowy, adres w całości', () => {
+    const url = 'https://github.com/dithiothreitol/trainctl/blob/v0.6.0/docs/science/FOUNDATIONS.md'
+    const out = renderAnsi([{ t: 'kv', pairs: [['Source', url]] }], new Theme({ color: false, unicode: true, width: 60 }))
+    expect(out.split('\n').some((line) => line.trim() === url)).toBe(true)
+  })
+
+  it('handlery nie wstawiają surowych kilometrów (format języka przez formatNumber)', () => {
+    const src = readFileSync(join(import.meta.dirname, 'commands.ts'), 'utf-8')
+    expect(src).not.toMatch(/\$\{[\w.]*(?:km|Km)\} km`/)
+    expect(src).not.toContain('String(w.totalKm)')
+  })
+
+  it('podtytuł tygodnia: bez planowanej sumy jedna liczba', () => {
+    setLocale('en')
+    expect(cmdWeek(dir).output).toMatch(/\(pyramidal\) · \d+ km/)
   })
 })

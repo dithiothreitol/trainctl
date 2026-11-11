@@ -7,13 +7,13 @@
  * Progi oznaczone „inż." są wyborem inżynierskim (E-3), nie wynikiem badań.
  */
 import type { MacroPhase, Microcycle, PlannedWorkout, RaceGoal } from '../domain/types.ts'
-import { fmtPace } from './microcycle.ts'
+import { fmtPace, hardKmOf } from './microcycle.ts'
 
 export interface SeasonAccent {
   kind: PlannedWorkout['kind']
   /** Kilometry poza Z1 (część główna akcentu, odcinki podbiegów, pomiar). */
   hardKm: number
-  /** Dawka części głównej w notacji, np. `4×1000@4:32`, `4 km 5:01→4:32`. */
+  /** Dawka części głównej bez słów (język neutralny): `4×1000@4:32`, `4 km 5:01→4:32`, `15×200`. */
   dose: string
 }
 
@@ -35,26 +35,22 @@ const round1 = (n: number) => Math.round(n * 10) / 10
 
 function accentOf(w: PlannedWorkout): SeasonAccent {
   const parts: string[] = []
-  let hardKm = 0
   for (const s of w.segments) {
     if (s.type === 'intervals') {
-      hardKm += s.distanceKm ?? 0
       parts.push(`${s.reps ?? 1}×${s.repM ?? 0}${s.pace ? '@' + fmtPace(Math.round((s.pace.loSecPerKm + s.pace.hiSecPerKm) / 2)) : ''}`)
-    } else if (s.type === 'progression' && s.pace) {
-      hardKm += s.distanceKm ?? 0
-      parts.push(`${s.distanceKm} km ${fmtPace(s.pace.hiSecPerKm)}→${fmtPace(s.pace.loSecPerKm)}`)
-    } else if (s.type === 'alternating' && s.pace) {
-      hardKm += s.distanceKm ?? 0
-      parts.push(`${s.distanceKm} km ${fmtPace(s.pace.loSecPerKm)}/${fmtPace(s.pace.hiSecPerKm)}`)
+    } else if (s.type === 'progression') {
+      parts.push(`${s.distanceKm} km${s.pace ? ` ${fmtPace(s.pace.hiSecPerKm)}→${fmtPace(s.pace.loSecPerKm)}` : ''}`)
+    } else if (s.type === 'alternating') {
+      parts.push(`${s.distanceKm} km${s.pace ? ` ${fmtPace(s.pace.loSecPerKm)}/${fmtPace(s.pace.hiSecPerKm)}` : ''}`)
+    } else if (s.type === 'steady') {
+      parts.push(`${s.distanceKm} km${s.pace ? '@' + fmtPace(s.pace.loSecPerKm) : ''}`)
     } else if (s.type === 'hills') {
-      hardKm += (s.distanceKm ?? 0) / 2
-      parts.push(`${s.reps}×${s.repM} podbieg`)
+      parts.push(`${s.reps}×${s.repM}`)
     } else if (s.type === 'race') {
-      hardKm += s.distanceKm ?? 0
-      parts.push(`${s.distanceKm} km pomiar`)
+      parts.push(`${s.distanceKm} km`)
     }
   }
-  return { kind: w.kind, hardKm: round1(hardKm), dose: parts.join(' + ') }
+  return { kind: w.kind, hardKm: round1(hardKmOf(w)), dose: parts.join(' + ') }
 }
 
 /** Jeden wiersz na tydzień: to, co trener ogląda, przeglądając sezon. */
@@ -115,11 +111,14 @@ export interface ShapeIssue {
 
 /** Udział jednej jednostki w tygodniu, powyżej którego tydzień „wisi" na niej (inż., E-3). */
 export const SESSION_SHARE_MAX = 0.35
-/** Próg najdłuższego biegu dla dystansu: HM >21 km (J-2, P-7), maraton ≥25 km (P-8). */
-export function longRunThresholdKm(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): number | undefined {
+/**
+ * Próg najdłuższego biegu dla dystansu: HM — dłuższy niż 21 km (J-2, P-7),
+ * maraton — co najmniej 25 km (P-8 karze „najdłuższy <25 km").
+ */
+export function longRunThreshold(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): { km: number; inclusive: boolean } | undefined {
   if (goal.kind === 'base') return undefined
-  if (goal.distanceKm >= 42) return 25
-  if (goal.distanceKm >= 20.9) return 21
+  if (goal.distanceKm >= 42) return { km: 25, inclusive: true }
+  if (goal.distanceKm >= 20.9) return { km: 21, inclusive: false }
   return undefined
 }
 
@@ -184,10 +183,11 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
   }
 
   // J-2/P-7/P-8: najdłuższy bieg planu przed taperem a próg dla dystansu
-  const threshold = longRunThresholdKm(plan.goal)
+  const threshold = longRunThreshold(plan.goal)
   if (threshold !== undefined) {
     const longest = Math.max(0, ...rows.filter((r) => LOADING_PHASES.has(r.phase)).map((r) => r.longKm))
-    if (longest <= threshold) issues.push({ code: 'longBelowGoal', date: '', ruleRefs: plan.goal.distanceKm >= 42 ? ['P-8', 'J-1'] : ['J-2', 'P-7'], values: [longest, threshold] })
+    const meets = threshold.inclusive ? longest >= threshold.km : longest > threshold.km
+    if (!meets) issues.push({ code: 'longBelowGoal', date: '', ruleRefs: plan.goal.distanceKm >= 42 ? ['P-8', 'J-1'] : ['J-2', 'P-7'], values: [longest, threshold.km] })
   }
   return issues
 }

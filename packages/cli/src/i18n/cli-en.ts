@@ -249,8 +249,9 @@ export const cliEn = {
   week: {
     title: (index: number, total: number, weekStart: string) =>
       `Week ${index}/${total} · from ${weekStart}`,
-    subtitle: (phase: string, model: string, targetKm: number, plannedKm: number) =>
-      targetKm === plannedKm ? `${phase} (${model}) · ${n(plannedKm)} km` : `${phase} (${model}) · target ${n(targetKm)} km · planned ${n(plannedKm)} km`,
+    /** `plannedKm` pominięte, gdy suma dni równa się celowi — wtedy jedna liczba. */
+    subtitle: (phase: string, model: string, targetKm: number, plannedKm?: number) =>
+      plannedKm === undefined ? `${phase} (${model}) · ${n(targetKm)} km` : `${phase} (${model}) · target ${n(targetKm)} km · planned ${n(plannedKm)} km`,
     deloadUpper: 'DELOAD',
     columns: { day: 'day', date: 'date', km: 'km', workout: 'workout' },
     rest: 'rest',

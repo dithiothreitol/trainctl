@@ -57,8 +57,12 @@ export const b = {
 /** URL albo ścieżka (Windows, POSIX, względna) — tokeny, których nie tniemy. */
 const UNBREAKABLE = /^(?:[a-z][a-z0-9+.-]*:\/\/|[A-Za-z]:[\\/]|\.{0,2}[\\/]|~[\\/])\S+$/i
 
-/** Zawijanie tekstu do szerokości, po słowach. */
-export function wrap(text: string, width: number, indent = ''): string[] {
+/**
+ * Zawijanie tekstu do szerokości, po słowach. `keepTokens` zostawia URL-e
+ * i ścieżki w całości (wiersz bywa wtedy szerszy niż `width`); komórki tabel
+ * wyłączają to, bo kolumna musi trzymać szerokość.
+ */
+export function wrap(text: string, width: number, indent = '', keepTokens = true): string[] {
   const available = Math.max(1, width - visibleLength(indent))
   const lines: string[] = []
   // Preserve explicit line breaks (errors, lists and multi-step workouts).
@@ -69,7 +73,7 @@ export function wrap(text: string, width: number, indent = ''): string[] {
         lines.push(indent + line)
         line = ''
       }
-      if (visibleLength(word) > available && UNBREAKABLE.test(word)) {
+      if (keepTokens && visibleLength(word) > available && UNBREAKABLE.test(word)) {
         // Adres albo ścieżka w całości, we własnym wierszu: pocięte po znakach
         // przestają być klikalne i nie dają się skopiować. Resztę zawinie terminal.
         if (line) lines.push(indent + line)
@@ -94,7 +98,9 @@ export function wrap(text: string, width: number, indent = ''): string[] {
 function keyValues(pairs: [string, string][], theme: Theme, width: number): string[] {
   const keyWidth = Math.min(Math.max(0, ...pairs.map(([key]) => visibleLength(key) + 1)), Math.floor(width / 2))
   return pairs.flatMap(([key, value]) => {
-    if (visibleLength(key) + 1 > keyWidth || width - keyWidth < 16) {
+    // Adres albo ścieżka dłuższa niż kolumna wartości: układ piętrowy, pełna szerokość.
+    const tokenTooWide = value.split(/\s+/).some((word) => UNBREAKABLE.test(word) && visibleLength(word) > width - keyWidth - 2)
+    if (visibleLength(key) + 1 > keyWidth || width - keyWidth < 16 || tokenTooWide) {
       return [...wrap(`${key}:`, width).map(line => theme.dim(line)), ...wrap(value, width, '  ')]
     }
     const lines = wrap(value, width - keyWidth - 2)
@@ -133,7 +139,7 @@ function table(block: Extract<Block, { t: 'table' }>, theme: Theme): string[] {
   const numeric = block.head.map((_, col) => col > 0 && block.rows.length > 0 && block.rows.every(row =>
     /^[+−-]?\d+(?:[.,]\d+)?(?:\s*(?:%|km|m|min|h|s|W))?$/.test(row[col] ?? '')))
   const rowLines = (row: string[], heading: boolean, accent?: ColorName): string[] => {
-    const wrapped = block.head.map((_, col) => wrap(row[col] ?? '', widths[col]!))
+    const wrapped = block.head.map((_, col) => wrap(row[col] ?? '', widths[col]!, '', false))
     return Array.from({ length: Math.max(...wrapped.map(lines => lines.length)) }, (_, line) =>
       wrapped.map((lines, col) => {
         const text = lines[line] ?? ''

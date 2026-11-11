@@ -262,8 +262,8 @@ export const cliPl: CliMessages = {
   week: {
     title: (index: number, total: number, weekStart: string) =>
       `Tydzień ${index}/${total} · od ${weekStart}`,
-    subtitle: (phase: string, model: string, targetKm: number, plannedKm: number) =>
-      targetKm === plannedKm ? `${phase} (${model}) · ${n(plannedKm)} km` : `${phase} (${model}) · cel ${n(targetKm)} km · zaplanowano ${n(plannedKm)} km`,
+    subtitle: (phase: string, model: string, targetKm: number, plannedKm?: number) =>
+      plannedKm === undefined ? `${phase} (${model}) · ${n(targetKm)} km` : `${phase} (${model}) · cel ${n(targetKm)} km · zaplanowano ${n(plannedKm)} km`,
     deloadUpper: 'ODCIĄŻENIE',
     columns: { day: 'dzień', date: 'data', km: 'km', workout: 'trening' },
     rest: 'wolne',

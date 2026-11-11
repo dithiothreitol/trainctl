@@ -67,6 +67,11 @@ def hard_km(w):
     return total
 
 
+def p90(xs):
+    xs = sorted(xs)
+    return round(xs[int(0.9 * (len(xs) - 1))], 2) if xs else None
+
+
 def med(xs):
     return round(statistics.median(xs), 2) if xs else None
 
@@ -120,7 +125,7 @@ def main():
             'medianLongestEasyToLong': med([r['ratio'] for r in rows if r['ratio'] is not None]),
             'weeksEasyLongerThanLong': sum(1 for r in rows if r['ratio'] is not None and r['ratio'] > 1),
             'medianLongShare': med([r['longShare'] for r in rows if r['longShare']]),
-            'p90MaxShareNonLong': round(sorted(r['maxShareNonLong'] for r in rows if r['maxShareNonLong'] is not None)[int(0.9 * (len(rows) - 1))], 2) if rows else None,
+            'p90MaxShareNonLong': p90([r['maxShareNonLong'] for r in rows if r['maxShareNonLong'] is not None]),
         }
     print('A. liczba biegów i długie według objętości tygodnia (tygodnie pełne, bez startów)')
     for k, v in a.items():

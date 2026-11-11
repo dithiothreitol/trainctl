@@ -240,7 +240,7 @@ export async function cmdInitFromIntervals(
           : []),
         [ui().init.trainingDays, p.daysAvailable.join(', ')],
         ...(p.longRunDay ? ([[ui().init.longRunDay, p.longRunDay]] as [string, string][]) : []),
-        [ui().init.lastFourWeeks, recent4.map((km) => `${km} km`).join(' · ')],
+        [ui().init.lastFourWeeks, recent4.map((km) => `${formatNumber(getLocale(), km)} km`).join(' · ')],
       ]),
     ]
     for (const c of p.caveats) blocks.push(b.warn(c))
@@ -250,7 +250,7 @@ export async function cmdInitFromIntervals(
         b.bullets(
           p.raceCandidates.slice(0, 5).map(
             (c) =>
-              `${c.date} · ${c.name ?? ui().init.unnamed} · ${c.distanceKm} km — ` +
+              `${c.date} · ${c.name ?? ui().init.unnamed} · ${formatNumber(getLocale(), c.distanceKm)} km — ` +
               `${fmtClock(c.timeSec)} (${c.reason})` +
               ` → results: { date: "${c.date}", distanceKm: ${c.distanceKm}, timeSec: ${c.timeSec} }`,
           ),
@@ -574,7 +574,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
       blocks.push(
         b.success(
           ui().today.logged(ui().log.statusWord[entry.status]) +
-            (entry.km ? `, ${entry.km} km` : '') +
+            (entry.km !== undefined ? `, ${formatNumber(getLocale(), entry.km)} km` : '') +
             (entry.rpe !== undefined ? `, RPE ${entry.rpe}` : '') +
             (entry.note ? ` — ${entry.note}` : ''),
         ),
@@ -626,7 +626,7 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     const blocks: Block[] = [
       b.title(
         ui().week.title(weekPosition(plan, week).index + 1, weekPosition(plan, week).total, week.weekStart),
-        ui().week.subtitle(phaseLabel(sk.phase), model, plannedWeekKm(sk), week.totalKm) +
+        ui().week.subtitle(phaseLabel(sk.phase), model, plannedWeekKm(sk), kmDiffers(week.totalKm, plannedWeekKm(sk)) ? week.totalKm : undefined) +
           (sk.deload ? ` · ${ui().week.deloadUpper}` : ''),
       ),
       ...compatibilityNotes(plan),
@@ -824,8 +824,14 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     blocks.push(b.section(ui().improve.calibration))
     if (plan.calibration) {
       const now = localToday()
-      blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c) =>
-        [c.result.date, c.result.name ?? formatNumber(getLocale(), c.result.distanceKm) + ' km', 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[c.reason], ui().improve.age(diffDays(c.result.date, now)), c.result.exclusionReason ?? ''].filter(Boolean).join(' · '))))
+      blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c) => {
+        // Decyzja (użyty / pominięty) jest z dnia kalibracji, wiek z dziś. Wynik, który
+        // wtedy był z przyszłości albo w terminie, a dziś wygląda inaczej, dostaje opis
+        // stanu dzisiejszego — inaczej etykieta i wiek przeczyłyby sobie.
+        const age = diffDays(c.result.date, now)
+        const reason = c.reason === 'future' && age >= 0 ? 'newer' : c.reason === 'lower-vdot' && age > 540 ? 'stale' : c.reason
+        return [c.result.date, c.result.name ?? formatNumber(getLocale(), c.result.distanceKm) + ' km', 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
+      })))
     } else blocks.push(b.info(ui().improve.calibrationMissing))
     const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...(day.strength?.ruleRefs ?? [])])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
     // Jedna lista reguł: ID, treść i pochodzenie razem. Wcześniej te same ID stały
@@ -950,8 +956,8 @@ export async function cmdPull(
             [ui().pull.columns.date, ui().pull.columns.planned, ui().pull.columns.actual, ui().pull.columns.status],
             rows.slice(-10).map((r) => [
               r.date,
-              `${r.plannedKm} km`,
-              r.actualKm === undefined ? '—' : `${r.actualKm} km`,
+              `${formatNumber(getLocale(), r.plannedKm)} km`,
+              r.actualKm === undefined ? '—' : `${formatNumber(getLocale(), r.actualKm)} km`,
               ui().compare[r.status],
             ]),
             rows.slice(-10).map((r) => (r.status === 'missed' ? 'warn' : 'muted')),
@@ -1095,7 +1101,7 @@ function proposalBlocks(saved: PlanProposal): Block[] {
     b.kv([[ui().plan.vdot, `${formatNumber(getLocale(), saved.vdotBefore)} → ${formatNumber(getLocale(), saved.plan.vdot)}`]]),
     b.table([ui().improve.date, ui().improve.before, ui().improve.after], saved.changes.map((c) => [c.date, c.before, c.after])),
     b.info(ui().improve.protected), b.info(ui().improve.changedConfig),
-    b.table([ui().improve.date, ui().week.columns.km], saved.plan.weeks.filter((w) => w.days.some((d) => saved.changes.some((c) => c.date === d.date))).map((w) => [w.weekStart, String(w.totalKm)])),
+    b.table([ui().improve.date, ui().week.columns.km], saved.plan.weeks.filter((w) => w.days.some((d) => saved.changes.some((c) => c.date === d.date))).map((w) => [w.weekStart, formatNumber(getLocale(), w.totalKm)])),
     ...validatePlan(saved.plan).map((issue) => b.warn(describeIssue(issue))),
     b.hint(ui().coach.applyHint(saved.id)),
   ]
