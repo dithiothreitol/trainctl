@@ -89,8 +89,9 @@ change between minor versions — a regenerated plan can differ.
 
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in
-  advance; days with a logged run stay as logged, a day logged again replaces
-  its earlier reason, and a weekday name in `--to` counts from `--date`
+  advance; days with a recorded run (logged or synced) stay as they are, a day
+  logged again replaces its earlier reason, and a weekday name in `--to` counts
+  from `--date`
   (`--date mon --to fri` is one week). The MCP
   `trainctl_log` tool and the log prompt take the same fields. After the break
   `adapt` proposes a return block you can approve:
@@ -102,8 +103,9 @@ change between minor versions — a regenerated plan can differ.
   earlier volume is the plan's last loading week up to your last run, not a
   deload or taper week and not the plan's target during the break, so it stays
   the same when you run `adapt` again; the taper inside a return block keeps
-  falling. After an injury `adapt --prepare` prepares no plan change at all,
-  not even a recalibration (R-6, R-7). An approved return survives
+  falling. An injury logged anywhere in the break decides, also before the
+  21-day analysis window, and after it `adapt --prepare` prepares no plan
+  change at all, not even a recalibration (R-6, R-7). An approved return survives
   `trainctl plan` like an approved baseline (ADR-033). A tune-up race in the
   easy part of a return stays in the plan, and `plan` says the return rule
   does not expect it.
@@ -113,7 +115,9 @@ change between minor versions — a regenerated plan can differ.
   earlier volume (more when you have been back for some weeks, at most P-3
   growth a week), keeps the first block easy with no time trial, and grows back
   within P-3. Once `recentWeeklyKm` is above the earlier volume, the return no
-  longer applies; a `since` date in the future does not apply yet. `init` asks for it, and `init --from-intervals` proposes it when
+  longer applies; a `since` date in the future does not apply yet. Added during
+  a plan, the field starts a return block from `since` on the next
+  `trainctl plan`. `init` asks for it, and `init --from-intervals` proposes it when
   the history ends with two weeks off.
 - `trainctl rules E-3` lists the engine's fixed values that have no source
   (easy-run cap, accent share, phase split, recoveries, race-week sessions),

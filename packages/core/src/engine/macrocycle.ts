@@ -116,22 +116,39 @@ const RETURN_START_SHARE = { min: 0.5, max: 0.6 }
  */
 export function volumeBase(athlete: AthleteProfile, today: string): { start: number; level: number; returning: boolean } {
   const ret = athlete.returning
-  // bieżąca objętość ponad poziom sprzed przerwy: powrót już się dokonał. Równa — to zwykle
-  // objętość sprzed przerwy wpisana jako bieżąca (profil z historii, kreator), więc powrót trwa
-  // powrót z datą w przyszłości jeszcze się nie zaczął — plan liczy się od bieżącej objętości
-  const daysBack = ret !== undefined ? diffDays(ret.since, today) : -1
-  const active = ret !== undefined && daysBack >= 0 && daysBack <= RETURN_WINDOW_DAYS && athlete.recentWeeklyKm <= ret.previousWeeklyKm
-  if (!active) return { start: athlete.recentWeeklyKm, level: athlete.recentWeeklyKm, returning: false }
+  if (!ret || !returnActive(athlete, ret.since, today)) return { start: athlete.recentWeeklyKm, level: athlete.recentWeeklyKm, returning: false }
   const lo = RETURN_START_SHARE.min * ret.previousWeeklyKm
   // górna granica rośnie od `since` w tempie P-3: biegacz, który w oknie powrotu już
   // odbudował objętość, nie wraca do 60% (R-11, inż.)
-  const weeksBack = Math.max(0, Math.floor(diffDays(ret.since, today) / 7))
+  const weeksBack = Math.floor(diffDays(ret.since, today) / 7)
   const hi = Math.min(ret.previousWeeklyKm, RETURN_START_SHARE.max * ret.previousWeeklyKm * Math.pow(RAMP_PER_LOAD_WEEK, weeksBack))
   return {
     start: Math.round(Math.min(hi, Math.max(lo, athlete.recentWeeklyKm))),
-    level: Math.max(athlete.recentWeeklyKm, ret.previousWeeklyKm),
+    // aktywny powrót ma bieżącą objętość nie wyższą niż sprzed przerwy
+    level: ret.previousWeeklyKm,
     returning: true,
   }
+}
+
+/**
+ * Czy powrót z profilu obowiązuje w dniu `today`: zaczął się (data nie w przyszłości),
+ * nie dawniej niż RETURN_WINDOW_DAYS i bieżąca objętość nie przekroczyła tej sprzed
+ * przerwy. Równa objętość to zwykle objętość sprzed przerwy wpisana jako bieżąca (profil
+ * z historii, kreator), więc powrót trwa.
+ */
+function returnActive(athlete: AthleteProfile, since: string, today: string): boolean {
+  const daysBack = diffDays(since, today)
+  return daysBack >= 0 && daysBack <= RETURN_WINDOW_DAYS && athlete.recentWeeklyKm <= athlete.returning!.previousWeeklyKm
+}
+
+/**
+ * B8 + B11: powrót z profilu, który zaczął się po starcie planu (pole dopisane w trakcie
+ * planu), działa jak blok powrotu od `since` (R-11). Na starcie planu liczy go volumeBase.
+ */
+export function profileReturnBlock(athlete: AthleteProfile, planStart: string, today: string): ReturnBlock | undefined {
+  const ret = athlete.returning
+  if (!ret || ret.since <= planStart || !returnActive(athlete, ret.since, today)) return undefined
+  return { since: ret.since, previousWeeklyKm: ret.previousWeeklyKm, illness: false }
 }
 
 /**
@@ -277,7 +294,7 @@ export function earliestFeasibleRaceDate(athlete: AthleteProfile, goal: RaceGoal
 }
 
 /** R-5, R-11 (inż.): powrót w trakcie planu startuje z ~55% objętości sprzed przerwy (środek 50–60%). */
-const RETURN_RESTART_SHARE = 0.55
+export const RETURN_RESTART_SHARE = 0.55
 
 /**
  * B11: blok powrotu po przerwie w trakcie planu. Od tygodnia powrotu cel tygodnia to

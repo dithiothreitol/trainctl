@@ -16,6 +16,8 @@ import {
   longRunThreshold,
   messages,
   MIN_EASY_KM,
+  profileReturnBlock,
+  RETURN_RESTART_SHARE,
   paceZones,
   planMacrocycle,
   planStrengthWeek,
@@ -176,9 +178,13 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   const budgetCap = config.time?.weeklyMinutes ? Math.max(MIN_EASY_KM, weeklyBudgetPeakKm(config, zones, free.peakKmPlanned)) : undefined
   const capped = budgetCap !== undefined && budgetCap < free.peakKmPlanned
   const macro = capped ? planMacrocycle({ today, goal, athlete, peakCapKm: budgetCap }) : free
-  // B11: blok powrotu działa na plan z budżetem i bez niego, więc różnica między nimi
-  // to wyłącznie budżet — krzywa powrotu nie trafia do ostrzeżenia E-2
-  const withReturn = (weeks: WeekSkeleton[]) => (opts.returnFrom ? applyReturnBlock(weeks, opts.returnFrom) : weeks)
+  // B11: zatwierdzony powrót (`adapt --apply`) albo powrót z profilu zaczęty po starcie
+  // planu (pole dopisane w trakcie, B8) — blok powrotu od `since`
+  const profileReturn = opts.returnFrom ? undefined : profileReturnBlock(athlete, today, calibrationDate)
+  const returnFrom = opts.returnFrom ?? profileReturn
+  // Blok powrotu działa na plan z budżetem i bez niego, więc różnica między nimi to
+  // wyłącznie budżet — krzywa powrotu nie trafia do ostrzeżenia E-2
+  const withReturn = (weeks: WeekSkeleton[]) => (returnFrom ? applyReturnBlock(weeks, returnFrom) : weeks)
   const skeletons = withReturn(macro.weeks)
   const freeReturned = withReturn(free.weeks)
   if (capped) {
@@ -224,6 +230,8 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     plan.feasibilityWarnings.push(ui().planMd.zonesFromGoal)
   }
   if (trailOnly) plan.feasibilityWarnings.push(ui().planMd.trailOnlyCalibration)
+  // powrót z profilu w trakcie planu mówi o sobie tak jak powrót na starcie planu (R-11)
+  if (profileReturn) plan.feasibilityWarnings.push(messages().macro.returnBlock(Math.round(RETURN_RESTART_SHARE * profileReturn.previousWeeklyKm), profileReturn.previousWeeklyKm))
   // R-5, R-11: start kontrolny w spokojnym bloku powrotu zostaje, bo to kalendarz biegacza
   // (ADR-011), ale plan mówi, że reguła powrotu go nie przewiduje
   for (const w of plan.weeks) {
@@ -242,17 +250,18 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   // i propozycja). Werdykt po powrocie patrzy jednak tylko na tygodnie od powrotu: tygodnie
   // sprzed przerwy minęły i nie mówią, dokąd plan jeszcze dojdzie. Powrót w taperze: szczyt
   // był przed przerwą, werdyktu o szczycie nie ma.
-  if (opts.returnFrom) plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
+  if (returnFrom) plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
   const loadingPhase = (phase: string) => ['base', 'build', 'peak'].includes(phase)
-  const returnMonday = opts.returnFrom ? mondayOf(opts.returnFrom.since) : undefined
+  const returnMonday = returnFrom ? mondayOf(returnFrom.since) : undefined
   const plannedAhead = returnMonday ? cycleWeeksOf(plan).filter((w) => w.weekStart >= returnMonday && loadingPhase(w.skeleton.phase)) : []
   const verdictPeak = plannedAhead.length ? Math.max(...plannedAhead.map((w) => w.totalKm)) : plan.peakKmPlanned
   // B8: werdykt wykonalności — szczyt i najdłuższe wybieganie wobec progów dystansu
   // (P-7/P-8, J-2; ten sam próg co lint `longBelowGoal`) i trzy wyjścia, jednym blokiem
-  // zamiast dwóch ostrzeżeń. Liczony na planie po budżecie czasu.
+  // zamiast dwóch ostrzeżeń. Liczony na planie po budżecie czasu; po powrocie — na
+  // tygodniach od powrotu, także najdłuższe wybieganie.
   const threshold = goal.kind === 'base' ? undefined : longRunThreshold(goal)
-  const longest = Math.max(0, ...cycleWeeksOf(plan).filter((w) => ['base', 'build', 'peak'].includes(w.skeleton.phase))
-    .flatMap((w) => w.days).filter((d) => d.workout?.kind === 'long').map((d) => d.workout!.distanceKm))
+  const verdictWeeks = plannedAhead.length ? plannedAhead : cycleWeeksOf(plan).filter((w) => loadingPhase(w.skeleton.phase))
+  const longest = Math.max(0, ...verdictWeeks.flatMap((w) => w.days).filter((d) => d.workout?.kind === 'long').map((d) => d.workout!.distanceKm))
   const longShort = threshold !== undefined && longest > 0 && !(threshold.inclusive ? longest >= threshold.km : longest > threshold.km)
   // szczyt obniżony przez budżet ma własne ostrzeżenie (E-2) — werdykt mówi o profilu,
   // a po przerwie o profilu z blokiem powrotu, nadal bez budżetu
@@ -267,7 +276,7 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   if (peakShort || (longShort && !capped)) {
     // po bloku powrotu data liczy się od powrotu, z objętości sprzed przerwy (B11.5); powrót
     // jest decyzją, więc obowiązuje także wtedy, gdy profil ma jeszcze objętość sprzed przerwy
-    const ret = opts.returnFrom
+    const ret = returnFrom
     const reachableFrom = ret
       ? earliestFeasibleRaceDate({ ...athlete, recentWeeklyKm: Math.min(athlete.recentWeeklyKm, ret.previousWeeklyKm), returning: { since: ret.since, previousWeeklyKm: ret.previousWeeklyKm } }, goal, ret.since)
       : earliestFeasibleRaceDate(athlete, goal, today)

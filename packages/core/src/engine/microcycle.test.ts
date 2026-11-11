@@ -316,6 +316,13 @@ describe('B2: rama i minimalna dawka przy małej objętości', () => {
     expect(long.distanceKm).toBeLessThanOrEqual(Math.max(0.8 * targetKm, targetKm - 3) + 0.05)
     for (const d of runs) expect(d.workout!.distanceKm).toBeGreaterThanOrEqual(3)
   })
+  it.each([[4, 3], [5, 3], [5, 4]])('taper ze stałą liczbą %i biegów i %i km (T-2): mniej biegów zamiast biegów krótszych niż kilometr', (sessionCount, targetKm) => {
+    const days: AthleteProfile = { ...athlete, daysAvailable: ['mon', 'tue', 'thu', 'sat', 'sun'] }
+    const mc = generateMicrocycle({ skeleton: skeleton({ phase: 'taper', intensityModel: 'polarized', targetKm, keepFrequency: true, keepIntensity: true, sessionCount, qualitySessions: 0 }), athlete: days, zones })
+    const runs = mc.days.filter((x) => x.workout)
+    expect(runs.length).toBeGreaterThan(0)
+    for (const d of runs) expect(d.workout!.distanceKm, d.date).toBeGreaterThanOrEqual(1)
+  })
   it('jeden dzień biegowy: długie to cały tydzień, pojemność dni nie spada do 6 km', () => {
     const one: AthleteProfile = { ...athlete, daysAvailable: ['sun'] }
     expect(weekCapacityKm(one, 1, 20)).toBeGreaterThanOrEqual(15)

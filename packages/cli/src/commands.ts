@@ -80,7 +80,7 @@ export { simulationNotice, simulatedToday, SIMULATED_TODAY_ENV } from './clock.t
 import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
-import { buildExecution, isRunningActivity } from './execution.ts'
+import { buildExecution, isRunningActivity, runningKmByDate } from './execution.ts'
 import { recalibrationToday, resultKey, sameResults } from './calibration.ts'
 import { applyProposal, prepareProposal, prepareShortening, raceDayKm, recordedDates, type PlanProposal } from './proposals.ts'
 import { explainSession } from './explain-session.ts'
@@ -779,10 +779,12 @@ function logBreak(cwd: string, plan: StoredPlan, from: string, toInput: string, 
   const dates = Array.from({ length: days }, (_, i) => addDays(from, i))
   const outside = dates.find((d) => !findDay(plan, d))
   if (outside) throw new Error(ui().log.outsidePlan(outside))
-  // dzień z zapisanym biegiem zostaje: najnowszy wpis wygrywa (latestByDate), więc „skipped”
-  // z zakresu schowałby wykonaną sesję przed `adapt`, `review` i regeneracją
+  // dzień z biegiem — zapisanym w dzienniku albo z synchronizacji — zostaje: najnowszy wpis
+  // wygrywa (latestByDate), a „skipped” zeruje bieg z synchronizacji (buildExecution), więc
+  // wpis z zakresu schowałby wykonaną sesję przed `adapt`, `review` i regeneracją
   const latest = latestByDate(readLog(cwd))
-  const kept = dates.filter((d) => ['done', 'modified'].includes(latest.get(d)?.status ?? ''))
+  const synced = runningKmByDate(readSnapshot(cwd)?.activities ?? [])
+  const kept = dates.filter((d) => ['done', 'modified'].includes(latest.get(d)?.status ?? '') || (synced.get(d) ?? 0) > 0)
   const loggedAt = new Date().toISOString()
   const entries: LogEntry[] = dates.filter((date) => !kept.includes(date)).map((date) => ({
     date, status: 'skipped', ...(reason ? { reason } : {}), ...(opts.note ? { note: opts.note } : {}), loggedAt,

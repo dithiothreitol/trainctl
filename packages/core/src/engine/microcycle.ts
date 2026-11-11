@@ -737,6 +737,9 @@ function planNormalWeek(
     const runCap = longWd && plan.size + 1 + slots.length >= 3 ? perRunCap : easyCap
     for (const [i, wd] of slots.entries()) {
       const km = Math.min(runCap, round1(remaining / (slots.length - i)))
+      // Taper trzyma liczbę biegów (T-2), ale bieg poniżej kilometra to nie bieg (E-3, inż.):
+      // dzień zostaje wolny, a jego kilometry przechodzą na kolejne dni
+      if (km < 1) continue
       plan.set(wd, strides.includes(wd) ? buildStrides(km, zones) : buildEasy(km, zones))
       remaining = Math.max(0, remaining - km)
     }

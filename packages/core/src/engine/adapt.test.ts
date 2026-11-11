@@ -100,6 +100,19 @@ describe('przerwa w treningu', () => {
     const current = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-13', reason: 'travel' }, { date: '2026-08-20', reason: 'injury' }] })
     expect(current.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
   })
+  it('B11: kontuzja z początku przerwy dłuższej niż okno nadal decyduje (R-6, R-7)', () => {
+    // bieganie do 2026-08-06, potem 25 dni przerwy; kontuzja zapisana przed oknem analizy
+    const long = history(30, 1).map((e) => (e.date > '2026-08-06' ? omitActual(e) : e))
+    const injuryBefore = ['2026-08-07', '2026-08-08', '2026-08-09', '2026-08-10'].map((date) => ({ date, reason: 'injury' as const }))
+    const p = analyzeExecution({ today: TODAY, execution: long, currentWeeklyKm: 60, breakLog: injuryBefore })
+    expect(p.layoff?.reason).toBe('injury')
+    expect(p.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
+  })
+  it('B11: kontuzja, a potem wyjazd w tej samej przerwie — decyduje kontuzja', () => {
+    const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-20', reason: 'injury' }, { date: '2026-08-25', reason: 'travel' }] })
+    expect(p.layoff?.reason).toBe('injury')
+    expect(p.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
+  })
   it('B11: blok powrotu liczy się od objętości sprzed przerwy, nie od bieżącego tygodnia (odciążenie)', () => {
     const restart = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 42, preBreakWeeklyKm: 60 }).actions.find((a) => a.type === 'conservative-restart')!
     expect(restart.returnBlock).toEqual({ previousWeeklyKm: 60, illness: false })

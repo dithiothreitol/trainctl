@@ -11,6 +11,7 @@ import { plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from
 import { applyProposal, prepareProposal } from './proposals.ts'
 import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
 import { latestByDate, readLog } from './logfile.ts'
+import { writeSnapshot } from './sync.ts'
 import { blockLevelOf, computePlan, cycleWeeksOf, loadPlan, mergeWeekNotes, settleMixedWeek, writePlan } from './planfile.ts'
 import { inferredConfigYaml, loadConfig } from './config.ts'
 import { parse } from 'yaml'
@@ -207,9 +208,31 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(cmdLog(dir, { date: day.date, status: 'done', km: '8' }).code).toBe(0)
     const r = cmdLog(dir, { date: '2026-10-26', to: '2026-10-30', status: 'skipped', reason: 'travel' })
     expect(r.code, r.output).toBe(0)
-    expect(r.output).toContain(`Days with a logged run stay as logged: ${day.date}`)
+    expect(r.output).toContain(`Days with a recorded run (log or sync) stay as they are: ${day.date}`)
     expect(r.output).toContain('4 days skipped')
     expect(latestByDate(readLog(dir)).get(day.date)?.status).toBe('done')
+  })
+
+  it('log --to: dzień z biegiem z synchronizacji zostaje, przerwa go nie zeruje', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-10-31'
+    writeSnapshot(dir, { pulledAt: '2026-10-31', activities: [{ externalId: 'run-1', date: '2026-10-27', type: 'Run', distanceKm: 8 }], wellness: [] })
+    const r = cmdLog(dir, { date: '2026-10-26', to: '2026-10-30', status: 'skipped', reason: 'illness' })
+    expect(r.code, r.output).toBe(0)
+    expect(r.output).toContain('Days with a recorded run (log or sync) stay as they are: 2026-10-27')
+    expect(readLog(dir).some((e) => e.date === '2026-10-27')).toBe(false)
+  })
+
+  it('plan: powrót dopisany do profilu w trakcie planu działa od `since` jak blok powrotu (B8, R-11)', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-17'
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 45', 'recentWeeklyKm: 45\n  returning: { since: "2026-11-16", previousWeeklyKm: 45 }'), 'utf-8')
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    const week = loadPlan(dir).weeks.find((w) => w.weekStart === '2026-11-16')!
+    expect(week.skeleton.targetKm).toBeLessThanOrEqual(Math.round(0.55 * 45))
+    expect(week.skeleton.easyOnly).toBe(true)
+    expect(r.output).toContain('return after a break')
   })
 
   it('log: przyczyna i zakres tylko przy opuszczeniu; zła przyczyna, odwrócony i za długi zakres', () => {
@@ -376,6 +399,8 @@ describe('B11: przerwa w trakcie planu', () => {
     const verdict = plan.feasibilityWarnings.find((w) => /stays below the thresholds/.test(w))
     expect(verdict).toBeDefined()
     expect(Number(verdict!.match(/after the return it peaks at ([\d.]+) km\/week/)![1])).toBeLessThan(42)
+    // najdłuższe wybieganie też od powrotu, nie 22 km sprzed przerwy
+    expect(Number(verdict!.match(/its longest run is ([\d.]+) km/)![1])).toBeLessThan(21)
     // szczyt planu w pliku to cały cykl — tak samo jak po regeneracji i propozycji
     expect(plan.peakKmPlanned).toBe(Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm)))
   })
