@@ -617,6 +617,7 @@ export const cliEn = {
       return remainingKm === totalKm ? `${n(totalKm)} km ${across}` : `${n(remainingKm)} of ${n(totalKm)} km left ${across}`
     },
     toRace: 'To race day',
+    sinceRace: 'Since the race',
     columns: { planned: 'Plan', actual: 'Actual', status: 'Status' },
     toRaceValue: (days: number) => `${days} ${pluralEn(days, { one: 'day', other: 'days' })}`,
     baseEnd: 'Base plan until',

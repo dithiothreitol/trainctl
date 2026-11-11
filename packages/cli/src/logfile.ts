@@ -54,11 +54,19 @@ function readAll(cwd: string): (LogEntry | StrengthLogEntry)[] {
  * zamiast osobnej ochrony w każdej komendzie. Status zostaje, jak jest: widok
  * pokazuje nieznany status bez zmian (logStatusText).
  */
+/** Czas wpisany tak, jak przyjmuje go CLI („58:30"), albo liczba tekstem. */
+function fromText(key: string, text: string): number {
+  if (key.endsWith('Sec') && text.includes(':')) {
+    try { return parseTime(text.trim()) } catch { return NaN }
+  }
+  return Number(text)
+}
+
 function normalize(raw: Record<string, unknown>): LogEntry | StrengthLogEntry {
   const entry = { ...raw }
   for (const key of ['km', 'timeSec', 'testTimeSec', 'rpe', 'minutes']) {
     if (!(key in entry)) continue
-    const value = typeof entry[key] === 'string' && (entry[key] as string).trim() ? Number(entry[key]) : entry[key]
+    const value = typeof entry[key] === 'string' && (entry[key] as string).trim() ? fromText(key, entry[key] as string) : entry[key]
     if (typeof value === 'number' && Number.isFinite(value)) entry[key] = value
     else delete entry[key]
   }

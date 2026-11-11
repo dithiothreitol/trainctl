@@ -197,13 +197,13 @@ def main():
         print(f'  {k:>5} tyg.: {v}')
 
     # ---------------------------------------------------------------- D
-    def kind(ws, wd):
+    def kind(ws, wd, lw):
         w = ws.get(wd)
         if not w or km(w) <= 0 and not w.get('race'):
             return 'wolne'
         if w.get('race'):
             return 'start'
-        if w is long_of(ws):
+        if w is lw:
             return 'długie'
         if w.get('quality'):
             return 'akcent'
@@ -214,14 +214,14 @@ def main():
     sunday_after_sat_race = []
     longs = []
     for m, ws in complete.items():
-        pairs[(kind(ws, 5), kind(ws, 6))] += 1
-        lw = long_of(ws)
+        lw = long_of(ws)  # raz na tydzień, nie przy każdym dniu
+        pairs[(kind(ws, 5, lw), kind(ws, 6, lw))] += 1
         if lw:
             longs.append(km(lw))
         for wd in range(6):
-            if kind(ws, wd) == 'długie':
-                after_long[kind(ws, wd + 1)] += 1
-        if kind(ws, 5) == 'start' and ws.get(6) and is_run(ws[6]):
+            if kind(ws, wd, lw) == 'długie':
+                after_long[kind(ws, wd + 1, lw)] += 1
+        if kind(ws, 5, lw) == 'start' and ws.get(6) and is_run(ws[6]):
             sunday_after_sat_race.append(km(ws[6]))
     d = {
         'saturdaySundayPairs': {f'{s}→{n}': v for (s, n), v in pairs.most_common(12)},

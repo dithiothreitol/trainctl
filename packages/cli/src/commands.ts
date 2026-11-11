@@ -76,7 +76,7 @@ import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 import { buildExecution, isRunningActivity } from './execution.ts'
-import { resultKey } from './calibration.ts'
+import { calibrationLabel, inspectCalibration, isRoadGoal, resultKey } from './calibration.ts'
 import { applyProposal, prepareProposal, prepareShortening, raceDayKm, recordedDates, type PlanProposal } from './proposals.ts'
 import { explainSession } from './explain-session.ts'
 export { buildExecution } from './execution.ts'
@@ -575,7 +575,8 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
       blocks.push(
         b.success(
           ui().today.logged(logStatusText(entry.status)) +
-            (typeof entry.km === 'number' && Number.isFinite(entry.km) ? `, ${kmLabel(entry.km)}` : '') +
+            // 0 km przy opuszczonej sesji to brak dystansu, nie informacja
+            (entry.km !== undefined && !(entry.status === 'skipped' && entry.km === 0) ? `, ${kmLabel(entry.km)}` : '') +
             (entry.rpe !== undefined ? `, RPE ${entry.rpe}` : '') +
             (entry.note ? ` — ${entry.note}` : ''),
         ),
@@ -825,17 +826,10 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     blocks.push(b.section(ui().improve.calibration))
     if (plan.calibration) {
       const now = localToday()
-      blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c) => {
-        // Decyzja (użyty / pominięty) jest z dnia kalibracji, wiek z dziś. Wynik, który
-        // wtedy był z przyszłości albo w terminie, a dziś wygląda inaczej, dostaje opis
-        // stanu dzisiejszego — inaczej etykieta i wiek przeczyłyby sobie.
+      const current = inspectCalibration(plan.calibration.results, now, isRoadGoal(plan.goal)).candidates
+      blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c, i) => {
         const age = diffDays(c.result.date, now)
-        // Z-10: trail przy wynikach szosowych odpada także po kalibracji
-        const trailIgnored = c.result.terrain === 'trail' && plan.calibration!.candidates.some((o) => o.result.terrain !== 'trail' && o.reason !== 'excluded')
-        const reason = c.reason === 'excluded' ? c.reason
-          : trailIgnored && age <= 540 ? 'terrain'
-          : age > 540 ? (c.reason === 'selected' ? 'selectedStale' : 'stale')
-            : c.reason === 'future' && age >= 0 ? 'newer' : c.reason
+        const reason = calibrationLabel(c, current[i])
         return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
       })))
     } else blocks.push(b.info(ui().improve.calibrationMissing))
@@ -1541,7 +1535,9 @@ export async function cmdReview(
           [ui().review.volume, ui().review.volumeAhead(Math.round(upcoming.reduce((s, d) => s + (d.workout?.distanceKm ?? 0), 0) * 10) / 10, week.totalKm, upcoming.length)],
           ...(plan.goal.kind === 'base'
             ? ([[ui().review.baseEnd, plan.goal.date]] as [string, string][])
-            : ([[ui().review.toRace, raceDistanceLine(plan, diffDays(today, plan.goal.date), ui().review.toRaceValue)]] as [string, string][])),
+            : diffDays(today, plan.goal.date) >= 0
+              ? ([[ui().review.toRace, ui().review.toRaceValue(diffDays(today, plan.goal.date))]] as [string, string][])
+              : ([[ui().review.sinceRace, ui().review.toRaceValue(diffDays(plan.goal.date, today))]] as [string, string][])),
         ]),
       )
       const race = upcoming.find((d) => d.workout?.kind === 'race')
@@ -1938,10 +1934,9 @@ function strengthRow(plan: StoredPlan, entries: StrengthLogEntry[], from: string
 }
 
 /** „N dni do startu", „N dni po starcie" albo koniec planu bazowego (P-11). */
-function raceDistanceLine(plan: StoredPlan, toRace: number, before: (days: number) => string = ui().today.daysToRace): string {
+function raceDistanceLine(plan: StoredPlan, toRace: number): string {
   if (plan.goal.kind === 'base') return ui().plan.baseUntil(plan.goal.date)
-  // `before` — pełne zdanie („150 dni do startu") albo sama wartość pod etykietą („150 dni")
-  return toRace >= 0 ? before(toRace) : ui().today.daysAfterRace(-toRace)
+  return toRace >= 0 ? ui().today.daysToRace(toRace) : ui().today.daysAfterRace(-toRace)
 }
 
 /** Metody źródła jako zwykłe funkcje — `this` klasy zostaje przy nich. */

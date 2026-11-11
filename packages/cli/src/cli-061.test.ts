@@ -142,6 +142,8 @@ describe('poprawki po przeglądzie etapu 1', () => {
     expect(cmdToday(dir).output).toContain('8,5 km')
     cmdLog(dir, { date: '2026-10-27', status: 'modified', km: '0' })
     expect(cmdToday(dir).output).toContain(', 0 km')
+    cmdLog(dir, { date: '2026-10-27', status: 'skipped', km: '0' })
+    expect(cmdToday(dir).output).not.toContain('0 km')
   })
 
   it('why: wynik z przyszłości w dniu kalibracji, dziś już przeszły, nie jest „z przyszłości"', () => {
@@ -192,9 +194,11 @@ describe('poprawki po drugiej rundzie przeglądu etapu 1', () => {
   it('review po starcie mówi „po starcie", nie „temu"', async () => {
     process.env['TRAINCTL_TODAY'] = '2027-04-02'
     setLocale('pl')
-    expect((await cmdReview(dir, {})).output).toContain('Do startu: 5 dni po starcie')
+    expect((await cmdReview(dir, {})).output).toContain('Od startu: 5 dni')
     setLocale('en')
-    expect((await cmdReview(dir, {})).output).toContain('5 days after the race')
+    const out = (await cmdReview(dir, {})).output
+    expect(out).toContain('Since the race: 5 days')
+    expect(out).not.toContain('To race day')
   })
 
   it('siła w dzienniku po polsku w rodzaju żeńskim', () => {
@@ -347,5 +351,32 @@ describe('poprawki po piątej rundzie przeglądu etapu 1', () => {
     const theme = new Theme({ color: false, unicode: true, width: 60 })
     const out = helpItem('rules', 10, 'see https://github.com/dithiothreitol/trainctl/blob/v0.6.0/docs/science/FOUNDATIONS.md', theme)
     for (const line of out.split('\n')) expect(visibleLength(line)).toBeLessThanOrEqual(60)
+  })
+})
+
+describe('poprawki po szóstej rundzie przeglądu etapu 1', () => {
+  const withResults = (results: string, goalExtra = '') => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }', results)
+      .replace('  priority: A\n', `  priority: A\n${goalExtra}`), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-29'
+    return cmdWhy(dir, { date: '2026-10-27' }).output
+  }
+
+  it('cel trailowy: wynik z trailu użyty do stref nie jest opisany jako odrzucony', () => {
+    const out = withResults('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2700 }\n    - { date: "2026-09-20", distanceKm: 21.1, timeSec: 5400, terrain: trail }', '  terrain: trail\n')
+    expect(out).toMatch(/2026-09-20 · 21\.1 km · VDOT [\d.]+ · Used for zones/)
+  })
+
+  it('wynik szosowy przeterminowany: trail, który ustawił strefy, zostaje „użyty"', () => {
+    const out = withResults('    - { date: "2025-01-10", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-09-20", distanceKm: 21.1, timeSec: 6000, terrain: trail }')
+    expect(out).toMatch(/2026-09-20 · 21\.1 km · VDOT [\d.]+ · Used for zones/)
+    expect(out).not.toContain('Trail result')
+  })
+
+  it('log.jsonl: czas „58:30" wpisany ręcznie zostaje odczytany', () => {
+    appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'done', timeSec: '58:30', loggedAt: 'x' }) + '\n')
+    expect(readLog(dir)[0]).toMatchObject({ timeSec: 3510 })
   })
 })

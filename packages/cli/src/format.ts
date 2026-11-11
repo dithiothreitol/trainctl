@@ -4,10 +4,9 @@ import { ui } from './i18n/index.ts'
 
 /**
  * Dystans w formacie języka: „21,1 km" po polsku, „21.1 km" po angielsku.
- * Wartość spoza liczb (ręcznie edytowany log.jsonl) idzie bez zmian, nie wywraca komendy.
+ * Ręcznie edytowany log.jsonl normalizuje readAll — tu trafiają już liczby.
  */
-export const kmLabel = (km: unknown): string =>
-  `${typeof km === 'number' && Number.isFinite(km) ? formatNumber(getLocale(), km) : String(km)} km`
+export const kmLabel = (km: number): string => `${formatNumber(getLocale(), km)} km`
 
 /** Status wpisu dziennika słowem z katalogu; nieznany status (ręczna edycja log.jsonl) bez zmian. */
 export function logStatusText(status: string, strength = false): string {

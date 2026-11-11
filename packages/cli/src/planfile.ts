@@ -26,7 +26,7 @@ import {
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel } from './format.ts'
-import { inspectCalibration, type Calibration } from './calibration.ts'
+import { inspectCalibration, isRoadGoal, type Calibration } from './calibration.ts'
 import { packageVersion } from './version.ts'
 
 export const PLAN_DIR = 'plan'
@@ -128,7 +128,7 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   )
   // Z-10 (inż.): wynik z trailu nie kalibruje stref szosowych — czas w terenie mówi
   // o terenie tak samo jak o formie. Gdy innych wyników brak, używamy go z ostrzeżeniem.
-  const roadGoal = goal.terrain !== 'trail' && goal.terrain !== 'ultra'
+  const roadGoal = isRoadGoal(goal)
   const road = roadGoal ? recent.filter((r) => r.terrain !== 'trail') : recent
   const usable = road.length ? road : recent
   const trailOnly = roadGoal && road.length === 0 && recent.length > 0

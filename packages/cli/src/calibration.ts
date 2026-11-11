@@ -11,6 +11,23 @@ export interface Calibration {
   candidates: { result: RaceResult; ageDays: number; vdot: number; reason: 'selected' | 'lower-vdot' | 'excluded' | 'future' | 'stale' | 'terrain' }[]
 }
 
+/** Z-10: cel szosowy (bez `terrain` albo `road`) — tylko wtedy trail ustępuje szosie. */
+export const isRoadGoal = (goal: { terrain?: string | undefined }): boolean => goal.terrain !== 'trail' && goal.terrain !== 'ultra'
+
+/**
+ * Opis wyniku w `why`: decyzja (użyty do stref) pochodzi z dnia kalibracji, a stan
+ * wyniku — z dziś, policzony tą samą funkcją co przy generowaniu planu. Dzięki temu
+ * etykieta nie przeczy wiekowi, a reguły okna 540 dni i Z-10 żyją w jednym miejscu.
+ */
+export function calibrationLabel(stored: Calibration['candidates'][number], today: Calibration['candidates'][number] | undefined):
+  Calibration['candidates'][number]['reason'] | 'selectedStale' | 'newer' {
+  const now = today?.reason ?? stored.reason
+  if (stored.reason === 'selected') return now === 'stale' ? 'selectedStale' : 'selected'
+  if (now === 'stale' || now === 'terrain' || now === 'excluded') return now
+  if (stored.reason === 'future' && (now === 'selected' || now === 'lower-vdot')) return 'newer'
+  return stored.reason
+}
+
 export function inspectCalibration(results: RaceResult[], today: string, roadGoal = true): Calibration {
   const candidates: Calibration['candidates'] = results.map((result) => {
     const ageDays = diffDays(result.date, today)

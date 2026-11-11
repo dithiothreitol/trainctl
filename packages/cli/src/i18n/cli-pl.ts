@@ -635,6 +635,7 @@ export const cliPl: CliMessages = {
       return remainingKm === totalKm ? `${n(totalKm)} km ${w}` : `zostało ${n(remainingKm)} z ${n(totalKm)} km ${w}`
     },
     toRace: 'Do startu',
+    sinceRace: 'Od startu',
     columns: { planned: 'Plan', actual: 'Wykonanie', status: 'Status' },
     baseEnd: 'Plan bazowy do',
     toRaceValue: (days: number) =>
