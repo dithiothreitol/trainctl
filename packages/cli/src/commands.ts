@@ -37,7 +37,7 @@ import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, shownKm } from './format.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
-import { appendLog, logFor, LOG_LIMITS, parseTime, readLog, readStrengthLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
+import { appendLog, latestByDate, logFor, LOG_LIMITS, parseTime, readLog, readStrengthLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
   computePlan,
   cycleWeeksOf,
@@ -612,7 +612,7 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     const accents: (ColorName | undefined)[] = []
     // dziennik czytany raz; ostatni wpis daty wygrywa, jak w logFor
     const logs = readLog(cwd)
-    const lastByDate = new Map(logs.map((e) => [e.date, e]))
+    const lastByDate = latestByDate(logs)
     for (const day of week.days) {
       const entry = lastByDate.get(day.date)
       // status słowem, nie symbolem: to samo wyjście czyta agent przez MCP
@@ -680,7 +680,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     }
     // CR-10 bez zera: wpis dotyczy odbytej sesji, a 0 znaczy „brak wysiłku" —
     // dolna granica 1 to wybór inżynierski, sama skala z P-6 (Foster).
-    const rpe = opts.rpe === undefined ? undefined : Number(opts.rpe)
+    const rpe = opts.rpe === undefined ? undefined : parseDecimal(String(opts.rpe))
     if (rpe !== undefined && !LOG_LIMITS.rpe(rpe)) {
       return fail(new Error(ui().log.badRpe(String(opts.rpe))))
     }
@@ -742,7 +742,7 @@ function logStrength(cwd: string, plan: StoredPlan, date: string, opts: LogOptio
   const t = ui().log
   if (opts.strength !== 'done' && opts.strength !== 'skipped') throw new Error(t.strengthStatus(String(opts.strength)))
   if ([opts.km, opts.time, opts.testTime, opts.rpe].some((v) => v !== undefined)) throw new Error(t.strengthOnly)
-  const minutes = opts.minutes === undefined ? undefined : Number(opts.minutes)
+  const minutes = opts.minutes === undefined ? undefined : parseDecimal(String(opts.minutes))
   if (minutes !== undefined && !LOG_LIMITS.minutes(minutes)) throw new Error(t.strengthMinutes)
   const entry: StrengthLogEntry = {
     date,
@@ -1481,15 +1481,14 @@ export async function cmdReview(
     // datę (późniejszy nadpisuje wcześniejszy, jak w logFor). Żadnej agregacji
     // ani progów: interpretacja odczuć należy do rozmowy z trenerem-agentem,
     // silnik z RPE niczego nie liczy (ADR-027, Z-4).
-    const latestByDate = new Map<string, LogEntry>()
-    for (const l of logs) if (l.date >= from && l.date <= today) latestByDate.set(l.date, l)
-    const feel = [...latestByDate.values()]
+    const latestLog = latestByDate(logs.filter((l) => l.date >= from && l.date <= today))
+    const feel = [...latestLog.values()]
       .filter((l) => l.rpe !== undefined || l.note)
       .sort((a, z) => a.date.localeCompare(z.date))
     // RPE wpisane w hubie (zegarek, aplikacja) — tylko tam, gdzie dziennik go nie ma:
     // własny wpis biegacza ma pierwszeństwo, a źródło jest nazwane wprost.
     const hubFeel = (snapshot?.activities ?? [])
-      .filter((a) => a.rpe !== undefined && a.date >= from && a.date <= today && isRunningActivity(a) && latestByDate.get(a.date)?.rpe === undefined)
+      .filter((a) => a.rpe !== undefined && a.date >= from && a.date <= today && isRunningActivity(a) && latestLog.get(a.date)?.rpe === undefined)
       .sort((a, z) => a.date.localeCompare(z.date))
     if (feel.length || hubFeel.length) {
       const lines = [
@@ -1936,15 +1935,19 @@ export function cmdDiff(cwd: string, opts: { plan?: string | undefined } = {}): 
  */
 function strengthRow(plan: StoredPlan, entries: StrengthLogEntry[], from: string, to: string): [string, string][] {
   const planned = plan.weeks.flatMap((w) => w.days).filter((d) => d.strength && d.date >= from && d.date <= to).length
-  const latest = new Map<string, StrengthLogEntry>()
-  for (const e of entries) if (e.date >= from && e.date <= to) latest.set(e.date, e)
+  const latest = latestByDate(entries.filter((e) => e.date >= from && e.date <= to))
   if (!planned && !latest.size) return []
   const done = [...latest.values()].filter((e) => e.status === 'done').length
   const skipped = [...latest.values()].filter((e) => e.status === 'skipped').length
   return [[ui().review.strength, ui().review.strengthValue(done, planned, skipped)]]
 }
 
-/** Wiersz przeglądu: „Do startu: N dni" przed startem, „Od startu: N dni" po nim. */
+/**
+ * Wiersz przeglądu: „Do startu: N dni" przed startem, „Od startu: N dni" po nim.
+ * Wartość „N dni" to ten sam zapis co w `status` (status.daysToRace) — jeden
+ * formatter liczby dni dla obu komend. Podtytuł `today` to zdanie, nie etykieta
+ * z wartością, dlatego ma własną funkcję (raceDistanceLine).
+ */
 function raceCountdown(toRace: number): [string, string][] {
   return toRace >= 0 ? [[ui().review.toRace, ui().status.daysToRace(toRace)]] : [[ui().review.sinceRace, ui().status.daysToRace(-toRace)]]
 }

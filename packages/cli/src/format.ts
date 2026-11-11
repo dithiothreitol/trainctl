@@ -11,14 +11,14 @@ import { ui } from './i18n/index.ts'
 export const kmLabel = (km: number, decimals = 1): string => `${formatNumber(getLocale(), km, decimals)} km`
 
 /**
- * Liczba wpisana przez człowieka: „8", „8.5" albo „8,5" (przecinek jak w polskim
- * wyjściu). Tylko zwykły zapis dziesiętny — bez „0x10" i „1e3", które Number()
- * też przyjmuje; wszystko inne to NaN. Jedna reguła dla `log --km`, kreatora
- * i odczytu log.jsonl.
+ * Liczba wpisana przez człowieka: „8", „8.5", „8,5", „.5" albo „5." (przecinek jak
+ * w polskim wyjściu). Tylko zwykły zapis dziesiętny — bez „0x10" i „1e3", które
+ * Number() też przyjmuje; wszystko inne to NaN. Jedna reguła dla wszystkich liczb
+ * dziennika: `log` (km, RPE, minuty siły), kreator i odczyt log.jsonl.
  */
 export function parseDecimal(text: string): number {
   const value = text.trim()
-  return /^\d+(?:[.,]\d+)?$/.test(value) ? Number(value.replace(',', '.')) : NaN
+  return /^(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(value) ? Number(value.replace(',', '.')) : NaN
 }
 
 /** Dystans jednostki do pokazania: dystans startu dla startu (jego `distanceKm` to 0 km objętości). */

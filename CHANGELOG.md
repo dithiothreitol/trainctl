@@ -25,9 +25,9 @@ change between minor versions — a regenerated plan can differ.
 - `review`: the day-by-day execution table is headed Plan / Actual / Status
   instead of reusing the before/after labels of plan changes; the days-to-race
   line no longer repeats its label.
-- Decimal numbers follow the output language everywhere (`21,1 km` and
-  `VDOT 47,7` in Polish, `21.1 km` in English) instead of raw values such as
-  `21.0975`.
+- Decimal numbers follow the output language (`21,1 km` and `VDOT 47,7` in
+  Polish, `21.1 km` in English) instead of raw values such as `21.0975`. The
+  change history in PLAN.md quotes entries as recorded in plan.yaml.
 - Journal statuses are words from the catalogue (`wykonany`, `opuszczony`,
   `zmieniony` in Polish); `--json` and MCP data keep the raw enum.
 - A one-week phase reads `taper: week 22`, not `weeks 22–22`.
@@ -36,8 +36,9 @@ change between minor versions — a regenerated plan can differ.
 - `why` counts the age of each race result from today, like `status`, names
   the date the plan's zones were calibrated, and says when `trainctl plan`
   would now calibrate them from a different result or from none.
-- `trainctl log --km` accepts a decimal comma (`8,5`), like the Polish output,
-  and echoes the distance as entered.
+- `trainctl log` reads numbers with one rule for `--km`, `--rpe`, `--minutes`
+  and the interactive prompt: a decimal comma (`8,5`) is accepted, hex and
+  exponent forms are not, and the distance is echoed as entered.
 - Hand-edited `log.jsonl` values are read with the limits `trainctl log`
   applies: numbers written as text or with a comma are accepted, values the
   CLI would reject are ignored, and a missing final newline no longer merges

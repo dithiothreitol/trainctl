@@ -568,15 +568,6 @@ export function workoutText(day: PlannedDay): string {
   return `${mains.replace(/\.\s*$/, '')}. ${parts[cooldown]}`
 }
 
-/**
- * Liczby dziesiętne w historii zmian po polsku z przecinkiem („8.5 → 6 km" →
- * „8,5 → 6 km", „VDOT 45.2 → 46.1." → „45,2 → 46,1."). Liczba przyklejona do
- * litery albo do kolejnej części z kropką (wersja „v0.7", „0.7.1", identyfikator)
- * zostaje bez zmian.
- */
-const localizeDecimals = (text: string): string =>
-  getLocale() === 'pl' ? text.replace(/(?<![\w.])(\d+)\.(\d+)(?!\w|\.\d)/g, '$1,$2') : text
-
 export function renderMarkdown(plan: StoredPlan): string {
   const m = ui().planMd
   const core = messages()
@@ -627,8 +618,10 @@ export function renderMarkdown(plan: StoredPlan): string {
   }
   if (plan.changes.length) {
     lines.push('', `## ${m.changes}`, '')
-    // historia w plan.yaml trzyma surowe liczby (dane); PLAN.md pokazuje je w formacie języka
-    for (const c of plan.changes) lines.push(`- ${m.changeLine(c.at, c.action, localizeDecimals(c.detail))}`)
+    // Historia zmian to zapis z plan.yaml w brzmieniu z chwili zmiany (język CLI z tamtej
+    // chwili, surowe liczby). PLAN.md cytuje ją bez przeróbek: zamiana samych liczb
+    // w tekście pisanym w innym języku dawałaby pół-tłumaczenie.
+    for (const c of plan.changes) lines.push(`- ${m.changeLine(c.at, c.action, c.detail)}`)
   }
   lines.push('')
   return lines.join('\n')

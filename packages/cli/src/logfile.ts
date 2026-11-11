@@ -36,23 +36,37 @@ export interface StrengthLogEntry {
   loggedAt: string
 }
 
+/**
+ * Separator przed nowym wierszem JSONL: ręczna edycja bez końcowego znaku nowej
+ * linii skleiłaby nowy wpis z ostatnim. Jedna reguła dla obu zapisów dziennika
+ * (`appendLog` tutaj, wpisy sesji v2 w sports-commands.ts).
+ */
+export const lineSeparator = (tail: string): string => (tail !== '' && !tail.endsWith('\n') ? '\n' : '')
+
 export function appendLog(cwd: string, entry: LogEntry | StrengthLogEntry): void {
   const path = join(cwd, LOG_FILE)
-  // ręczna edycja bez końcowego znaku nowej linii skleiłaby nowy wpis z ostatnim;
-  // czytamy tylko ostatni bajt, nie cały dziennik
-  appendFileSync(path, (endsWithoutNewline(path) ? '\n' : '') + JSON.stringify(entry) + '\n', 'utf-8')
+  appendFileSync(path, lineSeparator(lastChar(path)) + JSON.stringify(entry) + '\n', 'utf-8')
 }
 
-function endsWithoutNewline(path: string): boolean {
-  if (!existsSync(path)) return false
-  const size = statSync(path).size
-  if (size === 0) return false
-  const fd = openSync(path, 'r')
+/** Ostatni znak pliku bez czytania całości (dziennik rośnie); brak pliku to ''. */
+function lastChar(path: string): string {
   try {
-    const last = Buffer.alloc(1)
-    readSync(fd, last, 0, 1, size - 1)
-    return last[0] !== 0x0a
-  } finally { closeSync(fd) }
+    const size = statSync(path).size
+    if (size === 0) return ''
+    const fd = openSync(path, 'r')
+    try {
+      const last = Buffer.alloc(1)
+      readSync(fd, last, 0, 1, size - 1)
+      return last.toString('latin1')
+    } finally { closeSync(fd) }
+  } catch {
+    return ''
+  }
+}
+
+/** Ostatni wpis każdej daty — późniejszy nadpisuje wcześniejszy; jedna reguła dla wszystkich widoków. */
+export function latestByDate<T extends { date: string }>(entries: T[]): Map<string, T> {
+  return new Map(entries.map((e) => [e.date, e]))
 }
 
 function readAll(cwd: string): (LogEntry | StrengthLogEntry)[] {
@@ -118,9 +132,7 @@ export function readStrengthLog(cwd: string): StrengthLogEntry[] {
 
 /** Ostatni wpis dla daty (późniejszy nadpisuje wcześniejszy w interpretacji). */
 export function logFor(cwd: string, date: string): LogEntry | undefined {
-  return readLog(cwd)
-    .filter((e) => e.date === date)
-    .at(-1)
+  return latestByDate(readLog(cwd)).get(date)
 }
 
 /** "MM:SS" lub "HH:MM:SS" → sekundy. */

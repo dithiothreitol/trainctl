@@ -11,11 +11,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
 import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
-import { logChoices } from './interactive.ts'
+import { logChoices, plannedKmDefault } from './interactive.ts'
 import { recalibrationToday } from './calibration.ts'
 import { parseDecimal, shownKm } from './format.ts'
 import { loadPlan, writePlan } from './planfile.ts'
-import { appendLog, LOG_LIMITS, readLog, readStrengthLog } from './logfile.ts'
+import { appendLog, latestByDate, lineSeparator, LOG_LIMITS, readLog, readStrengthLog } from './logfile.ts'
 import { helpItem } from './ui/help.ts'
 import { improveEn } from './i18n/improve-en.ts'
 import { improvePl } from './i18n/improve-pl.ts'
@@ -367,16 +367,6 @@ describe('poprawki po dziewiątej rundzie przeglądu etapu 1', () => {
     const out = cmdRules({ id: 'E-3' }).output
     for (const value of ['+40%', '+15%', '5–8 km', '3 km', '35%']) expect(out).toContain(value)
   })
-
-  it('PLAN.md pokazuje liczby z historii zmian w formacie języka', () => {
-    setLocale('pl')
-    const plan = loadPlan(dir)
-    plan.changes.push({ at: '2026-10-27', action: 'shorten', detail: '2026-10-27: 8.5 → 6 km; 40 min; shortened' })
-    writePlan(dir, plan)
-    const md = readFileSync(join(dir, 'plan', 'PLAN.md'), 'utf-8')
-    expect(md).toContain('2026-10-27: 8,5 → 6 km')
-    expect(loadPlan(dir).changes.at(-1)!.detail).toContain('8.5 → 6 km')
-  })
 })
 
 describe('poprawki po dziesiątej rundzie przeglądu etapu 1', () => {
@@ -522,13 +512,53 @@ describe('liczby wpisywane przez człowieka', () => {
     appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'done', timeSec: '58:30', loggedAt: 'x' }) + '\n')
     expect(readLog(dir)[0]).toMatchObject({ timeSec: 3510 })
   })
+})
 
-  it('historia zmian w PLAN.md: wersje i identyfikatory bez przecinka, liczby z przecinkiem', () => {
+describe('dziennik: jedna reguła liczb i wpisów', () => {
+  it('RPE i minuty siły przez ten sam parser co km: przecinek tak, zapis szesnastkowy i wykładniczy nie', () => {
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    expect(cmdLog(dir, { date: '2026-10-27', status: 'done', rpe: '0xA' }).code).not.toBe(0)
+    expect(cmdLog(dir, { date: '2026-10-27', status: 'done', rpe: '7,0' }).code).toBe(0)
+    expect(readLog(dir).at(-1)).toMatchObject({ rpe: 7 })
+    expect(cmdLog(dir, { date: '2026-10-28', strength: 'done', minutes: '1e2' }).code).not.toBe(0)
+    expect(cmdLog(dir, { date: '2026-10-28', strength: 'done', minutes: '45' }).code).toBe(0)
+  })
+
+  it('parseDecimal przyjmuje „.5", „5." i „,5"', () => {
+    expect(parseDecimal('.5')).toBe(0.5)
+    expect(parseDecimal('5.')).toBe(5)
+    expect(parseDecimal(',5')).toBe(0.5)
+    expect(parseDecimal('.')).toBeNaN()
+  })
+
+  it('kreator dziennika podpowiada dystans w formacie języka z pełną dokładnością', () => {
+    const race = loadPlan(dir).weeks.flatMap((w) => w.days).find((d) => d.date === '2027-03-28')!
+    setLocale('pl')
+    expect(plannedKmDefault(race)).toBe('21,0975')
+    expect(parseDecimal(plannedKmDefault(race)!)).toBe(21.0975)
+    setLocale('en')
+    expect(plannedKmDefault(race)).toBe('21.0975')
+    const rest = loadPlan(dir).weeks[0]!.days.find((d) => !d.workout)!
+    expect(plannedKmDefault(rest)).toBeUndefined()
+  })
+
+  it('latestByDate: późniejszy wpis daty wygrywa', () => {
+    const map = latestByDate([{ date: 'a', n: 1 }, { date: 'b', n: 2 }, { date: 'a', n: 3 }])
+    expect(map.get('a')).toMatchObject({ n: 3 })
+    expect(map.size).toBe(2)
+  })
+
+  it('lineSeparator: nowa linia tylko po niepustym tekście bez końcowego znaku nowej linii', () => {
+    expect(lineSeparator('')).toBe('')
+    expect(lineSeparator('{}\n')).toBe('')
+    expect(lineSeparator('{}')).toBe('\n')
+  })
+
+  it('PLAN.md cytuje historię zmian tak, jak zapisano ją w plan.yaml', () => {
     setLocale('pl')
     const plan = loadPlan(dir)
-    plan.changes.push({ at: '2026-10-27', action: 'adapt', detail: 'VDOT 45.2 → 46.1. silnik v0.7, wersja 0.7.1' })
+    plan.changes.push({ at: '2026-10-27', action: 'shorten', detail: '2026-10-27: 8.5 → 6 km; 40 min; shortened' })
     writePlan(dir, plan)
-    const md = readFileSync(join(dir, 'plan', 'PLAN.md'), 'utf-8')
-    expect(md).toContain('VDOT 45,2 → 46,1. silnik v0.7, wersja 0.7.1')
+    expect(readFileSync(join(dir, 'plan', 'PLAN.md'), 'utf-8')).toContain('2026-10-27: 8.5 → 6 km; 40 min; shortened')
   })
 })

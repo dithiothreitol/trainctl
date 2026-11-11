@@ -5,11 +5,11 @@
  */
 import { emitKeypressEvents } from 'node:readline'
 import { createInterface } from 'node:readline/promises'
-import { addDays, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
+import { addDays, formatNumber, getLocale, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
 import { cmdLog, cmdShift, cmdWeek, kindLabel } from './commands.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, shownKm } from './format.ts'
-import { LOG_LIMITS, parseTime, readLog } from './logfile.ts'
+import { latestByDate, LOG_LIMITS, parseTime, readLog } from './logfile.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 import { renderAnsi } from './ui/blocks.ts'
 import { clampIndex, keyAction, type KeyEvent } from './ui/keys.ts'
@@ -123,10 +123,18 @@ const parseTimeText = (text: string): string => {
   return text.trim()
 }
 const parseRpeText = (text: string): string => {
-  const value = Number(text.trim())
-  if (!Number.isInteger(value) || value < 1 || value > 10) throw new Error(ui().log.badRpe(text))
+  const value = parseDecimal(text)
+  if (!LOG_LIMITS.rpe(value)) throw new Error(ui().log.badRpe(text))
   return String(value)
 }
+
+/**
+ * Podpowiadany dystans w kreatorze dziennika: dystans jednostki (startu dla startu)
+ * w formacie języka, z pełną dokładnością („21,0975"), żeby Enter zapisał dokładnie
+ * zaplanowaną wartość — parseDecimal przyjmuje przecinek.
+ */
+export const plannedKmDefault = (day: PlannedDay): string | undefined =>
+  day.workout ? formatNumber(getLocale(), shownKm(day.workout), 4) : undefined
 
 /**
  * `trainctl log` bez flag w terminalu: wybierz trening z ostatniego tygodnia
@@ -142,7 +150,7 @@ export async function runLogPrompt(cwd: string, today: string, theme = new Theme
     return { code: 1, output: e instanceof Error ? e.message : String(e) }
   }
   const q = ui().log.prompt
-  const logged = new Map(readLog(cwd).map((e) => [e.date, e.status] as const))
+  const logged = new Map([...latestByDate(readLog(cwd))].map(([date, e]) => [date, e.status] as const))
   const choices = logChoices(plan, today, logged)
   if (choices.length === 0) return { code: 1, output: ui().log.outsidePlan(today) }
   const date = await select(q.which, choices, theme)
@@ -154,7 +162,7 @@ export async function runLogPrompt(cwd: string, today: string, theme = new Theme
     const status = await ask(rl, theme, q.status, parseLogStatus, { hint: q.statusHint, default: 'done' })
     opts.status = status ?? 'done'
     if (opts.status !== 'skipped') {
-      const planned = day.workout ? String(day.workout.raceDistanceKm ?? day.workout.distanceKm) : undefined
+      const planned = plannedKmDefault(day)
       opts.km = await ask(rl, theme, q.km, parseKmText, planned ? { default: planned } : { optional: true })
       opts.time = await ask(rl, theme, q.time, parseTimeText, { hint: q.timeHint, optional: true })
       if (['test', 'race'].includes(day.workout?.kind ?? '')) {

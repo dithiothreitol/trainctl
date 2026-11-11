@@ -13,7 +13,7 @@ import { ui } from './i18n/index.ts'
 import { clockToday } from './clock.ts'
 import { packageVersion } from './version.ts'
 import { CONFIG_FILE } from './config.ts'
-import { LOG_FILE, parseTime } from './logfile.ts'
+import { lineSeparator, LOG_FILE, parseTime } from './logfile.ts'
 import { PLAN_MD, PLAN_YAML } from './planfile.ts'
 import { commitFiles } from './git.ts'
 import { readSnapshot, SYNC_FILE } from './sync.ts'
@@ -198,7 +198,7 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
       const entry: SessionLog = { schemaVersion: 2, sessionId: s.id, date: s.date, sport: actualSport as SessionLog['sport'], ...(spontaneous ? {plannedSport:s.sport} : {}), status: status as SessionLog['status'], loggedAt: new Date().toISOString(), ...(durationSec !== undefined ? { durationSec } : {}), ...(distanceM !== undefined ? { distanceM } : {}), ...(testTimeSec !== undefined ? { testTimeSec } : {}), ...(rpe !== undefined ? { rpe } : {}), ...(o.note ? { note: o.note } : {}), ...(activityIds?.length ? { activityIds } : {}) }
       if (completedRepeats) entry.completedRepeats = completedRepeats
       const before = readOptional(cwd, LOG_FILE) ?? ''
-      writeTransaction(cwd, { [LOG_FILE]: before + (before && !before.endsWith('\n') ? '\n' : '') + JSON.stringify(entry) + '\n' })
+      writeTransaction(cwd, { [LOG_FILE]: before + lineSeparator(before) + JSON.stringify(entry) + '\n' })
       return commitResult(cwd, o, sportsResult([b.success(t.logged), b.text(`${s.id}: ${status}`), ...(spontaneous ? [b.info(t.spontaneous)] : [])], { entry, applied: true }), [LOG_FILE], action)
     }
     if (action === 'replace') {
