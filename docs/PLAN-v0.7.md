@@ -198,6 +198,17 @@ brzegowe (głównie odczyt ręcznie edytowanego `log.jsonl`) i sugestie
 porządkowe. Odrzucone sugestie są w §14. Po etapie 1 zmienił się warunek końca
 przeglądu (§0, krok 5) i doszły punkty B11, C8–C10 oraz pakiet G.
 
+**Stan etapu 2 (2026-11-11):** punkty B1–B8, B10 i B11 zrealizowane na gałęzi
+`plan-0.7/etap-2` w kolejności z planu, razem z polami segmentu i poprawkami
+zapisu z C1. Bramka po B10: `pnpm check` 1287 testów. Macierz B0:
+`longNotLongest`, `deloadNotLighter`, `sessionShareHigh` i
+`postRaceAccentHeavy` nie odpalają się na żadnym profilu.
+`staleProgression` zostaje na 8 profilach (maraton, 24 tygodnie, baza 45 albo
+70 km, budżet 240 min), a każdy z nich ma ostrzeżenie budżetu i werdykt
+wykonalności. `longBelowGoal` na 212 profilach to werdykt wykonalności z B8,
+zgodnie z B0. Odstępstwa od tekstu punktów opisuje „Realizacja w etapie 2”
+pod DoD pakietu B.
+
 **Etap 1** nie zmienia żadnej liczby w silniku ani zapisanych planów. Pierwszy
 commit tworzy migawkę macierzy na silniku z 0.6.0. Linty kształtu działają
 w tym etapie tylko w teście macierzy. Do `check` trafiają w etapie 2, żeby
@@ -552,6 +563,43 @@ z wyjściami; przerwa zapisana w środku planu daje propozycję `adapt`, którą
 można przyjąć, a bez zgody plan się nie zmienia; każda nowa i stara stała ma
 ID albo etykietę.
 
+**Realizacja w etapie 2: odstępstwa od tekstu punktów.** Każde ma uzasadnienie
+w commicie punktu.
+
+- **B1.** Sufit biegu spokojnego to 0,9 długiego (S-10) i 35% tygodnia
+  z długim (E-3). Resztę najpierw bierze długie do P90 udziału z §10.15,
+  interpolowanego między pasmami, a dopiero potem wolny dzień dostaje bieg
+  (S-11). Punkt 3 działa wcześniej, na poziomie makrocyklu: szczyt nie
+  przekracza pojemności dni (`weekCapacityKm`) i `plan` mówi o tym limicie.
+  Tydzień, którego nie da się rozpisać, zapisuje `layoutKm` i uwagę dla `why`.
+  Przy dwóch biegach w tygodniu reguły udziału nie obowiązują, bo żaden układ
+  ich nie spełnia. Taper trzyma liczbę biegów (T-2).
+- **B2.** Akcent traci najpierw powtórzenie (4 → 3), potem rozgrzewkę
+  (3 → 2 km), a na końcu staje się biegiem z przebieżkami. Przy jednym akcencie
+  w tygodniu sprawdzian go zastępuje (T-12, W-13). Reszta krótsza niż 3 km idzie
+  do długiego.
+- **B3.** Biegacz już na szczycie nie zaczyna od 0,7 szczytu, tylko dostaje
+  falę wokół plateau. Pomiar P-12 ma n = 3, a cięcie objętości bez przyczyny
+  w profilu byłoby nową regułą bez źródła. Zatwierdzona baza (`adapt --apply`)
+  jest poziomem bloku.
+- **B5.** Punkt 4 jest zrealizowany jako najmniejsza rama akcentu po starcie,
+  bez porównania z blokiem budowania. Tydzień ponad zamiar zwalnia najpierw
+  podbiegi, potem drugi akcent (J-5, I-8).
+- **B7.** Sufit szczytu liczy siłę z próbnego tygodnia budowania i szczytu.
+  Ostrzeżenie E-2 pojawia się także wtedy, gdy budżet obniża plan, a szczyt
+  zostaje powyżej rekomendacji.
+- **B8.** Werdykt liczy `computePlan`: szczyt bez budżetu albo szczyt po bloku
+  powrotu. Niedobór długiego wchodzi do werdyktu tylko wtedy, gdy szczytu nie
+  ogranicza budżet; wtedy odpowiada za to ostrzeżenie budżetu.
+- **B10.** `longBelowGoal` nie trafia do `check`, bo to werdykt planu, nie
+  lint tygodnia. `sessionShareHigh` dotyczy tygodni z długim i co najmniej
+  trzema biegami. `staleProgression` porównuje bloki tydzień do tygodnia od
+  końca, pomija tygodnie ze sprawdzianem albo startem i wymaga co najmniej
+  dwóch porównanych par.
+- **B11.** Decyzja o bloku powrotu jest zapisana w planie (`returnState`)
+  i regeneracja w tym samym cyklu liczy ją tą samą funkcją co propozycja.
+  Blok powrotu zastępuje zatwierdzoną bazę, a zatwierdzona baza blok powrotu.
+
 ---
 
 ## 5. Pakiet C: jedna warstwa prezentacji (etap 3)
@@ -895,7 +943,7 @@ Decyzje 9–12 i zmiany decyzji 2 i 7 przyjęto po etapie 1, tego samego dnia.
 
 ---
 
-## 11. Kandydaci ADR (047 wpisany w etapie 1, następny wolny numer: 048)
+## 11. Kandydaci ADR (047 wpisany w etapie 1; 048, 049, 050, 054 i 055 w etapie 2; następny wolny numer: 058)
 
 | # | Decyzja (skrót) | Sedno uzasadnienia |
 |---|---|---|
@@ -972,7 +1020,7 @@ Wypełniany w trakcie realizacji przez krok 6 zamknięcia etapu.
 | 2026-11-11 | 1 | `packages/cli/src/status.ts:85` | `status` po starcie pisze „Do startu: 5 dni temu", `review` już „Od startu" | etap 3 (spójne widoki) |
 | 2026-11-11 | 1 | `packages/cli/src/commands.ts:684` | `log --km 8,5` odrzucone, a odczyt dziennika i kreator przyjmują przecinek; trzy parsery km | naprawione w etapie 1 (11. runda): `parseDecimal` i `LOG_LIMITS` wspólne dla `log`, kreatora i odczytu log.jsonl |
 | 2026-11-11 | 1 | `packages/cli/src/interactive.ts:157` | domyślna wartość km w kreatorze dziennika to surowe `21.0975` | naprawione w etapie 1 (12. runda): `plannedKmDefault` w formacie języka |
-| 2026-11-11 | 1 | `packages/core/src/engine/microcycle.ts` | pętla I-5 i `weekTotals` liczą Z1 osobno, obok `hardKmOf` | etap 2 (B5 zmienia pętlę I-5) |
+| 2026-11-11 | 1 | `packages/core/src/engine/microcycle.ts` | pętla I-5 i `weekTotals` liczą Z1 osobno, obok `hardKmOf` | etap 2: B5 liczy I-5 po rozdaniu reszty, a `hardKmOf` jest wspólne dla generatora i lintów; dwie definicje Z1 zostają (`z1Share` na mapie dni w generatorze, `weekTotals` na dniach planu) jako sugestia porządkowa |
 | 2026-11-11 | 1 | `packages/cli/src/commands.ts` (`raceCountdown`) | sugestia połączenia z `raceDistanceLine` (rundy 13–21) | odrzucone: dwie formy tej samej informacji (etykieta z wartością, zdanie); wspólne jest tylko porównanie znaku |
 | 2026-11-11 | 1 | `packages/core/src/engine/season.ts` | definicja bieżącego cyklu w lintach różna od `cycleWeeksOf` w CLI | odrzucone: CLI bez `cycleStart` pokazuje cały plan, linty potrzebują jednego cyklu |
 | 2026-11-11 | 1 | `packages/cli/src/plan-shape.test.ts` | pełna macierz 576 profili w bramce | odrzucone: ~1,6 s; do ponownej oceny, gdy silnik zwolni |
