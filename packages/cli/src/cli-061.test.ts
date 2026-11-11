@@ -12,7 +12,7 @@ import { setLocale, vdotFromRace } from 'trainctl-core'
 import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices, parseKmText, parseRpeText, plannedKmDefault } from './interactive.ts'
-import { recalibrationToday, zoneSource } from './calibration.ts'
+import { recalibrationToday, roundVdot, zoneSource, zoneVdot } from './calibration.ts'
 import { logStatusText, parseDecimal, shownKm } from './format.ts'
 import { loadPlan, writePlan } from './planfile.ts'
 import { appendLog, latestByDate, lineSeparator, LOG_LIMITS, readLog, readStrengthLog } from './logfile.ts'
@@ -254,7 +254,7 @@ describe('poprawki po trzeciej rundzie przeglądu etapu 1', () => {
 describe('poprawki po czwartej rundzie przeglądu etapu 1', () => {
   it('wybór dnia w interaktywnym log: status i dystans w języku', () => {
     setLocale('pl')
-    const choices = logChoices(loadPlan(dir), '2027-03-29', new Map([['2027-03-28', 'done']]))
+    const choices = logChoices(loadPlan(dir), '2027-03-29', new Map([['2027-03-28', { status: 'done' }]]))
     const race = choices.find((c) => c.value === '2027-03-28')!
     expect(race.hint).toContain('21,1 km')
     expect(race.hint).toContain('wykonany')
@@ -702,5 +702,16 @@ describe('osiemnasta runda: kreator, pominięte wartości dziennika', () => {
     appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'done', km: '8500', loggedAt: 'x' }) + '\n')
     const out = cmdStatus(dir).output
     expect(out).toContain('values outside the limits of trainctl log were ignored (2026-10-27 km)')
+  })
+})
+
+describe('dziewiętnasta runda: VDOT stref z jednej funkcji', () => {
+  it('zoneVdot: wynik, czas docelowy, brak; roundVdot jak w planie', () => {
+    const r = { date: '2026-09-27', distanceKm: 10, timeSec: 2580 }
+    expect(zoneVdot(r, { kind: 'race', distanceKm: 21.0975 })).toBe(vdotFromRace(10, 2580))
+    expect(zoneVdot(undefined, { kind: 'race', distanceKm: 21.0975, targetTimeSec: 5700 })).toBe(vdotFromRace(21.0975, 5700))
+    expect(zoneVdot(undefined, { kind: 'race', distanceKm: 21.0975 })).toBeUndefined()
+    expect(roundVdot(47.66)).toBe(47.7)
+    expect(loadPlan(dir).vdot).toBe(roundVdot(vdotFromRace(10, 2580)))
   })
 })

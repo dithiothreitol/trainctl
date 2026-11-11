@@ -15,7 +15,7 @@
 import type { RaceResult, WorkoutKind } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
 import { diffDays } from '../util/dates.ts'
-import { goalClass } from './macrocycle.ts'
+import { goalClass } from '../domain/goal-class.ts'
 
 export interface ExecutionRecord {
   date: string

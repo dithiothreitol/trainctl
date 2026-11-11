@@ -17,7 +17,6 @@ import {
   planStrengthWeek,
   predictRace,
   testDistanceKm,
-  vdotFromRace,
   type Microcycle,
   type PlannedDay,
   type RaceGoal,
@@ -26,7 +25,7 @@ import {
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel } from './format.ts'
-import { inspectCalibration, isRoadGoal, zoneSource, type Calibration } from './calibration.ts'
+import { inspectCalibration, isRoadGoal, roundVdot, zoneSource, zoneVdot, type Calibration } from './calibration.ts'
 import { packageVersion } from './version.ts'
 
 export const PLAN_DIR = 'plan'
@@ -133,18 +132,10 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   // wyniki, które przeszły zasadę wyboru (z wybranym) — z nich liczy się też predykcja
   const usable = calibration.candidates.filter((c) => c.reason === 'selected' || c.reason === 'lower-vdot').map((c) => c.result)
   const trailOnly = roadGoal && selected?.terrain === 'trail'
-  let vdot: number
-  let vdotSource: StoredPlan['vdotSource']
-  const source = zoneSource(selected, goal)
-  if (selected) {
-    vdot = vdotFromRace(selected.distanceKm, selected.timeSec)
-    vdotSource = 'result'
-  } else if (source === 'goal-target') {
-    vdot = vdotFromRace(goal.distanceKm, goal.targetTimeSec!)
-    vdotSource = 'goal-target'
-  } else {
-    throw new Error(ui().planMd.noCalibration)
-  }
+  // źródło stref i VDOT — te same funkcje co podpowiedź `why` (zoneSource, zoneVdot)
+  const vdotSource = zoneSource(selected, goal)
+  const vdot = zoneVdot(selected, goal)
+  if (vdot === undefined || vdotSource === 'none') throw new Error(ui().planMd.noCalibration)
   const zones = paceZones(vdot)
   const macro = planMacrocycle({ today, goal, athlete })
   let previousFrequency: number | undefined
@@ -161,7 +152,7 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     calibration,
     generatedAt: today,
     locale: getLocale(),
-    vdot: Math.round(vdot * 10) / 10,
+    vdot: roundVdot(vdot),
     vdotSource,
     goal,
     peakKmPlanned: macro.peakKmPlanned,

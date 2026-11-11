@@ -7,7 +7,8 @@
  * Progi oznaczone „inż." są wyborem inżynierskim (E-3), nie wynikiem badań.
  */
 import type { MacroPhase, Microcycle, PlannedWorkout, RaceGoal } from '../domain/types.ts'
-import { goalClass } from './macrocycle.ts'
+import { goalClass } from '../domain/goal-class.ts'
+import { median } from '../util/stats.ts'
 import { fmtPace, hardKmOf, paceMid } from './microcycle.ts'
 
 export interface SeasonAccent {
@@ -122,11 +123,16 @@ export function longRunThreshold(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): {
 
 const LOADING_PHASES = new Set<MacroPhase>(['base', 'build', 'peak'])
 
-/** Mediana; przy parzystej liczbie średnia dwóch środkowych. */
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, z) => a - z)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 ? sorted[mid]! : round1((sorted[mid - 1]! + sorted[mid]!) / 2)
+/**
+ * Początek bieżącego cyklu w planie bez `cycleStart`: pierwszy tydzień ładowania po
+ * ostatnim bloku przejściowym. Plan z jednym cyklem — undefined (cały plan).
+ */
+function currentCycleStart(weeks: Microcycle[]): string | undefined {
+  let start: string | undefined
+  for (let i = 1; i < weeks.length; i++) {
+    if (weeks[i - 1]!.skeleton.phase === 'transition' && LOADING_PHASES.has(weeks[i]!.skeleton.phase)) start = weeks[i]!.weekStart
+  }
+  return start
 }
 const isLoading = (w: Microcycle) => LOADING_PHASES.has(w.skeleton.phase) && !w.skeleton.deload
 
@@ -134,9 +140,10 @@ const isLoading = (w: Microcycle) => LOADING_PHASES.has(w.skeleton.phase) && !w.
 export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanceKm'>; weeks: Microcycle[]; cycleStart?: string | undefined }, rows = seasonProfile(plan.weeks)): ShapeIssue[] {
   const issues: ShapeIssue[] = []
   // Plan z historią trzyma tygodnie poprzednich cykli. Oceniamy bieżący cykl (od
-  // `cycleStart`): inaczej długie 30 km z poprzedniego maratonu „spełniałoby" próg
-  // nowego półmaratonu, a blok starego cyklu porównywałby się z blokiem nowego.
-  const from = plan.cycleStart
+  // `cycleStart`, a bez niego od pierwszego tygodnia ładowania po ostatnim bloku
+  // przejściowym): inaczej długie 30 km z poprzedniego maratonu „spełniałoby" próg
+  // nowego półmaratonu, a bloki i odciążenia porównywałyby się między cyklami.
+  const from = plan.cycleStart ?? currentCycleStart(plan.weeks)
   const weeks = from ? plan.weeks.filter((w) => w.weekStart >= from) : plan.weeks
   rows = from ? rows.filter((r) => r.weekStart >= from) : rows
 
@@ -172,17 +179,13 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
   // R-8: akcent w bloku przejściowym (po starcie celu) nie większy niż typowy akcent
   // ostatniego bloku budowania przed nim (mediana — jedna skrócona jednostka nie zbija
   // sufitu). Blok to tygodnie ładowania między odciążeniami; liczy się ostatni z akcentami
-  // innymi niż podbiegi. Plan z historią może mieć kilka cykli — każdy tydzień przejściowy
-  // porównujemy z blokiem, który go poprzedza, nie z budowaniem następnego cyklu.
+  // innymi niż podbiegi. Oceniany jest jeden cykl (wyżej), więc blok przejściowy jest jeden.
   // Plan bez budowania (krótki horyzont) albo z samymi podbiegami w budowaniu: sufit
   // z ostatniego bloku ładowania przed startem (baza, szczyt), żeby R-8 nie znikało.
   let buildBlock: number[] = [], buildCeiling: number[] = []
   let loadBlock: number[] = [], loadCeiling: number[] = []
-  let afterTransition = false
   for (const r of rows) {
     if (LOADING_PHASES.has(r.phase)) {
-      // nowy cykl po bloku przejściowym: sufity poprzedniego cyklu już nie obowiązują
-      if (afterTransition) { buildCeiling = []; loadCeiling = []; afterTransition = false }
       if (r.phase !== 'build' && buildBlock.length) { buildCeiling = buildBlock; buildBlock = [] }
       if (r.deload) {
         if (buildBlock.length) buildCeiling = buildBlock
@@ -199,9 +202,8 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
     if (buildBlock.length) { buildCeiling = buildBlock; buildBlock = [] }
     if (loadBlock.length) { loadCeiling = loadBlock; loadBlock = [] }
     const ceilingHard = buildCeiling.length ? buildCeiling : loadCeiling
-    if (r.phase === 'transition') afterTransition = true
     if (r.phase !== 'transition' || !ceilingHard.length) continue
-    const ceiling = median(ceilingHard)
+    const ceiling = round1(median(ceilingHard))
     for (const a of r.accents) if (a.kind !== 'easy_hills' && a.hardKm > ceiling) issues.push({ code: 'postRaceAccentHeavy', date: r.weekStart, ruleRefs: ['R-8'], values: [a.hardKm, ceiling] })
   }
 

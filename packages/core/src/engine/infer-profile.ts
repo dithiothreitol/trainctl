@@ -9,6 +9,7 @@ import type { Weekday } from '../domain/types.ts'
 import type { SyncedActivity } from '../ports/sync.ts'
 import { messages } from '../i18n/index.ts'
 import { addDays, diffDays, mondayOf, parseIso } from '../util/dates.ts'
+import { median } from '../util/stats.ts'
 
 /** Okno analizy w pełnych tygodniach (wartość inżynierska — ~3 miesiące formy). */
 export const INFER_WINDOW_WEEKS = 16
@@ -54,12 +55,6 @@ const DISTANCE_TOLERANCE = 0.03
 const RACE_NAME_RE = /\b(bieg|maraton|półmaraton|polmaraton|parkrun|race|run|milowe?)\b/i
 
 const isRun = (a: SyncedActivity): boolean => /run/i.test(a.type)
-
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2
-}
 
 function weekdayOf(iso: string): Weekday {
   const dow = parseIso(iso).getUTCDay() // 0 = niedziela

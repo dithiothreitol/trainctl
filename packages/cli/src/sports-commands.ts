@@ -39,7 +39,9 @@ export interface SportsOptions {
 export interface SportsResult { output: string; code: number; blocks: Block[]; data: Record<string, unknown> }
 export const sportsResult = (blocks: Block[], data: Record<string, unknown> = {}, code = 0): SportsResult => ({ output: renderPlain(blocks), blocks, data, code })
 export const sportsFailure = (e: unknown): SportsResult => sportsResult([b.error(e instanceof Error ? e.message : String(e))], { error: e instanceof Error ? e.message : String(e) }, 1)
-// liczby z opcji: ta sama reguła co w dzienniku biegów (parseDecimal — przecinek tak, „0x10" i „1e3" nie)
+// liczby z opcji: ten sam parser co dziennik biegów (parseDecimal — przecinek tak, „0x10" i „1e3" nie);
+// granice zależą od sportu — bieg jak w LOG_LIMITS (500 km), rower i pływanie szerzej
+const RUN_KM_MAX = 500
 const number = (v: unknown, min = 0, max = 10080): number => { const n = typeof v === 'number' ? v : parseDecimal(String(v ?? '')); if (!Number.isFinite(n) || n < min || n > max) throw new Error(msg().invalid); return n }
 function select(p: SportsPlan, o: SportsOptions): TrainingSession {
   const list = p.sessions.filter(s => o.session ? s.id === o.session : s.date === (o.date ?? o.from ?? clockToday()) && (!o.sport || s.sport === o.sport) && (!o.strength || s.sport === 'strength'))
@@ -169,7 +171,7 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
       if ((o.actualSport !== undefined && !ENDURANCE_SPORTS.includes(actualSport as EnduranceSport)) || (spontaneous && (s.sport === 'strength' || status === 'skipped'))) throw new Error(t.invalid)
       if (!['done', 'skipped', 'modified'].includes(status) || (o.km !== undefined && o.meters !== undefined) || (o.minutes !== undefined && o.time !== undefined)) throw new Error(t.invalid)
       const durationSec = typeof o.time === 'string' ? parseTime(o.time) : o.minutes !== undefined ? number(o.minutes, 0, 3000) * 60 : undefined
-      const distanceM = o.meters !== undefined ? number(o.meters, 0, 2e6) : o.km !== undefined ? number(o.km, 0, 2000) * 1000 : undefined
+      const distanceM = o.meters !== undefined ? number(o.meters, 0, 2e6) : o.km !== undefined ? number(o.km, 0, actualSport === 'run' ? RUN_KM_MAX : 2000) * 1000 : undefined
       const testTimeSec = o.testTime === undefined ? undefined : parseTime(o.testTime)
       if (testTimeSec !== undefined && (s.sport !== 'run' || spontaneous || status === 'skipped' || !(s.purpose === 'race' || s.legacyWorkout?.kind === 'test') || (durationSec !== undefined && testTimeSec > durationSec))) throw new Error(t.invalid)
       const rpe = o.rpe === undefined ? undefined : number(o.rpe, 1, 10)

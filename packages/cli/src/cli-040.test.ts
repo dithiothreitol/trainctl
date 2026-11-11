@@ -344,7 +344,7 @@ describe('today i interaktywny log', () => {
   })
   it('lista wyboru: ostatnie siedem dni od dziś wstecz, ze statusem z dziennika', () => {
     cmdPlan(dir, { date: '2026-08-08' })
-    const choices = logChoices(loadPlan(dir), '2026-08-13', new Map([['2026-08-11', 'done']]))
+    const choices = logChoices(loadPlan(dir), '2026-08-13', new Map([['2026-08-11', { status: 'done' }]]))
     expect(choices.map((c) => c.value)).toEqual(['2026-08-13', '2026-08-12', '2026-08-11', '2026-08-10', '2026-08-09', '2026-08-08', '2026-08-07'])
     expect(choices.find((c) => c.value === '2026-08-11')!.hint).toContain('[logged: done]')
   })

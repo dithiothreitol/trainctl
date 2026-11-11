@@ -9,7 +9,7 @@ import { addDays, formatNumber, getLocale, messages, type Microcycle, type Plann
 import { cmdLog, cmdShift, cmdWeek, kindLabel } from './commands.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, shownKm } from './format.ts'
-import { LOG_LIMITS, parseTime, readLog } from './logfile.ts'
+import { latestByDate, LOG_LIMITS, parseTime, readLog } from './logfile.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 import { renderAnsi } from './ui/blocks.ts'
 import { clampIndex, keyAction, type KeyEvent } from './ui/keys.ts'
@@ -88,7 +88,7 @@ export async function runShiftPicker(
 }
 
 /** Ostatnie siedem dni planu, od dziś wstecz — wybór przy `trainctl log` bez flag. */
-export function logChoices(plan: StoredPlan, today: string, logged: Map<string, string>): Choice<string>[] {
+export function logChoices(plan: StoredPlan, today: string, logged: Map<string, { status: string }>): Choice<string>[] {
   const from = addDays(today, -6)
   return plan.weeks
     .flatMap((w) => w.days)
@@ -99,7 +99,7 @@ export function logChoices(plan: StoredPlan, today: string, logged: Map<string, 
       value: day.date,
       hint: [
         day.workout ? `${kindLabel(day.workout.kind)} · ${kmLabel(shownKm(day.workout))}` : ui().week.rest,
-        logged.has(day.date) ? `[${ui().log.prompt.logged}: ${logStatusText(logged.get(day.date)!)}]` : '',
+        logged.has(day.date) ? `[${ui().log.prompt.logged}: ${logStatusText(logged.get(day.date)!.status)}]` : '',
       ].filter(Boolean).join(' '),
     }))
 }
@@ -151,8 +151,7 @@ export async function runLogPrompt(cwd: string, today: string, theme = new Theme
     return { code: 1, output: e instanceof Error ? e.message : String(e) }
   }
   const q = ui().log.prompt
-  // ostatni wpis daty wygrywa (jak latestByDate) — Map nadpisuje wcześniejszy
-  const logged = new Map(readLog(cwd).map((e) => [e.date, e.status] as const))
+  const logged = latestByDate(readLog(cwd))
   const choices = logChoices(plan, today, logged)
   if (choices.length === 0) return { code: 1, output: ui().log.outsidePlan(today) }
   const date = await select(q.which, choices, theme)

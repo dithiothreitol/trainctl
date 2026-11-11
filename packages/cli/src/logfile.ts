@@ -69,13 +69,13 @@ export function latestByDate<T extends { date: string }>(entries: T[]): Map<stri
   return new Map(entries.map((e) => [e.date, e]))
 }
 
-function readAll(cwd: string): (LogEntry | StrengthLogEntry)[] {
+function readAll(cwd: string, dropped: string[] = []): (LogEntry | StrengthLogEntry)[] {
   const path = join(cwd, LOG_FILE)
   if (!existsSync(path)) return []
   return readFileSync(path, 'utf-8')
     .split('\n')
     .filter((l) => l.trim())
-    .map((l) => normalize(JSON.parse(l) as Record<string, unknown>))
+    .map((l) => normalize(JSON.parse(l) as Record<string, unknown>, dropped))
 }
 
 /** Czas wpisany tak, jak przyjmuje go CLI („58:30"), albo liczba tekstem, także z przecinkiem („8,5"). */
@@ -91,11 +91,13 @@ function fromText(key: string, text: string): number {
  * odczytu ręcznie edytowanego log.jsonl. RPE całkowite 1–10 (CR-10 bez zera, P-6),
  * minuty siły całkowite 1–300, dystans 0–500 km, czasy dodatnie.
  */
+const positiveSeconds = (v: number): boolean => Number.isFinite(v) && v > 0
+
 export const LOG_LIMITS = {
   // 500 km (inż.): sufit literówki („8500" zamiast „8.5"), z zapasem dla ultra
   km: (v: number): boolean => Number.isFinite(v) && v >= 0 && v <= 500,
-  timeSec: (v: number): boolean => Number.isFinite(v) && v > 0,
-  testTimeSec: (v: number): boolean => Number.isFinite(v) && v > 0,
+  timeSec: positiveSeconds,
+  testTimeSec: positiveSeconds,
   rpe: (v: number): boolean => Number.isInteger(v) && v >= 1 && v <= 10,
   minutes: (v: number): boolean => Number.isInteger(v) && v >= 1 && v <= 300,
 }
@@ -125,21 +127,14 @@ function normalize(raw: Record<string, unknown>, dropped: string[] = []): LogEnt
 const isStrength = (e: LogEntry | StrengthLogEntry): e is StrengthLogEntry => (e as StrengthLogEntry).activity === 'strength'
 
 /**
- * Wartości z log.jsonl pominięte przy odczycie (poza granicami LOG_LIMITS albo nie
- * liczby): „data pole". Widoki ich nie pokazują; `status` mówi o nich wprost.
+ * Cały dziennik jednym odczytem: wpisy biegowe i siłowe osobno oraz wartości
+ * pominięte przy odczycie (poza granicami LOG_LIMITS albo nie liczby) jako
+ * „data pole" — widoki ich nie pokazują, `status` mówi o nich wprost.
  */
-export function droppedLogValues(cwd: string): string[] {
-  const path = join(cwd, LOG_FILE)
-  if (!existsSync(path)) return []
+export function readJournal(cwd: string): { runs: LogEntry[]; strength: StrengthLogEntry[]; dropped: string[] } {
   const dropped: string[] = []
-  for (const line of readFileSync(path, 'utf-8').split('\n').filter((l) => l.trim())) normalize(JSON.parse(line) as Record<string, unknown>, dropped)
-  return dropped
-}
-
-/** Cały dziennik jednym odczytem: wpisy biegowe i siłowe osobno. */
-export function readJournal(cwd: string): { runs: LogEntry[]; strength: StrengthLogEntry[] } {
-  const all = readAll(cwd)
-  return { runs: all.filter((e): e is LogEntry => !isStrength(e)), strength: all.filter(isStrength) }
+  const all = readAll(cwd, dropped)
+  return { runs: all.filter((e): e is LogEntry => !isStrength(e)), strength: all.filter(isStrength), dropped }
 }
 
 /** Wpisy biegowe — to, z czego liczy się wykonanie planu. */

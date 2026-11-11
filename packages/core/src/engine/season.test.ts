@@ -200,3 +200,14 @@ describe('osiemnasta runda: dwa długie w tygodniu, R-8 w kolejnym cyklu', () =>
     expect(seasonShapeIssues({ goal: half, weeks }).filter((i) => i.code === 'postRaceAccentHeavy').map((i) => i.date)).toEqual(['2027-01-25'])
   })
 })
+
+describe('dziewiętnasta runda: bieżący cykl bez cycleStart', () => {
+  it('plan z historią bez cycleStart: linty od pierwszego tygodnia ładowania po bloku przejściowym', () => {
+    const weeks = [
+      week('2026-12-07', { tue: easy(10), sat: long(30) }),
+      week('2026-12-14', { tue: easy(6), sat: long(8) }, 'transition'),
+      week('2026-12-21', { tue: easy(10), sat: long(18) }),
+    ]
+    expect(seasonShapeIssues({ goal: half, weeks }).map((i) => i.code)).toContain('longBelowGoal')
+  })
+})

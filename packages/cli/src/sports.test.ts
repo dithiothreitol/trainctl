@@ -106,6 +106,7 @@ describe('multisport CLI workflows',()=>{
     const plan = init(), sorted = [...plan.sessions].sort((a, z) => a.date.localeCompare(z.date))
     const run = sorted.find((s) => s.sport === 'run')!
     expect(cmdLog(dir, { session: run.id, status: 'done', km: '0x10' }).code).toBe(1)
+    expect(cmdLog(dir, { session: run.id, status: 'done', km: '800' }).code).toBe(1)
     const ok = cmdLog(dir, { session: run.id, status: 'done', km: '8,5' })
     expect(ok.code, ok.output).toBe(0)
     expect(ok.data!.entry).toMatchObject({ distanceM: 8500 })

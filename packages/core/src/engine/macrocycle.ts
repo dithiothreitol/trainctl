@@ -16,6 +16,7 @@ import type {
 import { addDays, diffDays, mondayOf } from '../util/dates.ts'
 import { messages } from '../i18n/index.ts'
 import { COACH_STYLE } from './house-style.ts'
+import { goalClass } from '../domain/goal-class.ts'
 
 /** P-2: tydzień odciążenia po 3 tygodniach ładowania. Współczynnik 0,7 — inż. */
 const DELOAD_EVERY = 4
@@ -30,19 +31,6 @@ const TAPER_MULTIPLIERS: Record<number, number[]> = {
   1: [0.55],
   2: [0.7, 0.5],
   3: [0.75, 0.6, 0.45],
-}
-
-/**
- * Klasa dystansu celu — jedno miejsce granic dla taperu (T-5), szczytu (P-7/P-8)
- * i lintów sezonu. Granice: ultra >42,5 km, maraton ≥42 km, HM ≥20,9 km.
- */
-export type GoalClass = 'base' | 'ultra' | 'marathon' | 'half' | 'short'
-export function goalClass(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): GoalClass {
-  if (goal.kind === 'base') return 'base'
-  if (goal.distanceKm > 42.5) return 'ultra'
-  if (goal.distanceKm >= 42.0) return 'marathon'
-  if (goal.distanceKm >= 20.9) return 'half'
-  return 'short'
 }
 
 export function taperWeeksFor(goal: RaceGoal): { weeks: number; flags: string[] } {

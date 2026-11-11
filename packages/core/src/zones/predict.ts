@@ -6,7 +6,7 @@ import type { RaceResult } from '../domain/types.ts'
 import { diffDays } from '../util/dates.ts'
 import { predictTimeSec, vdotFromRace } from './daniels.ts'
 import { messages } from '../i18n/index.ts'
-import { goalClass } from '../engine/macrocycle.ts'
+import { goalClass } from '../domain/goal-class.ts'
 
 export interface RacePrediction {
   distanceKm: number

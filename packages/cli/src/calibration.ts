@@ -35,11 +35,9 @@ export function recalibrationToday(
 ): { selected: RaceResult | null; source: ZoneSource; changed: boolean } {
   const selected = inspectCalibration(results, today, isRoadGoal(goal)).selected ?? null
   const source = zoneSource(selected ?? undefined, goal)
-  // VDOT zaokrąglony jak w computePlan; bez źródła stref plan się zatrzyma
-  const vdot = source === 'result' ? vdotFromRace(selected!.distanceKm, selected!.timeSec)
-    : source === 'goal-target' ? vdotFromRace(goal.distanceKm, goal.targetTimeSec!) : undefined
+  const vdot = zoneVdot(selected ?? undefined, goal)
   const changed = !sameSelection(selected ?? undefined, plan.calibration.selected) || source !== plan.vdotSource ||
-    (vdot !== undefined && Math.round(vdot * 10) / 10 !== plan.vdot)
+    (vdot !== undefined && roundVdot(vdot) !== plan.vdot)
   return { selected, source, changed }
 }
 
@@ -55,6 +53,20 @@ export type ZoneSource = 'result' | 'goal-target' | 'none'
  * i `targetTimeSec`) albo znikąd — wtedy `trainctl plan` zatrzymuje się błędem.
  * Jedna reguła dla computePlan i podpowiedzi `why`.
  */
+/**
+ * VDOT, z którego plan liczy strefy (bez zaokrąglenia — strefy idą z pełnej wartości):
+ * z wybranego wyniku albo z czasu docelowego; undefined, gdy plan nie ma z czego liczyć.
+ * Jedna funkcja dla computePlan i podpowiedzi `why`.
+ */
+export function zoneVdot(selected: RaceResult | undefined, goal: GoalForZones): number | undefined {
+  const source = zoneSource(selected, goal)
+  return source === 'result' ? vdotFromRace(selected!.distanceKm, selected!.timeSec)
+    : source === 'goal-target' ? vdotFromRace(goal.distanceKm, goal.targetTimeSec!) : undefined
+}
+
+/** VDOT zapisywany w planie: jedno miejsce po przecinku. */
+export const roundVdot = (vdot: number): number => Math.round(vdot * 10) / 10
+
 export function zoneSource(selected: RaceResult | undefined, goal: Pick<GoalForZones, 'kind' | 'targetTimeSec'>): ZoneSource {
   if (selected) return 'result'
   return goal.targetTimeSec && goal.kind !== 'base' ? 'goal-target' : 'none'
