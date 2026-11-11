@@ -27,6 +27,14 @@ change between minor versions — a regenerated plan can differ.
   carry.
 - `why` explains these layout decisions: a hills day turned into an easy run,
   an accent turned into strides, a week shorter than its target.
+- Weekly volume grows across the loading blocks so that the peak falls in the
+  last block before the taper (T-7, P-12) instead of in the second week, at most
+  8% a week (P-3). When the growth is slow, or the runner is already at the
+  peak, the loading weeks of a block rise 0.94 → 0.97 → 1.00 of the block level.
+  Deloads and the taper are counted from that level.
+- An approved volume baseline (`adapt --apply`) sets every later block at that
+  level and keeps the rise within each block; the plan no longer grows past a
+  baseline the runner approved.
 
 ### Added
 

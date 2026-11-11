@@ -177,10 +177,10 @@ describe('regeneracja po zatwierdzonej propozycji', () => {
     })
   }
   const withBudget = (yaml: string) => `${yaml}time:\n  weeklyMinutes: 240\n`
-  const approve = (day: string) => {
+  const approve = (day: string, km = 40) => {
     process.env['TRAINCTL_TODAY'] = day
     expect(cmdPlan(dir, { date: '2026-08-08' }).code).toBe(0)
-    applyProposal(dir, prepareProposal(dir, day, reduction).id)
+    applyProposal(dir, prepareProposal(dir, day, { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: km }] }).id)
   }
   it('start przesunięty o tydzień wcześniej po zatwierdzonej bazie: siła idzie za nowymi fazami', () => {
     write(withBudget(RACE))
@@ -212,7 +212,9 @@ describe('regeneracja po zatwierdzonej propozycji', () => {
   })
   it('po zatwierdzonej bazie dni sprzed tygodnia decyzji nie trafiają do „zachowanych" — nic by się w nich nie zmieniło', () => {
     write(withBudget(RACE))
-    approve('2026-09-16')
+    // baza poniżej tego, co budżet zostawia (16 km z dwiema sesjami siły): skalowanie
+    // zmienia dni tygodnia decyzji, więc ochrona przeszłości ma co trzymać
+    approve('2026-09-16', 25)
     const r = cmdPlan(dir)
     expect(r.code, r.output).toBe(0)
     const past = (r.data as { regeneration: { protectedDays: { date: string; reason: string }[] } }).regeneration.protectedDays.filter((p) => p.reason === 'past')

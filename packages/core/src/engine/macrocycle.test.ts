@@ -209,3 +209,59 @@ describe('blok po starcie (R-8, R-10) i plan bez startu (P-11)', () => {
     expect(Math.max(...basePlan.weeks.map((w) => w.targetKm))).toBeLessThanOrEqual(athlete.peakWeeklyKm!)
   })
 })
+
+describe('B3: trajektoria objętości (P-12, T-7, P-3)', () => {
+  const half: RaceGoal = { name: 'HM', date: '2027-03-28', distanceKm: 21.0975, priority: 'A' }
+  const today = '2026-10-22'
+  const noPeak = (recentWeeklyKm: number): AthleteProfile => ({ recentWeeklyKm, daysAvailable: athlete.daysAvailable, results: [] })
+  const loadBlocks = (weeks: ReturnType<typeof planMacrocycle>['weeks']) => {
+    const blocks: number[][] = [[]]
+    for (const w of weeks.filter((x) => ['base', 'build', 'peak'].includes(x.phase))) {
+      if (w.deload) blocks.push([])
+      else blocks.at(-1)!.push(w.targetKm)
+    }
+    return blocks.filter((b) => b.length)
+  }
+
+  it('szczyt w ostatnim bloku ładowania przed taperem, nie w drugim tygodniu (P1)', () => {
+    const plan = planMacrocycle({ today, goal: half, athlete: noPeak(45) })
+    const blocks = loadBlocks(plan.weeks)
+    const peak = Math.max(...blocks.flat())
+    expect(Math.max(...blocks.at(-1)!)).toBe(peak)
+    // przy wolnym wzroście przedostatni blok bywa w zaokrągleniu szczytu; wcześniejsze są niżej
+    for (const block of blocks.slice(0, -2)) expect(Math.max(...block)).toBeLessThan(peak)
+    // poziomy bloków nie maleją
+    for (let i = 1; i < blocks.length; i++) expect(Math.max(...blocks[i]!)).toBeGreaterThanOrEqual(Math.max(...blocks[i - 1]!))
+  })
+
+  it('wolny wzrost: tydzień w bloku rośnie falą 0,94 → 0,97 → 1,00 poziomu bloku', () => {
+    const plan = planMacrocycle({ today, goal: half, athlete: noPeak(45) })
+    const [first] = loadBlocks(plan.weeks)
+    expect(first).toHaveLength(3)
+    const [a, b, c] = first!
+    expect(a!).toBeLessThan(b!)
+    expect(b!).toBeLessThan(c!)
+    expect(a! / c!).toBeCloseTo(0.94, 1)
+  })
+
+  it('biegacz na szczycie: fala wokół plateau, odciążenie 0,7 poziomu bloku', () => {
+    const plan = planMacrocycle({ today, goal: half, athlete: { ...athlete, recentWeeklyKm: 50, peakWeeklyKm: 50 } })
+    const blocks = loadBlocks(plan.weeks)
+    for (const block of blocks.filter((b) => b.length === 3)) expect(block).toEqual([47, 49, 50])
+    for (const d of plan.weeks.filter((w) => w.deload)) expect(d.targetKm).toBe(35)
+  })
+
+  it('szybki wzrost z małej bazy: P-3 między kolejnymi tygodniami ładowania, szczyt na końcu', () => {
+    const plan = planMacrocycle({ today, goal: half, athlete: { ...athlete, recentWeeklyKm: 12, peakWeeklyKm: 50 } })
+    const load = plan.weeks.filter((w) => ['base', 'build', 'peak'].includes(w.phase) && !w.deload)
+    // ≤10% na tydzień; przy kilkunastu km zaokrąglenie do pełnego km to krok 1 km
+    for (let i = 1; i < load.length; i++) expect(load[i]!.targetKm - load[i - 1]!.targetKm).toBeLessThanOrEqual(Math.max(1, 0.1 * load[i - 1]!.targetKm) + 0.5)
+    expect(load.at(-1)!.targetKm).toBe(plan.peakKmPlanned)
+  })
+
+  it('taper liczony od poziomu ostatniego bloku (T-4, T-5)', () => {
+    const plan = planMacrocycle({ today, goal: half, athlete: noPeak(45) })
+    const taper = plan.weeks.find((w) => w.phase === 'taper')!
+    expect(taper.targetKm).toBe(Math.round(plan.peakKmPlanned * 0.7))
+  })
+})

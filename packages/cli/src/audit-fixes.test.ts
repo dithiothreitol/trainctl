@@ -50,8 +50,10 @@ describe('audited training workflows', () => {
     initialize()
     const reduced = prepareProposal(dir, '2026-09-06', reduction)
     const week = reduced.plan.weeks.find(w => w.weekStart === '2026-09-07')!
-    expect(week.skeleton.targetKm).toBe(20)
-    expect(week.totalKm).toBeCloseTo(20, 1)
+    // baza to poziom bloku (B3): tydzień w bloku leży na fali 0,94–1,00 bazy
+    expect(week.skeleton.targetKm).toBeLessThanOrEqual(20)
+    expect(week.skeleton.targetKm).toBeGreaterThanOrEqual(Math.round(20 * 0.94))
+    expect(week.totalKm).toBeCloseTo(week.skeleton.targetKm, 1)
     applyProposal(dir, reduced.id)
     config.athlete.results.push({ date: '2026-09-05', distanceKm: 10, timeSec: 2400 })
     writeFileSync(join(dir, 'trainctl.yaml'), JSON.stringify(config))

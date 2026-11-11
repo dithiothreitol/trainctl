@@ -73,6 +73,16 @@ describe('trainctl plan na istniejącym planie', () => {
     for (const date of ['2026-08-04', '2026-09-01', '2026-09-05']) expect(dayOf(plan, date)).toEqual(dayOf(reduced.plan, date))
   })
 
+  it('B3: zatwierdzona redukcja ustawia każdy blok na poziomie bazy, fala w bloku zostaje', () => {
+    initialize()
+    const reduced = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 45 }] })
+    const future = reduced.plan.weeks.filter((w) => w.weekStart > '2026-09-06' && ['base', 'build', 'peak'].includes(w.skeleton.phase) && !w.skeleton.deload)
+    expect(future.length).toBeGreaterThan(3)
+    // plan po redukcji nie rośnie ponad bazę, której biegacz nie zatwierdził
+    for (const w of future) expect(w.skeleton.targetKm).toBeLessThanOrEqual(45)
+    expect(Math.max(...future.map((w) => w.skeleton.targetKm))).toBe(45)
+    expect(Math.min(...future.filter((w) => !w.skeleton.testPlanned).map((w) => w.skeleton.targetKm))).toBeLessThan(45)
+  })
   it('redukcja, którą budżet jeszcze tnie: „bez budżetu" to poziom redukcji, nie pierwotny szczyt', () => {
     config.time = { weeklyMinutes: 240 }
     initialize()

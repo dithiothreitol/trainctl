@@ -98,6 +98,66 @@ const firstRunOffset = (cls: GoalClass) => (cls === 'marathon' || cls === 'ultra
  */
 const BASE_GROWTH = 1.15
 
+/**
+ * B3 (inż.): fala w bloku — tygodnie ładowania rosną 0,94 → 0,97 → 1,00 poziomu bloku,
+ * po nich odciążenie (P-1: mikrocykl falujący, P-2). Fala działa, gdy trend objętości
+ * rośnie w bloku wolniej niż ona sama: plateau albo biegacz blisko szczytu. Szybszy
+ * wzrost (do 8% na tydzień, P-3) sam daje rosnące tygodnie.
+ */
+const BLOCK_WAVE = [0.94, 0.97, 1.0]
+
+interface VolumeWeek { deload: boolean; km: number }
+
+/**
+ * B3: trajektoria objętości tygodni przed taperem. Trend tygodni ładowania rośnie od
+ * `start` geometrycznie tak, żeby szczyt wypadł w ostatnim tygodniu ładowania przed
+ * taperem (T-7, P-12), nie szybciej niż RAMP_PER_LOAD_WEEK (P-3). Plan bez startu rośnie
+ * w tempie P-3 do szczytu i tam się wypłaszcza (P-11). Odciążenie to DELOAD_FACTOR
+ * poziomu bloku przed nim (P-2). Zwraca też poziom ostatniego bloku — od niego taper.
+ */
+function volumeSchedule(loadWeeks: number, start: number, peak: number, baseOnly: boolean): { weeks: VolumeWeek[]; peakLevel: number } {
+  const deloads: boolean[] = []
+  let since = 0
+  for (let i = 0; i < loadWeeks; i++) {
+    since++
+    // ostatni tydzień przed taperem nie jest odciążeniem — taper sam odciąża
+    const deload = since >= DELOAD_EVERY && i !== loadWeeks - 1
+    if (deload) since = 0
+    deloads.push(deload)
+  }
+  const loading = deloads.filter((d) => !d).length
+  const s0 = Math.min(start, peak)
+  const growth = baseOnly
+    ? RAMP_PER_LOAD_WEEK
+    : Math.min(RAMP_PER_LOAD_WEEK, Math.max(1, Math.pow(peak / Math.max(1, s0), 1 / Math.max(1, loading - 1))))
+  const trend = (k: number) => Math.min(peak, s0 * Math.pow(growth, k))
+
+  const weeks: VolumeWeek[] = []
+  let k = 0
+  let level = s0
+  for (let i = 0; i < loadWeeks;) {
+    if (deloads[i]) {
+      weeks.push({ deload: true, km: Math.round(level * DELOAD_FACTOR) })
+      i++
+      continue
+    }
+    // blok: kolejne tygodnie ładowania do najbliższego odciążenia
+    let end = i
+    while (end < loadWeeks && !deloads[end]) end++
+    const size = end - i
+    const first = trend(k)
+    level = trend(k + size - 1)
+    const wave = level / first < 1 / BLOCK_WAVE[0]!
+    for (let j = 0; j < size; j++) {
+      const fromEnd = size - 1 - j
+      weeks.push({ deload: false, km: Math.round(wave ? level * BLOCK_WAVE[Math.max(0, BLOCK_WAVE.length - 1 - fromEnd)]! : trend(k + j)) })
+    }
+    k += size
+    i = end
+  }
+  return { weeks, peakLevel: level }
+}
+
 /** Tygodnie po starcie celu A — makrocykl nie kończy się w dniu zawodów. */
 function transitionWeeks(goal: RaceGoal, weeks: WeekSkeleton[]): WeekSkeleton[] {
   const raceWeek = weeks.at(-1)
@@ -204,8 +264,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   }
 
   const weeks: WeekSkeleton[] = []
-  let loadTarget = start
-  let sinceDeload = 0
+  const volume = volumeSchedule(loadWeeks, start, peakPlanned, baseOnly)
   // rytm kalibracji: liczony od ostatniego wyniku, resetowany startem kontrolnym (W-12)
   const lastResult = lastResultBefore(athlete, firstWeek)
   const resultDates = athlete.results.map((r) => r.date)
@@ -241,25 +300,17 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
     if (inTaper) {
       const multipliers = TAPER_MULTIPLIERS[taperWeeks]!
       const m = multipliers[i - loadWeeks]!
-      targetKm = Math.round(loadTarget * m)
+      targetKm = Math.round(volume.peakLevel * m)
       ruleRefs.push('T-1', 'T-2', 'T-3', 'T-4', 'T-5')
     } else {
-      sinceDeload++
-      if (sinceDeload >= DELOAD_EVERY && i !== loadWeeks - 1) {
-        deload = true
-        sinceDeload = 0
-        targetKm = Math.round(loadTarget * DELOAD_FACTOR)
-        ruleRefs.push('P-2')
-      } else {
-        loadTarget = Math.min(loadTarget * RAMP_PER_LOAD_WEEK, peakPlanned)
-        targetKm = Math.round(loadTarget)
-        ruleRefs.push('P-1', 'P-3')
-      }
-      ruleRefs.push(intensityModel === 'pyramidal' ? 'I-1' : 'I-2')
+      const planned = volume.weeks[i]!
+      deload = planned.deload
+      targetKm = planned.km
+      ruleRefs.push(...(deload ? ['P-2'] : ['P-1', 'P-3']), intensityModel === 'pyramidal' ? 'I-1' : 'I-2')
     }
 
     // Start kontrolny B/C: mini-taper bez ruszania makrocyklu (T-9).
-    // `loadTarget` zostaje nietknięty — obniżamy tylko realizację tego tygodnia,
+    // Trajektoria zostaje nietknięta — obniżamy tylko realizację tego tygodnia,
     // żeby jeden start nie cofał całej progresji objętości.
     const tuneUp = tuneUpByWeek.get(weekStart)
     if (tuneUp && !inTaper) {
@@ -303,7 +354,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       deload,
       keepIntensity: inTaper, // T-1
       keepFrequency: inTaper, // T-2
-      ...(inTaper ? { sessionCount: Math.min(new Set(athlete.daysAvailable).size, Math.max(COACH_STYLE.minWorkoutsPerWeek, Math.ceil(loadTarget / COACH_STYLE.typicalKmPerSession))) } : {}),
+      ...(inTaper ? { sessionCount: Math.min(new Set(athlete.daysAvailable).size, Math.max(COACH_STYLE.minWorkoutsPerWeek, Math.ceil(volume.peakLevel / COACH_STYLE.typicalKmPerSession))) } : {}),
       // start kontrolny liczy się jako akcent tygodnia (T-12), sprawdzian też (W-13)
       // przy jednym akcencie w tygodniu start albo sprawdzian go zastępuje, a nie dochodzi obok
       qualitySessions:

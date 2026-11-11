@@ -111,8 +111,10 @@ describe.each(['pl', 'en'] as const)('pakiet A · %s', (lang) => {
   it('A8: tydzień z celem równym sumie pokazuje jedną liczbę', () => {
     process.env['TRAINCTL_TODAY'] = '2026-10-27'
     const out = cmdWeek(dir).output
+    const week = loadPlan(dir).weeks.find((w) => w.weekStart === '2026-10-26')!
+    expect(week.totalKm).toBe(week.skeleton.targetKm)
     expect(out).not.toMatch(/zaplanowano|planned/)
-    expect(out).toContain('52 km')
+    expect(out).toContain(kmLabel(week.totalKm))
   })
 })
 
