@@ -6,7 +6,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { earliestFeasibleRaceDate, plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
 import { applyProposal, prepareProposal } from './proposals.ts'
 import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
@@ -233,6 +233,23 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(latestByDate(readLog(dir)).get(day.date)?.status).toBe('done')
   })
 
+  it('przerwa zapisana z góry bez przyczyny: bieg zsynchronizowany potem w tym dniu się liczy', () => {
+    setup()
+    // wpis z wyprzedzeniem: zegar zapisu (loggedAt) przed dniami przerwy
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(new Date('2026-10-24T12:00:00Z'))
+      process.env['TRAINCTL_TODAY'] = '2026-10-24'
+      expect(cmdLog(dir, { date: '2026-10-26', to: '2026-10-30', status: 'skipped' }).code).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+    const run = { externalId: 'cancelled-trip', date: '2026-10-28', type: 'Run', distanceKm: 10 }
+    const execution = buildExecution(loadPlan(dir), [run], readLog(dir), '2026-10-31')
+    expect(execution.find((e) => e.date === '2026-10-28')).toMatchObject({ actualKm: 10 })
+    expect(execution.find((e) => e.date === '2026-10-28')?.status).not.toBe('missed')
+  })
+
   it('przerwa zapisana z góry: bieg zsynchronizowany potem w dniu przerwy się liczy', () => {
     setup()
     process.env['TRAINCTL_TODAY'] = '2026-10-24'
@@ -392,6 +409,32 @@ describe('B11: przerwa w trakcie planu', () => {
     }
     const actions = (cmdAdapt(dir, {}).data as { proposal: { actions: { type: string }[] } }).proposal.actions.map((a) => a.type)
     expect(actions).not.toContain('raise-baseline')
+  })
+
+  it('adapt przy budżecie tygodnia (sufit szczytu z B7): nadwyżka nie podnosi bazy', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun') + 'time:\n  weeklyMinutes: 240\n', 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    process.env['TRAINCTL_TODAY'] = '2026-11-19'
+    const current = loadPlan(dir).weeks.find((w) => w.weekStart === '2026-11-16')!
+    // budżet obniża cel tygodnia przez sufit szczytu: zamiar bez budżetu jest wyżej
+    expect(current.skeleton.uncappedKm).toBeGreaterThan(current.skeleton.targetKm)
+    for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-10-30' && x.date <= '2026-11-19')) {
+      expect(cmdLog(dir, { date: d.date, status: 'done', km: String(Math.round(d.workout!.distanceKm * 13) / 10) }).code).toBe(0)
+    }
+    const actions = (cmdAdapt(dir, {}).data as { proposal: { actions: { type: string }[] } }).proposal.actions.map((a) => a.type)
+    expect(actions).not.toContain('raise-baseline')
+  })
+
+  it('adapt bez żadnego biegu w wykonaniu: kolejne adapt po przyjętym powrocie nie składa redukcji', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-19'
+    expect(cmdLog(dir, { date: '2026-10-22', to: '2026-11-19', status: 'skipped', reason: 'illness' }).code).toBe(0)
+    const first = restartOf(cmdAdapt(dir, {}))!.returnBlock!
+    const prepared = cmdAdapt(dir, { prepare: true })
+    expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
+    process.env['TRAINCTL_TODAY'] = '2026-11-21'
+    expect(cmdLog(dir, { date: '2026-11-20', to: '2026-11-21', status: 'skipped', reason: 'illness' }).code).toBe(0)
+    expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toEqual(first)
   })
 
   it('adapt w tygodniu odciążenia: podniesienie bazy liczy się od poziomu bloku, nie od odciążenia (B3)', () => {

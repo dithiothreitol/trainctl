@@ -1123,9 +1123,11 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     const loadingWeek = plan.weeks
       .filter((w) => w.weekStart <= breakWeek && !w.skeleton.deload && !w.skeleton.tuneUp && ['base', 'build', 'peak'].includes(w.skeleton.phase))
       .at(-1)
-    const preBreakWeeklyKm = loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
-    // B11: bieżący tydzień w przyjętym bloku powrotu (obniżony przez krzywą R-5/R-11)
+    // Bez żadnego biegu w wykonaniu (plan zaczęty w trakcie przerwy) bieżący tydzień może być
+    // już obniżony przez przyjęty powrót — wtedy odniesieniem zostaje objętość z tamtej decyzji
     const ret = plan.returnState
+    const preBreakWeeklyKm = !lastRun && ret ? ret.previousWeeklyKm : loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
+    // B11: bieżący tydzień w przyjętym bloku powrotu (obniżony przez krzywą R-5/R-11)
     const returnInProgress = ret !== undefined && currentWeek !== undefined && currentWeek.weekStart >= mondayOf(ret.since) &&
       currentWeek.skeleton.ruleRefs.some((r) => r === 'R-5' || r === 'R-11')
     const proposal = analyzeExecution({
@@ -1135,8 +1137,9 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       ...(breakLog.length ? { breakLog } : {}),
       ...(preBreakWeeklyKm !== undefined ? { preBreakWeeklyKm } : {}),
       ...(returnInProgress ? { returnInProgress } : {}),
-      // B7, B1: tydzień przycięty budżetem czasu albo pojemnością dni — nadwyżka mówi o czasie
-      ...(currentWeek && plannedWeekKm(currentWeek.skeleton) < currentWeek.skeleton.targetKm - 0.5 ? { volumeLimited: true } : {}),
+      // B7, B1: tydzień przycięty budżetem czasu (sufit szczytu z B7 obniża już sam cel —
+      // wtedy jest `uncappedKm`) albo pojemnością dni — nadwyżka mówi o czasie, nie o bazie
+      ...(currentWeek && (currentWeek.skeleton.uncappedKm !== undefined || plannedWeekKm(currentWeek.skeleton) < currentWeek.skeleton.targetKm - 0.5) ? { volumeLimited: true } : {}),
       ...(newResults.length ? { newResults } : {}),
       calibrationChanged: plan.calibration !== undefined && !sameResults(config.athlete.results, plan.calibration.results),
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: tuneUpByDate.get(lastRaceDay.date) ?? plan.goal.distanceKm } } : {}),

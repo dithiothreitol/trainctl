@@ -128,6 +128,11 @@ export interface WeekSkeleton {
   /** Najwcześniejszy dzień biegu w tygodniu — po starcie (R-1: 48 h ciszy po maratonie). */
   earliestRun?: string
   /**
+   * Pierwszy tydzień po starcie celu (R-8): bez długiego wybiegania. Jawny znacznik, bo
+   * „zero akcentów” ustawia też blok powrotu (B11), a wtedy długie zostaje.
+   */
+  firstAfterRace?: boolean
+  /**
    * Objętość po budżecie czasu z profilu (E-2). `targetKm` zostaje zamiarem
    * makrocyklu — od niego liczy się skalowanie bazy (adapt, regeneracja), a lint
    * porównuje sumy dni z tym, co budżet faktycznie zostawił. Od B7 budżet tygodnia

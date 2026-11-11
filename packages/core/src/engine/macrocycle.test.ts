@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { AthleteProfile, RaceGoal } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
 import { applyReturnBlock, earliestFeasibleRaceDate, longGoalKm, planMacrocycle, recommendedPeakKm, taperWeeksFor, volumeBase } from './macrocycle.ts'
+import { generateMicrocycle } from './microcycle.ts'
+import { paceZones } from '../zones/daniels.ts'
 
 const athlete: AthleteProfile = {
   recentWeeklyKm: 50,
@@ -520,6 +522,18 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
     const w = weeks[late]!
     expect(w.targetKm).toBeLessThan(base.weeks[late]!.targetKm)
     expect(w.longKm! / w.targetKm).toBeCloseTo(base.weeks[late]!.longKm! / base.weeks[late]!.targetKm, 1)
+  })
+
+  it('choroba w drugim tygodniu po starcie: tydzień spokojny (R-5), ale długie wybieganie zostaje (R-8)', () => {
+    const t2 = plan.weeks.findIndex((w, i) => w.phase === 'transition' && plan.weeks[i - 1]?.phase === 'transition')
+    expect(t2).toBeGreaterThan(0)
+    const weeks = applyReturnBlock(plan.weeks, { since: plan.weeks[t2]!.weekStart, previousWeeklyKm: 50, illness: true })
+    expect(weeks[t2]!.easyOnly).toBe(true)
+    const mc = generateMicrocycle({ skeleton: weeks[t2]!, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] }, zones: paceZones(50), goal: half })
+    expect(mc.days.some((d) => d.workout?.kind === 'long')).toBe(true)
+    // pierwszy tydzień po starcie nadal bez długiego
+    const first = generateMicrocycle({ skeleton: plan.weeks[t2 - 1]!, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] }, zones: paceZones(50), goal: half })
+    expect(first.days.some((d) => d.workout?.kind === 'long')).toBe(false)
   })
 
   it('po innej przerwie zaczętej w taperze: taper trzyma intensywność (T-1), tygodnie po starcie swoje reguły (R-8)', () => {

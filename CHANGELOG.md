@@ -92,7 +92,7 @@ change between minor versions — a regenerated plan can differ.
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in
   advance (`--to` or `--reason` alone already means skipped); a run synced
-  later on a break day still counts, days with a recorded run (logged or
+  later on a day logged in advance still counts, days with a recorded run (logged or
   synced) stay as they are, a day
   logged again replaces its earlier reason, rest days in the range stay rest
   days, the reason is case-insensitive, `--commit` names the whole range, and a

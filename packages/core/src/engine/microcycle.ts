@@ -593,7 +593,7 @@ function planNormalWeek(
   // sloty — dzień startu i dzień przed nim wypadają z puli
   const free = available.filter((wd) => wd !== peakWd && wd !== dayBeforePeak)
   // T-11: długie wybieganie ZOSTAJE po starcie (w korpusie: sobota start → niedziela long)
-  const longWd = inTaper || (recovering && skeleton.qualitySessions === 0)
+  const longWd = inTaper || skeleton.firstAfterRace
     ? undefined
     : (style.longRunDayPreference.find((wd) => free.includes(wd)) ?? free.at(-1))
   const qualityWds: Weekday[] = []

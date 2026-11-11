@@ -20,6 +20,8 @@ export function runningKmByDate(activities: SyncedActivity[]): Map<string, numbe
 export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], logs: LogEntry[], today: string): ExecutionRecord[] {
   const runs = runningKmByDate(activities)
   const journal = new Map(logs.map((entry) => [entry.date, entry]))
+  // dni z wpisem innym niż „skipped” — późniejsze „skipped” jest tam korektą biegacza
+  const reported = new Set(logs.filter((entry) => entry.status !== 'skipped').map((entry) => entry.date))
   const planned = new Map(plan.weeks.flatMap((week) => week.days).map((day) => [day.date, day]))
   const dates = [...new Set([...planned.keys(), ...runs.keys(), ...journal.keys()])].sort()
   return dates.filter((date) => date <= today).map((date): ExecutionRecord => {
@@ -28,9 +30,12 @@ export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], l
     const plannedKm = day?.workout?.kind === 'race'
       ? day.workout.raceDistanceKm ?? (plan.goal.date === date ? plan.goal.distanceKm : plan.weeks.find(w => w.skeleton.tuneUp?.date === date)?.skeleton.tuneUp?.distanceKm ?? 0)
       : day?.workout?.distanceKm ?? 0
-    // Wpis przerwy (z przyczyną, B11) zapisany z góry nie chowa biegu z synchronizacji: jeśli
-    // biegacz w dniu przerwy pobiegł, bieg się odbył. Zwykłe „skipped” bez przyczyny zostaje decyzją.
-    const skipped = log?.status === 'skipped' && !(log.reason !== undefined && (runs.get(date) ?? 0) > 0)
+    // Wpis przerwy (z przyczyną, B11) albo „skipped” zapisane z góry nie chowa biegu
+    // z synchronizacji: jeśli biegacz tego dnia pobiegł, bieg się odbył. „Skipped” bez przyczyny
+    // zapisane w dniu sesji albo po nim, a także korekta wcześniejszego „done”, zostaje decyzją.
+    const preLogged = log?.loggedAt !== undefined && log.loggedAt.slice(0, 10) < date
+    const absence = (log?.reason !== undefined || preLogged) && !reported.has(date)
+    const skipped = log?.status === 'skipped' && !(absence && (runs.get(date) ?? 0) > 0)
     const actualKm = skipped ? 0 : log?.km ?? runs.get(date) ?? (log?.status === 'done' ? plannedKm : undefined)
     const done = !skipped && (log?.status === 'done' || (actualKm ?? 0) > 0)
     return {

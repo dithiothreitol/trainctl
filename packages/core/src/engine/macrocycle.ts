@@ -386,6 +386,7 @@ function transitionWeeks(goal: RaceGoal, weeks: WeekSkeleton[]): WeekSkeleton[] 
       qualitySessions: j === 0 ? 0 : 1,
       accentProgress: 0,
       ...(j === 0 && earliestRun > weekStart ? { earliestRun } : {}),
+      ...(j === 0 ? { firstAfterRace: true } : {}),
       flags: [messages().macro.transitionWeek(j + 1, factors.length)],
       ruleRefs: long ? (j === 0 ? ['R-1', 'R-2', 'R-8'] : ['R-8', 'R-9']) : ['R-10'],
     }
