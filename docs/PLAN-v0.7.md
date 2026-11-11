@@ -1026,3 +1026,5 @@ Wypełniany w trakcie realizacji przez krok 6 zamknięcia etapu.
 | 2026-11-11 | 1 | `packages/cli/src/plan-shape.test.ts` | pełna macierz 576 profili w bramce | odrzucone: ~1,6 s; do ponownej oceny, gdy silnik zwolni |
 | 2026-11-11 | 1 | `season.ts`, `planfile.ts`, `calibration.ts` | trzy zaokrąglenia do 0,1 | odrzucone: różne paczki i znaczenia (km lintów, km planu, VDOT) |
 | 2026-11-11 | 1 | `packages/cli/src/bin.test.ts` | testy uruchamiające binarkę przekraczają 30 s przy obciążonej maszynie | do rozważenia: osobny limit czasu dla tych testów |
+| 2026-11-11 | 2 | `packages/core/src/engine/microcycle.ts` (`setBreak`) | 4' marszu w połowie serii @I jest tylko w opisie: nie liczy go szacunek minut (budżet dnia), FIT ani składnia intervals.icu, a opis po skróceniu (E-1) go gubi. Stan z 0.6.0; etap 2 dodał tylko pole | etap 3 (C1 i eksporty czytają pola segmentu) |
+| 2026-11-11 | 2 | `packages/core/src/engine/macrocycle.ts` | flaga tygodnia ze startem kontrolnym zapisana po polsku (`start kontrolny B: …`) niezależnie od języka; flag nie pokazuje żaden widok, trafiają do `plan.yaml` i danych MCP. Stan z 0.6.0 | etap 3 (jeden model wiersza) albo etap 4 |

@@ -1095,13 +1095,19 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
         }
       })
 
-    // B11: przyczyna przerwy — najświeższy wpis `skipped` z przyczyną w oknie diagnozy
-    const breakReason = logs.filter((l) => l.reason && l.date <= today && diffDays(l.date, today) <= 21).sort((a, z) => a.date.localeCompare(z.date)).at(-1)?.reason
+    // B11: wpisy przerwy z przyczyną — o bieżącej przerwie decyduje analiza (po ostatnim biegu)
+    const breakLog = logs.flatMap((l) => (l.reason ? [{ date: l.date, reason: l.reason }] : []))
+    // B11: objętość sprzed przerwy to ostatni tydzień ładowania do bieżącego — odciążenie,
+    // taper, tydzień ze startem kontrolnym i blok po starcie mają cel niższy niż poziom bloku
+    const loadingWeek = plan.weeks
+      .filter((w) => w.weekStart <= (currentWeek?.weekStart ?? today) && !w.skeleton.deload && !w.skeleton.tuneUp && ['base', 'build', 'peak'].includes(w.skeleton.phase))
+      .at(-1)
     const proposal = analyzeExecution({
       today,
       execution,
       currentWeeklyKm,
-      ...(breakReason ? { breakReason } : {}),
+      ...(breakLog.length ? { breakLog } : {}),
+      ...(loadingWeek ? { preBreakWeeklyKm: plannedWeekKm(loadingWeek.skeleton) } : {}),
       ...(newResults.length ? { newResults } : {}),
       calibrationChanged: plan.calibration !== undefined && !sameResults(config.athlete.results, plan.calibration.results),
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: tuneUpByDate.get(lastRaceDay.date) ?? plan.goal.distanceKm } } : {}),

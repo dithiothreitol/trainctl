@@ -15,6 +15,7 @@ import {
   getLocale,
   longRunThreshold,
   messages,
+  MIN_EASY_KM,
   paceZones,
   planMacrocycle,
   planStrengthWeek,
@@ -25,6 +26,7 @@ import {
   type RaceGoal,
   type RacePrediction,
   type ReturnBlock,
+  type WeekSkeleton,
 } from 'trainctl-core'
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
@@ -151,19 +153,26 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   // B7: budżet tygodnia (E-2) ogranicza szczyt makrocyklu, zamiast przycinać tygodnie
   // osobno — odciążenie i taper liczą się wtedy od szczytu, który budżet mieści
   const free = planMacrocycle({ today, goal, athlete })
-  const budgetCap = config.time?.weeklyMinutes ? weeklyBudgetPeakKm(config, zones, free.peakKmPlanned) : undefined
+  // Budżet, w którym nie mieści się nawet najkrótszy bieg, nie zeruje planu: sufit nie
+  // schodzi poniżej MIN_EASY_KM, a tygodnie ponad budżetem przycina fitTimeBudget
+  // z ostrzeżeniem. Każdy taki budżet daje ten sam sufit, więc ciaśniejszy budżet nigdy
+  // nie daje większej objętości.
+  const budgetCap = config.time?.weeklyMinutes ? Math.max(MIN_EASY_KM, weeklyBudgetPeakKm(config, zones, free.peakKmPlanned)) : undefined
   const capped = budgetCap !== undefined && budgetCap < free.peakKmPlanned
   const macro = capped ? planMacrocycle({ today, goal, athlete, peakCapKm: budgetCap }) : free
+  // B11: blok powrotu działa na plan z budżetem i bez niego, więc różnica między nimi
+  // to wyłącznie budżet — krzywa powrotu nie trafia do ostrzeżenia E-2
+  const withReturn = (weeks: WeekSkeleton[]) => (opts.returnFrom ? applyReturnBlock(weeks, opts.returnFrom) : weeks)
+  const skeletons = withReturn(macro.weeks)
   if (capped) {
     // zamiar bez budżetu tydzień po tygodniu — z niego „bez budżetu" w ostrzeżeniu E-2
-    const freeTarget = new Map(free.weeks.map((w) => [w.weekStart, w.targetKm]))
-    for (const w of macro.weeks) {
+    const freeTarget = new Map(withReturn(free.weeks).map((w) => [w.weekStart, w.targetKm]))
+    for (const w of skeletons) {
       const target = freeTarget.get(w.weekStart)
       if (target !== undefined && target > w.targetKm) w.uncappedKm = target
     }
   }
   let previousFrequency: number | undefined
-  const skeletons = opts.returnFrom ? applyReturnBlock(macro.weeks, opts.returnFrom) : macro.weeks
   const weeks = skeletons.map((skeleton) => {
     if (skeleton.keepFrequency && previousFrequency !== undefined) skeleton.sessionCount = previousFrequency
     const week = generateMicrocycle({ skeleton, athlete, zones, goal, testDistanceKm: testDistanceKm(goal) })
@@ -198,6 +207,14 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     plan.feasibilityWarnings.push(ui().planMd.zonesFromGoal)
   }
   if (trailOnly) plan.feasibilityWarnings.push(ui().planMd.trailOnlyCalibration)
+  // R-5, R-11: start kontrolny w spokojnym bloku powrotu zostaje, bo to kalendarz biegacza
+  // (ADR-011), ale plan mówi, że reguła powrotu go nie przewiduje
+  for (const w of plan.weeks) {
+    const race = w.skeleton.tuneUp
+    if (w.skeleton.easyOnly && race && race.date >= today) {
+      plan.feasibilityWarnings.push(ui().planMd.tuneUpInReturn(race.date, w.skeleton.ruleRefs.includes('R-5') ? 'R-5' : 'R-11'))
+    }
+  }
   opts.beforeTimeBudget?.(plan)
   if (config.time) {
     fitTimeBudget(plan.weeks, config, zones, testDistanceKm(goal), { from: opts.budgetFrom, weeklyFrom: opts.weeklyBudgetFrom ?? opts.budgetFrom })

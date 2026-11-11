@@ -68,7 +68,8 @@ change between minor versions — a regenerated plan can differ.
   it, so a deload is lighter than a loading week and the taper keeps falling.
   When the budget holds the plan back, `plan` says so even above the distance's
   recommendation, and with strength on it leaves the choice to you: one strength
-  session a week (F-14) or more minutes.
+  session a week (F-14) or more minutes. A budget too small for even a 3 km
+  week keeps 3 km weeks and lists the weeks over the budget.
 - When the plan stays below the distance's thresholds, `plan` gives one verdict
   instead of two warnings: the plan peak, the recommended peak and the longest
   run, with the ways out — a later race date when the profile allows it,
@@ -82,12 +83,17 @@ change between minor versions — a regenerated plan can differ.
   fields. After the break `adapt` proposes a return block you can approve:
   about 55% of the earlier volume, the first week easy after illness (R-5) or
   the first block easy after any other break (R-11), growth within P-3 until
-  the plan catches up. An injury gets no volume proposal (R-6, R-7). An approved
-  return survives `trainctl plan` like an approved baseline (ADR-033).
+  the plan catches up, and no time trial in the return block. The earlier
+  volume is the last loading week of the plan, not a deload or taper week. An
+  injury gets no volume proposal (R-6, R-7). An approved return survives
+  `trainctl plan` like an approved baseline (ADR-033). A tune-up race in the
+  easy part of a return stays in the plan, and `plan` says the return rule
+  does not expect it.
 - `trainctl rules` explains R-5, R-6, R-7 and R-11.
 - `athlete.returning: { since, previousWeeklyKm }` for a return after two
   weeks or more without running (R-11): the plan restarts at 50–60% of the
-  earlier volume, keeps the first block easy with no time trial, and grows back
+  earlier volume (more when you have been back for some weeks, at most P-3
+  growth a week), keeps the first block easy with no time trial, and grows back
   within P-3. `init` asks for it, and `init --from-intervals` proposes it when
   the history ends with two weeks off.
 - `trainctl rules E-3` lists the engine's fixed values that have no source

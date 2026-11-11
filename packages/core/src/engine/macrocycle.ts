@@ -119,7 +119,10 @@ export function volumeBase(athlete: AthleteProfile, today: string): { start: num
   const active = ret !== undefined && diffDays(ret.since, today) <= RETURN_WINDOW_DAYS
   if (!active) return { start: athlete.recentWeeklyKm, level: athlete.recentWeeklyKm, returning: false }
   const lo = RETURN_START_SHARE.min * ret.previousWeeklyKm
-  const hi = RETURN_START_SHARE.max * ret.previousWeeklyKm
+  // górna granica rośnie od `since` w tempie P-3: biegacz, który w oknie powrotu już
+  // odbudował objętość, nie wraca do 60% (R-11, inż.)
+  const weeksBack = Math.max(0, Math.floor(diffDays(ret.since, today) / 7))
+  const hi = Math.min(ret.previousWeeklyKm, RETURN_START_SHARE.max * ret.previousWeeklyKm * Math.pow(RAMP_PER_LOAD_WEEK, weeksBack))
   return {
     start: Math.round(Math.min(hi, Math.max(lo, athlete.recentWeeklyKm))),
     level: Math.max(athlete.recentWeeklyKm, ret.previousWeeklyKm),
@@ -134,6 +137,15 @@ export function volumeBase(athlete: AthleteProfile, today: string): { start: num
  * wzrost (do 8% na tydzień, P-3) sam daje rosnące tygodnie.
  */
 const BLOCK_WAVE = [0.94, 0.97, 1.0]
+
+/**
+ * Liczba tygodni ładowania w `loadWeeks` tygodniach przed taperem: co DELOAD_EVERY-ty
+ * tydzień to odciążenie (P-1, P-2), ale nie ostatni — taper sam odciąża. Ten sam wzorzec
+ * co w `volumeSchedule`; z niego liczą się szczyt osiągalny i najwcześniejsza data startu.
+ */
+function loadingWeeksIn(loadWeeks: number): number {
+  return Math.max(0, loadWeeks - Math.floor(Math.max(0, loadWeeks - 1) / DELOAD_EVERY))
+}
 
 interface VolumeWeek { deload: boolean; km: number; longKm?: number; accentProgress: number }
 
@@ -251,8 +263,12 @@ export function earliestFeasibleRaceDate(athlete: AthleteProfile, goal: RaceGoal
   const historyCap = Math.min(athlete.peakWeeklyKm ?? level * 1.4, SANITY_CAP_KM)
   const qualityPerWeek = athlete.daysAvailable.length >= 4 ? 2 : 1
   if (historyCap < recommended || weekCapacityKm(athlete, qualityPerWeek, recommended) < recommended) return undefined
-  const loading = Math.max(1, Math.ceil(Math.log(recommended / Math.max(1, start)) / Math.log(RAMP_PER_LOAD_WEEK)) + 1)
-  const weeks = loading + Math.floor(loading / (DELOAD_EVERY - 1)) + taperWeeksFor(goal).weeks
+  // szczyt planu jest zaokrąglany do kilometra, więc próg osiąga już trend o 0,5 km niższy
+  const loading = Math.max(1, Math.ceil(Math.log((recommended - 0.5) / Math.max(1, start)) / Math.log(RAMP_PER_LOAD_WEEK)) + 1)
+  // najmniej tygodni, w których wzorzec odciążeń daje tyle tygodni ładowania (loadingWeeksIn)
+  let weeks = loading
+  while (loadingWeeksIn(weeks) < loading) weeks++
+  weeks += taperWeeksFor(goal).weeks
   return addDays(mondayOf(today), 7 * (weeks - 1) + 6)
 }
 
@@ -283,12 +299,16 @@ export function applyReturnBlock(weeks: WeekSkeleton[], ret: ReturnBlock): WeekS
     const capped = Math.round(w.deload ? curve * DELOAD_FACTOR : curve)
     const easy = i < easyEnd && !w.raceDate
     if (capped >= w.targetKm && !easy) return w
-    const { testPlanned: _test, ...rest } = w
+    // sprawdzian wypada z każdego tygodnia bloku, nie tylko ze spokojnych — razem ze swoją
+    // flagą i regułami, żeby `why` nie cytował pomiaru, którego nie ma
+    const { testPlanned, ...rest } = w
+    const testRules = new Set(testPlanned ? ['W-11', 'W-12', 'W-13'] : [])
     return {
-      ...(easy ? rest : w),
+      ...rest,
+      ...(testPlanned ? { flags: w.flags.filter((f) => f !== messages().macro.timeTrialForCalibration) } : {}),
       targetKm: Math.min(w.targetKm, capped),
       ...(easy ? { qualitySessions: 0, easyOnly: true } : {}),
-      ruleRefs: [...new Set([...w.ruleRefs, rule, 'P-3'])],
+      ruleRefs: [...new Set([...w.ruleRefs.filter((r) => !testRules.has(r)), rule, 'P-3'])],
     }
   })
 }
@@ -362,7 +382,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   // E-3 (inż.): bez `peakWeeklyKm` sufit to bieżąca objętość +40% — brak źródła
   const historyCap = Math.min(athlete.peakWeeklyKm ?? level * 1.4, SANITY_CAP_KM)
   const recommended = recommendedPeakKm(goal)
-  const loadOnly = Math.max(0, loadWeeks - Math.floor(loadWeeks / DELOAD_EVERY))
+  const loadOnly = loadingWeeksIn(loadWeeks)
   const reachable = start * Math.pow(RAMP_PER_LOAD_WEEK, Math.max(0, loadOnly - 1))
   // P-7/P-8 to podłoga dla niedotrenowanych, nie sufit: atlecie z bazą powyżej
   // rekomendacji utrzymujemy (lekko rozwijamy) jego wolumen zamiast go ciąć.

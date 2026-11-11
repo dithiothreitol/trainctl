@@ -69,8 +69,18 @@ export interface AdaptationInput {
    * jeszcze w `athlete.results` — pętla kalibracji jest niedomknięta (W-11).
    */
   uncalibratedTests?: { date: string; distanceKm: number; timeSec?: number }[]
-  /** Przyczyna przerwy zapisana w dzienniku (B11). */
+  /** Przyczyna przerwy zapisana w dzienniku (B11). Ma pierwszeństwo przed `breakLog`. */
   breakReason?: BreakReason
+  /**
+   * B11: wpisy dziennika z przyczyną przerwy. O bieżącej przerwie mówią tylko te po
+   * ostatnim biegu w oknie — wcześniejsza przerwa, po której biegacz biegał, nie.
+   */
+  breakLog?: { date: string; reason: BreakReason }[]
+  /**
+   * B11: objętość sprzed przerwy, od której liczy się blok powrotu — tydzień ładowania
+   * planu, nie odciążenie ani taper. Bez niej: `currentWeeklyKm`.
+   */
+  preBreakWeeklyKm?: number
 }
 
 const WINDOW_DAYS = 21
@@ -109,21 +119,26 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const lastRun = runDays.at(-1)
   const observedDays = window.length ? Math.min(WINDOW_DAYS, diffDays(window[0]!.date, input.today) + 1) : 0
   const layoff = lastRun ? diffDays(lastRun, input.today) : observedDays
+  // B11: przyczyna bieżącej przerwy — wpis po ostatnim biegu w oknie
+  const breakReason = input.breakReason ?? input.breakLog
+    ?.filter((l) => l.date >= from && l.date <= input.today && (lastRun === undefined || l.date > lastRun))
+    .sort((a, z) => a.date.localeCompare(z.date)).at(-1)?.reason
   if (dataStatus === 'complete' && layoff >= LAYOFF_DAYS) {
     diagnosis.push(m.adapt.layoffDiagnosis(layoff))
-    if (input.breakReason === 'injury') {
+    if (breakReason === 'injury') {
       // R-6, R-7: po kontuzji silnik nie proponuje objętości — powrót ustala specjalista
       warnings.push(m.adapt.injuryReturn)
     } else {
       // B11: restart do przyjęcia jako blok powrotu — po chorobie R-5, po innej przerwie R-11
-      const illness = input.breakReason === 'illness'
-      const restartKm = Math.round(input.currentWeeklyKm * 0.55)
+      const illness = breakReason === 'illness'
+      const previousWeeklyKm = input.preBreakWeeklyKm ?? input.currentWeeklyKm
+      const restartKm = Math.round(previousWeeklyKm * 0.55)
       actions.push({
         type: 'conservative-restart',
         detail: illness ? m.adapt.restartAfterIllness(restartKm, layoff) : m.adapt.restartAfterLayoff(restartKm, layoff),
         suggestedWeeklyKm: restartKm,
         ruleRefs: illness ? ['R-5', 'P-3'] : ['R-11', 'P-3'],
-        returnBlock: { previousWeeklyKm: input.currentWeeklyKm, illness },
+        returnBlock: { previousWeeklyKm, illness },
       })
       warnings.push(m.adapt.restartExtrapolated)
     }

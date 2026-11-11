@@ -53,7 +53,7 @@ const EASY_TO_LONG_MAX = 0.9
  */
 export const SESSION_SHARE_MAX = 0.35
 /** E-3 (inż.): najkrótszy bieg spokojny — krótsza reszta dolicza się do długiego. Poniżej zakresu korpusu (decyzja 1). */
-const MIN_EASY_KM = 3
+export const MIN_EASY_KM = 3
 /** Rama akcentu: rozgrzewka i najmniejsza liczba odcinków kilometrowych. */
 interface Frame { warmupKm: number; minReps: number }
 /** E-3 (inż.): co najmniej 4 odcinki kilometrowe — zapis korpusu bez reguły w FOUNDATIONS. */

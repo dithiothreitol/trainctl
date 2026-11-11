@@ -7,11 +7,11 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { setLocale } from 'trainctl-core'
+import { plannedWeekKm, setLocale } from 'trainctl-core'
 import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
 import { readLog } from './logfile.ts'
-import { loadPlan, writePlan } from './planfile.ts'
-import { inferredConfigYaml } from './config.ts'
+import { computePlan, loadPlan, writePlan } from './planfile.ts'
+import { inferredConfigYaml, loadConfig } from './config.ts'
 import { parse } from 'yaml'
 
 const config = (weeklyKm: number, days: string) => `athlete:
@@ -232,5 +232,66 @@ describe('B11: przerwa w trakcie planu', () => {
     const r = cmdAdapt(dir, {})
     expect(r.output).toContain('R-6, R-7')
     expect((r.data as { proposal: { actions: { type: string }[] } }).proposal.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
+  })
+
+  type Restart = { type: string; returnBlock?: { previousWeeklyKm: number; illness: boolean } }
+  const restartOf = (r: ReturnType<typeof cmdAdapt>) => (r.data as { proposal: { actions: Restart[] } }).proposal.actions.find((a) => a.type === 'conservative-restart')
+
+  it('adapt: powrót w tygodniu odciążenia liczy się od tygodnia ładowania przed nim, nie od odciążenia', () => {
+    breakUntilToday('illness')
+    const weeks = loadPlan(dir).weeks
+    const current = weeks.find((w) => w.weekStart === '2026-11-09')!
+    const loading = weeks.find((w) => w.weekStart === '2026-11-02')!
+    // przypadek ma sens tylko wtedy, gdy dziś wypada w odciążeniu
+    expect(current.skeleton.deload).toBe(true)
+    expect(loading.skeleton.deload).toBe(false)
+    expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toEqual({ previousWeeklyKm: plannedWeekKm(loading.skeleton), illness: true })
+  })
+
+  it('plan po przerwie: start kontrolny w spokojnym bloku zostaje, a plan o nim mówi (R-11)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 12',
+      'recentWeeklyKm: 12\n  returning: { since: "2026-10-19", previousWeeklyKm: 45 }\n  tuneUpRaces:\n    - { date: "2026-11-01", distanceKm: 10 }'), 'utf-8')
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    const plan = loadPlan(dir)
+    expect(plan.feasibilityWarnings).toContain('The tune-up race on 2026-11-01 falls in the easy block of your return (R-11): run it easy or skip it.')
+    expect(r.output).toContain('2026-11-01 falls in the easy block')
+    expect(plan.weeks.flatMap((w) => w.days).find((d) => d.date === '2026-11-01')?.workout?.kind).toBe('race')
+  })
+
+  it('adapt: przyczyna wcześniejszej przerwy, po której biegacz biegał, nie blokuje propozycji powrotu', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-12'
+    const days = loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-10-23' && x.date <= '2026-10-28')
+    // jeden dzień opuszczony z powodu kontuzji, potem dalej bieganie, potem przerwa bez przyczyny
+    expect(cmdLog(dir, { date: days[0]!.date, status: 'skipped', reason: 'injury' }).code).toBe(0)
+    for (const d of days.slice(1)) expect(cmdLog(dir, { date: d.date, status: 'done' }).code).toBe(0)
+    expect(cmdLog(dir, { date: '2026-10-29', to: '2026-11-12', status: 'skipped' }).code).toBe(0)
+    const restart = restartOf(cmdAdapt(dir, {}))
+    expect(restart?.returnBlock?.illness).toBe(false)
+  })
+})
+
+describe('B7: budżet czasu na brzegach (E-2)', () => {
+  beforeEach(() => setLocale('en'))
+  const budgetText = /time budget (caps|holds) the plan/
+
+  it('blok powrotu poniżej sufitu budżetu nie jest ostrzeżeniem budżetu', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun') + 'time:\n  weeklyMinutes: 240\n', 'utf-8')
+    const cfg = loadConfig(dir)
+    // przypadek ma sens tylko wtedy, gdy budżet sam obniża ten plan
+    expect(computePlan(cfg, '2027-01-04').feasibilityWarnings.some((w) => budgetText.test(w))).toBe(true)
+    const back = computePlan(cfg, '2027-01-04', '2027-01-04', { returnFrom: { since: '2027-01-04', previousWeeklyKm: 12, illness: false } })
+    expect(back.weeks.filter((w) => w.skeleton.uncappedKm !== undefined)).toEqual([])
+    expect(back.feasibilityWarnings.some((w) => budgetText.test(w))).toBe(false)
+  })
+
+  it('budżet, w którym nie mieści się żaden kilometr, nie zeruje planu: tygodnie ponad budżetem z ostrzeżeniem', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(30, 'tue, thu, sat, sun') + 'time:\n  weeklyMinutes: 60\nstrength:\n  enabled: true\n', 'utf-8')
+    const plan = computePlan(loadConfig(dir), '2026-11-11')
+    const loading = plan.weeks.filter((w) => ['base', 'build', 'peak'].includes(w.skeleton.phase))
+    expect(loading.length).toBeGreaterThan(0)
+    expect(loading.filter((w) => w.totalKm === 0)).toEqual([])
+    expect(plan.feasibilityWarnings.join(' ')).toContain('over the weekly time budget')
   })
 })

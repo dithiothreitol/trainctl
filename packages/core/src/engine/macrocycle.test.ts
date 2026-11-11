@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AthleteProfile, RaceGoal } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
-import { applyReturnBlock, earliestFeasibleRaceDate, longGoalKm, planMacrocycle, recommendedPeakKm, taperWeeksFor } from './macrocycle.ts'
+import { applyReturnBlock, earliestFeasibleRaceDate, longGoalKm, planMacrocycle, recommendedPeakKm, taperWeeksFor, volumeBase } from './macrocycle.ts'
 
 const athlete: AthleteProfile = {
   recentWeeklyKm: 50,
@@ -370,6 +370,27 @@ describe('B8: powrót po przerwie (R-11) i data, od której próg jest osiągaln
     const plan = planMacrocycle({ today, goal: { ...half, date }, athlete: { ...runner, peakWeeklyKm: 50 } })
     expect(plan.peakKmPlanned).toBeGreaterThanOrEqual(recommendedPeakKm(half))
   })
+
+  // różna liczba tygodni ładowania, także wielokrotności trzech i czterech: odciążenie nie wypada
+  // w ostatnim tygodniu ładowania, a szczyt jest zaokrąglany do kilometra
+  it.each([20, 24, 25, 29, 30, 33, 35, 37, 40])('najwcześniejsza data przy %i km/tydz.: plan z nią dochodzi do progu, tydzień wcześniej już nie', (km) => {
+    const athlete = { ...runner, recentWeeklyKm: km, peakWeeklyKm: 50 }
+    const date = earliestFeasibleRaceDate(athlete, half, today)!
+    const peak = (d: string) => planMacrocycle({ today, goal: { ...half, date: d }, athlete }).peakKmPlanned
+    expect(peak(date)).toBeGreaterThanOrEqual(recommendedPeakKm(half))
+    const earlier = new Date(Date.parse(date + 'T00:00:00Z') - 7 * 86_400_000).toISOString().slice(0, 10)
+    expect(peak(earlier)).toBeLessThan(recommendedPeakKm(half))
+  })
+
+  it('biegacz, który w oknie powrotu już odbudował objętość, nie wraca do 60% (R-11, P-3)', () => {
+    // powrót 35 dni temu, dziś 45 km z 50 km sprzed przerwy
+    const rebuilt: AthleteProfile = { ...runner, recentWeeklyKm: 45, returning: { since: '2026-09-17', previousWeeklyKm: 50 } }
+    const { start } = volumeBase(rebuilt, today)
+    expect(start).toBeGreaterThan(0.6 * 50)
+    expect(start).toBeLessThanOrEqual(45)
+    // w dniu powrotu granica to nadal 60%
+    expect(volumeBase({ ...rebuilt, returning: { since: today, previousWeeklyKm: 50 } }, today).start).toBe(30)
+  })
 })
 
 describe('B11: blok powrotu po przerwie w trakcie planu', () => {
@@ -400,5 +421,17 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
       expect(w.ruleRefs).toContain('R-11')
     }
     expect(weeks[deload + 1]!.easyOnly).toBeUndefined()
+  })
+
+  it('sprawdzian wypada z całego bloku powrotu, także z tygodni po spokojnym (kalibracja zmierzyłaby przerwę)', () => {
+    const weeks = applyReturnBlock(plan.weeks, { since, previousWeeklyKm: 50, illness: true })
+    const inBlock = weeks.map((w, i) => i > at && w.targetKm < plan.weeks[i]!.targetKm)
+    // przypadek ma sens tylko wtedy, gdy plan miał sprawdzian w bloku po pierwszym tygodniu
+    expect(plan.weeks.some((w, i) => inBlock[i] && w.testPlanned)).toBe(true)
+    for (const [i, w] of weeks.entries()) {
+      if (!inBlock[i]) continue
+      expect(w.testPlanned).toBeUndefined()
+      expect(w.ruleRefs).not.toContain('W-13')
+    }
   })
 })

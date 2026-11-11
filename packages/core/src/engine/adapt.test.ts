@@ -93,6 +93,18 @@ describe('przerwa w treningu', () => {
     expect(p.actions.some((a) => a.type === 'conservative-restart' || a.suggestedWeeklyKm !== undefined)).toBe(false)
     expect(p.warnings.join(' ')).toMatch(/specjalist.*R-6, R-7/)
   })
+  it('B11: o przerwie mówi wpis po ostatnim biegu — wcześniejsza kontuzja, po której biegacz biegał, nie', () => {
+    // bieganie do 2026-08-16, potem przerwa bez przyczyny; kontuzja zapisana 2026-08-13
+    const old = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-13', reason: 'injury' }] })
+    expect(old.actions.find((a) => a.type === 'conservative-restart')?.ruleRefs).toEqual(['R-11', 'P-3'])
+    const current = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-13', reason: 'travel' }, { date: '2026-08-20', reason: 'injury' }] })
+    expect(current.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
+  })
+  it('B11: blok powrotu liczy się od objętości sprzed przerwy, nie od bieżącego tygodnia (odciążenie)', () => {
+    const restart = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 42, preBreakWeeklyKm: 60 }).actions.find((a) => a.type === 'conservative-restart')!
+    expect(restart.returnBlock).toEqual({ previousWeeklyKm: 60, illness: false })
+    expect(restart.suggestedWeeklyKm).toBe(33)
+  })
 })
 
 describe('protokół po starcie', () => {

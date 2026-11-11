@@ -957,6 +957,9 @@ export const cliEn = {
         : 'More minutes would let the volume grow (E-2).'),
     timeDayTooShort: (dates: string) =>
       `These sessions do not fit the day's time budget even shortened (races and time trials are never cut): ${dates} (E-2).`,
+    /** R-5, R-11: start kontrolny w spokojnym bloku powrotu zostaje w planie (kalendarz biegacza). */
+    tuneUpInReturn: (date: string, rule: string) =>
+      `The tune-up race on ${date} falls in the easy block of your return (${rule}): run it easy or skip it.`,
     /**
      * B8: werdykt wykonalności — trzy liczby (szczyt, próg, najdłuższe) i wyjścia. `atLeast`
      * = próg włącznie (maraton ≥25 km); `reachableFrom` — data startu, od której plan zdąży urosnąć.

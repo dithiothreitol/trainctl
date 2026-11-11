@@ -1876,7 +1876,7 @@ w kodzie komentarzem „E-3 (inż.)". Lista służy przeglądowi trenerskiemu
 | podział faz przed taperem | 40% baza, 20% szczyt, reszta budowanie | `macrocycle.ts` |
 | część główna akcentu | 22% tygodnia minus rozgrzewka i schłodzenie, co najmniej 3 km | `microcycle.ts` |
 | spokojne przed podbiegami | 5–8 km, ~10% tygodnia | `microcycle.ts` |
-| bieg spokojny | co najmniej 3 km (krótsza reszta idzie do długiego), najwyżej 18 km i 0,9 długiego (S-10) | `microcycle.ts` (`MIN_EASY_KM`, `EASY_RUN_CAP_KM`) |
+| bieg spokojny | co najmniej 3 km (krótsza reszta idzie do długiego), najwyżej 18 km i 0,9 długiego (S-10); 3 km to też najniższy sufit szczytu z budżetu czasu (E-2) | `microcycle.ts` (`MIN_EASY_KM`, `EASY_RUN_CAP_KM`), `planfile.ts` |
 | odcinki kilometrowe w akcencie | co najmniej 4 | `microcycle.ts` |
 | rama akcentu przy małej objętości | gdy akcent przekroczyłby udział jednej jednostki: najpierw 3 odcinki, potem rozgrzewka 2 km; gdy i to za dużo — bieg spokojny z 6 przebieżkami po ~80 m (J-6) | `microcycle.ts` |
 | sufit udziału długiego między pasmami | interpolacja liniowa P90 z §10.15 między środkami pasm; poniżej 30 km pasmo 30–40 km | `microcycle.ts` (`longShareCeiling`) |
@@ -1884,7 +1884,7 @@ w kodzie komentarzem „E-3 (inż.)". Lista służy przeglądowi trenerskiemu
 | tor długiego | cel półmaraton 22 km, maraton 30 km, ultra 32 km w ostatnim bloku; krok do 2 km na tydzień ładowania | `macrocycle.ts` (`longGoalKm`, `LONG_STEP_KM`) |
 | dawka akcentu w sezonie | od 3 km pracy (J-8) do sufitu tygodnia; krok za tydzień w bloku, blok po odciążeniu od poziomu drugiego tygodnia poprzedniego | `macrocycle.ts`, `microcycle.ts` (`START_DOSE_KM`) |
 | drabinka J-4 | serie 1000/400/200 m @I, co najmniej dwie; przerwy w truchcie 2' / 1' / 1' | `microcycle.ts` (`LADDER`) |
-| powrót po przerwie (profil) | start z 50–60% objętości sprzed przerwy, okno 6 tygodni od `since` | `macrocycle.ts` (`RETURN_START_SHARE`, `RETURN_WINDOW_DAYS`) |
+| powrót po przerwie (profil) | start z 50–60% objętości sprzed przerwy, okno 6 tygodni od `since`; górna granica rośnie od `since` w tempie P-3 | `macrocycle.ts` (`RETURN_START_SHARE`, `RETURN_WINDOW_DAYS`) |
 | powrót w trakcie planu | ~55% objętości sprzed przerwy, wzrost P-3; przerwa zapisywana jednym poleceniem najwyżej 60 dni | `macrocycle.ts` (`RETURN_RESTART_SHARE`), `commands.ts` (`BREAK_MAX_DAYS`) |
 | kilometry poza Z1 | najwyżej 25% tygodnia | `microcycle.ts` |
 | przerwy w interwałach | 2' marsz (@T, 1 km), 3' trucht (@T 3 km, @I) | `microcycle.ts` |
