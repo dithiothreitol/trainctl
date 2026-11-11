@@ -14,9 +14,13 @@ export interface Calibration {
 /** Z-10: cel szosowy (bez `terrain` albo `road`) — tylko wtedy trail ustępuje szosie. */
 export const isRoadGoal = (goal: { terrain?: string | undefined }): boolean => goal.terrain !== 'trail' && goal.terrain !== 'ultra'
 
-/** Ten sam wynik niezależnie od opisu (nazwa, wykluczenie): data, dystans i czas. */
-export const sameResult = (a: RaceResult, b: RaceResult): boolean =>
-  a.date === b.date && a.distanceKm === b.distanceKm && a.timeSec === b.timeSec
+/**
+ * Ten sam wybrany wynik — jedna definicja dla regeneracji i podpowiedzi `why`:
+ * data, dystans, czas, teren i wykluczenie (resultKey), bez nazwy. Zmiana terenu
+ * nie zmienia stref, ale zmienia ostrzeżenie Z-10 w planie, więc plan trzeba zapisać.
+ */
+export const sameSelection = (a: RaceResult | undefined, b: RaceResult | undefined): boolean =>
+  a === undefined || b === undefined ? a === b : resultKey(a) === resultKey(b)
 
 /**
  * Co zrobiłby dziś `trainctl plan` z kalibracją stref. Regeneracja kalibruje z datą
@@ -27,9 +31,7 @@ export const sameResult = (a: RaceResult, b: RaceResult): boolean =>
  */
 export function recalibrationToday(stored: Calibration, results: RaceResult[], today: string, roadGoal: boolean): { selected: RaceResult | null; changed: boolean } {
   const selected = inspectCalibration(results, today, roadGoal).selected ?? null
-  const before = stored.selected
-  const changed = selected === null ? before !== undefined : before === undefined || !sameResult(selected, before)
-  return { selected, changed }
+  return { selected, changed: !sameSelection(selected ?? undefined, stored.selected) }
 }
 
 export function inspectCalibration(results: RaceResult[], today: string, roadGoal = true): Calibration {

@@ -102,6 +102,39 @@ describe('multisport CLI workflows',()=>{
       expect(saved.output).toContain(`${first.id}: wykonany`)
     } finally { setLocale('en') }
   })
+  it('wpis sesji v2: dystans z przecinkiem, bez zapisu szesnastkowego; siła w rodzaju żeńskim', () => {
+    const plan = init(), sorted = [...plan.sessions].sort((a, z) => a.date.localeCompare(z.date))
+    const run = sorted.find((s) => s.sport === 'run')!
+    expect(cmdLog(dir, { session: run.id, status: 'done', km: '0x10' }).code).toBe(1)
+    const ok = cmdLog(dir, { session: run.id, status: 'done', km: '8,5' })
+    expect(ok.code, ok.output).toBe(0)
+    expect(ok.data!.entry).toMatchObject({ distanceM: 8500 })
+  })
+  it('potwierdzenie wpisu siły v2 w rodzaju żeńskim (siła z migracji planu biegowego)', () => {
+    const legacy = `athlete:
+  recentWeeklyKm: 35
+  daysAvailable: [tue, thu, sat, sun]
+  results:
+    - { date: '2026-09-01', distanceKm: 10, timeSec: 3000 }
+strength:
+  enabled: true
+goal:
+  kind: base
+  name: Base
+  date: '2026-12-27'
+  distanceKm: 0
+  priority: A
+`
+    expect(cmdInit(dir, legacy).code).toBe(0); expect(cmdPlan(dir).code).toBe(0)
+    expect(cmdMigrate(dir, { apply: proposalId(cmdMigrate(dir)) }).code).toBe(0)
+    const strength = [...loadSportsPlan(dir).sessions].sort((a, z) => a.date.localeCompare(z.date)).find((s) => s.sport === 'strength')!
+    setLocale('pl')
+    try {
+      const saved = cmdLog(dir, { session: strength.id, status: 'done' })
+      expect(saved.code, saved.output).toBe(0)
+      expect(saved.output).toContain(`${strength.id}: wykonana`)
+    } finally { setLocale('en') }
+  })
   it('records actual swimming repetitions without inferring full duration or distance',async()=>{
     const plan=init(), swim=plan.sessions.find(s=>s.sport==='swim')!, run=plan.sessions.find(s=>s.sport==='run')!
     expect(cmdLog(dir,{session:run.id,sets:'1=3'}).code).toBe(1)

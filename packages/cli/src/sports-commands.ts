@@ -14,7 +14,7 @@ import { clockToday } from './clock.ts'
 import { packageVersion } from './version.ts'
 import { CONFIG_FILE } from './config.ts'
 import { lineSeparator, LOG_FILE, parseTime } from './logfile.ts'
-import { logStatusText } from './format.ts'
+import { logStatusText, parseDecimal } from './format.ts'
 import { PLAN_MD, PLAN_YAML } from './planfile.ts'
 import { commitFiles } from './git.ts'
 import { readSnapshot, SYNC_FILE } from './sync.ts'
@@ -39,7 +39,8 @@ export interface SportsOptions {
 export interface SportsResult { output: string; code: number; blocks: Block[]; data: Record<string, unknown> }
 export const sportsResult = (blocks: Block[], data: Record<string, unknown> = {}, code = 0): SportsResult => ({ output: renderPlain(blocks), blocks, data, code })
 export const sportsFailure = (e: unknown): SportsResult => sportsResult([b.error(e instanceof Error ? e.message : String(e))], { error: e instanceof Error ? e.message : String(e) }, 1)
-const number = (v: unknown, min = 0, max = 10080): number => { const n = Number(v); if (v === '' || v === undefined || !Number.isFinite(n) || n < min || n > max) throw new Error(msg().invalid); return n }
+// liczby z opcji: ta sama reguła co w dzienniku biegów (parseDecimal — przecinek tak, „0x10" i „1e3" nie)
+const number = (v: unknown, min = 0, max = 10080): number => { const n = typeof v === 'number' ? v : parseDecimal(String(v ?? '')); if (!Number.isFinite(n) || n < min || n > max) throw new Error(msg().invalid); return n }
 function select(p: SportsPlan, o: SportsOptions): TrainingSession {
   const list = p.sessions.filter(s => o.session ? s.id === o.session : s.date === (o.date ?? o.from ?? clockToday()) && (!o.sport || s.sport === o.sport) && (!o.strength || s.sport === 'strength'))
   if (!list.length) throw new Error(msg().noSession)
@@ -200,7 +201,7 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
       if (completedRepeats) entry.completedRepeats = completedRepeats
       const before = readOptional(cwd, LOG_FILE) ?? ''
       writeTransaction(cwd, { [LOG_FILE]: before + lineSeparator(before) + JSON.stringify(entry) + '\n' })
-      return commitResult(cwd, o, sportsResult([b.success(t.logged), b.text(`${s.id}: ${logStatusText(status)}`), ...(spontaneous ? [b.info(t.spontaneous)] : [])], { entry, applied: true }), [LOG_FILE], action)
+      return commitResult(cwd, o, sportsResult([b.success(t.logged), b.text(`${s.id}: ${logStatusText(status, s.sport === 'strength')}`), ...(spontaneous ? [b.info(t.spontaneous)] : [])], { entry, applied: true }), [LOG_FILE], action)
     }
     if (action === 'replace') {
       const s = select(plan, o); editable(cwd, plan, s)

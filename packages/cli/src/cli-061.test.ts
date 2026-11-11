@@ -20,7 +20,7 @@ import { helpItem } from './ui/help.ts'
 import { improveEn } from './i18n/improve-en.ts'
 import { improvePl } from './i18n/improve-pl.ts'
 import { shortenDetail } from './proposals.ts'
-import { renderAnsi, wrap } from './ui/blocks.ts'
+import { renderAnsi, wrap, wrapText } from './ui/blocks.ts'
 import { Theme, visibleLength } from './ui/theme.ts'
 
 const CONFIG = `athlete:
@@ -115,12 +115,12 @@ describe.each(['pl', 'en'] as const)('pakiet A · %s', (lang) => {
 describe('A6: zawijanie nie tnie adresów ani ścieżek', () => {
   const url = 'https://github.com/dithiothreitol/trainctl/blob/v0.6.0/docs/science/FOUNDATIONS.md'
   it.each([40, 60, 80])('szerokość %i', (width) => {
-    const lines = wrap(`źródła i parametry: ${url} §10`, width)
+    const lines = wrapText(`źródła i parametry: ${url} §10`, width)
     expect(lines.some((line) => line.trim() === url)).toBe(true)
   })
   it('ścieżka Windows zostaje w całości', () => {
     const path = 'C:\\Users\\someone\\AppData\\Local\\Temp\\very\\long\\training\\directory'
-    expect(wrap(path, 40)).toEqual([path])
+    expect(wrapText(path, 40)).toEqual([path])
   })
   it('zwykłe długie słowo nadal dzielone', () => {
     expect(wrap('x'.repeat(50), 20).every((line) => line.length <= 20)).toBe(true)
@@ -586,7 +586,7 @@ describe('regeneracja zapisuje zmianę wyniku, z którego liczone są strefy', (
 
   it('adres w nawiasie zostaje w całości', () => {
     const url = 'https://github.com/dithiothreitol/trainctl/blob/v0.6.0/docs/science/FOUNDATIONS.md'
-    expect(wrap(`pliki aktywności (${url})`, 40).some((line) => line.trim() === `(${url})`)).toBe(true)
+    expect(wrapText(`pliki aktywności (${url})`, 40).some((line) => line.trim() === `(${url})`)).toBe(true)
   })
 })
 
@@ -600,5 +600,32 @@ describe('regeneracja i teren wyniku (Z-10)', () => {
     writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
     expect(cmdPlan(dir).data).toMatchObject({ regeneration: { upToDate: false } })
     expect(loadPlan(dir).feasibilityWarnings.join(' ')).not.toContain('trail result')
+  })
+})
+
+describe('piętnasta runda: zawijanie, komunikat bez wyniku, teren w podpowiedzi', () => {
+  it('wrap domyślnie trzyma szerokość także dla adresu; wrapText zostawia go w całości', () => {
+    const url = 'https://github.com/dithiothreitol/trainctl/blob/v0.6.0/docs/science/FOUNDATIONS.md'
+    expect(wrap(url, 30).every((line) => line.length <= 30)).toBe(true)
+    expect(wrapText(url, 30)).toEqual([url])
+  })
+
+  it('bez wyniku z czasem docelowym: podpowiedź mówi o kalibracji z czasu docelowego', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('  priority: A\n', '  priority: A\n  targetTimeSec: 5700\n'), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(/  results:\n.*\n/, '  results: []\n').replace('  priority: A\n', '  priority: A\n  targetTimeSec: 5700\n'), 'utf-8')
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-29'
+    expect(cmdWhy(dir, { date: '2026-10-27' }).output).toContain('would calibrate the zones from the goal time 1:35:00')
+  })
+
+  it('zmiana terenu wybranego wyniku: why podpowiada trainctl plan, jak regeneracja', () => {
+    const road = '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }'
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(road, '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580, terrain: trail }'), 'utf-8')
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-29'
+    expect(cmdWhy(dir, { date: '2026-10-27' }).data).toMatchObject({ recalibration: { changed: true } })
+    expect(cmdPlan(dir).data).toMatchObject({ regeneration: { upToDate: false } })
+    expect(cmdWhy(dir, { date: '2026-10-27' }).data).toMatchObject({ recalibration: { changed: false } })
   })
 })

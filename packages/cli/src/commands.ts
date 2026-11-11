@@ -37,7 +37,7 @@ import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, shownKm } from './format.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
-import { appendLog, latestByDate, LOG_LIMITS, parseTime, readJournal, readLog, readStrengthLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
+import { appendLog, latestByDate, LOG_LIMITS, parseTime, readJournal, readLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
   computePlan,
   cycleWeeksOf,
@@ -851,7 +851,10 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
       })))
       if (recalibration?.changed) {
         const next = recalibration.selected
-        blocks.push(b.info(next ? ui().improve.recalibrateTo(next.date, kmLabel(next.distanceKm)) : ui().improve.recalibrateNone))
+        // bez wyniku plan liczy strefy z czasu docelowego, a bez niego się zatrzyma
+        const target = config && config.goal.kind !== 'base' ? config.goal.targetTimeSec : undefined
+        blocks.push(b.info(next ? ui().improve.recalibrateTo(next.date, kmLabel(next.distanceKm))
+          : target ? ui().improve.recalibrateGoal(fmtTime(target)) : ui().improve.recalibrateNone))
       }
     } else blocks.push(b.info(ui().improve.calibrationMissing))
     const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...(day.strength?.ruleRefs ?? [])])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
@@ -1451,7 +1454,8 @@ export async function cmdReview(
     }
 
     const snapshot = readSnapshot(cwd)
-    const logs = readLog(cwd)
+    const journal = readJournal(cwd)
+    const logs = journal.runs
     const blocks: Block[] = [
       b.title(
         ui().review.title,
@@ -1474,7 +1478,7 @@ export async function cmdReview(
       b.kv([
         [ui().review.volume, ui().review.volumeValue(Math.round(actualKm), Math.round(plannedKm))],
         [ui().review.doneSessions, `${done}/${rows.filter((r) => r.plannedKm > 0).length}`],
-        ...strengthRow(plan, readStrengthLog(cwd), from, today),
+        ...strengthRow(plan, journal.strength, from, today),
         ...(missed.length
           ? ([[ui().compare.missed, missed.map((r) => r.date.slice(5)).join(', ')]] as [string, string][])
           : []),

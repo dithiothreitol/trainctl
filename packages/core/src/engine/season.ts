@@ -131,9 +131,14 @@ function median(values: number[]): number {
 const isLoading = (w: Microcycle) => LOADING_PHASES.has(w.skeleton.phase) && !w.skeleton.deload
 
 /** `rows` — profil już policzony przez wołającego (unika drugiego przebiegu). */
-export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanceKm'>; weeks: Microcycle[] }, rows = seasonProfile(plan.weeks)): ShapeIssue[] {
+export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanceKm'>; weeks: Microcycle[]; cycleStart?: string | undefined }, rows = seasonProfile(plan.weeks)): ShapeIssue[] {
   const issues: ShapeIssue[] = []
-  const weeks = plan.weeks
+  // Plan z historią trzyma tygodnie poprzednich cykli. Oceniamy bieżący cykl (od
+  // `cycleStart`): inaczej długie 30 km z poprzedniego maratonu „spełniałoby" próg
+  // nowego półmaratonu, a blok starego cyklu porównywałby się z blokiem nowego.
+  const from = plan.cycleStart
+  const weeks = from ? plan.weeks.filter((w) => w.weekStart >= from) : plan.weeks
+  rows = from ? rows.filter((r) => r.weekStart >= from) : rows
 
   for (const week of weeks) {
     const runs = week.days.flatMap((d) => (d.workout ? [{ date: d.date, w: d.workout }] : []))

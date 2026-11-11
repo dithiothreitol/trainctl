@@ -142,3 +142,15 @@ describe('postRaceAccentHeavy: mediana i kolejność cykli', () => {
     expect(flagged(weeks)).toEqual([])
   })
 })
+
+describe('linty oceniają bieżący cykl', () => {
+  it('długie 30 km z poprzedniego cyklu nie spełnia progu nowego półmaratonu', () => {
+    const weeks = [
+      week('2026-12-07', { tue: easy(10), sat: long(30) }),
+      week('2027-01-04', { tue: easy(10), sat: long(18) }),
+    ]
+    const codes = (cycleStart?: string) => seasonShapeIssues({ goal: half, weeks, ...(cycleStart ? { cycleStart } : {}) }).map((i) => i.code)
+    expect(codes()).not.toContain('longBelowGoal')
+    expect(codes('2027-01-04')).toContain('longBelowGoal')
+  })
+})

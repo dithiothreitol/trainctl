@@ -58,11 +58,17 @@ export const b = {
 const UNBREAKABLE = /^[(\[{"'„«]*(?:[a-z][a-z0-9+.-]*:\/\/|[A-Za-z]:[\\/]|\.{0,2}[\\/]|~[\\/])\S+$/i
 
 /**
- * Zawijanie tekstu do szerokości, po słowach. `keepTokens` zostawia URL-e
- * i ścieżki w całości (wiersz bywa wtedy szerszy niż `width`); komórki tabel
- * wyłączają to, bo kolumna musi trzymać szerokość.
+ * Akapit: URL-e i ścieżki zostają w całości we własnym wierszu (bywa szerszy niż
+ * `width`), żeby link był klikalny i dał się skopiować. Do tekstu, nie do kolumn.
  */
-export function wrap(text: string, width: number, indent = '', keepTokens = true): string[] {
+export const wrapText = (text: string, width: number, indent = ''): string[] => wrap(text, width, indent, true)
+
+/**
+ * Zawijanie tekstu do szerokości, po słowach. Domyślnie żaden wiersz nie jest
+ * szerszy niż `width` (kolumny tabel, pomoc, wybór) — dłuższe słowo dzielimy;
+ * akapity wołają wrapText, który zostawia adresy i ścieżki w całości.
+ */
+export function wrap(text: string, width: number, indent = '', keepTokens = false): string[] {
   const available = Math.max(1, width - visibleLength(indent))
   const lines: string[] = []
   // Preserve explicit line breaks (errors, lists and multi-step workouts).
@@ -100,7 +106,7 @@ function keyValues(pairs: [string, string][], theme: Theme, width: number): stri
     // Adres albo ścieżka dłuższa niż kolumna wartości: układ piętrowy, pełna szerokość.
     const tokenTooWide = value.split(/\s+/).some((word) => UNBREAKABLE.test(word) && visibleLength(word) > width - keyWidth - 2)
     if (visibleLength(key) + 1 > keyWidth || width - keyWidth < 16 || tokenTooWide) {
-      return [...wrap(`${key}:`, width).map(line => theme.dim(line)), ...wrap(value, width, '  ')]
+      return [...wrap(`${key}:`, width).map(line => theme.dim(line)), ...wrapText(value, width, '  ')]
     }
     const lines = wrap(value, width - keyWidth - 2)
     const numeric = /^\d+(?:[.,]\d+)?(?:\s*(?:%|km|m|min|h|s|W))?$/.test(value)
@@ -121,7 +127,7 @@ function table(block: Extract<Block, { t: 'table' }>, theme: Theme): string[] {
   if (cols > Math.max(3, Math.floor(width / 16)) || minimum.reduce((sum, n) => sum + n, gap) > width) {
     return block.rows.flatMap((row, index) => {
       const first = `${block.head[0]}: ${row[0] ?? ''}`
-      const heading = wrap(first, width).map(line => theme.bold(theme.color(line, block.accent?.[index] ?? 'accent')))
+      const heading = wrapText(first, width).map(line => theme.bold(theme.color(line, block.accent?.[index] ?? 'accent')))
       return [ ...(index ? [''] : []), ...heading,
         ...keyValues(block.head.slice(1).map((head, i) => [head, row[i + 1] ?? '']), theme, width) ]
     })
@@ -138,7 +144,7 @@ function table(block: Extract<Block, { t: 'table' }>, theme: Theme): string[] {
   const numeric = block.head.map((_, col) => col > 0 && block.rows.length > 0 && block.rows.every(row =>
     /^[+−-]?\d+(?:[.,]\d+)?(?:\s*(?:%|km|m|min|h|s|W))?$/.test(row[col] ?? '')))
   const rowLines = (row: string[], heading: boolean, accent?: ColorName): string[] => {
-    const wrapped = block.head.map((_, col) => wrap(row[col] ?? '', widths[col]!, '', false))
+    const wrapped = block.head.map((_, col) => wrap(row[col] ?? '', widths[col]!))
     return Array.from({ length: Math.max(...wrapped.map(lines => lines.length)) }, (_, line) =>
       wrapped.map((lines, col) => {
         const text = lines[line] ?? ''
@@ -194,16 +200,16 @@ export function renderAnsi(blocks: Block[], theme = new Theme()): string {
     switch (block.t) {
       case 'title': {
         if (out.length) out.push('')
-        out.push(...wrap(block.text, width).map(line => theme.bold(theme.color(line, 'brand'))))
-        if (block.sub) out.push(...wrap(block.sub, width).map(line => theme.dim(line)))
+        out.push(...wrapText(block.text, width).map(line => theme.bold(theme.color(line, 'brand'))))
+        if (block.sub) out.push(...wrapText(block.sub, width).map(line => theme.dim(line)))
         out.push(theme.dim(s.horizontal.repeat(Math.min(width, 64))), '')
         break
       }
       case 'section':
-        out.push('', ...wrap(block.text, width).map(line => theme.bold(theme.color(line, block.accent ?? 'accent'))), '')
+        out.push('', ...wrapText(block.text, width).map(line => theme.bold(theme.color(line, block.accent ?? 'accent'))), '')
         break
       case 'text':
-        out.push(...wrap(block.text, width).map((l) => (block.tone === 'muted' ? theme.dim(l) : l)))
+        out.push(...wrapText(block.text, width).map((l) => (block.tone === 'muted' ? theme.dim(l) : l)))
         break
       case 'kv': {
         out.push(...keyValues(block.pairs, theme, width))
@@ -211,7 +217,7 @@ export function renderAnsi(blocks: Block[], theme = new Theme()): string {
       }
       case 'bullets':
         for (const item of block.items) {
-          const lines = wrap(item, width - 2, '')
+          const lines = wrapText(item, width - 2, '')
           const first = `${theme.color(s.bullet, 'accent')} ${lines[0]}`
           out.push(block.tone === 'muted' ? theme.dim(first) : first)
           for (const rest of lines.slice(1)) {
@@ -232,7 +238,7 @@ export function renderAnsi(blocks: Block[], theme = new Theme()): string {
         } as const
         const [symbol, color] = map[block.kind]
         const prefixWidth = visibleLength(symbol) + 1
-        const lines = wrap(block.text, width - prefixWidth)
+        const lines = wrapText(block.text, width - prefixWidth)
         out.push(`${theme.color(symbol, color)} ${lines[0]}`)
         for (const rest of lines.slice(1)) out.push(`${' '.repeat(prefixWidth)}${rest}`)
         break
@@ -245,32 +251,32 @@ export function renderAnsi(blocks: Block[], theme = new Theme()): string {
         const inner = Math.max(1, width - inset)
         const nested = new Theme({ ...theme.caps, width: inner })
         out.push('')
-        for (const [index, title] of wrap(block.title, inner).entries()) {
+        for (const [index, title] of wrapText(block.title, inner).entries()) {
           out.push((inset ? theme.color(index ? s.vertical : s.topLeft, block.accent) + ' ' : '') + theme.bold(theme.color(title, block.accent)))
         }
         const content = renderAnsi(block.body, nested).split('\n')
-        if (block.meta.length) content.push('', ...block.meta.flatMap(text => wrap(text, inner).map(line => theme.dim(line))))
+        if (block.meta.length) content.push('', ...block.meta.flatMap(text => wrapText(text, inner).map(line => theme.dim(line))))
         for (const line of content) out.push((inset ? theme.color(s.vertical, block.accent) + ' ' : '') + line)
         out.push(theme.color(s.bottomLeft + s.horizontal.repeat(Math.max(0, Math.min(width - 1, 63))), block.accent), '')
         break
       }
       case 'panel': {
         const inner = Math.max(1, width - 2)
-        const lines = block.lines.flatMap((l) => wrap(l, inner))
+        const lines = block.lines.flatMap((l) => wrapText(l, inner))
         const accent = block.accent ?? 'accent'
         out.push('')
-        for (const [index, title] of wrap(block.title, inner).entries()) {
+        for (const [index, title] of wrapText(block.title, inner).entries()) {
           out.push(`${theme.color(index ? s.vertical : s.topLeft, accent)} ${theme.bold(theme.color(title, accent))}`)
         }
         for (const line of lines) out.push(`${theme.color(s.vertical, accent)} ${line}`)
-        for (const line of (block.meta ?? []).flatMap(text => wrap(text, inner))) {
+        for (const line of (block.meta ?? []).flatMap(text => wrapText(text, inner))) {
           out.push(`${theme.color(s.vertical, accent)} ${theme.dim(line)}`)
         }
         out.push(theme.color(s.bottomLeft + s.horizontal.repeat(Math.min(width - 1, 23)), accent), '')
         break
       }
       case 'hint':
-        out.push('', ...wrap(block.text, width - visibleLength(s.arrow) - 1).map((line, i) =>
+        out.push('', ...wrapText(block.text, width - visibleLength(s.arrow) - 1).map((line, i) =>
           `${i ? ' '.repeat(visibleLength(s.arrow)) : theme.color(s.arrow, 'accent')} ${theme.color(line, 'brand')}`))
         break
       case 'blank':

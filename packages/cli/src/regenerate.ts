@@ -29,10 +29,9 @@ import {
   weekTotals,
   type Microcycle,
   type PlannedDay,
-  type RaceResult,
 } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
-import { resultKey } from './calibration.ts'
+import { sameSelection } from './calibration.ts'
 import { budgetWarnings, computePlan, dayFingerprint, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
@@ -63,13 +62,6 @@ const sameDistance = (a: number, b: number) => Math.abs(a - b) < 0.001
  * start — prawie cały dystans, nawet z krótszym pomiarem zegarka.
  */
 const RACE_DONE_SHARE = 0.8
-
-/**
- * Ten sam wybrany wynik — razem z terenem i wykluczeniem (resultKey): zmiana terenu
- * nie zmienia stref, ale zmienia ostrzeżenie o kalibracji z trailu (Z-10) w planie.
- */
-const sameSelection = (a: RaceResult | undefined, b: RaceResult | undefined): boolean =>
-  a === undefined || b === undefined ? a === b : resultKey(a) === resultKey(b)
 
 export function rebuildPlan(
   existing: StoredPlan,

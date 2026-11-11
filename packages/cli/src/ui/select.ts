@@ -6,7 +6,7 @@
 import { emitKeypressEvents } from 'node:readline'
 import { ui } from '../i18n/index.ts'
 import { Theme, visibleLength } from './theme.ts'
-import { wrap } from './blocks.ts'
+import { wrap, wrapText } from './blocks.ts'
 import { digitIndex, keyAction, moveIndex, type KeyEvent } from './keys.ts'
 
 export interface Choice<T> {
@@ -31,11 +31,11 @@ export function renderChoices<T>(
     const number = theme.dim(`${i + 1}`.padStart(2))
     const prefix = `${number} ${i === active ? theme.color(s.arrow, 'brand') : ' '.repeat(s.arrow.length)} `
     const indent = 4 + s.arrow.length
-    const labels = wrap(choice.label, theme.caps.width - indent, '', false)
+    const labels = wrap(choice.label, theme.caps.width - indent)
     const inline = choice.hint && labels.length === 1 && indent + visibleLength(choice.label) + 2 + visibleLength(choice.hint) <= theme.caps.width
     return [
       ...labels.map((line, index) => `${index ? ' '.repeat(indent) : prefix}${choice.disabled ? theme.dim(line) : i === active ? theme.bold(line) : line}${inline ? theme.dim(`  ${choice.hint}`) : ''}`),
-      ...(choice.hint && !inline ? wrap(choice.hint, theme.caps.width, ' '.repeat(indent)).map(line => theme.dim(line)) : []),
+      ...(choice.hint && !inline ? wrapText(choice.hint, theme.caps.width, ' '.repeat(indent)).map(line => theme.dim(line)) : []),
     ]
   })
 }
