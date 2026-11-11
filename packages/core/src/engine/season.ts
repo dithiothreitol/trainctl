@@ -1,0 +1,193 @@
+/**
+ * Profil sezonu i linty kształtu (docs/PLAN-v0.7.md, B0).
+ *
+ * `validatePlan` pilnuje reguł pojedynczego tygodnia; tutaj patrzymy na sezon:
+ * czy długie jest najdłuższe, czy odciążenie jest lżejsze, czy dawka rośnie.
+ * Wynik służy testom macierzy profili i (od etapu 2) komendzie `check`.
+ * Progi oznaczone „inż." są wyborem inżynierskim (E-3), nie wynikiem badań.
+ */
+import type { MacroPhase, Microcycle, PlannedWorkout, RaceGoal } from '../domain/types.ts'
+import { fmtPace } from './microcycle.ts'
+
+export interface SeasonAccent {
+  kind: PlannedWorkout['kind']
+  /** Kilometry poza Z1 (część główna akcentu, odcinki podbiegów, pomiar). */
+  hardKm: number
+  /** Dawka części głównej w notacji, np. `4×1000@4:32`, `4 km 5:01→4:32`. */
+  dose: string
+}
+
+export interface SeasonRow {
+  index: number
+  weekStart: string
+  phase: MacroPhase
+  deload: boolean
+  km: number
+  runs: number
+  longKm: number
+  accents: SeasonAccent[]
+  strength: number
+  flags: ('test' | 'tuneUp' | 'race')[]
+}
+
+const QUALITY = new Set(['quality_intervals', 'quality_continuous', 'easy_hills', 'sharpener', 'test'])
+const round1 = (n: number) => Math.round(n * 10) / 10
+
+function accentOf(w: PlannedWorkout): SeasonAccent {
+  const parts: string[] = []
+  let hardKm = 0
+  for (const s of w.segments) {
+    if (s.type === 'intervals') {
+      hardKm += s.distanceKm ?? 0
+      parts.push(`${s.reps ?? 1}×${s.repM ?? 0}${s.pace ? '@' + fmtPace(Math.round((s.pace.loSecPerKm + s.pace.hiSecPerKm) / 2)) : ''}`)
+    } else if (s.type === 'progression' && s.pace) {
+      hardKm += s.distanceKm ?? 0
+      parts.push(`${s.distanceKm} km ${fmtPace(s.pace.hiSecPerKm)}→${fmtPace(s.pace.loSecPerKm)}`)
+    } else if (s.type === 'alternating' && s.pace) {
+      hardKm += s.distanceKm ?? 0
+      parts.push(`${s.distanceKm} km ${fmtPace(s.pace.loSecPerKm)}/${fmtPace(s.pace.hiSecPerKm)}`)
+    } else if (s.type === 'hills') {
+      hardKm += (s.distanceKm ?? 0) / 2
+      parts.push(`${s.reps}×${s.repM} podbieg`)
+    } else if (s.type === 'race') {
+      hardKm += s.distanceKm ?? 0
+      parts.push(`${s.distanceKm} km pomiar`)
+    }
+  }
+  return { kind: w.kind, hardKm: round1(hardKm), dose: parts.join(' + ') }
+}
+
+/** Jeden wiersz na tydzień: to, co trener ogląda, przeglądając sezon. */
+export function seasonProfile(weeks: Microcycle[]): SeasonRow[] {
+  return weeks.map((week, index) => {
+    const runs = week.days.flatMap((d) => (d.workout && d.workout.kind !== 'race' ? [d.workout] : []))
+    const sk = week.skeleton
+    return {
+      index,
+      weekStart: week.weekStart,
+      phase: sk.phase,
+      deload: sk.deload,
+      km: round1(week.totalKm),
+      runs: runs.length,
+      longKm: Math.max(0, ...runs.filter((w) => w.kind === 'long').map((w) => w.distanceKm)),
+      accents: runs.filter((w) => QUALITY.has(w.kind)).map(accentOf),
+      strength: week.days.filter((d) => d.strength).length,
+      flags: [
+        ...(sk.testPlanned ? (['test'] as const) : []),
+        ...(sk.tuneUp ? (['tuneUp'] as const) : []),
+        ...(sk.raceDate ? (['race'] as const) : []),
+      ],
+    }
+  })
+}
+
+/** Jeden wiersz tekstu na tydzień — format migawki testów i przeglądu trenerskiego. */
+export function seasonLine(r: SeasonRow): string {
+  const accents = r.accents.map((a) => `${a.kind}:${a.dose}`).join(' | ')
+  return [
+    String(r.index + 1).padStart(2),
+    r.weekStart,
+    (r.phase + (r.deload ? '↓' : '')).padEnd(11),
+    String(r.km).padStart(5),
+    `${r.runs}b`,
+    `L${r.longKm}`,
+    `S${r.strength}`,
+    ...(r.flags.length ? [`[${r.flags.join(',')}]`] : []),
+    accents,
+  ].join(' ').trimEnd()
+}
+
+export type ShapeCode =
+  | 'longNotLongest'
+  | 'deloadNotLighter'
+  | 'sessionShareHigh'
+  | 'postRaceAccentHeavy'
+  | 'staleProgression'
+  | 'longBelowGoal'
+
+export interface ShapeIssue {
+  code: ShapeCode
+  /** Tydzień (poniedziałek) albo dzień, którego dotyczy; pusty dla całego planu. */
+  date: string
+  ruleRefs: string[]
+  values: number[]
+}
+
+/** Udział jednej jednostki w tygodniu, powyżej którego tydzień „wisi" na niej (inż., E-3). */
+export const SESSION_SHARE_MAX = 0.35
+/** Próg najdłuższego biegu dla dystansu: HM >21 km (J-2, P-7), maraton ≥25 km (P-8). */
+export function longRunThresholdKm(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): number | undefined {
+  if (goal.kind === 'base') return undefined
+  if (goal.distanceKm >= 42) return 25
+  if (goal.distanceKm >= 20.9) return 21
+  return undefined
+}
+
+const LOADING_PHASES = new Set<MacroPhase>(['base', 'build', 'peak'])
+const isLoading = (w: Microcycle) => LOADING_PHASES.has(w.skeleton.phase) && !w.skeleton.deload
+
+export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanceKm'>; weeks: Microcycle[] }): ShapeIssue[] {
+  const issues: ShapeIssue[] = []
+  const weeks = plan.weeks
+  const rows = seasonProfile(weeks)
+
+  for (const week of weeks) {
+    const runs = week.days.flatMap((d) => (d.workout ? [{ date: d.date, w: d.workout }] : []))
+    const long = runs.find((r) => r.w.kind === 'long')
+    const easy = runs.filter((r) => r.w.kind === 'easy')
+    const longest = Math.max(0, ...easy.map((r) => r.w.distanceKm))
+    // S-2/J-1: długie jest najdłuższym biegiem tygodnia
+    if (long && longest > long.w.distanceKm) issues.push({ code: 'longNotLongest', date: week.weekStart, ruleRefs: ['S-2', 'J-1'], values: [long.w.distanceKm, longest] })
+    // jedna jednostka nie dźwiga tygodnia (inż.)
+    if (week.totalKm > 0 && week.skeleton.phase !== 'race') {
+      for (const r of runs) {
+        if (['long', 'race', 'test'].includes(r.w.kind)) continue
+        if (r.w.distanceKm > SESSION_SHARE_MAX * week.totalKm) issues.push({ code: 'sessionShareHigh', date: r.date, ruleRefs: ['E-3'], values: [r.w.distanceKm, round1(week.totalKm)] })
+      }
+    }
+  }
+
+  // P-2: odciążenie lżejsze od sąsiednich tygodni ładowania
+  weeks.forEach((week, i) => {
+    if (!week.skeleton.deload) return
+    const prev = weeks.slice(0, i).reverse().find(isLoading)
+    const next = weeks.slice(i + 1).find(isLoading)
+    const neighbours = [prev, next].filter((w): w is Microcycle => !!w).map((w) => w.totalKm)
+    if (neighbours.length && week.totalKm >= Math.min(...neighbours)) {
+      issues.push({ code: 'deloadNotLighter', date: week.weekStart, ruleRefs: ['P-2'], values: [round1(week.totalKm), round1(Math.min(...neighbours))] })
+    }
+  })
+
+  // R-8: akcent po starcie nie większy niż najmniejszy akcent ostatniego bloku budowania
+  const buildHard = rows.filter((r) => r.phase === 'build' && !r.deload && !r.flags.length)
+    .flatMap((r) => r.accents.filter((a) => a.kind !== 'easy_hills').map((a) => a.hardKm))
+  if (buildHard.length) {
+    const ceiling = Math.min(...buildHard)
+    for (const r of rows.filter((x) => x.phase === 'transition')) {
+      for (const a of r.accents) if (a.kind !== 'easy_hills' && a.hardKm > ceiling) issues.push({ code: 'postRaceAccentHeavy', date: r.weekStart, ruleRefs: ['R-8'], values: [a.hardKm, ceiling] })
+    }
+  }
+
+  // P-1: kolejne bloki ładowania w budowaniu/szczycie nie powtarzają tej samej dawki
+  const blocks: SeasonRow[][] = []
+  let current: SeasonRow[] = []
+  for (const r of rows) {
+    if (r.phase !== 'build' && r.phase !== 'peak') { if (current.length) blocks.push(current); current = []; continue }
+    if (r.deload) { if (current.length) blocks.push(current); current = []; continue }
+    if (!r.flags.length) current.push(r)
+  }
+  if (current.length) blocks.push(current)
+  const signature = (r: SeasonRow) => JSON.stringify([r.longKm, r.accents.map((a) => [a.kind, a.dose])])
+  for (let i = 1; i < blocks.length; i++) {
+    const a = blocks[i - 1]!.at(-1)!, z = blocks[i]!.at(-1)!
+    if (signature(a) === signature(z)) issues.push({ code: 'staleProgression', date: z.weekStart, ruleRefs: ['P-1'], values: [a.index + 1, z.index + 1] })
+  }
+
+  // J-2/P-7/P-8: najdłuższy bieg planu przed taperem a próg dla dystansu
+  const threshold = longRunThresholdKm(plan.goal)
+  if (threshold !== undefined) {
+    const longest = Math.max(0, ...rows.filter((r) => LOADING_PHASES.has(r.phase)).map((r) => r.longKm))
+    if (longest <= threshold) issues.push({ code: 'longBelowGoal', date: '', ruleRefs: plan.goal.distanceKm >= 42 ? ['P-8', 'J-1'] : ['J-2', 'P-7'], values: [longest, threshold] })
+  }
+  return issues
+}
