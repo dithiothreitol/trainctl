@@ -761,7 +761,8 @@ function planNormalWeek(
 
   let left = settle(qualityMainKm)
   // I-5: ≥75% objętości w Z1 — liczone na tygodniu z rozdaną resztą kilometrów
-  for (let guard = 0; guard < 8 && z1Share(plan) < 0.75 - 1e-9 && qualityMainKm > 3; guard++) left = settle(--qualityMainKm)
+  // dawka leży na siatce 0,5 km, a krok pętli to 1 km — bez zejścia poniżej 3 km (E-3)
+  for (let guard = 0; guard < 8 && z1Share(plan) < 0.75 - 1e-9 && qualityMainKm > 3; guard++) left = settle(qualityMainKm = Math.max(3, qualityMainKm - 1))
 
   // Akcent minimalny jest opcjonalny: nie podnosi tygodnia ponad zamiar i nie łamie
   // sufitu mocnych kilometrów (od tego, co tydzień faktycznie ma — I-5 dotyczy

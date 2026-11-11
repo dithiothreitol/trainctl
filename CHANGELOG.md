@@ -88,8 +88,11 @@ change between minor versions — a regenerated plan can differ.
   `trainctl_log` tool and the log prompt take the same fields. After the break
   `adapt` proposes a return block you can approve:
   about 55% of the earlier volume, the first week easy after illness (R-5) or
-  the first block easy after any other break (R-11), growth within P-3 until
-  the plan catches up, and no time trial in the return block. The earlier
+  the loading weeks of the first block easy after any other break (R-11; the
+  taper keeps its intensity), growth within P-3 until the plan catches up, and
+  no time trial in the return block (the accent it replaced comes back). The
+  earlier volume stays the same when you run `adapt` again during the return.
+  The earlier
   volume is the last loading week of the plan, not a deload or taper week; the
   taper inside a return block keeps falling. After an injury `adapt --prepare`
   prepares no plan change at all, not even a recalibration (R-6, R-7). An
@@ -102,7 +105,8 @@ change between minor versions — a regenerated plan can differ.
   weeks or more without running (R-11): the plan restarts at 50–60% of the
   earlier volume (more when you have been back for some weeks, at most P-3
   growth a week), keeps the first block easy with no time trial, and grows back
-  within P-3. `init` asks for it, and `init --from-intervals` proposes it when
+  within P-3. Once `recentWeeklyKm` is back at the earlier volume, the return
+  no longer applies. `init` asks for it, and `init --from-intervals` proposes it when
   the history ends with two weeks off.
 - `trainctl rules E-3` lists the engine's fixed values that have no source
   (easy-run cap, accent share, phase split, recoveries, race-week sessions),

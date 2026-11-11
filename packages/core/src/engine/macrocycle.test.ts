@@ -391,6 +391,12 @@ describe('B8: powrót po przerwie (R-11) i data, od której próg jest osiągaln
     // w dniu powrotu granica to nadal 60%
     expect(volumeBase({ ...rebuilt, returning: { since: today, previousWeeklyKm: 50 } }, today).start).toBe(30)
   })
+
+  it('bieżąca objętość na poziomie sprzed przerwy albo wyżej: powrót się dokonał, plan startuje od niej', () => {
+    const past: AthleteProfile = { ...runner, recentWeeklyKm: 50, returning: { since: '2026-10-01', previousWeeklyKm: 40 } }
+    expect(volumeBase(past, today)).toEqual({ start: 50, level: 50, returning: false })
+    expect(planMacrocycle({ today, goal: half, athlete: past }).weeks[0]!.easyOnly).toBeUndefined()
+  })
 })
 
 describe('B11: blok powrotu po przerwie w trakcie planu', () => {
@@ -439,6 +445,31 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
         }
       }
     }
+  })
+
+  it('trzy dni: sprawdzian wypada z bloku powrotu, a akcent, który zastępował, wraca (T-12, W-13)', () => {
+    const three = planMacrocycle({ today: '2026-10-22', goal: half, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'thu', 'sat'], results: [] } })
+    const testAt = three.weeks.findIndex((w, i) => i > 1 && w.testPlanned)
+    expect(testAt).toBeGreaterThan(1)
+    expect(three.weeks[testAt]!.qualitySessions).toBe(0)
+    // choroba tydzień przed sprawdzianem: tydzień sprawdzianu jest już po spokojnym, ale pod krzywą
+    const weeks = applyReturnBlock(three.weeks, { since: three.weeks[testAt - 1]!.weekStart, previousWeeklyKm: 50, illness: true })
+    expect(weeks[testAt]!.targetKm).toBeLessThan(three.weeks[testAt]!.targetKm)
+    expect(weeks[testAt]!.easyOnly).toBeUndefined()
+    expect(weeks[testAt]!.testPlanned).toBeUndefined()
+    expect(weeks[testAt]!.qualitySessions).toBe(1)
+  })
+
+  it('po innej przerwie zaczętej w taperze: taper trzyma intensywność (T-1), tygodnie po starcie swoje reguły (R-8)', () => {
+    const taperAt = plan.weeks.findIndex((w) => w.phase === 'taper')
+    const weeks = applyReturnBlock(plan.weeks, { since: plan.weeks[taperAt]!.weekStart, previousWeeklyKm: 20, illness: false })
+    for (const [i, w] of weeks.entries()) {
+      if (i < taperAt) continue
+      expect(w.easyOnly, w.weekStart).toBeUndefined()
+      expect(w.qualitySessions, w.weekStart).toBe(plan.weeks[i]!.qualitySessions)
+    }
+    // objętość i tak idzie za krzywą powrotu
+    expect(weeks[taperAt]!.targetKm).toBeLessThan(plan.weeks[taperAt]!.targetKm)
   })
 
   it('sprawdzian wypada z całego bloku powrotu, także z tygodni po spokojnym (kalibracja zmierzyłaby przerwę)', () => {

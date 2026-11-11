@@ -1108,12 +1108,18 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     const loadingWeek = plan.weeks
       .filter((w) => w.weekStart <= (currentWeek?.weekStart ?? today) && !w.skeleton.deload && !w.skeleton.tuneUp && ['base', 'build', 'peak'].includes(w.skeleton.phase))
       .at(-1)
+    // tydzień obniżony już przez przyjęty blok powrotu (R-5, R-11): odniesieniem zostaje
+    // objętość z tamtej decyzji — inaczej każde kolejne `adapt` składałoby redukcję
+    const ret = plan.returnState
+    const inReturn = ret !== undefined && loadingWeek !== undefined && loadingWeek.weekStart >= mondayOf(ret.since) &&
+      loadingWeek.skeleton.ruleRefs.some((r) => r === 'R-5' || r === 'R-11')
+    const preBreakWeeklyKm = inReturn ? ret.previousWeeklyKm : loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
     const proposal = analyzeExecution({
       today,
       execution,
       currentWeeklyKm,
       ...(breakLog.length ? { breakLog } : {}),
-      ...(loadingWeek ? { preBreakWeeklyKm: plannedWeekKm(loadingWeek.skeleton) } : {}),
+      ...(preBreakWeeklyKm !== undefined ? { preBreakWeeklyKm } : {}),
       ...(newResults.length ? { newResults } : {}),
       calibrationChanged: plan.calibration !== undefined && !sameResults(config.athlete.results, plan.calibration.results),
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: tuneUpByDate.get(lastRaceDay.date) ?? plan.goal.distanceKm } } : {}),

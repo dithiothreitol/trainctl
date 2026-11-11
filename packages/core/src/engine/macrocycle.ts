@@ -116,7 +116,8 @@ const RETURN_START_SHARE = { min: 0.5, max: 0.6 }
  */
 export function volumeBase(athlete: AthleteProfile, today: string): { start: number; level: number; returning: boolean } {
   const ret = athlete.returning
-  const active = ret !== undefined && diffDays(ret.since, today) <= RETURN_WINDOW_DAYS
+  // bieżąca objętość na poziomie sprzed przerwy albo wyżej: powrót już się dokonał
+  const active = ret !== undefined && diffDays(ret.since, today) <= RETURN_WINDOW_DAYS && athlete.recentWeeklyKm < ret.previousWeeklyKm
   if (!active) return { start: athlete.recentWeeklyKm, level: athlete.recentWeeklyKm, returning: false }
   const lo = RETURN_START_SHARE.min * ret.previousWeeklyKm
   // górna granica rośnie od `since` w tempie P-3: biegacz, który w oknie powrotu już
@@ -307,15 +308,18 @@ export function applyReturnBlock(weeks: WeekSkeleton[], ret: ReturnBlock): WeekS
       cap = last.curve * (w.targetKm / last.planKm)
     }
     const capped = Math.round(cap)
-    const easy = i < easyEnd && !w.raceDate
+    // R-11 (inż.) dotyczy tygodni ładowania: taper trzyma intensywność (T-1), a blok po
+    // starcie ma własne reguły (R-8). R-5 po chorobie obowiązuje w każdej fazie (zero Z3).
+    const easy = i < easyEnd && !w.raceDate && (ret.illness || ['base', 'build', 'peak'].includes(w.phase))
     if (capped >= w.targetKm && !easy) return w
     // sprawdzian wypada z każdego tygodnia bloku, nie tylko ze spokojnych — razem ze swoją
-    // flagą i regułami, żeby `why` nie cytował pomiaru, którego nie ma
+    // flagą i regułami, żeby `why` nie cytował pomiaru, którego nie ma; akcent, który
+    // sprawdzian zastępował (T-12, W-13), wraca
     const { testPlanned, ...rest } = w
     const testRules = new Set(testPlanned ? ['W-11', 'W-12', 'W-13'] : [])
     return {
       ...rest,
-      ...(testPlanned ? { flags: w.flags.filter((f) => f !== messages().macro.timeTrialForCalibration) } : {}),
+      ...(testPlanned ? { flags: w.flags.filter((f) => f !== messages().macro.timeTrialForCalibration), qualitySessions: w.qualitySessions + 1 } : {}),
       targetKm: Math.min(w.targetKm, capped),
       ...(easy ? { qualitySessions: 0, easyOnly: true } : {}),
       ruleRefs: [...new Set([...w.ruleRefs.filter((r) => !testRules.has(r)), rule, 'P-3'])],

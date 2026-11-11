@@ -285,6 +285,34 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(plan.weeks.flatMap((w) => w.days).find((d) => d.date === '2026-11-01')?.workout?.kind).toBe('race')
   })
 
+  it('adapt drugi raz po przyjętym powrocie: objętość sprzed przerwy ta sama, redukcja się nie składa', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-19'
+    // pełne dane w oknie adapt: biegi do 2026-11-06, potem choroba do dziś (tydzień 2026-11-16 to tydzień ładowania)
+    for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-10-30' && x.date <= '2026-11-06')) {
+      expect(cmdLog(dir, { date: d.date, status: 'done' }).code).toBe(0)
+    }
+    expect(cmdLog(dir, { date: '2026-11-07', to: '2026-11-19', status: 'skipped', reason: 'illness' }).code).toBe(0)
+    expect(loadPlan(dir).weeks.find((w) => w.weekStart === '2026-11-16')!.skeleton.deload).toBe(false)
+    const first = restartOf(cmdAdapt(dir, {}))!.returnBlock!
+    const prepared = cmdAdapt(dir, { prepare: true })
+    expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
+    // dwa dni później nadal bez biegania: nowa analiza liczy od tej samej objętości
+    process.env['TRAINCTL_TODAY'] = '2026-11-21'
+    expect(cmdLog(dir, { date: '2026-11-20', to: '2026-11-21', status: 'skipped', reason: 'illness' }).code).toBe(0)
+    expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toEqual(first)
+  })
+
+  it('plan po powrocie z budżetem czasu: werdykt mówi o profilu, a nie o budżecie (E-2)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun') + 'time:\n  weeklyMinutes: 240\n', 'utf-8')
+    const cfg = loadConfig(dir)
+    // powrót od razu: krzywa z 50 km dogania plan przed startem, a budżet trzyma szczyt niżej
+    const plan = computePlan(cfg, '2026-10-22', '2026-10-22', { returnFrom: { since: '2026-10-22', previousWeeklyKm: 50, illness: false } })
+    expect(plan.peakKmPlanned).toBeLessThan(plan.peakKmRecommended)
+    expect(plan.feasibilityWarnings.some((w) => /time budget (caps|holds) the plan/.test(w))).toBe(true)
+    expect(plan.feasibilityWarnings.join(' ')).not.toMatch(/stays below the thresholds/)
+  })
+
   it('adapt: przyczyna wcześniejszej przerwy, po której biegacz biegał, nie blokuje propozycji powrotu', () => {
     setup()
     process.env['TRAINCTL_TODAY'] = '2026-11-12'

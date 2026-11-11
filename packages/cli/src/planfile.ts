@@ -164,9 +164,10 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   // to wyłącznie budżet — krzywa powrotu nie trafia do ostrzeżenia E-2
   const withReturn = (weeks: WeekSkeleton[]) => (opts.returnFrom ? applyReturnBlock(weeks, opts.returnFrom) : weeks)
   const skeletons = withReturn(macro.weeks)
+  const freeReturned = withReturn(free.weeks)
   if (capped) {
     // zamiar bez budżetu tydzień po tygodniu — z niego „bez budżetu" w ostrzeżeniu E-2
-    const freeTarget = new Map(withReturn(free.weeks).map((w) => [w.weekStart, w.targetKm]))
+    const freeTarget = new Map(freeReturned.map((w) => [w.weekStart, w.targetKm]))
     for (const w of skeletons) {
       const target = freeTarget.get(w.weekStart)
       if (target !== undefined && target > w.targetKm) w.uncappedKm = target
@@ -230,8 +231,12 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   const longest = Math.max(0, ...cycleWeeksOf(plan).filter((w) => ['base', 'build', 'peak'].includes(w.skeleton.phase))
     .flatMap((w) => w.days).filter((d) => d.workout?.kind === 'long').map((d) => d.workout!.distanceKm))
   const longShort = threshold !== undefined && longest > 0 && !(threshold.inclusive ? longest >= threshold.km : longest > threshold.km)
-  // szczyt obniżony przez budżet ma własne ostrzeżenie (E-2) — werdykt mówi o profilu
-  const peakShort = goal.kind !== 'base' && (opts.returnFrom ? plan.peakKmPlanned : free.peakKmPlanned) < macro.peakKmRecommended
+  // szczyt obniżony przez budżet ma własne ostrzeżenie (E-2) — werdykt mówi o profilu,
+  // a po przerwie o profilu z blokiem powrotu, nadal bez budżetu
+  const freePeak = opts.returnFrom
+    ? Math.max(0, ...freeReturned.filter((w) => ['base', 'build', 'peak'].includes(w.phase)).map((w) => w.targetKm))
+    : free.peakKmPlanned
+  const peakShort = goal.kind !== 'base' && freePeak < macro.peakKmRecommended
   // ostrzeżenie makrocyklu o szczycie zastępuje werdykt albo ostrzeżenie budżetu
   const peakText = messages().macro.peakBelowRecommended(macro.peakKmPlanned, macro.peakKmRecommended, goal.distanceKm)
   if (peakShort || longShort || capped) plan.feasibilityWarnings = plan.feasibilityWarnings.filter((w) => w !== peakText)
