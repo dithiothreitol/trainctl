@@ -7,6 +7,7 @@
  * Progi oznaczone „inż." są wyborem inżynierskim (E-3), nie wynikiem badań.
  */
 import type { MacroPhase, Microcycle, PlannedWorkout, RaceGoal } from '../domain/types.ts'
+import { recommendedPeakKm } from './macrocycle.ts'
 import { fmtPace, hardKmOf, paceMid } from './microcycle.ts'
 
 export interface SeasonAccent {
@@ -111,11 +112,12 @@ export const SESSION_SHARE_MAX = 0.35
  * Próg najdłuższego biegu dla dystansu: HM — dłuższy niż 21 km (J-2, P-7),
  * maraton — co najmniej 25 km (P-8 karze „najdłuższy <25 km").
  */
-export function longRunThreshold(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): { km: number; inclusive: boolean } | undefined {
+export function longRunThreshold(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): { km: number; inclusive: boolean; ruleRefs: string[] } | undefined {
   if (goal.kind === 'base') return undefined
-  // granice dystansu jak w recommendedPeakKm i taperWeeksFor (P-7/P-8, T-5)
-  if (goal.distanceKm >= 42) return { km: 25, inclusive: true }
-  if (goal.distanceKm >= 20.9) return { km: 21, inclusive: false }
+  // klasa dystansu z tej samej funkcji co szczyt objętości (P-7/P-8)
+  const recommended = recommendedPeakKm(goal as RaceGoal)
+  if (recommended === recommendedPeakKm({ ...goal, distanceKm: 42.195 } as RaceGoal)) return { km: 25, inclusive: true, ruleRefs: ['P-8', 'J-1'] }
+  if (recommended === recommendedPeakKm({ ...goal, distanceKm: 21.0975 } as RaceGoal)) return { km: 21, inclusive: false, ruleRefs: ['J-2', 'P-7'] }
   return undefined
 }
 
@@ -195,7 +197,7 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
   if (threshold !== undefined) {
     const longest = Math.max(0, ...rows.filter((r) => LOADING_PHASES.has(r.phase)).map((r) => r.longKm))
     const meets = threshold.inclusive ? longest >= threshold.km : longest > threshold.km
-    if (!meets) issues.push({ code: 'longBelowGoal', date: '', ruleRefs: plan.goal.distanceKm >= 42 ? ['P-8', 'J-1'] : ['J-2', 'P-7'], values: [longest, threshold.km] })
+    if (!meets) issues.push({ code: 'longBelowGoal', date: '', ruleRefs: threshold.ruleRefs, values: [longest, threshold.km] })
   }
   return issues
 }

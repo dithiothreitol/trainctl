@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Microcycle, PlannedWorkout, RaceGoal, Weekday } from '../domain/types.ts'
 import { addDays } from '../util/dates.ts'
-import { seasonLine, seasonProfile, seasonShapeIssues } from './season.ts'
+import { longRunThreshold, seasonLine, seasonProfile, seasonShapeIssues } from './season.ts'
 
 const WD: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
@@ -98,5 +98,15 @@ describe('postRaceAccentHeavy: sufit odporny na jedną krótką jednostkę', () 
       week('2027-01-18', { tue: accent(5), sat: long(8) }, 'transition'),
     ]
     expect(seasonShapeIssues({ goal: half, weeks }).some((i) => i.code === 'postRaceAccentHeavy')).toBe(false)
+  })
+})
+
+describe('longRunThreshold: klasa dystansu jak w recommendedPeakKm', () => {
+  it('maraton, półmaraton, 10 km, ultra', () => {
+    expect(longRunThreshold({ kind: 'race', distanceKm: 42.195 })).toMatchObject({ km: 25, ruleRefs: ['P-8', 'J-1'] })
+    expect(longRunThreshold({ kind: 'race', distanceKm: 21.0975 })).toMatchObject({ km: 21, ruleRefs: ['J-2', 'P-7'] })
+    expect(longRunThreshold({ kind: 'race', distanceKm: 10 })).toBeUndefined()
+    // ultra nie ma progu w źródłach (T-8) — lint się nie wypowiada
+    expect(longRunThreshold({ kind: 'race', distanceKm: 50 })).toBeUndefined()
   })
 })

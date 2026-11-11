@@ -811,4 +811,9 @@ Wypełniany w trakcie realizacji przez krok 6 zamknięcia etapu.
 | Data | Etap | Plik | Znalezisko | Decyzja |
 |---|---|---|---|---|
 | 2026-11-11 | 1 | `packages/cli/src/sports-calendar.test.ts` | test „updates only changed events … repeats byte-identically" raz zawiódł przy pełnym przebiegu pod obciążeniem, przechodzi osobno i w powtórce | do zbadania osobno (zależność od zegara?), poza zakresem etapu |
+| 2026-11-11 | 1 | `packages/cli/src/sports-store.ts:120` | migracja do v2 czyta log.jsonl bez normalizacji z `logfile.ts` | etap 4 (jeden model danych): wspólny odczyt dziennika |
+| 2026-11-11 | 1 | `packages/cli/src/status.ts:85` | `status` po starcie pisze „Do startu: 5 dni temu", `review` już „Od startu" | etap 3 (spójne widoki) |
+| 2026-11-11 | 1 | `packages/cli/src/commands.ts:684` | `log --km 8,5` odrzucone, a odczyt dziennika i kreator przyjmują przecinek; trzy parsery km | etap 3: jeden parser liczb wejściowych |
+| 2026-11-11 | 1 | `packages/cli/src/interactive.ts:157` | domyślna wartość km w kreatorze dziennika to surowe `21.0975` | etap 3 |
+| 2026-11-11 | 1 | `packages/core/src/engine/microcycle.ts` | pętla I-5 i `weekTotals` liczą Z1 osobno, obok `hardKmOf` | etap 2 (B5 zmienia pętlę I-5) |
 | 2026-11-11 | 1 | `packages/cli/src/bin.test.ts` | testy uruchamiające binarkę przekraczają 30 s przy obciążonej maszynie | do rozważenia: osobny limit czasu dla tych testów |

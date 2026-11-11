@@ -35,7 +35,7 @@ import {
 import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
 import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
-import { kmLabel, logStatusText } from './format.ts'
+import { kmLabel, logStatusText, shownKm } from './format.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, logFor, parseTime, readLog, readStrengthLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
@@ -549,7 +549,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
       const w = day.workout
       blocks.push(
         b.panel(
-          `${kindLabel(w.kind)} · ${kmLabel(w.raceDistanceKm ?? w.distanceKm)}`,
+          `${kindLabel(w.kind)} · ${kmLabel(shownKm(w))}`,
           [workoutText(day)],
           KIND_COLOR[w.kind] ?? 'accent',
         ),
@@ -619,7 +619,7 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
       rows.push([
         weekdayShort(day.weekday),
         day.date.slice(5),
-        day.workout ? kmLabel(day.workout.raceDistanceKm ?? day.workout.distanceKm) : '—',
+        day.workout ? kmLabel(shownKm(day.workout)) : '—',
         day.workout ? `${workoutText(day)}${strength}${mark}` : `${ui().week.rest}${strength}`,
       ])
       accents.push(kind ? KIND_COLOR[kind] : 'muted')
@@ -704,7 +704,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     const minutes = workout ? estimateWorkoutMinutes(workout, plan.preparationMinutes ?? 15) : undefined
     const knownMinutes = minutes !== undefined && Number.isFinite(minutes) ? minutes : null
     const planned = workout
-      ? [kindLabel(workout.kind), kmLabel(workout.raceDistanceKm ?? workout.distanceKm), ...(knownMinutes !== null ? [`~${knownMinutes} min`] : [])].join(' · ')
+      ? [kindLabel(workout.kind), kmLabel(shownKm(workout)), ...(knownMinutes !== null ? [`~${knownMinutes} min`] : [])].join(' · ')
       : ui().week.rest
     const recorded = [
       logStatusText(entry.status),
@@ -824,12 +824,19 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     }
     if (!day.workout && !day.strength) blocks.push(b.text(ui().why.restDay))
     blocks.push(b.section(ui().improve.calibration))
+    // stan wyników na dziś — to samo, co tekst; `calibration` zostaje zapisem z dnia kalibracji
+    let calibrationToday: { date: string; label: ReturnType<typeof calibrationLabel>; ageDays: number }[] | null = null
     if (plan.calibration) {
       const now = localToday()
       const current = inspectCalibration(plan.calibration.results, now, isRoadGoal(plan.goal)).candidates
+      // następca dla przeterminowanego wyniku może już być w trainctl.yaml, choć plan go nie zna
+      const configured = (() => { try { return loadConfig(cwd).athlete.results } catch { return [] } })()
+      const replacement = inspectCalibration(configured.length ? configured : plan.calibration.results, now, isRoadGoal(plan.goal)).candidates.some((x) => x.reason === 'selected')
+      const today = plan.calibration.candidates.map((c, i) => ({ date: c.result.date, label: calibrationLabel(c, current[i], replacement), ageDays: diffDays(c.result.date, now) }))
+      calibrationToday = today
       blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c, i) => {
-        const age = diffDays(c.result.date, now)
-        const reason = calibrationLabel(c, current[i], current.some((x) => x.reason === 'selected'))
+        const age = today[i]!.ageDays
+        const reason = today[i]!.label
         return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
       })))
     } else blocks.push(b.info(ui().improve.calibrationMissing))
@@ -840,7 +847,7 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
       blocks.push(b.section(ui().why.rules), b.bullets(evidence.map((e) => ui().why.ruleLine(e.id, ruleExplain(e.id), ui().improve[e.origin]))))
     }
     blocks.push(b.blank(), b.hint(ui().why.sourcesHint(foundationsUrl(), day.workout || !day.strength ? '§10' : '§10.8')))
-    return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, evidence })
+    return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, calibrationToday, evidence })
   } catch (e) {
     return fail(e)
   }
@@ -1157,7 +1164,7 @@ export function cmdDesk(
     if (workout) {
       blocks.push(
         b.panel(
-          `${kindLabel(workout.kind)} · ${kmLabel(workout.raceDistanceKm ?? workout.distanceKm)}`,
+          `${kindLabel(workout.kind)} · ${kmLabel(shownKm(workout))}`,
           day.recommended
             ? [ui().desk.proposedWindow(day.recommended.label, day.recommended.from, day.recommended.to)]
             : [ui().desk.noWindowFits],

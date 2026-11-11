@@ -13,6 +13,7 @@ import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmd
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices } from './interactive.ts'
 import { calibrationLabel } from './calibration.ts'
+import { shownKm } from './format.ts'
 import { loadPlan } from './planfile.ts'
 import { readLog } from './logfile.ts'
 import { helpItem } from './ui/help.ts'
@@ -401,5 +402,37 @@ describe('poprawki po siódmej rundzie przeglądu etapu 1', () => {
     expect(calibrationLabel(c('lower-vdot'), c('selected'), true)).toBe('nowBest')
     expect(calibrationLabel(c('selected'), c('stale'), true)).toBe('selectedStaleReplaced')
     expect(calibrationLabel(c('selected'), c('stale'), false)).toBe('selectedStale')
+  })
+})
+
+describe('poprawki po ósmej rundzie przeglądu etapu 1', () => {
+  it('why: dane MCP mają stan wyników na dziś zgodny z tekstem', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('"2026-09-27"', '"2025-06-09"'), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    process.env['TRAINCTL_TODAY'] = '2026-12-21'
+    const why = cmdWhy(dir, { date: '2026-12-22' })
+    expect(why.data).toMatchObject({ calibrationToday: [{ date: '2025-06-09', label: 'selectedStale' }] })
+  })
+
+  it('why: świeży wynik dopisany do trainctl.yaml bez regeneracji — „plan przejdzie na nowszy"', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('"2026-09-27"', '"2025-06-09"'), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
+      '    - { date: "2025-06-09", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-12-01", distanceKm: 10, timeSec: 2600 }'), 'utf-8')
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-12-21'
+    expect(cmdWhy(dir, { date: '2026-12-22' }).output).toContain('trainctl plan will switch to a newer result')
+  })
+
+  it('wpis dziennika bez statusu nie pokazuje „undefined"', () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', km: 8, loggedAt: 'x' }) + '\n')
+    for (const out of [cmdWeek(dir).output, cmdToday(dir).output, cmdStatus(dir).output]) expect(out).not.toContain('undefined')
+  })
+
+  it('shownKm: start pokazuje dystans startu', () => {
+    expect(shownKm({ distanceKm: 0, raceDistanceKm: 21.0975 })).toBe(21.0975)
+    expect(shownKm({ distanceKm: 8 })).toBe(8)
   })
 })
