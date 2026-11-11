@@ -1,7 +1,7 @@
-import { formatNumber } from 'trainctl-core'
+import { numberIn } from './numbers.ts'
 import type { improveEn } from './improve-en.ts'
 
-const n = (value: number) => formatNumber('pl', value)
+const n = numberIn('pl')
 export const improvePl: typeof improveEn = {
   expiredProposal: 'Propozycja wygasła. Przygotuj i przejrzyj nową propozycję dzisiaj.',
   pastWrite: 'Nie można zmieniać dni przeszłych lub zapisanych w dzienniku.',
@@ -35,6 +35,8 @@ export const improvePl: typeof improveEn = {
   calibrationMissing: 'Ten starszy plan nie zapisuje wyników użytych do kalibracji stref.',
   selected: 'Użyty do stref', 'lower-vdot': 'Niższy VDOT', excluded: 'Wykluczony przez Ciebie', future: 'Wynik z przyszłości', stale: 'Starszy niż 540 dni',
   selectedStale: 'Użyty do stref; dziś starszy niż 540 dni — dopisz świeży wynik',
+  selectedStaleReplaced: 'Użyty do stref; dziś starszy niż 540 dni — trainctl plan przejdzie na nowszy wynik',
+  nowBest: 'Dziś ustawiłby strefy — uruchom trainctl plan',
   newer: 'Nowszy niż kalibracja — trainctl plan go uwzględni',
   calibratedOn: (date: string) => `Strefy planu skalibrowano ${date}; wiek wyników poniżej liczony od dziś.`,
   age: (days: number) => `sprzed ${days} dni`,

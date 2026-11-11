@@ -218,9 +218,16 @@ def main():
         pairs[(kind(ws, 5, lw), kind(ws, 6, lw))] += 1
         if lw:
             longs.append(km(lw))
-        for wd in range(6):
-            if kind(ws, wd, lw) == 'długie':
+        for wd in range(7):
+            if kind(ws, wd, lw) != 'długie':
+                continue
+            if wd < 6:
                 after_long[kind(ws, wd + 1, lw)] += 1
+            else:
+                # niedzielne długie: dzień po nim to poniedziałek następnego tygodnia
+                nxt = (date.fromisoformat(m) + timedelta(days=7)).isoformat()
+                if nxt in complete:
+                    after_long[kind(complete[nxt], 0, long_of(complete[nxt]))] += 1
         if kind(ws, 5, lw) == 'start' and ws.get(6) and is_run(ws[6]):
             sunday_after_sat_race.append(km(ws[6]))
     d = {

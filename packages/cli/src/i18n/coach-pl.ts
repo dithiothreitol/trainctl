@@ -1,7 +1,7 @@
-import { formatNumber } from 'trainctl-core'
+import { numberIn } from './numbers.ts'
 import type { coachEn } from './coach-en.ts'
 
-const n = (value: number) => formatNumber('pl', value)
+const n = numberIn('pl')
 export const coachPl: typeof coachEn = {
   shorten: 'dopasuj trening do dostępnego czasu; zapisz propozycję do zatwierdzenia',
   shortenMcp: 'Użyj, gdy biegacz ma mało czasu, np. dziś tylko 40 minut. Wywołaj z minutes i opcjonalnym date, aby zapisać propozycję bez zmiany planu. Pokaż przed/po, podział czasu, utracony cel i ostrzeżenia. Po zatwierdzeniu wywołaj trainctl_adapt z apply równym zapisanemu ID. Nie regeneruj ani nie synchronizuj między podglądem a zatwierdzeniem.',

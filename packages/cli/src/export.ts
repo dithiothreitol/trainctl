@@ -111,7 +111,7 @@ function fitFor(plan: StoredPlan, day: PlannedDay, dir: string): ExportedFile | 
   return {
     path: file,
     bytes: bytes.length,
-    description: `${name} · ${kmLabel(day.workout.distanceKm)}`,
+    description: `${name} · ${kmLabel(day.workout.raceDistanceKm ?? day.workout.distanceKm)}`,
   }
 }
 
@@ -175,7 +175,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
       .map((day) => {
         const runLabel = day.workout
           ? `${kindLabel(day.workout.kind)}${
-              day.workout.distanceKm ? ` ${kmLabel(day.workout.distanceKm)}` : ''
+              (day.workout.raceDistanceKm ?? day.workout.distanceKm) ? ` ${kmLabel(day.workout.raceDistanceKm ?? day.workout.distanceKm)}` : ''
             }`
           : undefined
         const strengthLabel = day.strength
@@ -235,7 +235,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
     days: w.days.map((d) => ({
       weekday: core.weekdayShort[d.weekday],
       date: d.date.slice(5).replace('-', '.'),
-      km: d.workout?.distanceKm ? kmLabel(d.workout.distanceKm) : '',
+      km: (d.workout?.raceDistanceKm ?? d.workout?.distanceKm) ? kmLabel(d.workout!.raceDistanceKm ?? d.workout!.distanceKm) : '',
       rest: !d.workout,
       text:
         (d.workout ? workoutText(d) : p.rest) +

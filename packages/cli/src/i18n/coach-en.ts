@@ -1,6 +1,6 @@
-import { formatNumber } from 'trainctl-core'
+import { numberIn } from './numbers.ts'
 
-const n = (value: number) => formatNumber('en', value)
+const n = numberIn('en')
 
 export const coachEn = {
   shorten: 'fit a session into your available time; save a proposal for approval',

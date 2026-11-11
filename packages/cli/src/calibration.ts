@@ -19,12 +19,14 @@ export const isRoadGoal = (goal: { terrain?: string | undefined }): boolean => g
  * wyniku — z dziś, policzony tą samą funkcją co przy generowaniu planu. Dzięki temu
  * etykieta nie przeczy wiekowi, a reguły okna 540 dni i Z-10 żyją w jednym miejscu.
  */
-export function calibrationLabel(stored: Calibration['candidates'][number], today: Calibration['candidates'][number] | undefined):
-  Calibration['candidates'][number]['reason'] | 'selectedStale' | 'newer' {
+export function calibrationLabel(stored: Calibration['candidates'][number], today: Calibration['candidates'][number] | undefined, replacementToday: boolean):
+  Calibration['candidates'][number]['reason'] | 'selectedStale' | 'selectedStaleReplaced' | 'nowBest' | 'newer' {
   const now = today?.reason ?? stored.reason
-  if (stored.reason === 'selected') return now === 'stale' ? 'selectedStale' : 'selected'
+  // użyty do stref, dziś za stary: inny wynik już by go zastąpił albo trzeba dopisać świeży
+  if (stored.reason === 'selected') return now === 'stale' ? (replacementToday ? 'selectedStaleReplaced' : 'selectedStale') : 'selected'
   if (now === 'stale' || now === 'terrain' || now === 'excluded') return now
   if (stored.reason === 'future' && (now === 'selected' || now === 'lower-vdot')) return 'newer'
+  if (now === 'selected') return 'nowBest'
   return stored.reason
 }
 

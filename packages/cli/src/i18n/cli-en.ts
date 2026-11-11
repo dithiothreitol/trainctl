@@ -4,11 +4,12 @@
  * tutaj jest wyłącznie to, co należy do warstwy CLI/MCP: nazwy komend,
  * nagłówki, podpowiedzi, komunikaty błędów i opisy narzędzi agenta.
  */
-import { formatNumber, pluralEn } from 'trainctl-core'
+import { pluralEn } from 'trainctl-core'
+import { numberIn } from './numbers.ts'
 import { improveEn } from './improve-en.ts'
 import { coachEn } from './coach-en.ts'
 
-const n = (value: number) => formatNumber('en', value)
+const n = numberIn('en')
 
 export const cliEn = {
   coach: coachEn,
@@ -619,7 +620,6 @@ export const cliEn = {
     toRace: 'To race day',
     sinceRace: 'Since the race',
     columns: { planned: 'Plan', actual: 'Actual', status: 'Status' },
-    toRaceValue: (days: number) => `${days} ${pluralEn(days, { one: 'day', other: 'days' })}`,
     baseEnd: 'Base plan until',
     raceThisWeek: (date: string) =>
       `Race this week: ${date} — the day before stays clear (T-10).`,

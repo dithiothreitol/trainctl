@@ -81,3 +81,22 @@ describe('postRaceAccentHeavy', () => {
     expect(seasonShapeIssues({ goal: half, weeks }).some((i) => i.code === 'postRaceAccentHeavy')).toBe(true)
   })
 })
+
+describe('postRaceAccentHeavy: sufit odporny na jedną krótką jednostkę', () => {
+  const accent = (main: number): PlannedWorkout => ({
+    kind: 'quality_intervals', distanceKm: 4 + main, ruleRefs: [],
+    segments: [
+      { type: 'warmup', distanceKm: 3, description: '' },
+      { type: 'intervals', reps: main, repM: 1000, distanceKm: main, description: '' },
+      { type: 'cooldown', distanceKm: 1, description: '' },
+    ],
+  })
+  it('jeden akcent 1 km w bloku nie zbija sufitu do 1 km', () => {
+    const weeks = [
+      week('2027-01-04', { tue: accent(6), sun: accent(1), sat: long(18) }),
+      week('2027-01-11', { tue: accent(6), sun: accent(5), sat: long(18) }),
+      week('2027-01-18', { tue: accent(5), sat: long(8) }, 'transition'),
+    ]
+    expect(seasonShapeIssues({ goal: half, weeks }).some((i) => i.code === 'postRaceAccentHeavy')).toBe(false)
+  })
+})

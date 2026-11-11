@@ -575,8 +575,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
       blocks.push(
         b.success(
           ui().today.logged(logStatusText(entry.status)) +
-            // 0 km przy opuszczonej sesji to brak dystansu, nie informacja
-            (entry.km !== undefined && !(entry.status === 'skipped' && entry.km === 0) ? `, ${kmLabel(entry.km)}` : '') +
+            (entry.km !== undefined ? `, ${kmLabel(entry.km)}` : '') +
             (entry.rpe !== undefined ? `, RPE ${entry.rpe}` : '') +
             (entry.note ? ` — ${entry.note}` : ''),
         ),
@@ -690,7 +689,8 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     const entry: LogEntry = {
       date,
       status,
-      ...(opts.km ? { km: Number(opts.km) } : {}),
+      // opuszczona sesja nie ma dystansu (0 km to brak informacji, nie wynik)
+      ...(opts.km && status !== 'skipped' ? { km: Number(opts.km) } : {}),
       ...(opts.time ? { timeSec: parseTime(opts.time) } : {}),
       ...(testTimeSec !== undefined ? { testTimeSec } : {}),
       ...(rpe !== undefined ? { rpe } : {}),
@@ -829,7 +829,7 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
       const current = inspectCalibration(plan.calibration.results, now, isRoadGoal(plan.goal)).candidates
       blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c, i) => {
         const age = diffDays(c.result.date, now)
-        const reason = calibrationLabel(c, current[i])
+        const reason = calibrationLabel(c, current[i], current.some((x) => x.reason === 'selected'))
         return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
       })))
     } else blocks.push(b.info(ui().improve.calibrationMissing))
@@ -1536,8 +1536,8 @@ export async function cmdReview(
           ...(plan.goal.kind === 'base'
             ? ([[ui().review.baseEnd, plan.goal.date]] as [string, string][])
             : diffDays(today, plan.goal.date) >= 0
-              ? ([[ui().review.toRace, ui().review.toRaceValue(diffDays(today, plan.goal.date))]] as [string, string][])
-              : ([[ui().review.sinceRace, ui().review.toRaceValue(diffDays(plan.goal.date, today))]] as [string, string][])),
+              ? ([[ui().review.toRace, ui().status.daysToRace(diffDays(today, plan.goal.date))]] as [string, string][])
+              : ([[ui().review.sinceRace, ui().status.daysToRace(diffDays(plan.goal.date, today))]] as [string, string][])),
         ]),
       )
       const race = upcoming.find((d) => d.workout?.kind === 'race')

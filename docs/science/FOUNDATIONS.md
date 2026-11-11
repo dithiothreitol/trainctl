@@ -1921,8 +1921,8 @@ Szczyt objętości wypadł 5, 6 i 7 tygodni przed startem.
 | 1–4 | 30 | 10,0 | 9 | 12 km |
 
 **Weekend:** sobota→niedziela „akcent→długie" 53 razy, „długie→akcent"
-52 razy, „start→długie" 14 razy. Dzień po długim: akcent 66, wolne 26,
-spokojne 5. Bieg w niedzielę po sobotnim starcie: n = 15, mediana 25 km.
+52 razy, „start→długie" 14 razy. Dzień po długim (z poniedziałkiem po
+niedzielnym długim): wolne 82, akcent 72, spokojne 5, długie 1. Bieg w niedzielę po sobotnim starcie: n = 15, mediana 25 km.
 
 **Reguły wynikające z pomiaru:**
 

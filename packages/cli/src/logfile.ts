@@ -48,20 +48,21 @@ function readAll(cwd: string): (LogEntry | StrengthLogEntry)[] {
     .map((l) => normalize(JSON.parse(l) as Record<string, unknown>))
 }
 
-/**
- * log.jsonl bywa edytowany ręcznie. Liczby zapisane tekstem („8") zamieniamy na
- * liczby, wartości spoza liczb (null, „osiem") pomijamy — raz, przy odczycie,
- * zamiast osobnej ochrony w każdej komendzie. Status zostaje, jak jest: widok
- * pokazuje nieznany status bez zmian (logStatusText).
- */
-/** Czas wpisany tak, jak przyjmuje go CLI („58:30"), albo liczba tekstem. */
+/** Czas wpisany tak, jak przyjmuje go CLI („58:30"), albo liczba tekstem, także z przecinkiem („8,5"). */
 function fromText(key: string, text: string): number {
   if (key.endsWith('Sec') && text.includes(':')) {
     try { return parseTime(text.trim()) } catch { return NaN }
   }
-  return Number(text)
+  return Number(text.trim().replace(',', '.'))
 }
 
+/**
+ * log.jsonl bywa edytowany ręcznie. Liczby zapisane tekstem („8") zamieniamy na
+ * liczby, wartości spoza liczb (null, „osiem") pomijamy — raz, przy odczycie,
+ * zamiast osobnej ochrony w każdej komendzie. Status zostaje, jak jest: widok
+ * pokazuje nieznany status bez zmian (logStatusText). 0 km przy opuszczonej
+ * sesji to brak dystansu, nie informacja.
+ */
 function normalize(raw: Record<string, unknown>): LogEntry | StrengthLogEntry {
   const entry = { ...raw }
   for (const key of ['km', 'timeSec', 'testTimeSec', 'rpe', 'minutes']) {
@@ -70,6 +71,7 @@ function normalize(raw: Record<string, unknown>): LogEntry | StrengthLogEntry {
     if (typeof value === 'number' && Number.isFinite(value)) entry[key] = value
     else delete entry[key]
   }
+  if (entry['status'] === 'skipped' && entry['km'] === 0) delete entry['km']
   return entry as unknown as LogEntry | StrengthLogEntry
 }
 

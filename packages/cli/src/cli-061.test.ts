@@ -12,6 +12,7 @@ import { setLocale } from 'trainctl-core'
 import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices } from './interactive.ts'
+import { calibrationLabel } from './calibration.ts'
 import { loadPlan } from './planfile.ts'
 import { readLog } from './logfile.ts'
 import { helpItem } from './ui/help.ts'
@@ -378,5 +379,27 @@ describe('poprawki po szóstej rundzie przeglądu etapu 1', () => {
   it('log.jsonl: czas „58:30" wpisany ręcznie zostaje odczytany', () => {
     appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'done', timeSec: '58:30', loggedAt: 'x' }) + '\n')
     expect(readLog(dir)[0]).toMatchObject({ timeSec: 3510 })
+  })
+})
+
+describe('poprawki po siódmej rundzie przeglądu etapu 1', () => {
+  it('log.jsonl: dystans z przecinkiem odczytany jako liczba', () => {
+    appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'done', km: '8,5', loggedAt: 'x' }) + '\n')
+    expect(readLog(dir)[0]).toMatchObject({ km: 8.5 })
+  })
+
+  it('opuszczona sesja nie zapisuje 0 km', () => {
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    cmdLog(dir, { date: '2026-10-27', status: 'skipped', km: '0' })
+    const raw = readFileSync(join(dir, 'log.jsonl'), 'utf-8')
+    expect(raw).not.toContain('"km"')
+  })
+
+  it('calibrationLabel: wynik, który dziś ustawiłby strefy, i przeterminowany z następcą', () => {
+    const result = { date: '2026-01-01', distanceKm: 10, timeSec: 2580 }
+    const c = (reason: 'selected' | 'lower-vdot' | 'stale') => ({ result, ageDays: 0, vdot: 47, reason })
+    expect(calibrationLabel(c('lower-vdot'), c('selected'), true)).toBe('nowBest')
+    expect(calibrationLabel(c('selected'), c('stale'), true)).toBe('selectedStaleReplaced')
+    expect(calibrationLabel(c('selected'), c('stale'), false)).toBe('selectedStale')
   })
 })

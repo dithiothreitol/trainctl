@@ -7,10 +7,11 @@
  *  - cudzysłowy drukarskie „…", półpauza — w zdaniu, dywiz w złożeniach,
  *  - tryb rozkazujący w podpowiedziach („uruchom", „dopisz"), bo tak mówi trener.
  */
-import { formatNumber, pluralPl } from 'trainctl-core'
+import { pluralPl } from 'trainctl-core'
+import { numberIn } from './numbers.ts'
 import type { CliMessages } from './cli-en.ts'
 
-const n = (value: number) => formatNumber('pl', value)
+const n = numberIn('pl')
 const plik = (count: number) =>
   `${count} ${pluralPl(count, { one: 'plik', few: 'pliki', other: 'plików' })}`
 const dni = (count: number) =>
@@ -638,8 +639,6 @@ export const cliPl: CliMessages = {
     sinceRace: 'Od startu',
     columns: { planned: 'Plan', actual: 'Wykonanie', status: 'Status' },
     baseEnd: 'Plan bazowy do',
-    toRaceValue: (days: number) =>
-      `${days} ${pluralPl(days, { one: 'dzień', few: 'dni', other: 'dni' })}`,
     raceThisWeek: (date: string) =>
       `Start w tym tygodniu: ${date} — dzień przed zostaje wolny (T-10).`,
     timeTrialThisWeek: (date: string) =>

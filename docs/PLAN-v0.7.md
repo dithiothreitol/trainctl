@@ -305,8 +305,8 @@ zostają w kodzie z komentarzem „inż." i wpisem w FOUNDATIONS.
     ładowania (P-2);
   - `sessionShareHigh`: jednostka inna niż długie, start i sprawdzian ponad
     35% kilometrów tygodnia (inż.);
-  - `postRaceAccentHeavy`: akcent w bloku przejściowym większy niż najmniejszy
-    akcent ostatniego bloku budowania (R-8);
+  - `postRaceAccentHeavy`: akcent w bloku przejściowym większy niż mediana
+    akcentów ostatniego bloku budowania (R-8);
   - `staleProgression`: dwa kolejne bloki ładowania w fazie budowania albo
     szczytu z identyczną dawką obu akcentów i długiego (P-1, inż.);
   - `longBelowGoal`: najdłuższy bieg planu poniżej progu J-2 albo P-8. To
@@ -416,7 +416,8 @@ zostają w kodzie z komentarzem „inż." i wpisem w FOUNDATIONS.
 
 - **Objaw:** obserwacja 11. Sprawdzian w sobotę i 19 km w niedzielę.
 - **Nauka (wykonana, §10.15):** S-9b — „długie→akcent" 52 razy,
-  „akcent→długie" 53 razy; dzień po długim to najczęściej akcent (66 z 97).
+  „akcent→długie" 53 razy; dzień po długim to wolne 82 razy i akcent 72 razy
+  (na 160).
   Po sobotnim starcie niedzielny bieg ma medianę 25 km (n = 15, T-11).
 - **Zmiana (po pomiarze):** układ zostaje. `why` dla akcentu dzień po długim
   i dla długiego dzień po sprawdzianie cytuje S-9b albo T-11.
@@ -809,3 +810,5 @@ Wypełniany w trakcie realizacji przez krok 6 zamknięcia etapu.
 
 | Data | Etap | Plik | Znalezisko | Decyzja |
 |---|---|---|---|---|
+| 2026-11-11 | 1 | `packages/cli/src/sports-calendar.test.ts` | test „updates only changed events … repeats byte-identically" raz zawiódł przy pełnym przebiegu pod obciążeniem, przechodzi osobno i w powtórce | do zbadania osobno (zależność od zegara?), poza zakresem etapu |
+| 2026-11-11 | 1 | `packages/cli/src/bin.test.ts` | testy uruchamiające binarkę przekraczają 30 s przy obciążonej maszynie | do rozważenia: osobny limit czasu dla tych testów |

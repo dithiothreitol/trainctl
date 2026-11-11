@@ -25,7 +25,7 @@ export function dayChoices(week: Microcycle, exclude?: string): Choice<string>[]
       const isRace = day.workout?.kind === 'race'
       const label = `${messages().weekdayShort[day.weekday]} ${day.date.slice(5)}`
       const what = day.workout
-        ? `${kmLabel(day.workout.distanceKm)} · ${workoutText(day)}`
+        ? `${kmLabel(day.workout.raceDistanceKm ?? day.workout.distanceKm)} · ${workoutText(day)}`
         : ui().week.rest
       return {
         label,

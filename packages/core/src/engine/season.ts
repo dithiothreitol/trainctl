@@ -154,20 +154,22 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
     }
   })
 
-  // R-8: akcent w bloku przejściowym (po starcie celu) nie większy niż najmniejszy
-  // akcent ostatniego bloku budowania — tygodni ładowania między ostatnimi odciążeniami
-  // (ostatni niepusty: blok z samym sprawdzianem po odciążeniu nie zeruje sufitu)
-  let lastBuildBlock: SeasonRow[] = []
+  // R-8: akcent w bloku przejściowym (po starcie celu) nie większy niż typowy akcent
+  // ostatniego bloku budowania (mediana — jedna skrócona jednostka nie zbija sufitu).
+  // Blok to tygodnie ładowania między odciążeniami; liczy się ostatni, który ma
+  // akcenty inne niż podbiegi.
+  const accentKm = (block: SeasonRow[]) => block.flatMap((r) => r.accents.filter((a) => a.kind !== 'easy_hills').map((a) => a.hardKm))
+  let buildHard: number[] = []
   let buildBlock: SeasonRow[] = []
   for (const r of rows) {
     if (r.phase !== 'build') continue
-    if (r.deload) { if (buildBlock.length) lastBuildBlock = buildBlock; buildBlock = []; continue }
+    if (r.deload) { if (accentKm(buildBlock).length) buildHard = accentKm(buildBlock); buildBlock = []; continue }
     if (!r.flags.length) buildBlock.push(r)
   }
-  if (buildBlock.length) lastBuildBlock = buildBlock
-  const buildHard = lastBuildBlock.flatMap((r) => r.accents.filter((a) => a.kind !== 'easy_hills').map((a) => a.hardKm))
+  if (accentKm(buildBlock).length) buildHard = accentKm(buildBlock)
   if (buildHard.length) {
-    const ceiling = Math.min(...buildHard)
+    const sorted = [...buildHard].sort((a, z) => a - z)
+    const ceiling = sorted[Math.floor((sorted.length - 1) / 2)]!
     for (const r of rows.filter((x) => x.phase === 'transition')) {
       for (const a of r.accents) if (a.kind !== 'easy_hills' && a.hardKm > ceiling) issues.push({ code: 'postRaceAccentHeavy', date: r.weekStart, ruleRefs: ['R-8'], values: [a.hardKm, ceiling] })
     }
