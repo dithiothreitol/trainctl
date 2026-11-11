@@ -27,6 +27,16 @@ export function fmtPace(secPerKm: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+/**
+ * E-3 (inż.): sufit pojedynczego biegu spokojnego. Korpus nie ma reguły — to
+ * granica, przy której reszta kilometrów przestaje być „spokojną uzupełniającą".
+ */
+export const EASY_RUN_CAP_KM = 18
+/** E-3 (inż.): część główna akcentu ≈ 22% tygodnia przed odjęciem rozgrzewki i schłodzenia. */
+const QUALITY_MAIN_SHARE = 0.22
+/** E-3 (inż.): kilometry poza Z1 najwyżej 25% tygodnia — margines pod I-5 (≥75% Z1). */
+const HARD_SHARE_MAX = 0.25
+
 const mid = (r: { loSecPerKm: number; hiSecPerKm: number }) =>
   Math.round((r.loSecPerKm + r.hiSecPerKm) / 2)
 
@@ -147,7 +157,7 @@ function buildQualityIntervals(
       repM: 1000,
       distanceKm: reps,
       pace: z.interval,
-      recoverySec: 180,
+      recoverySec: 180, // E-3 (inż.): przerwy 3' trucht przy odcinkach @I, z korpusu bez reguły
       description: messages().workout.intervalsVo2(
         reps, fmtPace(mid(z.interval)), 3, Math.ceil(reps / 2), 4,
       ),
@@ -161,7 +171,7 @@ function buildQualityIntervals(
       repM: 3000,
       distanceKm: reps * 3,
       pace: z.threshold,
-      recoverySec: 180,
+      recoverySec: 180, // E-3 (inż.)
       description: messages().workout.intervals3Km(reps, fmtPace(mid(z.threshold)), 3),
     }
   } else {
@@ -172,7 +182,7 @@ function buildQualityIntervals(
       repM: 1000,
       distanceKm: reps,
       pace: z.threshold,
-      recoverySec: 120,
+      recoverySec: 120, // E-3 (inż.): 2' marsz — zapis korpusu, bez reguły w FOUNDATIONS
       description: messages().workout.intervalsKm(reps, fmtPace(mid(z.threshold)), 2),
     }
   }
@@ -221,6 +231,7 @@ function buildQualityContinuous(
   }
 }
 
+/** E-3 (inż.): przedstartowe 5×300 m @I — utrzymanie intensywności w tygodniu startu (T-1). */
 function buildSharpener(style: HouseStyle, z: PaceZones): PlannedWorkout {
   const reps = 5
   const repM = 300
@@ -390,6 +401,7 @@ function planRaceWeek(
       Math.abs(raceIdx - 3 - WEEKDAY_ORDER.indexOf(a)) -
       Math.abs(raceIdx - 3 - WEEKDAY_ORDER.indexOf(b)),
   )[0]
+  // E-3 (inż.): bez liczby sesji ze szkieletu cztery; biegi spokojne po 5 km
   for (const wd of before.slice(0, Math.max(0, (sessionCount ?? 4) - 1))) {
     plan.set(wd, wd === sharpenerWd ? buildSharpener(style, zones) : buildEasy(5, zones))
   }
@@ -459,8 +471,9 @@ function planNormalWeek(
 
   // objętość
   const longKm = longWd ? Math.min(Math.round(style.longRunShare * target), style.longRunCapKm) : 0
-  let qualityMainKm = Math.max(3, Math.round(0.22 * target) - style.warmupKm - style.cooldownKm)
+  let qualityMainKm = Math.max(3, Math.round(QUALITY_MAIN_SHARE * target) - style.warmupKm - style.cooldownKm)
   const hillsRepsKm = (style.hillsReps * style.hillsRepM) / 1000
+  // E-3 (inż.): spokojne wprowadzenie przed podbiegami 5–8 km, ~10% tygodnia
   const hillsEasyKm = hillsWd ? Math.min(8, Math.max(5, Math.round(0.1 * target))) : 0
 
   const buildAll = () => {
@@ -479,7 +492,7 @@ function planNormalWeek(
     const usedKm = [...plan.values()].reduce((s, w) => s + w.distanceKm, 0)
     const remaining = Math.max(0, target - usedKm)
     const perEasy = easyWds.length
-      ? Math.min(18, Math.max(5, Math.round(remaining / easyWds.length)))
+      ? Math.min(EASY_RUN_CAP_KM, Math.max(5, Math.round(remaining / easyWds.length)))
       : 0
     for (const wd of easyWds) plan.set(wd, buildEasy(perEasy, zones))
   }
@@ -510,7 +523,7 @@ function planNormalWeek(
     a + (['easy', 'warmup', 'cooldown'].includes(s.type) ? 0 : s.type === 'hills' ? (s.distanceKm ?? 0) / 2 : s.distanceKm ?? 0), 0), 0)
   for (const kind of ['quality_continuous', 'quality_intervals', 'easy_hills'] as const) {
     for (const [wd, workout] of plan) {
-      if (total() <= target && hardKm() <= target * 0.25) break
+      if (total() <= target && hardKm() <= target * HARD_SHARE_MAX) break
       if (workout.kind === kind) plan.set(wd, buildEasy(0, zones))
     }
   }
@@ -523,7 +536,7 @@ function planNormalWeek(
   }
   let remaining = Math.max(0, target - total())
   for (const [i, wd] of easySlots.entries()) {
-    const km = Math.min(18, Math.round(remaining / (easySlots.length - i) * 10) / 10)
+    const km = Math.min(EASY_RUN_CAP_KM, Math.round(remaining / (easySlots.length - i) * 10) / 10)
     if (km > 0) plan.set(wd, buildEasy(km, zones))
     else plan.delete(wd)
     remaining = Math.max(0, remaining - km)
@@ -531,13 +544,13 @@ function planNormalWeek(
   // An all-quality template can leave no easy slot: release its smallest accent.
   if (remaining > 0.5 && !easySlots.length) {
     const replace = [...plan].reverse().find(([, w]) => w.kind === 'quality_continuous' || w.kind === 'easy_hills')
-    if (replace) plan.set(replace[0], buildEasy(Math.min(18, replace[1].distanceKm + remaining), zones))
+    if (replace) plan.set(replace[0], buildEasy(Math.min(EASY_RUN_CAP_KM, replace[1].distanceKm + remaining), zones))
   }
   remaining = Math.max(0, target - total())
   for (const wd of free) {
     if (remaining <= 0.05) break
     if (plan.has(wd)) continue
-    const km = Math.min(18, Math.round(remaining * 10) / 10)
+    const km = Math.min(EASY_RUN_CAP_KM, Math.round(remaining * 10) / 10)
     plan.set(wd, buildEasy(km, zones))
     remaining -= km
   }

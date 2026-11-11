@@ -153,12 +153,14 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
 
   // Objętość: ramp od recentWeeklyKm do osiągalnego szczytu (P-3), sufit z historii
   const start = athlete.recentWeeklyKm
+  // E-3 (inż.): bez `peakWeeklyKm` sufit to bieżąca objętość +40% — brak źródła
   const cap = Math.min(athlete.peakWeeklyKm ?? start * 1.4, SANITY_CAP_KM)
   const recommended = recommendedPeakKm(goal)
   const loadOnly = Math.max(0, loadWeeks - Math.floor(loadWeeks / DELOAD_EVERY))
   const reachable = start * Math.pow(RAMP_PER_LOAD_WEEK, Math.max(0, loadOnly - 1))
   // P-7/P-8 to podłoga dla niedotrenowanych, nie sufit: atlecie z bazą powyżej
   // rekomendacji utrzymujemy (lekko rozwijamy) jego wolumen zamiast go ciąć.
+  // E-3 (inż.): plan ze startem rozwija bazę ponad rekomendację o najwyżej 15%
   const targetPeak = baseOnly
     ? Math.min(athlete.peakWeeklyKm ?? start * BASE_GROWTH, cap)
     : Math.max(recommended, Math.min(start * 1.15, cap))
@@ -169,7 +171,8 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
     )
   }
 
-  // Fazy przed taperem: base/build piramidalnie (I-1), peak polaryzacja (I-2)
+  // Fazy przed taperem: base/build piramidalnie (I-1), peak polaryzacja (I-2).
+  // Podział 40% bazy i 20% szczytu to E-3 (inż.) — źródła podają kolejność faz, nie proporcje.
   const baseWeeks = Math.max(0, Math.round(loadWeeks * 0.4))
   const peakWeeks = Math.max(loadWeeks >= 3 ? 1 : 0, Math.round(loadWeeks * 0.2))
   const buildWeeks = Math.max(0, loadWeeks - baseWeeks - peakWeeks)

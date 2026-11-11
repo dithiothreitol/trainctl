@@ -9,7 +9,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
-import { cmdLog, cmdPlan, cmdReview, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
+import { cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
+import { ruleEvidence } from './rules-explain.ts'
 import { wrap } from './ui/blocks.ts'
 
 const CONFIG = `athlete:
@@ -113,5 +114,14 @@ describe('A6: zawijanie nie tnie adresów ani ścieżek', () => {
   })
   it('zwykłe długie słowo nadal dzielone', () => {
     expect(wrap('x'.repeat(50), 20).every((line) => line.length <= 20)).toBe(true)
+  })
+})
+
+describe('B9: stałe silnika bez źródła mają regułę E-3', () => {
+  it.each(['pl', 'en'] as const)('rules E-3 · %s', (lang) => {
+    setLocale(lang)
+    expect(cmdRules({ id: 'E-3' }).output).toContain('18 km')
+    expect(cmdRules({}).output).toContain('E-3')
+    expect(ruleEvidence('E-3')).toBe('engineering')
   })
 })
