@@ -82,6 +82,13 @@ describe('toWorkoutSyntax', () => {
     expect(text).toContain('- 1km 5:10/km Pace')
   })
 
+  it('bieg zmienny z jedną parą: kroki bez bloku „1x”', () => {
+    const text = toWorkoutSyntax([
+      { type: 'alternating', distanceKm: 3, pace: { loSecPerKm: 250, hiSecPerKm: 310 }, description: '' },
+    ])
+    expect(text).toBe('- 1km 4:10/km Pace\n- 1km 5:10/km Pace\n- 1km 4:10/km Pace')
+  })
+
   it('tempo narastające: trzy tercje od wolniejszej do szybszej', () => {
     const text = toWorkoutSyntax([
       {

@@ -80,7 +80,9 @@ function segmentSteps(seg: PlannedSegment, easyPace?: PaceRange): string[] {
       const pairs = Math.floor(totalKm / 2)
       if (!fast || !slow || pairs < 1) return [`- ${distance(totalKm)} ${target}`]
       const remainder = totalKm - 2 * pairs
-      return ['', `${pairs}x`, `- 1km ${paceTarget(fast)}`, `- 1km ${paceTarget(slow)}`, '',
+      const pair = [`- 1km ${paceTarget(fast)}`, `- 1km ${paceTarget(slow)}`]
+      // jedna para bez bloku „1x”, tak jak w FIT: pętla jednego przejścia niczego nie powtarza
+      return [...(pairs > 1 ? ['', `${pairs}x`, ...pair, ''] : pair),
         ...(remainder > 0 ? [`- ${distance(Math.min(1, remainder))} ${paceTarget(fast)}`] : []),
         ...(remainder > 1 ? [`- ${distance(remainder - 1)} ${paceTarget(slow)}`] : [])]
     }

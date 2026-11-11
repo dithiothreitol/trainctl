@@ -235,16 +235,20 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
         const slow: PaceRange = { loSecPerKm: seg.pace.hiSecPerKm, hiSecPerKm: seg.pace.hiSecPerKm }
         steps.push(distanceStep(f.faster, 1, fast, 0))
         steps.push(distanceStep(f.slower, 1, slow, 1))
-        steps.push({
-          name: f.repeat(pairs),
-          durationType: 6,
-          durationValue: loopStart,
-          targetType: 2,
-          targetValue: pairs,
-          low: 0,
-          high: 0,
-          intensity: 0,
-        })
+        // Jedna para bez pętli: krok „powtórz 1 raz” niczego nie powtarza, a zegarki
+        // czytają go różnie. Krótki bieg zmienny daje dawka na starcie sezonu (J-8).
+        if (pairs > 1) {
+          steps.push({
+            name: f.repeat(pairs),
+            durationType: 6,
+            durationValue: loopStart,
+            targetType: 2,
+            targetValue: pairs,
+            low: 0,
+            high: 0,
+            intensity: 0,
+          })
+        }
         const remainder = total - 2 * pairs
         if (remainder > 0) steps.push(distanceStep(f.faster, Math.min(1, remainder), fast, 0))
         if (remainder > 1) steps.push(distanceStep(f.slower, remainder - 1, slow, 1))

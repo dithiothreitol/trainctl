@@ -100,6 +100,15 @@ describe('FIT interoperability with the official Garmin SDK', () => {
     expect(after.workoutStepMesgs![3]).toMatchObject({ durationStep: 1, repeatSteps: 3 })
   })
 
+  it.each([2, 3])('writes a %i km alternating run with one pair as plain steps, without a one-pass loop', km => {
+    const workout: PlannedWorkout = { kind: 'quality_continuous', distanceKm: km, ruleRefs: [], segments: [
+      { type: 'alternating', distanceKm: km, pace: { loSecPerKm: 250, hiSecPerKm: 310 }, description: '' },
+    ] }
+    const steps = decode(encodeWorkoutFit(workout, 'Alternating')).workoutStepMesgs!
+    expect(steps.some(s => s.durationType === 'repeatUntilStepsCmplt')).toBe(false)
+    expect(steps.map(s => s.durationDistance)).toEqual(km === 2 ? [1000, 1000] : [1000, 1000, 1000])
+  })
+
   it.each([
     ['a'.repeat(29) + 'ąą', 'a'.repeat(29) + 'ą'],
     ['a'.repeat(28) + '🚴', 'a'.repeat(28)],
