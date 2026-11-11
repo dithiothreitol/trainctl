@@ -27,8 +27,8 @@ export interface RaceResult {
 export type RacePriority = 'A' | 'B' | 'C'
 
 /** Przyczyna przerwy w dzienniku (B11): choroba — R-5, kontuzja — bez propozycji objętości (R-6, R-7). */
-export type BreakReason = 'illness' | 'injury' | 'travel' | 'other'
-export const BREAK_REASONS: readonly BreakReason[] = ['illness', 'injury', 'travel', 'other']
+export const BREAK_REASONS = ['illness', 'injury', 'travel', 'other'] as const
+export type BreakReason = (typeof BREAK_REASONS)[number]
 
 /** Zatwierdzony powrót po przerwie w trakcie planu (B11): od `since`, z objętości sprzed przerwy. */
 export interface ReturnBlock {

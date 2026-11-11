@@ -40,10 +40,11 @@ export function resolveDateInput(input: string, today: string, direction: DateDi
     return raw
   }
   const key = normalize(raw)
-  if (key in OFFSETS) return addDays(today, OFFSETS[key]!)
+  // Object.hasOwn: „constructor” czy „toString” to nie dzień ani przesunięcie
+  if (Object.hasOwn(OFFSETS, key)) return addDays(today, OFFSETS[key]!)
   const offset = /^([+-])(\d{1,3})$/.exec(key)
   if (offset) return addDays(today, (offset[1] === '-' ? -1 : 1) * Number(offset[2]))
-  const target = WEEKDAY_ALIASES[key]
+  const target = Object.hasOwn(WEEKDAY_ALIASES, key) ? WEEKDAY_ALIASES[key] : undefined
   if (target !== undefined) {
     const current = (parseIso(today).getUTCDay() + 6) % 7
     const delta = direction === 'forward' ? (target - current + 7) % 7 : -((current - target + 7) % 7)
@@ -58,5 +59,5 @@ export function resolveDateInput(input: string, today: string, direction: DateDi
  * następny. Pozostałe zapisy liczą się od dziś, jak w resolveDateInput.
  */
 export function resolveRangeEnd(input: string, start: string, today: string): string {
-  return normalize(input) in WEEKDAY_ALIASES ? resolveDateInput(input, start, 'forward') : resolveDateInput(input, today, 'forward')
+  return Object.hasOwn(WEEKDAY_ALIASES, normalize(input)) ? resolveDateInput(input, start, 'forward') : resolveDateInput(input, today, 'forward')
 }

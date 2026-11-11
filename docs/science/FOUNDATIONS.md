@@ -1919,8 +1919,9 @@ z podbiegami. Poniżej 30 km korpus ma 6 tygodni, wnioski tam są słabe.
 Generator używa z tej tabeli dwóch sufitów (PLAN-v0.7 B1): bieg spokojny
 najwyżej 0,9 długiego (P90 stosunku) i długie najwyżej P90 swojego udziału, gdy
 wchłania resztę kilometrów, której dni spokojne nie mieszczą. Tydzień z dwoma
-biegami nie ma sufitu udziału: jeden z dwóch biegów ma połowę tygodnia
-z definicji, a pasmo <30 km pokazuje długie na 0,78–0,80 tygodnia.
+biegami nie ma sufitu udziału jednej jednostki (jeden z dwóch biegów ma połowę
+tygodnia z definicji), ale długie ma sufit z pasma <30 km, gdzie mediana to dwa
+biegi: udział 0,78, P90 0,80. Drugi bieg ma co najmniej 3 km (E-3).
 
 **Przed startem ≥ 21 km** (n = 3 starty z co najmniej 10 pełnymi tygodniami
 przed; tydzień startu = 0):

@@ -572,8 +572,9 @@ w commicie punktu.
   (S-11). Punkt 3 działa wcześniej, na poziomie makrocyklu: szczyt nie
   przekracza pojemności dni (`weekCapacityKm`) i `plan` mówi o tym limicie.
   Tydzień, którego nie da się rozpisać, zapisuje `layoutKm` i uwagę dla `why`.
-  Przy dwóch biegach w tygodniu reguły udziału nie obowiązują, bo żaden układ
-  ich nie spełnia. Taper trzyma liczbę biegów (T-2).
+  Przy dwóch biegach w tygodniu sufitu 35% nie ma, bo żaden układ go nie
+  spełnia, a długie ma sufit z pasma dwóch biegów (P90 0,80, §10.15) i zostawia
+  drugiemu biegowi co najmniej 3 km. Taper trzyma liczbę biegów (T-2).
 - **B2.** Akcent traci najpierw powtórzenie (4 → 3), potem rozgrzewkę
   (3 → 2 km), a na końcu staje się biegiem z przebieżkami. Przy jednym akcencie
   w tygodniu sprawdzian go zastępuje (T-12, W-13). Reszta krótsza niż 3 km idzie
@@ -1037,3 +1038,4 @@ Wypełniany w trakcie realizacji przez krok 6 zamknięcia etapu.
 | 2026-11-11 | 2 | `packages/core/src/engine/microcycle.ts` (`weekCapacityKm`) | skan co 1 km buduje dwa mikrocykle na krok, kilka razy na `plan` | wydajność: pamięć podręczna albo krok zgrubny z dokładnym dobiciem, gdy czas `plan` urośnie |
 | 2026-11-11 | 2 | `macrocycle.ts` (`applyReturnBlock`), `planfile.ts` (`scaleToBaseline`) | tor długiego (B4) jest podłogą, więc w bloku powrotu i po redukcji bazy długie stało na suficie udziału tygodnia; przy dwóch dniach biegowych sufit to cały tydzień | w rundzie 3 odłożone do F1, w rundzie 4 naprawione: tor maleje w proporcji tygodnia |
 | 2026-11-11 | 2 | `macrocycle.ts` (`applyReturnBlock`) | flaga sprawdzianu usuwana porównaniem tekstu (`timeTrialForCalibration`), jak ostrzeżenie o szczycie w `computePlan` | sugestia porządkowa: kody flag zamiast tekstu |
+| 2026-11-11 | 2 | `planfile.ts` (`fitTimeBudget`) | przycięcie tygodnia budżetem zostawia tor długiego (B4) jako podłogę, a blok powrotu i redukcja bazy skalują tor; przy co najmniej trzech biegach długie stoi wtedy na P90 udziału, w zakresie korpusu | sugestia porządkowa: jedno miejsce skalowania toru; przypadek dwóch biegów (cały tydzień jako długie) naprawiony sufitem 0,80 w rundzie 5 |

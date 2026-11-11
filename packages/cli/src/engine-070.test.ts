@@ -11,7 +11,7 @@ import { plannedWeekKm, setLocale, type AdaptationProposal } from 'trainctl-core
 import { applyProposal, prepareProposal } from './proposals.ts'
 import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
 import { latestByDate, readLog } from './logfile.ts'
-import { computePlan, loadPlan, writePlan } from './planfile.ts'
+import { blockLevelOf, computePlan, cycleWeeksOf, loadPlan, writePlan } from './planfile.ts'
 import { inferredConfigYaml, loadConfig } from './config.ts'
 import { parse } from 'yaml'
 
@@ -264,11 +264,12 @@ describe('B11: przerwa w trakcie planu', () => {
   type Restart = { type: string; returnBlock?: { previousWeeklyKm: number; illness: boolean } }
   const restartOf = (r: ReturnType<typeof cmdAdapt>) => (r.data as { proposal: { actions: Restart[] } }).proposal.actions.find((a) => a.type === 'conservative-restart')
 
-  it('adapt: powrót w tygodniu odciążenia liczy się od tygodnia ładowania przed nim, nie od odciążenia', () => {
+  it('adapt: powrót w tygodniu odciążenia liczy się od tygodnia ładowania z ostatnim biegiem, nie od odciążenia', () => {
     breakUntilToday('illness')
     const weeks = loadPlan(dir).weeks
     const current = weeks.find((w) => w.weekStart === '2026-11-09')!
-    const loading = weeks.find((w) => w.weekStart === '2026-11-02')!
+    // ostatni bieg 2026-10-28: tydzień 2026-10-26
+    const loading = weeks.find((w) => w.weekStart === '2026-10-26')!
     // przypadek ma sens tylko wtedy, gdy dziś wypada w odciążeniu
     expect(current.skeleton.deload).toBe(true)
     expect(loading.skeleton.deload).toBe(false)
@@ -286,6 +287,19 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(plan.weeks.flatMap((w) => w.days).find((d) => d.date === '2026-11-01')?.workout?.kind).toBe('race')
   })
 
+  it('adapt w tygodniu odciążenia: podniesienie bazy liczy się od poziomu bloku, nie od odciążenia (B3)', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-12'
+    // cały okres analizy wykonany z nadwyżką 30%
+    for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-10-23' && x.date <= '2026-11-12')) {
+      expect(cmdLog(dir, { date: d.date, status: 'done', km: String(Math.round(d.workout!.distanceKm * 13) / 10) }).code).toBe(0)
+    }
+    const plan = loadPlan(dir)
+    expect(plan.weeks.find((w) => w.weekStart === '2026-11-09')!.skeleton.deload).toBe(true)
+    const raise = (cmdAdapt(dir, {}).data as { proposal: { actions: { type: string; suggestedWeeklyKm?: number }[] } }).proposal.actions.find((a) => a.type === 'raise-baseline')
+    expect(raise?.suggestedWeeklyKm).toBe(Math.round(1.1 * blockLevelOf(plan.weeks, '2026-11-09')!))
+  })
+
   it('adapt drugi raz po przyjętym powrocie: objętość sprzed przerwy ta sama, redukcja się nie składa', () => {
     setup()
     process.env['TRAINCTL_TODAY'] = '2026-11-19'
@@ -294,8 +308,14 @@ describe('B11: przerwa w trakcie planu', () => {
       expect(cmdLog(dir, { date: d.date, status: 'done' }).code).toBe(0)
     }
     expect(cmdLog(dir, { date: '2026-11-07', to: '2026-11-19', status: 'skipped', reason: 'illness' }).code).toBe(0)
-    expect(loadPlan(dir).weeks.find((w) => w.weekStart === '2026-11-16')!.skeleton.deload).toBe(false)
+    const weeks = loadPlan(dir).weeks
+    const lastRunWeek = weeks.find((w) => w.weekStart === '2026-11-02')!.skeleton
+    const current = weeks.find((w) => w.weekStart === '2026-11-16')!.skeleton
+    expect(current.deload).toBe(false)
+    expect(plannedWeekKm(current)).not.toBe(plannedWeekKm(lastRunWeek))
     const first = restartOf(cmdAdapt(dir, {}))!.returnBlock!
+    // objętość sprzed przerwy: tydzień ostatniego biegu, nie cel planu z czasu przerwy
+    expect(first.previousWeeklyKm).toBe(plannedWeekKm(lastRunWeek))
     const prepared = cmdAdapt(dir, { prepare: true })
     expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
     // dwa dni później nadal bez biegania: nowa analiza liczy od tej samej objętości
@@ -346,8 +366,11 @@ describe('B11: przerwa w trakcie planu', () => {
     const cfg = loadConfig(dir)
     expect(computePlan(cfg, '2026-10-22').peakKmPlanned).toBeGreaterThanOrEqual(42)
     const plan = computePlan(cfg, '2026-10-22', '2026-10-22', { returnFrom: { since: '2027-02-22', previousWeeklyKm: 45, illness: false } })
-    expect(plan.peakKmPlanned).toBeLessThan(42)
-    expect(plan.feasibilityWarnings.join(' ')).toMatch(/stays below the thresholds/)
+    const verdict = plan.feasibilityWarnings.find((w) => /stays below the thresholds/.test(w))
+    expect(verdict).toBeDefined()
+    expect(Number(verdict!.match(/after the return it peaks at ([\d.]+) km\/week/)![1])).toBeLessThan(42)
+    // szczyt planu w pliku to cały cykl — tak samo jak po regeneracji i propozycji
+    expect(plan.peakKmPlanned).toBe(Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm)))
   })
 
   it('plan po powrocie z budżetem czasu: werdykt mówi o profilu, a nie o budżecie (E-2)', () => {

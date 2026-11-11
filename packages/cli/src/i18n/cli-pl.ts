@@ -972,8 +972,8 @@ export const cliPl: CliMessages = {
       `Te jednostki nie mieszczą się w budżecie dnia nawet po skróceniu (startów i sprawdzianów nie skracamy): ${dates} (E-2).`,
     tuneUpInReturn: (date: string, rule: string) =>
       `Start kontrolny ${date} wypada w spokojnym bloku powrotu (${rule}): pobiegnij go spokojnie albo z niego zrezygnuj.`,
-    verdict: (v: { distanceKm: number; peakKm: number; recommendedKm: number; longest?: { km: number; thresholdKm: number; atLeast: boolean; rules: string }; reachableFrom?: string }) =>
-      `Ten plan nie dochodzi do progów dla ${n(v.distanceKm)} km: szczyt ${n(v.peakKm)} km/tydz. wobec ${n(v.recommendedKm)} km/tydz. (P-7/P-8)` +
+    verdict: (v: { distanceKm: number; peakKm: number; recommendedKm: number; longest?: { km: number; thresholdKm: number; atLeast: boolean; rules: string }; reachableFrom?: string; afterReturn?: boolean }) =>
+      `Ten plan nie dochodzi do progów dla ${n(v.distanceKm)} km: szczyt${v.afterReturn ? ' po powrocie' : ''} ${n(v.peakKm)} km/tydz. wobec ${n(v.recommendedKm)} km/tydz. (P-7/P-8)` +
       (v.longest ? `, najdłuższe wybieganie ${n(v.longest.km)} km wobec ${v.longest.atLeast ? 'co najmniej' : 'ponad'} ${n(v.longest.thresholdKm)} km (${v.longest.rules})` : '') +
       '. Wyjścia: ' +
       [

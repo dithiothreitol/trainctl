@@ -114,6 +114,8 @@ describe('trainctl plan na istniejącym planie', () => {
       expect(w.skeleton.targetKm).toBeGreaterThanOrEqual(targetOn(fresh, w.weekStart))
       expect(w.skeleton.targetKm).toBeLessThanOrEqual(Math.max(...freshLevels))
     }
+    // ostatni blok stoi na szczycie, więc taper po nim zostaje w tej samej proporcji (T-4)
+    for (const w of fresh.weeks.filter((x) => x.skeleton.phase === 'taper')) expect(targetOn(raised.plan, w.weekStart)).toBe(w.skeleton.targetKm)
   })
   it('redukcja, którą budżet jeszcze tnie: „bez budżetu" to poziom redukcji, nie pierwotny szczyt', () => {
     config.time = { weeklyMinutes: 240 }

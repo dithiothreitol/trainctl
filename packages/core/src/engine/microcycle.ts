@@ -76,6 +76,11 @@ const floor1 = (km: number) => Math.floor(km * 10 + 1e-9) / 10
  * (inż., decyzja 1 z PLAN-v0.7).
  */
 const LONG_SHARE_P90: [weekKm: number, share: number][] = [[35, 0.53], [45, 0.52], [55, 0.46], [65, 0.41], [75, 0.36]]
+/**
+ * S-10 (korpus, §10.15): tydzień z dwoma biegami — pasmo <30 km, mediana 2 biegi — ma
+ * długie na 0,78 tygodnia, P90 0,80. Sufit udziału długiego w takim tygodniu (n = 6, słabo).
+ */
+const TWO_RUN_LONG_SHARE_P90 = 0.8
 export function longShareCeiling(weekKm: number): number {
   const [first] = LONG_SHARE_P90
   if (weekKm <= first![0]) return first![1]
@@ -618,19 +623,21 @@ function planNormalWeek(
   const spareDays = free.filter((wd) => wd !== longWd && !used.has(wd) && !easyWds.includes(wd))
     .sort((a, b) => restLast(a) - restLast(b))
 
-  // Tydzień, który nie może mieć trzech biegów (dwa dni), nie ma udziałów do pilnowania:
-  // jeden z dwóch biegów ma połowę tygodnia z definicji, a długie w korpusie przy dwóch
-  // biegach to 0,78–0,80 tygodnia (§10.15). Zostają twarde sufity: 35 km i S-10.
+  // Tydzień, który nie może mieć trzech biegów (dwa dni), nie ma udziału jednej jednostki
+  // do pilnowania: jeden z dwóch biegów ma połowę tygodnia z definicji. Długie ma tam sufit
+  // z pasma dwóch biegów (P90 0,80, §10.15) i zostawia drugiemu biegowi co najmniej
+  // MIN_EASY_KM — inaczej tor B4 zjada cały tydzień. Zostają twarde sufity: 35 km i S-10.
   const maxRuns = (peakWd ? 1 : 0) + used.size + easyWds.length + spareDays.length
   const shares = maxRuns >= 3
 
   // objętość
-  // sufit do 0,1 km jak pozostałe biegi: pełne km spłaszczały długie przy wzroście tygodnia o 1 km
-  const longCeil = Math.min(style.longRunCapKm, shares ? floor1(longShareCeiling(target) * target) : target)
   // E-3 + S-10: bieg spokojny ma co najmniej MIN_EASY_KM i najwyżej 0,9 długiego, więc
   // długie obok niego ma co najmniej MIN_EASY_KM / EASY_TO_LONG_MAX (gdy tydzień mieści oba)
   const longFloorKm = Math.ceil((MIN_EASY_KM / EASY_TO_LONG_MAX) * 10) / 10
   const longFloor = target >= longFloorKm + MIN_EASY_KM ? longFloorKm : 0
+  // sufit do 0,1 km jak pozostałe biegi: pełne km spłaszczały długie przy wzroście tygodnia o 1 km
+  const twoRunCeil = longFloor ? floor1(Math.min(TWO_RUN_LONG_SHARE_P90 * target, target - MIN_EASY_KM)) : target
+  const longCeil = Math.min(style.longRunCapKm, shares ? floor1(longShareCeiling(target) * target) : twoRunCeil)
   // B4: tor długiego z makrocyklu jest podłogą; sufit udziału (P90) i 35 km — górą
   const longKm = longWd ? Math.max(longFloor, Math.min(longCeil, Math.max(skeleton.longKm ?? 0, Math.min(Math.round(style.longRunShare * target), style.longRunCapKm)))) : 0
   // udział jednej jednostki liczony od objętości tygodnia — od zamiaru, a gdy dni go nie

@@ -222,15 +222,15 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
     if (opts.budgetWarnings !== false) plan.feasibilityWarnings.push(...budgetWarnings(plan, config, today))
   }
-  // B11: po bloku powrotu szczyt planu to to, co rozpisano od powrotu — tygodnie sprzed
-  // przerwy już minęły i nie mówią, dokąd plan jeszcze dojdzie. Powrót w taperze: szczyt był
-  // przed przerwą i zostaje.
+  // B11: szczyt planu to to, co rozpisano (cały cykl — tak samo liczą regeneracja
+  // i propozycja). Werdykt po powrocie patrzy jednak tylko na tygodnie od powrotu: tygodnie
+  // sprzed przerwy minęły i nie mówią, dokąd plan jeszcze dojdzie. Powrót w taperze: szczyt
+  // był przed przerwą, werdyktu o szczycie nie ma.
+  if (opts.returnFrom) plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
   const loadingPhase = (phase: string) => ['base', 'build', 'peak'].includes(phase)
   const returnMonday = opts.returnFrom ? mondayOf(opts.returnFrom.since) : undefined
-  if (returnMonday) {
-    const ahead = cycleWeeksOf(plan).filter((w) => w.weekStart >= returnMonday && loadingPhase(w.skeleton.phase))
-    if (ahead.length) plan.peakKmPlanned = Math.max(...ahead.map((w) => w.totalKm))
-  }
+  const plannedAhead = returnMonday ? cycleWeeksOf(plan).filter((w) => w.weekStart >= returnMonday && loadingPhase(w.skeleton.phase)) : []
+  const verdictPeak = plannedAhead.length ? Math.max(...plannedAhead.map((w) => w.totalKm)) : plan.peakKmPlanned
   // B8: werdykt wykonalności — szczyt i najdłuższe wybieganie wobec progów dystansu
   // (P-7/P-8, J-2; ten sam próg co lint `longBelowGoal`) i trzy wyjścia, jednym blokiem
   // zamiast dwóch ostrzeżeń. Liczony na planie po budżecie czasu.
@@ -257,7 +257,8 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
       : earliestFeasibleRaceDate(athlete, goal, today)
     plan.feasibilityWarnings.push(ui().planMd.verdict({
       distanceKm: goal.distanceKm,
-      peakKm: plan.peakKmPlanned,
+      peakKm: verdictPeak,
+      ...(plannedAhead.length ? { afterReturn: true } : {}),
       recommendedKm: plan.peakKmRecommended,
       ...(threshold && longest > 0 ? { longest: { km: longest, thresholdKm: threshold.km, atLeast: threshold.inclusive, rules: threshold.ruleRefs.join(', ') } } : {}),
       ...(reachableFrom && reachableFrom > goal.date ? { reachableFrom } : {}),
@@ -292,6 +293,15 @@ function blockLevels(weeks: Microcycle[]): Map<string, number> {
     levels.set(week.weekStart, own ?? last ?? week.skeleton.targetKm)
   }
   return levels
+}
+
+/**
+ * Poziom bloku tygodnia (B3) — ten sam, od którego `scaleToBaseline` liczy proporcję.
+ * Z niego `adapt` liczy podniesienie bazy, więc propozycja w odciążeniu albo taperze nie
+ * zamienia „podnieś” w cięcie.
+ */
+export function blockLevelOf(weeks: Microcycle[], weekStart: string): number | undefined {
+  return blockLevels(weeks).get(weekStart)
 }
 
 /**
@@ -336,7 +346,10 @@ export function scaleToBaseline(weeks: Microcycle[], opts: {
     delete skeleton.timeCappedKm
     delete skeleton.uncappedKm
     const before = skeleton.targetKm
-    skeleton.targetKm = Math.min(ceiling, Math.round(skeleton.targetKm * factor))
+    // podniesienie: blok, który przekroczyłby szczyt sprzed decyzji, trafia na niego cały —
+    // fala, odciążenie i taper po nim w tej samej proporcji (P-2, T-4), bez spłaszczenia
+    const effective = Math.min(factor, ceiling / Math.max(1, levels.get(week.weekStart) ?? before))
+    skeleton.targetKm = Math.round(before * effective)
     // tor długiego (B4) jest podłogą generatora: po redukcji maleje razem z tygodniem
     if (skeleton.longKm !== undefined && skeleton.targetKm < before && before > 0) skeleton.longKm = Math.round((skeleton.longKm * skeleton.targetKm) / before)
     const generated = generateMicrocycle({ skeleton, athlete: opts.config.athlete, goal: opts.goal, zones, testDistanceKm: testDistanceKm(opts.goal) })

@@ -306,6 +306,16 @@ describe('B2: rama i minimalna dawka przy małej objętości', () => {
     // uwaga o przebieżkach tylko przy dniach, które je mają
     for (const n of mc.notes ?? []) if (n.code === 'accentAsStrides') expect(mc.days.find((d) => d.date === n.date)?.workout?.ruleRefs).toContain('J-6')
   })
+  // dwa dni biegowe i tor długiego ponad tydzień (półmaraton 22 km, maraton 30 km): długie
+  // zjadało cały tydzień, drugi dzień wypadał (§10.15: przy dwóch biegach długie ≤ 0,80)
+  it.each([[23, 22], [24, 22], [25, 30], [33, 30], [12, 22]])('dwa dni, tydzień %i km, tor długiego %i km: dwa biegi, długie najwyżej 0,80 tygodnia', (targetKm, longKm) => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ targetKm, longKm, qualitySessions: 1 }), athlete: { ...athlete, daysAvailable: ['sat', 'sun'] }, zones })
+    const runs = mc.days.filter((d) => d.workout)
+    expect(runs).toHaveLength(2)
+    const long = runs.find((d) => d.workout!.kind === 'long')!.workout!
+    expect(long.distanceKm).toBeLessThanOrEqual(Math.max(0.8 * targetKm, targetKm - 3) + 0.05)
+    for (const d of runs) expect(d.workout!.distanceKm).toBeGreaterThanOrEqual(3)
+  })
   it('przy jednym akcencie w tygodniu sprawdzian go zastępuje (T-12, W-13)', () => {
     const goal: RaceGoal = { name: 'HM', date: '2027-03-28', distanceKm: 21.0975, priority: 'A' }
     const macro = planMacrocycle({ today: '2026-10-22', goal, athlete: { ...athlete, daysAvailable: ['tue', 'thu', 'sat'], results: [] } })

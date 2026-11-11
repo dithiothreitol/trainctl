@@ -2,7 +2,7 @@ import { isSportsWorkspace, sportsTemplate } from './sports-store.ts'
 import { sportsCommand, type SportsOptions } from './sports-commands.ts'
 import { sportsSyncCommand } from './sports-sync.ts'
 import { sportMessages } from 'trainctl-core'
-export { sportMessages } from 'trainctl-core'
+export { sportMessages, BREAK_REASONS } from 'trainctl-core'
 /** Handlery komend CLI — czyste funkcje (cwd, argumenty) → { output, code }. */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
@@ -43,6 +43,7 @@ import { kmLabel, logStatusText, parseDecimal, shownKm, workoutKm } from './form
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, latestByDate, LOG_LIMITS, parseTime, readJournal, readLog, readLogForChanges, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
+  blockLevelOf,
   computePlan,
   cycleWeeksOf,
   dayFingerprint,
@@ -764,10 +765,6 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
 }
 
 /**
- * Dziennik siły (E4): osobny wpis obok biegu. Bez kilometrów, tempa i RPE —
- * siła to inny tor, a dziennik ma powiedzieć tylko, czy sesja się odbyła.
- */
-/**
  * B11: przerwa jako zakres dni — każdy dzień dostaje wpis `skipped` z przyczyną.
  * Zapis z góry (wyjazd) działa tak samo; dni z wpisem regeneracja chroni (ADR-033),
  * a `adapt` po przerwie czyta przyczynę (choroba: R-5, kontuzja: bez propozycji).
@@ -796,6 +793,10 @@ function logBreak(cwd: string, plan: StoredPlan, from: string, toInput: string, 
   return okDoc(blocks, { ...(entries[0] ? { entry: entries[0] } : {}), entries, kept })
 }
 
+/**
+ * Dziennik siły (E4): osobny wpis obok biegu. Bez kilometrów, tempa i RPE —
+ * siła to inny tor, a dziennik ma powiedzieć tylko, czy sesja się odbyła.
+ */
 function logStrength(cwd: string, plan: StoredPlan, date: string, opts: LogOptions): CmdResult {
   const t = ui().log
   if (opts.strength !== 'done' && opts.strength !== 'skipped') throw new Error(t.strengthStatus(String(opts.strength)))
@@ -1062,8 +1063,9 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     const execution = buildExecution(plan, snapshot?.activities ?? [], logs, today)
 
     const currentWeek = plan.weeks.find((w) => w.days.some((d) => d.date === today))
-    // objętość, którą biegacz faktycznie dostał (po budżecie czasu) — od niej liczą się sugestie
-    const currentWeeklyKm = currentWeek ? plannedWeekKm(currentWeek.skeleton) : plan.peakKmPlanned
+    // poziom bloku bieżącego tygodnia — od niego liczy się podniesienie bazy i od niego skaluje
+    // scaleToBaseline; cel odciążenia albo taperu zamieniłby „podnieś” w cięcie (B3)
+    const currentWeeklyKm = currentWeek ? blockLevelOf(plan.weeks, currentWeek.weekStart) ?? plannedWeekKm(currentWeek.skeleton) : plan.peakKmPlanned
     const known = new Set((plan.calibration?.results ?? []).map(resultKey))
     const newResults = config.athlete.results.filter(
       (r) => !r.excluded && r.date <= today && (plan.calibration ? !known.has(resultKey(r)) : r.date > plan.generatedAt),
@@ -1103,17 +1105,16 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
 
     // B11: wpisy przerwy z przyczyną — o bieżącej przerwie decyduje analiza (po ostatnim biegu)
     const breakLog = logs.flatMap((l) => (l.reason ? [{ date: l.date, reason: l.reason }] : []))
-    // B11: objętość sprzed przerwy to ostatni tydzień ładowania do bieżącego — odciążenie,
-    // taper, tydzień ze startem kontrolnym i blok po starcie mają cel niższy niż poziom bloku
+    // B11: objętość sprzed przerwy to ostatni tydzień ładowania do tygodnia ostatniego biegu —
+    // nie cel planu z czasu przerwy, którego biegacz nie biegał. Odciążenie, taper, tydzień
+    // ze startem kontrolnym i blok po starcie mają cel niższy niż poziom bloku. Przyjęty
+    // powrót bez nowego biegania nie zmienia odniesienia, więc kolejne `adapt` nie składa redukcji.
+    const lastRun = execution.filter((e) => (e.actualKm ?? 0) > 0).map((e) => e.date).sort().at(-1)
+    const breakWeek = lastRun ? mondayOf(lastRun) : currentWeek?.weekStart ?? today
     const loadingWeek = plan.weeks
-      .filter((w) => w.weekStart <= (currentWeek?.weekStart ?? today) && !w.skeleton.deload && !w.skeleton.tuneUp && ['base', 'build', 'peak'].includes(w.skeleton.phase))
+      .filter((w) => w.weekStart <= breakWeek && !w.skeleton.deload && !w.skeleton.tuneUp && ['base', 'build', 'peak'].includes(w.skeleton.phase))
       .at(-1)
-    // tydzień obniżony już przez przyjęty blok powrotu (R-5, R-11): odniesieniem zostaje
-    // objętość z tamtej decyzji — inaczej każde kolejne `adapt` składałoby redukcję
-    const ret = plan.returnState
-    const inReturn = ret !== undefined && loadingWeek !== undefined && loadingWeek.weekStart >= mondayOf(ret.since) &&
-      loadingWeek.skeleton.ruleRefs.some((r) => r === 'R-5' || r === 'R-11')
-    const preBreakWeeklyKm = inReturn ? ret.previousWeeklyKm : loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
+    const preBreakWeeklyKm = loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
     const proposal = analyzeExecution({
       today,
       execution,

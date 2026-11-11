@@ -74,6 +74,10 @@ describe('daty względne (tylko CLI)', () => {
     expect(resolveRangeEnd('+2', '2026-11-09', '2026-11-14')).toBe('2026-11-16')
     expect(resolveRangeEnd('2026-11-20', '2026-11-09', '2026-11-14')).toBe('2026-11-20')
   })
+  it('nazwy z prototypu obiektu to nie daty', () => {
+    expect(() => resolveDateInput('constructor', today)).toThrow(/not a date/)
+    expect(() => resolveRangeEnd('toString', '2026-11-09', '2026-11-14')).toThrow(/not a date/)
+  })
 })
 
 describe('binarka: --json, -C, TRAINCTL_TODAY, daty względne, kody wyjścia', () => {

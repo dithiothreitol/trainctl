@@ -14,9 +14,11 @@ change between minor versions — a regenerated plan can differ.
 - An easy run stays below the long run (at most 0.9 of it, S-10) and below 35%
   of a week that has a long run. When the rest of the weekly distance does not
   fit, the long run takes it up to the corpus P90 share, then a free day gets
-  another run (S-11), instead of one 15–17 km easy day. The peak is capped at
-  what the available days can hold, so deloads and the taper stay lighter than
-  loading weeks, and `plan` says when the days limit the peak.
+  another run (S-11), instead of one 15–17 km easy day. With two running days
+  the long run takes at most 80% of the week (the corpus P90 for two runs), so
+  the other day keeps a run. The peak is capped at what the available days can
+  hold, so deloads and the taper stay lighter than loading weeks, and `plan`
+  says when the days limit the peak.
 - Small weeks: an accent that would carry more than 35% of the week first loses
   a repetition, then gets a 2 km warm-up, and below that becomes an easy run
   with strides (J-6). No run besides the long run is shorter than 3 km: two
@@ -39,7 +41,9 @@ change between minor versions — a regenerated plan can differ.
   the wave within a block, deloads, the taper and the growth of later blocks
   ("progress from there"). A lower baseline shortens the long-run track with
   the week; a raised one does not lift the plan above its peak unless the
-  baseline itself is higher.
+  baseline itself is higher, and the taper after a block at the peak keeps its
+  proportions. `adapt` counts a raise from the block level, so a raise during a
+  deload no longer cuts the plan.
 - The long run has its own track: it grows by at most 2 km a loading week to
   22 km for a half marathon, 30 km for a marathon and 32 km for an ultra in the
   last block before the taper (J-1, J-2, J-10, N-19), and shortens in deloads.
@@ -93,12 +97,11 @@ change between minor versions — a regenerated plan can differ.
   taper keeps its intensity), the long run shrinking with the week, growth
   within P-3 until the plan catches up, and
   no time trial in the return block (the accent it replaced comes back). The
-  earlier volume stays the same when you run `adapt` again during the return.
-  The earlier
-  volume is the last loading week of the plan, not a deload or taper week; the
-  taper inside a return block keeps falling. After an injury `adapt --prepare`
-  prepares no plan change at all, not even a recalibration (R-6, R-7). An
-  approved return survives
+  earlier volume is the plan's last loading week up to your last run, not a
+  deload or taper week and not the plan's target during the break, so it stays
+  the same when you run `adapt` again; the taper inside a return block keeps
+  falling. After an injury `adapt --prepare` prepares no plan change at all,
+  not even a recalibration (R-6, R-7). An approved return survives
   `trainctl plan` like an approved baseline (ADR-033). A tune-up race in the
   easy part of a return stays in the plan, and `plan` says the return rule
   does not expect it.

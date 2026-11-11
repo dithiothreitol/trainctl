@@ -10,6 +10,7 @@ import { z } from 'zod'
 import { packageVersion } from './version.ts'
 import { ui } from 'trainctl'
 import {
+  BREAK_REASONS,
   cmdAdapt,
   cmdReplace,
   cmdMigrate,
@@ -153,7 +154,7 @@ export function createTrainctlServer(
         date: isoDate().optional(),
         status: z.enum(['done', 'skipped', 'modified']).optional().describe(t.logStatus),
         to: isoDate().optional().describe(t.logTo),
-        reason: z.enum(['illness', 'injury', 'travel', 'other']).optional().describe(t.logReason),
+        reason: z.enum(BREAK_REASONS).optional().describe(t.logReason),
         meters: z.string().optional().describe(sportMessages().meters),
         actualSport: z.enum(['run','bike','swim']).optional().describe(sportMessages().actualSport),
         sets: z.string().optional().describe(sportMessages().sets),
