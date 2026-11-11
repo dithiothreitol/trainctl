@@ -1124,12 +1124,17 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       .filter((w) => w.weekStart <= breakWeek && !w.skeleton.deload && !w.skeleton.tuneUp && ['base', 'build', 'peak'].includes(w.skeleton.phase))
       .at(-1)
     const preBreakWeeklyKm = loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
+    // B11: bieżący tydzień w przyjętym bloku powrotu (obniżony przez krzywą R-5/R-11)
+    const ret = plan.returnState
+    const returnInProgress = ret !== undefined && currentWeek !== undefined && currentWeek.weekStart >= mondayOf(ret.since) &&
+      currentWeek.skeleton.ruleRefs.some((r) => r === 'R-5' || r === 'R-11')
     const proposal = analyzeExecution({
       today,
       execution,
       currentWeeklyKm,
       ...(breakLog.length ? { breakLog } : {}),
       ...(preBreakWeeklyKm !== undefined ? { preBreakWeeklyKm } : {}),
+      ...(returnInProgress ? { returnInProgress } : {}),
       ...(newResults.length ? { newResults } : {}),
       calibrationChanged: plan.calibration !== undefined && !sameResults(config.athlete.results, plan.calibration.results),
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: tuneUpByDate.get(lastRaceDay.date) ?? plan.goal.distanceKm } } : {}),
@@ -1191,7 +1196,7 @@ function adaptImpl(cwd: string, opts: { date?: string | undefined; prepare?: boo
     if (!opts.prepare || result.code !== 0) return result
     const saved = prepareProposal(cwd, opts.date ?? localToday(), result.data!.proposal as ReturnType<typeof analyzeExecution>)
     const blocks = [...result.blocks ?? [], ...proposalBlocks(saved)]
-    return okDoc(blocks, { ...result.data, prepared: { id: saved.id, changes: saved.changes, protectedDates: saved.protectedDates, vdot: saved.plan.vdot } })
+    return okDoc(blocks, { ...result.data, prepared: { id: saved.id, changes: saved.changes, protectedDates: saved.protectedDates, vdot: saved.plan.vdot, ...(saved.replacesBaselineKm !== undefined ? { replacesBaselineKm: saved.replacesBaselineKm } : {}) } })
   } catch (e) { return fail(e) }
 }
 
@@ -1203,6 +1208,7 @@ function proposalBlocks(saved: PlanProposal): Block[] {
     b.info(ui().improve.protected), b.info(ui().improve.changedConfig),
     b.table([ui().improve.date, ui().week.columns.km], saved.plan.weeks.filter((w) => w.days.some((d) => saved.changes.some((c) => c.date === d.date))).map((w) => [w.weekStart, formatNumber(getLocale(), w.totalKm)])),
     ...validatePlan(saved.plan).map((issue) => b.warn(describeIssue(issue))),
+    ...(saved.replacesBaselineKm !== undefined ? [b.warn(ui().improve.returnReplacesBaseline(saved.replacesBaselineKm))] : []),
     b.hint(ui().coach.applyHint(saved.id)),
   ]
 }

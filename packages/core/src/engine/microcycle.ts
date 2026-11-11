@@ -759,6 +759,10 @@ function planNormalWeek(
       }
     }
     if (longWd) plan.set(longWd, buildLong(long, zones))
+    // uwaga dnia tylko przy dniu z biegiem: dzień podbiegów usunięty przez pętle to dzień
+    // wolny, a nie „bieg spokojny zamiast podbiegów” (`why`)
+    const planned = new Set([...plan.keys()].map((wd) => addDays(skeleton.weekStart, idxOf(wd))))
+    notes = notes.filter((n) => !('date' in n) || planned.has(n.date))
     return remaining
   }
 

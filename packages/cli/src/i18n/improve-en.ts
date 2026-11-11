@@ -28,6 +28,9 @@ export const improveEn = {
   invalidProposal: 'Invalid or modified proposal. Prepare a new proposal with trainctl adapt --prepare.',
   noPatch: 'There is no applicable plan change. Complete the data or discuss the recommendations first.',
   manualRecovery: 'Recovery recommendations require an individual decision; no automatic plan patch is prepared for them.',
+  /** B11: jedna decyzja o objętości naraz — powrót zastępuje zatwierdzoną bazę. */
+  returnReplacesBaseline: (km: number) =>
+    `This return block replaces the approved baseline of ${n(km)} km/week: once the return catches up, the plan follows your profile's volume. If the lower level still applies, run adapt again after the return.`,
   oldPlan: 'This plan has no calibration history. Regenerate it consciously before preparing adaptations.',
   changedDays: 'Changes to future sessions',
   before: 'Before', after: 'After', date: 'Date',

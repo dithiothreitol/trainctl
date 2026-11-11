@@ -424,6 +424,29 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(loadPlan(dir).weeks.flatMap((w) => w.days).find((d) => d.date === today.date)).toEqual(today)
   })
 
+  it('powrót zastępujący zatwierdzoną bazę mówi o tym w propozycji (jedna decyzja o objętości naraz)', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-12'
+    const reduction: AdaptationProposal = { ...restartAnalysis(false), actions: [{ type: 'reduce-volume', detail: 'reduce', suggestedWeeklyKm: 30, ruleRefs: [] }] }
+    applyProposal(dir, prepareProposal(dir, '2026-11-12', reduction).id)
+    expect(loadPlan(dir).loadState?.baselineWeeklyKm).toBe(30)
+    const ret = prepareProposal(dir, '2026-11-12', restartAnalysis(true))
+    expect(ret.replacesBaselineKm).toBe(30)
+  })
+
+  it('adapt w trakcie przyjętego powrotu: nadwyżka nie podnosi bazy — krzywa powrotu rośnie sama (P-3)', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-12'
+    applyProposal(dir, prepareProposal(dir, '2026-11-12', restartAnalysis(false)).id)
+    // dwa tygodnie powrotu z nadwyżką 30% wobec obniżonego planu
+    process.env['TRAINCTL_TODAY'] = '2026-12-02'
+    for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-11-12' && x.date <= '2026-12-02')) {
+      expect(cmdLog(dir, { date: d.date, status: 'done', km: String(Math.round(d.workout!.distanceKm * 13) / 10) }).code).toBe(0)
+    }
+    const actions = (cmdAdapt(dir, {}).data as { proposal: { actions: { type: string }[] } }).proposal.actions.map((a) => a.type)
+    expect(actions).not.toContain('raise-baseline')
+  })
+
   it('nowa baza w trakcie przyjętego powrotu zastępuje powrót, a plan po --apply jest aktualny (ADR-033)', () => {
     setup()
     process.env['TRAINCTL_TODAY'] = '2026-11-12'

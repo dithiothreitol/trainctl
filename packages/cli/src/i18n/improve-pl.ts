@@ -28,6 +28,8 @@ export const improvePl: typeof improveEn = {
   invalidProposal: 'Nieprawidłowa lub zmieniona propozycja. Przygotuj nową: trainctl adapt --prepare.',
   noPatch: 'Brak zmiany planu do zastosowania. Uzupełnij dane lub najpierw omów zalecenia.',
   manualRecovery: 'Zalecenia powrotu wymagają indywidualnej decyzji; nie przygotowano dla nich automatycznej zmiany planu.',
+  returnReplacesBaseline: (km: number) =>
+    `Ten blok powrotu zastępuje zatwierdzoną bazę ${n(km)} km/tydz.: gdy powrót dogoni plan, plan idzie za objętością z profilu. Jeśli niższy poziom nadal obowiązuje, po powrocie uruchom adapt jeszcze raz.`,
   oldPlan: 'Ten plan nie ma historii kalibracji. Przed przygotowaniem adaptacji świadomie wygeneruj go ponownie.',
   changedDays: 'Zmiany przyszłych treningów',
   before: 'Przed zmianą', after: 'Po zmianie', date: 'Data',

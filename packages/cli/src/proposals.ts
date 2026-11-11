@@ -22,6 +22,8 @@ export interface PlanProposal {
   analysis?: AdaptationProposal
   adjustment?: ShortenedWorkout
   vdotBefore: number
+  /** B11: zatwierdzona baza, którą ta propozycja powrotu zastępuje (jedna decyzja o objętości naraz). */
+  replacesBaselineKm?: number
   changes: { date: string; before: string; after: string; beforeKm: number; afterKm: number }[]
   protectedDates: string[]
   plan: StoredPlan
@@ -241,7 +243,11 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   const errors = validatePlan(next).filter((issue) => issue.severity === 'error')
   if (errors.length) throw new Error(ui().improve.invalidProposal)
   if (!changes.length && JSON.stringify(next.calibration) === JSON.stringify(plan.calibration)) throw new Error(ui().improve.noPatch)
-  return saveProposal(cwd, { schemaVersion: 1, kind: 'adaptation', preparedOn: calendarToday(), baseHash, createdFor: today, analysis, vdotBefore: plan.vdot, changes, protectedDates, plan: next })
+  const replacesBaselineKm = returnFrom ? plan.loadState?.baselineWeeklyKm : undefined
+  return saveProposal(cwd, {
+    schemaVersion: 1, kind: 'adaptation', preparedOn: calendarToday(), baseHash, createdFor: today, analysis, vdotBefore: plan.vdot,
+    ...(replacesBaselineKm !== undefined ? { replacesBaselineKm } : {}), changes, protectedDates, plan: next,
+  })
 }
 
 export type ProposalState = 'valid' | 'expired' | 'stale' | 'invalid'

@@ -90,4 +90,10 @@ describe('DoD etapu 2 (PLAN-v0.7 §4): macierz bez lintów kształtu', () => {
   for (const code of ['deloadNotLighter', 'taperNotMonotonic'] as const) {
     it(`${code}: żaden profil, także z budżetem czasu (P-2, T-4)`, () => expect(hit(code)).toEqual([]))
   }
+  it('B1: uwaga generatora (`why`) tylko przy dniu z biegiem — dzień usunięty przez pętle jest wolny', () => {
+    const stale = matrix().flatMap((r) => r.plan.weeks.flatMap((w) => (w.notes ?? [])
+      .filter((n) => 'date' in n && !w.days.find((d) => d.date === n.date)?.workout)
+      .map((n) => `${r.profile.id} ${w.weekStart} ${n.code}`)))
+    expect(stale).toEqual([])
+  })
 })

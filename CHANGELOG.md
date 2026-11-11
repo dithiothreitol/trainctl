@@ -110,7 +110,9 @@ change between minor versions — a regenerated plan can differ.
   falling. An injury logged anywhere in the break decides, also before the
   21-day analysis window, and after it `adapt --prepare` prepares no plan
   change at all, not even a recalibration (R-6, R-7). An approved return survives
-  `trainctl plan` like an approved baseline (ADR-033). A tune-up race in the
+  `trainctl plan` like an approved baseline (ADR-033) and replaces it; the
+  proposal says so when it replaces one. During an approved return `adapt`
+  does not raise the baseline: the return curve grows on its own. A tune-up race in the
   easy part of a return stays in the plan, and `plan` says the return rule
   does not expect it.
 - `trainctl rules` explains R-5, R-6, R-7 and R-11.

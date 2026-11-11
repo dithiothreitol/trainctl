@@ -75,8 +75,16 @@ export interface AdaptationInput {
    * jeszcze w `athlete.results` — pętla kalibracji jest niedomknięta (W-11).
    */
   uncalibratedTests?: { date: string; distanceKm: number; timeSec?: number }[]
-  /** Przyczyna przerwy zapisana w dzienniku (B11). Ma pierwszeństwo przed `breakLog`. */
+  /**
+   * Przyczyna przerwy podana wprost (B11) — liczy się jak jeszcze jeden wpis `breakLog`,
+   * więc nie omija reguły „kontuzja pierwsza” (R-6, R-7).
+   */
   breakReason?: BreakReason
+  /**
+   * B11: trwa przyjęty blok powrotu. Podniesienie bazy liczyłoby się wtedy od tygodni
+   * obniżonych przez krzywą powrotu i zastąpiło ją na stałe — krzywa sama rośnie (P-3).
+   */
+  returnInProgress?: boolean
   /**
    * B11: wpisy dziennika z przyczyną przerwy. O bieżącej przerwie mówią tylko te po
    * ostatnim biegu w oknie — wcześniejsza przerwa, po której biegacz biegał, nie.
@@ -218,7 +226,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
         suggestedWeeklyKm: realistic,
         ruleRefs: ['P-1', 'P-3'],
       })
-    } else if (compliance > 1.2 && missedSessions === 0 && !actions.some(a => a.type === 'post-race-recovery')) {
+    } else if (compliance > 1.2 && missedSessions === 0 && !actions.some(a => a.type === 'post-race-recovery') && !input.returnInProgress) {
       const raised = Math.round(input.currentWeeklyKm * 1.1)
       diagnosis.push(m.adapt.complianceHigh(Math.round(compliance * 100)))
       actions.push({
