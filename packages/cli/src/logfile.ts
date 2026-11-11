@@ -45,7 +45,24 @@ function readAll(cwd: string): (LogEntry | StrengthLogEntry)[] {
   return readFileSync(path, 'utf-8')
     .split('\n')
     .filter((l) => l.trim())
-    .map((l) => JSON.parse(l) as LogEntry | StrengthLogEntry)
+    .map((l) => normalize(JSON.parse(l) as Record<string, unknown>))
+}
+
+/**
+ * log.jsonl bywa edytowany ręcznie. Liczby zapisane tekstem („8") zamieniamy na
+ * liczby, wartości spoza liczb (null, „osiem") pomijamy — raz, przy odczycie,
+ * zamiast osobnej ochrony w każdej komendzie. Status zostaje, jak jest: widok
+ * pokazuje nieznany status bez zmian (logStatusText).
+ */
+function normalize(raw: Record<string, unknown>): LogEntry | StrengthLogEntry {
+  const entry = { ...raw }
+  for (const key of ['km', 'timeSec', 'testTimeSec', 'rpe', 'minutes']) {
+    if (!(key in entry)) continue
+    const value = typeof entry[key] === 'string' && (entry[key] as string).trim() ? Number(entry[key]) : entry[key]
+    if (typeof value === 'number' && Number.isFinite(value)) entry[key] = value
+    else delete entry[key]
+  }
+  return entry as unknown as LogEntry | StrengthLogEntry
 }
 
 const isStrength = (e: LogEntry | StrengthLogEntry): e is StrengthLogEntry => (e as StrengthLogEntry).activity === 'strength'

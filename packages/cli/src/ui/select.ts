@@ -31,7 +31,7 @@ export function renderChoices<T>(
     const number = theme.dim(`${i + 1}`.padStart(2))
     const prefix = `${number} ${i === active ? theme.color(s.arrow, 'brand') : ' '.repeat(s.arrow.length)} `
     const indent = 4 + s.arrow.length
-    const labels = wrap(choice.label, theme.caps.width - indent)
+    const labels = wrap(choice.label, theme.caps.width - indent, '', false)
     const inline = choice.hint && labels.length === 1 && indent + visibleLength(choice.label) + 2 + visibleLength(choice.hint) <= theme.caps.width
     return [
       ...labels.map((line, index) => `${index ? ' '.repeat(indent) : prefix}${choice.disabled ? theme.dim(line) : i === active ? theme.bold(line) : line}${inline ? theme.dim(`  ${choice.hint}`) : ''}`),

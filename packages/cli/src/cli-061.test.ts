@@ -9,10 +9,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
-import { cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
+import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices } from './interactive.ts'
 import { loadPlan } from './planfile.ts'
+import { readLog } from './logfile.ts'
+import { helpItem } from './ui/help.ts'
+import { improveEn } from './i18n/improve-en.ts'
+import { improvePl } from './i18n/improve-pl.ts'
 import { shortenDetail } from './proposals.ts'
 import { renderAnsi, wrap } from './ui/blocks.ts'
 import { Theme, visibleLength } from './ui/theme.ts'
@@ -169,7 +173,11 @@ describe('poprawki po przeglądzie etapu 1', () => {
       .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
     for (const f of files) {
       const src = readFileSync(join(import.meta.dirname, f), 'utf-8')
-      expect(src, f).not.toMatch(/\$\{[^}]*(?:km|Km)\} km/)
+      // każda wartość przed „ km" przechodzi przez n(), kmLabel() albo formatNumber();
+      // wyjątki: sam kmLabel i historia zmian w plan.yaml (dane, nie widok)
+      const raw = src.split('\n').filter((line) => /\$\{(?!n\(|kmLabel\(|formatNumber\()[^}]*\} km/.test(line))
+        .filter((line) => !line.includes('String(km)} km') && !line.includes('${from} → ${to} km'))
+      expect(raw, f).toEqual([])
       expect(src, f).not.toContain('String(w.totalKm)')
     }
   })
@@ -295,5 +303,49 @@ describe('poprawki po czwartej rundzie przeglądu etapu 1', () => {
     process.env['TRAINCTL_TODAY'] = '2026-11-30'
     const out = cmdWhy(dir, { date: '2026-12-01' }).output
     expect(out).toMatch(/2025-05-10 · 21\.1 km · VDOT [\d.]+ · Older than 540 days/)
+  })
+})
+
+describe('poprawki po piątej rundzie przeglądu etapu 1', () => {
+  it('desk w dniu startu pokazuje dystans startu, nie 0 km', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG + 'desk:\n  workStart: "09:00"\n  workEnd: "17:30"\n  lunchMinutes: 45\n  prefer: evening\n', 'utf-8')
+    setLocale('pl')
+    process.env['TRAINCTL_TODAY'] = '2027-03-28'
+    const out = cmdDesk(dir, { date: '2027-03-28' }).output
+    expect(out).toContain('21,1 km')
+    expect(out).not.toMatch(/· 0 km/)
+  })
+
+  it('why: trail po kalibracji przy wyniku szosowym nie jest „nowszy, uwzględniony"', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
+      '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-10-25", distanceKm: 21.1, timeSec: 7200, terrain: trail }'), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-29'
+    const out = cmdWhy(dir, { date: '2026-10-27' }).output
+    expect(out).toMatch(/2026-10-25 · 21\.1 km · VDOT [\d.]+ · Trail result/)
+    expect(out).not.toContain('Newer than the calibration')
+  })
+
+  it('ostrzeżenie o celu tygodnia formatuje kilometry', () => {
+    expect(improvePl.targetMismatch('2026-10-26', 52.3, 50.8)).toContain('52,3 km')
+    expect(improveEn.targetMismatch('2026-10-26', 52.3, 50.8)).toContain('50.8 km')
+  })
+
+  it('log.jsonl: liczby tekstem zamienione, wartości spoza liczb pominięte przy odczycie', () => {
+    appendFileSync(join(dir, 'log.jsonl'), [
+      JSON.stringify({ date: '2026-10-27', status: 'done', km: '8', rpe: '6', loggedAt: 'x' }),
+      JSON.stringify({ date: '2026-10-28', status: 'done', km: null, timeSec: 'abc', loggedAt: 'x' }),
+    ].join('\n') + '\n')
+    const [a, b] = readLog(dir)
+    expect(a).toMatchObject({ km: 8, rpe: 6 })
+    expect(b).not.toHaveProperty('km')
+    expect(b).not.toHaveProperty('timeSec')
+  })
+
+  it('pomoc w dwóch kolumnach trzyma szerokość także z adresem w opisie', () => {
+    const theme = new Theme({ color: false, unicode: true, width: 60 })
+    const out = helpItem('rules', 10, 'see https://github.com/dithiothreitol/trainctl/blob/v0.6.0/docs/science/FOUNDATIONS.md', theme)
+    for (const line of out.split('\n')) expect(visibleLength(line)).toBeLessThanOrEqual(60)
   })
 })

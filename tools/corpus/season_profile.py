@@ -129,8 +129,10 @@ def main():
             'medianRuns': med([r['runs'] for r in rows]),
             'runsDistribution': dict(sorted(Counter(r['runs'] for r in rows).items())),
             'medianQuality': med([r['quality'] for r in rows]),
+            # „długie" to tu najdłuższy bieg bez pracy odcinkowej, więc stosunek ≤ 1 z definicji;
+            # mierzymy, jak daleko pod długim zostaje najdłuższy inny bieg spokojny
             'medianLongestEasyToLong': med([r['ratio'] for r in rows if r['ratio'] is not None]),
-            'weeksEasyLongerThanLong': sum(1 for r in rows if r['ratio'] is not None and r['ratio'] > 1),
+            'p90LongestEasyToLong': p90([r['ratio'] for r in rows if r['ratio'] is not None]),
             'medianLongShare': med([r['longShare'] for r in rows if r['longShare']]),
             'p90MaxShareNonLong': p90([r['maxShareNonLong'] for r in rows if r['maxShareNonLong'] is not None]),
         }

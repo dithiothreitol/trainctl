@@ -7,12 +7,12 @@
  * razem ze zmianą, zamiast przejść niezauważona przez testy reguł tygodnia.
  */
 import { describe, expect, it } from 'vitest'
-import { setLocale, validatePlan, type ShapeCode } from 'trainctl-core'
+import { SHAPE_CODES, setLocale, validatePlan } from 'trainctl-core'
 import { REVIEW_PROFILES, fullMatrix, matrixPlan, shapeReport, type MatrixProfile } from './plan-shape.fixture.ts'
 
 setLocale('en')
 
-const CODES: ShapeCode[] = ['longNotLongest', 'deloadNotLighter', 'sessionShareHigh', 'postRaceAccentHeavy', 'staleProgression', 'longBelowGoal']
+const CODES = SHAPE_CODES
 
 function summary(p: MatrixProfile): string {
   const plan = matrixPlan(p)

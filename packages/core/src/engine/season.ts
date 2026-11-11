@@ -93,13 +93,9 @@ export function seasonLine(r: SeasonRow): string {
   ].join(' ').trimEnd()
 }
 
-export type ShapeCode =
-  | 'longNotLongest'
-  | 'deloadNotLighter'
-  | 'sessionShareHigh'
-  | 'postRaceAccentHeavy'
-  | 'staleProgression'
-  | 'longBelowGoal'
+/** Wszystkie kody lintów kształtu — test macierzy liczy je stąd, nie z ręcznej kopii. */
+export const SHAPE_CODES = ['longNotLongest', 'deloadNotLighter', 'sessionShareHigh', 'postRaceAccentHeavy', 'staleProgression', 'longBelowGoal'] as const
+export type ShapeCode = (typeof SHAPE_CODES)[number]
 
 export interface ShapeIssue {
   code: ShapeCode
@@ -117,6 +113,7 @@ export const SESSION_SHARE_MAX = 0.35
  */
 export function longRunThreshold(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): { km: number; inclusive: boolean } | undefined {
   if (goal.kind === 'base') return undefined
+  // granice dystansu jak w recommendedPeakKm i taperWeeksFor (P-7/P-8, T-5)
   if (goal.distanceKm >= 42) return { km: 25, inclusive: true }
   if (goal.distanceKm >= 20.9) return { km: 21, inclusive: false }
   return undefined

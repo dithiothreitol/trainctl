@@ -830,7 +830,10 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
         // wtedy był z przyszłości albo w terminie, a dziś wygląda inaczej, dostaje opis
         // stanu dzisiejszego — inaczej etykieta i wiek przeczyłyby sobie.
         const age = diffDays(c.result.date, now)
+        // Z-10: trail przy wynikach szosowych odpada także po kalibracji
+        const trailIgnored = c.result.terrain === 'trail' && plan.calibration!.candidates.some((o) => o.result.terrain !== 'trail' && o.reason !== 'excluded')
         const reason = c.reason === 'excluded' ? c.reason
+          : trailIgnored && age <= 540 ? 'terrain'
           : age > 540 ? (c.reason === 'selected' ? 'selectedStale' : 'stale')
             : c.reason === 'future' && age >= 0 ? 'newer' : c.reason
         return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
@@ -1160,7 +1163,7 @@ export function cmdDesk(
     if (workout) {
       blocks.push(
         b.panel(
-          `${kindLabel(workout.kind)} · ${kmLabel(workout.distanceKm)}`,
+          `${kindLabel(workout.kind)} · ${kmLabel(workout.raceDistanceKm ?? workout.distanceKm)}`,
           day.recommended
             ? [ui().desk.proposedWindow(day.recommended.label, day.recommended.from, day.recommended.to)]
             : [ui().desk.noWindowFits],
@@ -1538,7 +1541,7 @@ export async function cmdReview(
           [ui().review.volume, ui().review.volumeAhead(Math.round(upcoming.reduce((s, d) => s + (d.workout?.distanceKm ?? 0), 0) * 10) / 10, week.totalKm, upcoming.length)],
           ...(plan.goal.kind === 'base'
             ? ([[ui().review.baseEnd, plan.goal.date]] as [string, string][])
-            : ([[ui().review.toRace, raceDistanceValue(diffDays(today, plan.goal.date))]] as [string, string][])),
+            : ([[ui().review.toRace, raceDistanceLine(plan, diffDays(today, plan.goal.date), ui().review.toRaceValue)]] as [string, string][])),
         ]),
       )
       const race = upcoming.find((d) => d.workout?.kind === 'race')
@@ -1934,15 +1937,11 @@ function strengthRow(plan: StoredPlan, entries: StrengthLogEntry[], from: string
   return [[ui().review.strength, ui().review.strengthValue(done, planned, skipped)]]
 }
 
-/** Wartość pod etykietą „Do startu": „N dni" przed startem, „N dni po starcie" po nim. */
-function raceDistanceValue(toRace: number): string {
-  return toRace >= 0 ? ui().review.toRaceValue(toRace) : ui().today.daysAfterRace(-toRace)
-}
-
 /** „N dni do startu", „N dni po starcie" albo koniec planu bazowego (P-11). */
-function raceDistanceLine(plan: StoredPlan, toRace: number): string {
+function raceDistanceLine(plan: StoredPlan, toRace: number, before: (days: number) => string = ui().today.daysToRace): string {
   if (plan.goal.kind === 'base') return ui().plan.baseUntil(plan.goal.date)
-  return toRace >= 0 ? ui().today.daysToRace(toRace) : ui().today.daysAfterRace(-toRace)
+  // `before` — pełne zdanie („150 dni do startu") albo sama wartość pod etykietą („150 dni")
+  return toRace >= 0 ? before(toRace) : ui().today.daysAfterRace(-toRace)
 }
 
 /** Metody źródła jako zwykłe funkcje — `this` klasy zostaje przy nich. */

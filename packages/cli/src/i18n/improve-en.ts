@@ -1,3 +1,7 @@
+import { formatNumber } from 'trainctl-core'
+
+const n = (value: number) => formatNumber('en', value)
+
 export const improveEn = {
   expiredProposal: 'This proposal has expired. Prepare and review a new proposal today.',
   pastWrite: 'Past or recorded days cannot be changed.',
@@ -7,7 +11,7 @@ export const improveEn = {
   testTime: 'time of the measured test/race segment, excluding warmup and cooldown',
   testTimeOnly: 'Record a test time only for a completed test or race; it cannot exceed session time.',
   unknownDuration: 'Race duration is unknown; set a target time to estimate it.',
-  targetMismatch: (date: string, expected: number, actual: number) => `Week ${date}: target ${expected} km, scheduled ${actual} km.`,
+  targetMismatch: (date: string, expected: number, actual: number) => `Week ${date}: target ${n(expected)} km, scheduled ${n(actual)} km.`,
   frequencyMismatch: (date: string, expected: number, actual: number) => `${date}: requested frequency ${expected}, scheduled sessions ${actual}.`,
   diagnosis: 'Diagnosis', proposals: 'Proposals',
   prepare: 'save a concrete adaptation proposal for review',

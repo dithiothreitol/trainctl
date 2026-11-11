@@ -12,6 +12,7 @@ export function helpItem(term: string, termWidth: number, description: string, t
       ...(detail ? wrap(detail, width, '    ') : []),
     ].join('\n')
   }
-  const lines = wrap(detail, width - termWidth - 4)
+  // kolumna opisu trzyma szerokość — adres w opisie dzielimy jak zwykłe słowo
+  const lines = wrap(detail, width - termWidth - 4, '', false)
   return lines.map((line, index) => `${index ? ' '.repeat(termWidth + 4) : `  ${theme.color(padVisible(name, termWidth), 'brand')}  `}${line}`).join('\n')
 }

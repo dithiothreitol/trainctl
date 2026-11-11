@@ -1884,14 +1884,18 @@ Tygodnie pełne (7 dni w korpusie), bez startów, po deduplikacji dat.
 
 **Liczba biegów i długie według objętości tygodnia:**
 
-| km/tydz. | tygodnie | mediana biegów | mediana akcentów | bieg spokojny / długie (mediana) | tygodnie ze spokojnym dłuższym od długiego | udział długiego | P90 udziału innej jednostki |
+| km/tydz. | tygodnie | mediana biegów | mediana akcentów | inny bieg spokojny / długie: mediana | P90 | udział długiego | P90 udziału innej jednostki |
 |---|---|---|---|---|---|---|---|
-| <30 | 6 | 2 | 1 | 0,83 | 0 | 0,78 | 0,38 |
-| 30–40 | 9 | 3 | 2 | 0,67 | 0 | 0,41 | 0,36 |
-| 40–50 | 17 | 4 | 3 | 0,79 | 0 | 0,40 | 0,33 |
-| 50–60 | 29 | 4 | 3 | 0,79 | 0 | 0,36 | 0,30 |
-| 60–70 | 28 | 4 | 3 | 0,64 | 0 | 0,32 | 0,29 |
-| ≥70 | 41 | 5 | 3 | 0,60 | 0 | 0,29 | 0,27 |
+| <30 | 6 | 2 | 1 | 0,83 | 0,83 | 0,78 | 0,38 |
+| 30–40 | 9 | 3 | 2 | 0,67 | 0,67 | 0,41 | 0,36 |
+| 40–50 | 17 | 4 | 3 | 0,79 | 0,80 | 0,40 | 0,33 |
+| 50–60 | 29 | 4 | 3 | 0,79 | 0,86 | 0,36 | 0,30 |
+| 60–70 | 28 | 4 | 3 | 0,64 | 0,83 | 0,32 | 0,29 |
+| ≥70 | 41 | 5 | 3 | 0,60 | 0,91 | 0,29 | 0,27 |
+
+Długie w pomiarze to najdłuższy bieg tygodnia bez pracy odcinkowej (≥ 12 km),
+więc inny bieg spokojny nie może być dłuższy z definicji. Pomiar mówi, jak
+daleko pod długim zostaje najdłuższy inny bieg spokojny. Razem 130 tygodni.
 
 Akcent w korpusie to dzień oznaczony jako jakościowy przez parser, razem
 z podbiegami. Poniżej 30 km korpus ma 6 tygodni, wnioski tam są słabe.
@@ -1924,7 +1928,7 @@ spokojne 5. Bieg w niedzielę po sobotnim starcie: n = 15, mediana 25 km.
 
 | # | Reguła | Wartości / parametry | Źródło | Siła |
 |---|--------|----------------------|--------|------|
-| S-10 | Bieg spokojny **nie jest dłuższy od długiego** w tym samym tygodniu | stosunek mediany 0,60–0,83; zero wyjątków w 136 tygodniach | korpus | **korpus** |
+| S-10 | Najdłuższy inny bieg spokojny zostaje **wyraźnie pod długim** | mediana 0,60–0,83, P90 0,67–0,91 długiego; że długie jest najdłuższym biegiem tygodnia, to definicja jednostki (J-1, S-2), nie wynik pomiaru | korpus (130 tygodni) | **korpus** |
 | S-11 | Liczba biegów rośnie z objętością: 3 przy 30–40 km, 4 przy 40–70 km, 5 powyżej | potwierdza `typicalKmPerSession` 14 od 30 km; poniżej 30 km brak danych | korpus | **korpus** |
 | S-12 | Dwa akcenty także przy trzech biegach w tygodniu | 30–40 km: mediana 3 biegi, 2 akcenty | korpus; uzupełnia I-8 | **korpus** |
 | S-9b | Kolejność weekendu dowolna: „długie→akcent" tak częste jak „akcent→długie" | 52 vs 53 | korpus; spójne z S-9a | **korpus** |

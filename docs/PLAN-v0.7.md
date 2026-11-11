@@ -321,13 +321,13 @@ zostają w kodzie z komentarzem „inż." i wpisem w FOUNDATIONS.
 ### B1. Liczba biegów i układ tygodnia
 
 - **Objaw:** obserwacje 4, 5, 6, 7 z §1.
-- **Nauka (wykonana w etapie 1, FOUNDATIONS §10.15):** S-10 — w korpusie
-  bieg spokojny nigdy nie jest dłuższy od długiego (0 ze 136 tygodni,
-  stosunek 0,60–0,83). S-11 — liczba biegów rośnie z objętością tak, jak liczy
+- **Nauka (wykonana w etapie 1, FOUNDATIONS §10.15):** S-10 — najdłuższy
+  inny bieg spokojny to mediana 0,60–0,83 i P90 0,67–0,91 długiego (130
+  tygodni). Że długie jest najdłuższe, wynika z definicji jednostki (J-1, S-2). S-11 — liczba biegów rośnie z objętością tak, jak liczy
   `typicalKmPerSession` 14, od 30 km w górę. S-12 — przy trzech biegach trener
   daje dwa akcenty.
 - **Zmiana (po pomiarze):**
-  1. sufit biegu spokojnego `min(EASY_RUN_CAP_KM, długie)` (S-10). Gdy reszta
+  1. sufit biegu spokojnego `min(EASY_RUN_CAP_KM, 0,9 × długie)` (S-10, P90). Gdy reszta
      kilometrów go przekracza i jest wolny dostępny dzień, dochodzi bieg (S-11);
   2. liczba akcentów bez zmian. Propozycja ograniczenia akcentów przy trzech
      biegach odpada (S-12);
