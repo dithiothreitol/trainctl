@@ -15,7 +15,7 @@ import { logChoices } from './interactive.ts'
 import { calibrationLabel } from './calibration.ts'
 import { shownKm } from './format.ts'
 import { loadPlan, writePlan } from './planfile.ts'
-import { appendLog, readLog } from './logfile.ts'
+import { appendLog, readLog, readStrengthLog } from './logfile.ts'
 import { helpItem } from './ui/help.ts'
 import { improveEn } from './i18n/improve-en.ts'
 import { improvePl } from './i18n/improve-pl.ts'
@@ -451,7 +451,8 @@ describe('poprawki po dziewiątej rundzie przeglądu etapu 1', () => {
     writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(/  results:\n.*\n/, '  results: []\n'), 'utf-8')
     const why = cmdWhy(dir, { date: '2026-12-22' })
     expect(why.output).not.toContain('will switch to a newer result')
-    expect(why.data).toMatchObject({ calibrationToday: expect.arrayContaining([expect.objectContaining({ date: '2025-06-09', label: 'selectedStale' })]) })
+    // wyniki usunięte z profilu: plan po regeneracji ich nie zobaczy
+    expect(why.data).toMatchObject({ calibrationToday: expect.arrayContaining([expect.objectContaining({ date: '2025-06-09', label: 'removed' }), expect.objectContaining({ date: '2026-01-10', label: 'removed' })]) })
   })
 
   it('why dopasowuje stan wyniku po kluczu, nie po pozycji', () => {
@@ -498,5 +499,32 @@ describe('poprawki po dziewiątej rundzie przeglądu etapu 1', () => {
     const md = readFileSync(join(dir, 'plan', 'PLAN.md'), 'utf-8')
     expect(md).toContain('2026-10-27: 8,5 → 6 km')
     expect(loadPlan(dir).changes.at(-1)!.detail).toContain('8.5 → 6 km')
+  })
+})
+
+describe('poprawki po dziesiątej rundzie przeglądu etapu 1', () => {
+  it('why: jedno źródło etykiet — wynik usunięty z profilu nie „ustawiłby stref"', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
+      '    - { date: "2025-06-09", distanceKm: 10, timeSec: 2500 }\n    - { date: "2026-01-10", distanceKm: 10, timeSec: 2700 }'), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
+      '    - { date: "2025-06-09", distanceKm: 10, timeSec: 2500 }'), 'utf-8')
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-12-21'
+    const why = cmdWhy(dir, { date: '2026-12-22' })
+    expect(why.data).toMatchObject({ calibrationToday: expect.arrayContaining([
+      expect.objectContaining({ date: '2025-06-09', label: 'selectedStale' }),
+      expect.objectContaining({ date: '2026-01-10', label: 'removed' }),
+    ]) })
+    expect(why.output).not.toContain('Would set the zones today')
+  })
+
+  it('log.jsonl: minuty siły w granicach `log --strength` (całkowite 1–300)', () => {
+    appendFileSync(join(dir, 'log.jsonl'), [
+      JSON.stringify({ date: '2026-10-27', activity: 'strength', status: 'done', minutes: '0,5', loggedAt: 'x' }),
+      JSON.stringify({ date: '2026-10-28', activity: 'strength', status: 'done', minutes: 5000, loggedAt: 'x' }),
+      JSON.stringify({ date: '2026-10-29', activity: 'strength', status: 'done', minutes: '45', loggedAt: 'x' }),
+    ].join('\n') + '\n')
+    expect(readStrengthLog(dir).map((e) => e.minutes)).toEqual([undefined, undefined, 45])
   })
 })

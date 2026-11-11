@@ -1,5 +1,5 @@
 /** Dziennik wykonania: log.jsonl — jedna linia JSON na wpis (append-only). */
-import { appendFileSync, existsSync, readFileSync } from 'node:fs'
+import { appendFileSync, closeSync, existsSync, openSync, readFileSync, readSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { ui } from './i18n/index.ts'
 
@@ -37,9 +37,21 @@ export interface StrengthLogEntry {
 
 export function appendLog(cwd: string, entry: LogEntry | StrengthLogEntry): void {
   const path = join(cwd, LOG_FILE)
-  // ręczna edycja bez końcowego znaku nowej linii skleiłaby nowy wpis z ostatnim
-  const tail = existsSync(path) ? readFileSync(path, 'utf-8').slice(-1) : '\n'
-  appendFileSync(path, (tail && tail !== '\n' ? '\n' : '') + JSON.stringify(entry) + '\n', 'utf-8')
+  // ręczna edycja bez końcowego znaku nowej linii skleiłaby nowy wpis z ostatnim;
+  // czytamy tylko ostatni bajt, nie cały dziennik
+  appendFileSync(path, (endsWithoutNewline(path) ? '\n' : '') + JSON.stringify(entry) + '\n', 'utf-8')
+}
+
+function endsWithoutNewline(path: string): boolean {
+  if (!existsSync(path)) return false
+  const size = statSync(path).size
+  if (size === 0) return false
+  const fd = openSync(path, 'r')
+  try {
+    const last = Buffer.alloc(1)
+    readSync(fd, last, 0, 1, size - 1)
+    return last[0] !== 0x0a
+  } finally { closeSync(fd) }
 }
 
 function readAll(cwd: string): (LogEntry | StrengthLogEntry)[] {
@@ -66,7 +78,7 @@ const VALID: Record<string, (v: number) => boolean> = {
   timeSec: (v) => v > 0,
   testTimeSec: (v) => v > 0,
   rpe: (v) => Number.isInteger(v) && v >= 1 && v <= 10,
-  minutes: (v) => v > 0,
+  minutes: (v) => Number.isInteger(v) && v >= 1 && v <= 300,
 }
 
 /**

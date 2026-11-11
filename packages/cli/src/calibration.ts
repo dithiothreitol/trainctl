@@ -19,8 +19,10 @@ export const isRoadGoal = (goal: { terrain?: string | undefined }): boolean => g
  * wyniku — z dziś, policzony tą samą funkcją co przy generowaniu planu. Dzięki temu
  * etykieta nie przeczy wiekowi, a reguły okna 540 dni i Z-10 żyją w jednym miejscu.
  */
-export function calibrationLabel(stored: Calibration['candidates'][number], today: Calibration['candidates'][number] | undefined, replacementToday: boolean):
-  Calibration['candidates'][number]['reason'] | 'selectedStale' | 'selectedStaleReplaced' | 'nowBest' | 'newer' {
+export function calibrationLabel(stored: Calibration['candidates'][number], today: Calibration['candidates'][number] | undefined, replacementToday: boolean, fromConfig = true):
+  Calibration['candidates'][number]['reason'] | 'selectedStale' | 'selectedStaleReplaced' | 'nowBest' | 'newer' | 'removed' {
+  // wyniku nie ma już w trainctl.yaml — plan po regeneracji go nie zobaczy
+  if (!today && fromConfig) return 'removed'
   const now = today?.reason ?? stored.reason
   // użyty do stref, dziś za stary: inny wynik już by go zastąpił albo trzeba dopisać świeży
   if (stored.reason === 'selected') return now === 'stale' ? (replacementToday ? 'selectedStaleReplaced' : 'selectedStale') : 'selected'

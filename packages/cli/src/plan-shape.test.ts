@@ -12,14 +12,12 @@ import { REVIEW_PROFILES, fullMatrix, matrixPlan, shapeReport, type MatrixProfil
 
 setLocale('en')
 
-const CODES = SHAPE_CODES
-
 function summary(p: MatrixProfile): string {
   const plan = matrixPlan(p)
-  const { issues } = shapeReport(p, plan)
+  const { issues, rows } = shapeReport(p, plan)
   const errors = validatePlan(plan).filter((i) => i.severity === 'error').length
-  const counts = CODES.map((c) => issues.filter((i) => i.code === c).length)
-  const longest = Math.max(0, ...plan.weeks.flatMap((w) => w.days.map((d) => (d.workout?.kind === 'long' ? d.workout.distanceKm : 0))))
+  const counts = SHAPE_CODES.map((c) => issues.filter((i) => i.code === c).length)
+  const longest = Math.max(0, ...rows.map((r) => r.longKm))
   return [p.id.padEnd(26), `peak ${plan.peakKmPlanned}`.padEnd(8), `long ${longest}`.padEnd(8), `err ${errors}`, counts.join(' ')].join(' | ')
 }
 
@@ -36,7 +34,7 @@ describe('kształt sezonu', () => {
     const lines = fullMatrix().map(summary)
     expect(lines).toHaveLength(576)
     expect(lines.filter((l) => !l.includes('| err 0 |'))).toEqual([])
-    const header = `# id | peak | longest long | validate errors | ${CODES.join(' ')}`
+    const header = `# id | peak | longest long | validate errors | ${SHAPE_CODES.join(' ')}`
     await expect([header, ...lines].join('\n') + '\n').toMatchFileSnapshot('./__snapshots__/plan-shape-matrix.txt')
   })
 })

@@ -7,7 +7,7 @@
  * Progi oznaczone „inż." są wyborem inżynierskim (E-3), nie wynikiem badań.
  */
 import type { MacroPhase, Microcycle, PlannedWorkout, RaceGoal } from '../domain/types.ts'
-import { recommendedPeakKm } from './macrocycle.ts'
+import { goalClass } from './macrocycle.ts'
 import { fmtPace, hardKmOf, paceMid } from './microcycle.ts'
 
 export interface SeasonAccent {
@@ -46,7 +46,7 @@ function accentOf(w: PlannedWorkout): SeasonAccent {
     } else if (s.type === 'steady') {
       parts.push(`${s.distanceKm} km${s.pace ? '@' + fmtPace(s.pace.loSecPerKm) : ''}`)
     } else if (s.type === 'hills') {
-      parts.push(`${s.reps}×${s.repM}`)
+      parts.push(`${s.reps ?? 1}×${s.repM ?? 0}`)
     } else if (s.type === 'race') {
       parts.push(`${s.distanceKm} km`)
     }
@@ -114,10 +114,10 @@ export const SESSION_SHARE_MAX = 0.35
  */
 export function longRunThreshold(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): { km: number; inclusive: boolean; ruleRefs: string[] } | undefined {
   if (goal.kind === 'base') return undefined
-  // klasa dystansu z tej samej funkcji co szczyt objętości (P-7/P-8)
-  const recommended = recommendedPeakKm(goal as RaceGoal)
-  if (recommended === recommendedPeakKm({ ...goal, distanceKm: 42.195 } as RaceGoal)) return { km: 25, inclusive: true, ruleRefs: ['P-8', 'J-1'] }
-  if (recommended === recommendedPeakKm({ ...goal, distanceKm: 21.0975 } as RaceGoal)) return { km: 21, inclusive: false, ruleRefs: ['J-2', 'P-7'] }
+  // klasa dystansu z tej samej funkcji co taper i szczyt objętości
+  const kind = goalClass(goal)
+  if (kind === 'marathon') return { km: 25, inclusive: true, ruleRefs: ['P-8', 'J-1'] }
+  if (kind === 'half') return { km: 21, inclusive: false, ruleRefs: ['J-2', 'P-7'] }
   return undefined
 }
 

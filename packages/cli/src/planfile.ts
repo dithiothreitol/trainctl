@@ -568,9 +568,12 @@ export function workoutText(day: PlannedDay): string {
   return `${mains.replace(/\.\s*$/, '')}. ${parts[cooldown]}`
 }
 
-/** „8.5" → „8,5" po polsku; daty (z łącznikami) i godziny zostają bez zmian. */
+/**
+ * Kilometry w historii zmian („8.5 → 6 km", „8.5 km") po polsku z przecinkiem.
+ * Tylko liczby przed „km" albo „→" — wersje i identyfikatory zostają bez zmian.
+ */
 const localizeDecimals = (text: string): string =>
-  getLocale() === 'pl' ? text.replace(/(?<![\d.])(\d+)\.(\d+)(?![\d.])/g, '$1,$2') : text
+  getLocale() === 'pl' ? text.replace(/(?<![\w.])(\d+)\.(\d+)(?=\s*(?:km\b|→))/g, '$1,$2') : text
 
 export function renderMarkdown(plan: StoredPlan): string {
   const m = ui().planMd

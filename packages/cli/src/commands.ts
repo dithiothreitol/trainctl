@@ -610,8 +610,10 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     const model = messages().intensityModel[sk.intensityModel]
     const rows: string[][] = []
     const accents: (ColorName | undefined)[] = []
+    // dziennik czytany raz; ostatni wpis daty wygrywa, jak w logFor
+    const lastByDate = new Map(readLog(cwd).map((e) => [e.date, e]))
     for (const day of week.days) {
-      const entry = logFor(cwd, day.date)
+      const entry = lastByDate.get(day.date)
       // status słowem, nie symbolem: to samo wyjście czyta agent przez MCP
       const mark = entry ? ` [${logStatusText(entry.status)}]` : ''
       const kind = day.workout?.kind
@@ -824,20 +826,22 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     }
     if (!day.workout && !day.strength) blocks.push(b.text(ui().why.restDay))
     blocks.push(b.section(ui().improve.calibration))
-    // stan wyników na dziś — to samo, co tekst; `calibration` zostaje zapisem z dnia kalibracji
-    let calibrationToday: { date: string; label: ReturnType<typeof calibrationLabel>; ageDays: number }[] | null = null
-    if (plan.calibration) {
-      const now = localToday()
-      // stan każdego zapisanego wyniku na dziś, dopasowany po kluczu wyniku, nie po pozycji
-      const current = new Map(inspectCalibration(plan.calibration.results, now, isRoadGoal(plan.goal)).candidates.map((x) => [resultKey(x.result), x]))
-      // następca przeterminowanego wyniku: to, co wybrałby `trainctl plan` z dzisiejszego
-      // trainctl.yaml; bez czytelnego profilu nic nie obiecujemy
-      const config = (() => { try { return loadConfig(cwd) } catch { return undefined } })()
-      const replacement = config ? inspectCalibration(config.athlete.results, now, isRoadGoal(config.goal)).candidates.some((x) => x.reason === 'selected') : false
-      const today = plan.calibration.candidates.map((c) => ({ date: c.result.date, label: calibrationLabel(c, current.get(resultKey(c.result)), replacement), ageDays: diffDays(c.result.date, now) }))
-      calibrationToday = today
+    // Stan wyników na dziś — to samo, co tekst; `calibration` zostaje zapisem z dnia kalibracji.
+    // Jedno źródło dla wszystkich etykiet: to, co wybrałby `trainctl plan` z dzisiejszego
+    // trainctl.yaml (bez czytelnego profilu: wyniki zapisane w planie). Dopasowanie po kluczu.
+    const now = localToday()
+    const config = (() => { try { return loadConfig(cwd) } catch { return undefined } })()
+    const calibrationToday = plan.calibration ? (() => {
+      const source = config ? config.athlete.results : plan.calibration.results
+      const current = inspectCalibration(source, now, isRoadGoal(config?.goal ?? plan.goal)).candidates
+      const byKey = new Map(current.map((x) => [resultKey(x.result), x]))
+      const storedSelected = plan.calibration.candidates.find((c) => c.reason === 'selected')
+      const replacement = current.some((x) => x.reason === 'selected' && (!storedSelected || resultKey(x.result) !== resultKey(storedSelected.result)))
+      return plan.calibration.candidates.map((c) => ({ date: c.result.date, label: calibrationLabel(c, byKey.get(resultKey(c.result)), replacement, !!config), ageDays: diffDays(c.result.date, now) }))
+    })() : null
+    if (plan.calibration && calibrationToday) {
       blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c, i) => {
-        const { ageDays: age, label: reason } = today[i]!
+        const { ageDays: age, label: reason } = calibrationToday[i]!
         return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
       })))
     } else blocks.push(b.info(ui().improve.calibrationMissing))
@@ -1543,9 +1547,9 @@ export async function cmdReview(
           [ui().review.volume, ui().review.volumeAhead(Math.round(upcoming.reduce((s, d) => s + (d.workout?.distanceKm ?? 0), 0) * 10) / 10, week.totalKm, upcoming.length)],
           ...(plan.goal.kind === 'base'
             ? ([[ui().review.baseEnd, plan.goal.date]] as [string, string][])
-            : diffDays(today, plan.goal.date) >= 0
-              ? ([[ui().review.toRace, ui().status.daysToRace(diffDays(today, plan.goal.date))]] as [string, string][])
-              : ([[ui().review.sinceRace, ui().status.daysToRace(diffDays(plan.goal.date, today))]] as [string, string][])),
+            : daysToRace(plan, today) >= 0
+              ? ([[ui().review.toRace, ui().status.daysToRace(daysToRace(plan, today))]] as [string, string][])
+              : ([[ui().review.sinceRace, ui().status.daysToRace(-daysToRace(plan, today))]] as [string, string][])),
         ]),
       )
       const race = upcoming.find((d) => d.workout?.kind === 'race')

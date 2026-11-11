@@ -37,6 +37,7 @@ export const improveEn = {
   selectedStale: 'Used for zones; now older than 540 days — add a recent result',
   selectedStaleReplaced: 'Used for zones; now older than 540 days — trainctl plan will switch to a newer result',
   nowBest: 'Would set the zones today — run trainctl plan',
+  removed: 'No longer in trainctl.yaml',
   newer: 'Newer than the calibration — trainctl plan will consider it',
   calibratedOn: (date: string) => `Plan zones calibrated on ${date}; ages below count from today.`,
   age: (days: number) => `${days} days old`,

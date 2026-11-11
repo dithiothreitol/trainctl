@@ -4,7 +4,7 @@
  * Używa jej `plan-shape.test.ts` i skrypt przeglądu trenerskiego (F1). Plik
  * `.fixture.ts` nie trafia do paczki npm (package.json `files`, tsconfig.build).
  */
-import { addDays, seasonLine, seasonProfile, seasonShapeIssues, type ShapeIssue, type Weekday } from 'trainctl-core'
+import { addDays, seasonLine, seasonProfile, seasonShapeIssues, type SeasonRow, type ShapeIssue, type Weekday } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
 import { computePlan, type StoredPlan } from './planfile.ts'
 
@@ -76,7 +76,7 @@ export function matrixPlan(p: MatrixProfile): StoredPlan {
   return computePlan(matrixConfig(p), MATRIX_TODAY)
 }
 
-export function shapeReport(p: MatrixProfile, plan = matrixPlan(p)): { lines: string[]; issues: ShapeIssue[] } {
+export function shapeReport(p: MatrixProfile, plan = matrixPlan(p)): { lines: string[]; issues: ShapeIssue[]; rows: SeasonRow[] } {
   const rows = seasonProfile(plan.weeks)
-  return { lines: rows.map(seasonLine), issues: seasonShapeIssues(plan, rows) }
+  return { lines: rows.map(seasonLine), issues: seasonShapeIssues(plan, rows), rows }
 }

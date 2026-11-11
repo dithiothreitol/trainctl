@@ -37,6 +37,7 @@ export const improvePl: typeof improveEn = {
   selectedStale: 'Użyty do stref; dziś starszy niż 540 dni — dopisz świeży wynik',
   selectedStaleReplaced: 'Użyty do stref; dziś starszy niż 540 dni — trainctl plan przejdzie na nowszy wynik',
   nowBest: 'Dziś ustawiłby strefy — uruchom trainctl plan',
+  removed: 'Usunięty z trainctl.yaml',
   newer: 'Nowszy niż kalibracja — trainctl plan go uwzględni',
   calibratedOn: (date: string) => `Strefy planu skalibrowano ${date}; wiek wyników poniżej liczony od dziś.`,
   age: (days: number) => `sprzed ${days} dni`,

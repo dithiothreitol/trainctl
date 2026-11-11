@@ -32,12 +32,27 @@ const TAPER_MULTIPLIERS: Record<number, number[]> = {
   3: [0.75, 0.6, 0.45],
 }
 
+/**
+ * Klasa dystansu celu — jedno miejsce granic dla taperu (T-5), szczytu (P-7/P-8)
+ * i lintów sezonu. Granice: ultra >42,5 km, maraton ≥42 km, HM ≥20,9 km.
+ */
+export type GoalClass = 'base' | 'ultra' | 'marathon' | 'half' | 'short'
+export function goalClass(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): GoalClass {
+  if (goal.kind === 'base') return 'base'
+  if (goal.distanceKm > 42.5) return 'ultra'
+  if (goal.distanceKm >= 42.0) return 'marathon'
+  if (goal.distanceKm >= 20.9) return 'half'
+  return 'short'
+}
+
 export function taperWeeksFor(goal: RaceGoal): { weeks: number; flags: string[] } {
-  if (goal.kind === 'base') return { weeks: 0, flags: [] } // P-11: plan bez zawodów nie ma taperu
-  if (goal.distanceKm > 42.5) return { weeks: 3, flags: [messages().macro.ultraTaperExtrapolated] }
-  if (goal.distanceKm >= 42.0) return { weeks: 3, flags: [] } // maraton: 14–21 dni
-  if (goal.distanceKm >= 20.9) return { weeks: 2, flags: [] } // HM: 10–14 dni
-  return { weeks: 1, flags: [] } // 5–10 km: 7–10 dni
+  switch (goalClass(goal)) {
+    case 'base': return { weeks: 0, flags: [] } // P-11: plan bez zawodów nie ma taperu
+    case 'ultra': return { weeks: 3, flags: [messages().macro.ultraTaperExtrapolated] }
+    case 'marathon': return { weeks: 3, flags: [] } // maraton: 14–21 dni
+    case 'half': return { weeks: 2, flags: [] } // HM: 10–14 dni
+    case 'short': return { weeks: 1, flags: [] } // 5–10 km: 7–10 dni
+  }
 }
 
 /** T-9: mini-taper przed startem B — objętość tygodnia w dół o ~20%, makrocykl bez zmian. */
@@ -63,11 +78,13 @@ export function testDistanceKm(goal: RaceGoal): number {
 
 /** P-7/P-8: rekomendowana objętość szczytowa dla dystansu docelowego. */
 export function recommendedPeakKm(goal: RaceGoal): number {
-  if (goal.kind === 'base') return 0 // bez dystansu docelowego nie ma progu P-7/P-8
-  if (goal.distanceKm > 42.5) return 70 // inż. — brak źródła dla ultra (T-8)
-  if (goal.distanceKm >= 42.0) return 65 // P-8: >65 km/tydz. → −14 min
-  if (goal.distanceKm >= 20.9) return 42 // P-7: >32 km/tydz. + długi >21 km; inż. margines
-  return 35 // inż. dla 5–10 km
+  switch (goalClass(goal)) {
+    case 'base': return 0 // bez dystansu docelowego nie ma progu P-7/P-8
+    case 'ultra': return 70 // inż. — brak źródła dla ultra (T-8)
+    case 'marathon': return 65 // P-8: >65 km/tydz. → −14 min
+    case 'half': return 42 // P-7: >32 km/tydz. + długi >21 km; inż. margines
+    case 'short': return 35 // inż. dla 5–10 km
+  }
 }
 
 export interface MacrocycleInput {
