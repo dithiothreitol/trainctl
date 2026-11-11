@@ -37,7 +37,7 @@ import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, shownKm } from './format.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
-import { appendLog, latestByDate, logFor, LOG_LIMITS, parseTime, readLog, readStrengthLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
+import { appendLog, latestByDate, LOG_LIMITS, parseTime, readJournal, readLog, readStrengthLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
   computePlan,
   cycleWeeksOf,
@@ -570,7 +570,9 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
         kind && !['easy', 'long'].includes(kind) ? b.warn(advice) : b.text(advice, 'muted'),
       )
     }
-    const entry = logFor(cwd, date)
+    // dziennik czytany raz: wpis biegu i wpis siły tego dnia (ostatni wygrywa)
+    const journal = readJournal(cwd)
+    const entry = latestByDate(journal.runs).get(date)
     if (entry) {
       blocks.push(
         b.success(
@@ -582,7 +584,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
         ),
       )
     }
-    const strengthEntry = readStrengthLog(cwd).filter((e) => e.date === date).at(-1)
+    const strengthEntry = latestByDate(journal.strength).get(date)
     if (strengthEntry) blocks.push(b.success(ui().today.strengthLogged(logStatusText(strengthEntry.status, true))))
     const estimatedMinutes = (day.workout ? estimateWorkoutMinutes(day.workout, plan.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
     // Dla biegacza zza biurka dwie najważniejsze liczby dnia: ile to potrwa i co dalej.

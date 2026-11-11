@@ -589,3 +589,16 @@ describe('regeneracja zapisuje zmianę wyniku, z którego liczone są strefy', (
     expect(wrap(`pliki aktywności (${url})`, 40).some((line) => line.trim() === `(${url})`)).toBe(true)
   })
 })
+
+describe('regeneracja i teren wyniku (Z-10)', () => {
+  it('zmiana terenu jedynego wyniku zapisuje plan i zdejmuje ostrzeżenie o kalibracji z trailu', () => {
+    const road = '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }'
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(road, '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580, terrain: trail }'), 'utf-8')
+    setLocale('en')
+    cmdPlan(dir, { fresh: true })
+    expect(loadPlan(dir).feasibilityWarnings.join(' ')).toContain('trail result')
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG, 'utf-8')
+    expect(cmdPlan(dir).data).toMatchObject({ regeneration: { upToDate: false } })
+    expect(loadPlan(dir).feasibilityWarnings.join(' ')).not.toContain('trail result')
+  })
+})

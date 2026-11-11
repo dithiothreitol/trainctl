@@ -120,6 +120,12 @@ function normalize(raw: Record<string, unknown>): LogEntry | StrengthLogEntry {
 
 const isStrength = (e: LogEntry | StrengthLogEntry): e is StrengthLogEntry => (e as StrengthLogEntry).activity === 'strength'
 
+/** Cały dziennik jednym odczytem: wpisy biegowe i siłowe osobno. */
+export function readJournal(cwd: string): { runs: LogEntry[]; strength: StrengthLogEntry[] } {
+  const all = readAll(cwd)
+  return { runs: all.filter((e): e is LogEntry => !isStrength(e)), strength: all.filter(isStrength) }
+}
+
 /** Wpisy biegowe — to, z czego liczy się wykonanie planu. */
 export function readLog(cwd: string): LogEntry[] {
   return readAll(cwd).filter((e): e is LogEntry => !isStrength(e))

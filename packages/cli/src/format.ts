@@ -3,9 +3,11 @@ import { formatNumber, getLocale } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 
 /**
- * Dystans w formacie języka: „21,1 km" po polsku, „21.1 km" po angielsku.
- * Domyślnie jedno miejsce po przecinku (dystans startu, sumy tygodnia); wartość
- * wpisana przez biegacza (`decimals` 3) wraca tak, jak ją zapisano: „8,25 km".
+ * Dystans skrótem „km" w formacie języka: „21,1 km" po polsku, „21.1 km" po
+ * angielsku — do tabel i wierszy. Forma słowna („8 kilometrów") to osobny
+ * `messages().units.km` z core. Domyślnie jedno miejsce po przecinku (dystans
+ * startu, sumy tygodnia); wartość wpisana przez biegacza (`decimals` 4, jak
+ * podpowiedź kreatora) wraca tak, jak ją zapisano: „21,0975 km".
  * Ręcznie edytowany log.jsonl normalizuje readAll — tu trafiają już liczby.
  */
 export const kmLabel = (km: number, decimals = 1): string => `${formatNumber(getLocale(), km, decimals)} km`

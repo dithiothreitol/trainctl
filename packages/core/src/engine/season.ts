@@ -121,6 +121,13 @@ export function longRunThreshold(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): {
 }
 
 const LOADING_PHASES = new Set<MacroPhase>(['base', 'build', 'peak'])
+
+/** Mediana; przy parzystej liczbie średnia dwóch środkowych. */
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, z) => a - z)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 ? sorted[mid]! : round1((sorted[mid - 1]! + sorted[mid]!) / 2)
+}
 const isLoading = (w: Microcycle) => LOADING_PHASES.has(w.skeleton.phase) && !w.skeleton.deload
 
 /** `rows` — profil już policzony przez wołającego (unika drugiego przebiegu). */
@@ -156,24 +163,22 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
   })
 
   // R-8: akcent w bloku przejściowym (po starcie celu) nie większy niż typowy akcent
-  // ostatniego bloku budowania (mediana — jedna skrócona jednostka nie zbija sufitu).
-  // Blok to tygodnie ładowania między odciążeniami; liczy się ostatni, który ma
-  // akcenty inne niż podbiegi.
-  const accentKm = (block: SeasonRow[]) => block.flatMap((r) => r.accents.filter((a) => a.kind !== 'easy_hills').map((a) => a.hardKm))
-  let buildHard: number[] = []
-  let buildBlock: SeasonRow[] = []
+  // ostatniego bloku budowania przed nim (mediana — jedna skrócona jednostka nie zbija
+  // sufitu). Blok to tygodnie ładowania między odciążeniami; liczy się ostatni z akcentami
+  // innymi niż podbiegi. Plan z historią może mieć kilka cykli — każdy tydzień przejściowy
+  // porównujemy z blokiem, który go poprzedza, nie z budowaniem następnego cyklu.
+  let blockHard: number[] = []
+  let ceilingHard: number[] = []
   for (const r of rows) {
-    if (r.phase !== 'build') continue
-    if (r.deload) { if (accentKm(buildBlock).length) buildHard = accentKm(buildBlock); buildBlock = []; continue }
-    if (!r.flags.length) buildBlock.push(r)
-  }
-  if (accentKm(buildBlock).length) buildHard = accentKm(buildBlock)
-  if (buildHard.length) {
-    const sorted = [...buildHard].sort((a, z) => a - z)
-    const ceiling = sorted[Math.floor((sorted.length - 1) / 2)]!
-    for (const r of rows.filter((x) => x.phase === 'transition')) {
-      for (const a of r.accents) if (a.kind !== 'easy_hills' && a.hardKm > ceiling) issues.push({ code: 'postRaceAccentHeavy', date: r.weekStart, ruleRefs: ['R-8'], values: [a.hardKm, ceiling] })
+    if (r.phase === 'build') {
+      if (r.deload) { if (blockHard.length) ceilingHard = blockHard; blockHard = []; continue }
+      if (!r.flags.length) blockHard.push(...r.accents.filter((a) => a.kind !== 'easy_hills').map((a) => a.hardKm))
+      continue
     }
+    if (blockHard.length) { ceilingHard = blockHard; blockHard = [] }
+    if (r.phase !== 'transition' || !ceilingHard.length) continue
+    const ceiling = median(ceilingHard)
+    for (const a of r.accents) if (a.kind !== 'easy_hills' && a.hardKm > ceiling) issues.push({ code: 'postRaceAccentHeavy', date: r.weekStart, ruleRefs: ['R-8'], values: [a.hardKm, ceiling] })
   }
 
   // P-1: kolejne bloki ładowania w budowaniu/szczycie nie powtarzają tej samej dawki

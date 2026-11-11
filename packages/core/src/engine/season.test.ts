@@ -110,3 +110,35 @@ describe('longRunThreshold: klasa dystansu jak w recommendedPeakKm', () => {
     expect(longRunThreshold({ kind: 'race', distanceKm: 50 })).toBeUndefined()
   })
 })
+
+describe('postRaceAccentHeavy: mediana i kolejność cykli', () => {
+  const accent = (main: number): PlannedWorkout => ({
+    kind: 'quality_intervals', distanceKm: 4 + main, ruleRefs: [],
+    segments: [
+      { type: 'warmup', distanceKm: 3, description: '' },
+      { type: 'intervals', reps: main, repM: 1000, distanceKm: main, description: '' },
+      { type: 'cooldown', distanceKm: 1, description: '' },
+    ],
+  })
+  const flagged = (weeks: Microcycle[]) => seasonShapeIssues({ goal: half, weeks }).filter((i) => i.code === 'postRaceAccentHeavy').map((i) => i.date)
+
+  it('parzysta liczba akcentów: średnia dwóch środkowych (1 i 6 km → 3,5 km)', () => {
+    const weeks = [
+      week('2027-01-04', { tue: accent(1), sun: accent(6), sat: long(18) }),
+      week('2027-01-11', { tue: accent(3), sat: long(8) }, 'transition'),
+    ]
+    expect(flagged(weeks)).toEqual([])
+    weeks[1] = week('2027-01-11', { tue: accent(4), sat: long(8) }, 'transition')
+    expect(flagged(weeks)).toEqual(['2027-01-11'])
+  })
+
+  it('kilka cykli: tydzień przejściowy porównany z budowaniem przed nim, nie z następnym cyklem', () => {
+    const weeks = [
+      week('2027-01-04', { tue: accent(4), sat: long(18) }),
+      week('2027-01-11', { tue: accent(4), sat: long(8) }, 'transition'),
+      week('2027-01-18', { tue: easy(8), sat: long(12) }, 'base'),
+      week('2027-01-25', { tue: accent(2), sat: long(14) }),
+    ]
+    expect(flagged(weeks)).toEqual([])
+  })
+})
