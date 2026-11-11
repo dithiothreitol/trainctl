@@ -137,7 +137,8 @@ Pozostałe tygodnie P1: odciążenie `wt I8, sb L13, nd E15`; tydzień sprawdzia
    (L13, E15) i w tygodniach 17, 18, 19 i 21 P2 (L12–L14, E13–E16).
 7. **Liczba akcentów zależy od liczby dostępnych dni, a nie od liczby biegów.**
    `qualityPerWeek` (`macrocycle.ts:177`) daje 2 akcenty przy ≥4 dniach, także
-   gdy tydzień ma 3 biegi. I-8 mówi o sesjach.
+   gdy tydzień ma 3 biegi. Pomiar z etapu 1 (S-12) pokazał, że trener robi tak
+   samo, więc to zostaje.
 8. **Stała rama 3 km + 1 km i minimum 4 powtórzeń** (`microcycle.ts:168`) dają
    sesję 8 km przy każdej objętości. W P2 to połowa tygodnia 16 km, a obok
    powstaje bieg 2 km.
@@ -148,8 +149,9 @@ Pozostałe tygodnie P1: odciążenie `wt I8, sb L13, nd E15`; tydzień sprawdzia
     kilometrów** (`microcycle.ts:489–504`), więc przycina akcenty mocniej, niż
     wymaga reguła. Tydzień ładowania P1 kończy z 85% spokojnego biegania przy
     progu 75%.
-11. **Akcent wypada w niedzielę, dzień po długim.** S-9a dokumentuje pomiar
-    odwrotnej kolejności: długie po akcencie.
+11. **Akcent wypada w niedzielę, dzień po długim.** Pomiar z etapu 1 pokazał,
+    że w korpusie to równie częsty układ jak odwrotny (S-9b). To nie jest
+    usterka, brakuje tylko wyjaśnienia w `why`.
 12. **Budżet czasu odwraca strukturę.** `fitTimeBudget` (`planfile.ts:270–324`)
     przycina każdy tydzień osobno do limitu minut, a minuty siły są stałe:
     2 sesje w tygodniu ładowania, 1 w odciążeniu, 0 w taperze. Im mniej siły,
@@ -174,7 +176,7 @@ danych w jednym przeglądzie ze zmianą silnika nie dałaby się ocenić.
 
 | Etap | Wydanie | Zakres | Testy własne etapu |
 |---|---|---|---|
-| **1. Fundament** | 0.6.1 | pakiet A; B0; B9; wszystkie pomiary i wpisy FOUNDATIONS z punktów „Nauka" w B1–B8; wskaźnik bieżącego planu w `CLAUDE.md` | migawka macierzy utworzona na niezmienionym silniku i bez różnic na końcu etapu; `tools/corpus/test_parse_plans.py` |
+| **1. Fundament** | 0.6.1 | pakiet A; B0; B9; wszystkie pomiary (`tools/corpus/season_profile.py`) i wpisy FOUNDATIONS z punktów „Nauka" w B1–B8; wskaźnik bieżącego planu w `CLAUDE.md` | migawka macierzy utworzona na niezmienionym silniku i bez różnic na końcu etapu; `tools/corpus/test_parse_plans.py` |
 | **2. Silnik biegowy** | 0.7.0 | B1–B8, B10; pola segmentu i poprawki zapisu z C1; linty kształtu podpięte do `check` | macierz bez pięciu lintów kształtu; DoD pakietu B na P1–P3; `regenerate.test.ts`, `cycle.test.ts`, `engine-060.test.ts`, `time-budgets.test.ts`; backtest lokalnie; `pnpm simulate:coaching`, `pnpm simulate:multisport` |
 | **3. Widoki i wykonanie** | 0.8.0 | C1–C7, D1–D5, F3 | migawki przy 60, 80, 100, 120 kolumnach w PL, EN i ASCII; budżety wierszy z C2; MCP bez ANSI; syntetyczne FIT i TCX; `pnpm plugin:build` i `scripts/verify-plugin.mjs` |
 | **4. Jeden model danych** | 0.9.0 | pakiet E | ten sam kształt sezonu w v1 i v2 na macierzy; lista parytetu; migracja; `pnpm simulate:multisport --artifacts`; weryfikacja pluginu |
@@ -319,15 +321,16 @@ zostają w kodzie z komentarzem „inż." i wpisem w FOUNDATIONS.
 ### B1. Liczba biegów i układ tygodnia
 
 - **Objaw:** obserwacje 4, 5, 6, 7 z §1.
-- **Nauka:** `tools/corpus/session_count_profile.py`: liczba sesji względem
-  kilometrażu w tygodniach korpusu poniżej 55 km oraz stosunek najdłuższego
-  biegu spokojnego do długiego. Wynik do `house-style.ts` z zakresem
-  obowiązywania albo z etykietą „inż.".
-- **Zmiana:**
-  1. liczba biegów rośnie, gdy bieg spokojny przekroczyłby sufit
-     `min(18 km, 0,75 × długie)` (inż.), o ile jest wolny dostępny dzień;
-  2. liczba akcentów wynika z liczby biegów w tygodniu (I-8), a nie z
-     `daysAvailable.length`;
+- **Nauka (wykonana w etapie 1, FOUNDATIONS §10.15):** S-10 — w korpusie
+  bieg spokojny nigdy nie jest dłuższy od długiego (0 ze 136 tygodni,
+  stosunek 0,60–0,83). S-11 — liczba biegów rośnie z objętością tak, jak liczy
+  `typicalKmPerSession` 14, od 30 km w górę. S-12 — przy trzech biegach trener
+  daje dwa akcenty.
+- **Zmiana (po pomiarze):**
+  1. sufit biegu spokojnego `min(EASY_RUN_CAP_KM, długie)` (S-10). Gdy reszta
+     kilometrów go przekracza i jest wolny dostępny dzień, dochodzi bieg (S-11);
+  2. liczba akcentów bez zmian. Propozycja ograniczenia akcentów przy trzech
+     biegach odpada (S-12);
   3. gałąź `microcycle.ts:531–535` respektuje sufit biegu spokojnego. Reszta
      kilometrów, której nie da się rozdać, obniża `totalKm` i zostawia flagę
      w szkielecie;
@@ -351,12 +354,14 @@ zostają w kodzie z komentarzem „inż." i wpisem w FOUNDATIONS.
 ### B3. Trajektoria objętości
 
 - **Objaw:** obserwacja 1.
-- **Nauka:** `tools/corpus/volume_trajectory.py`: kilometraż tygodnia względem
-  szczytu sezonu w funkcji tygodni do startu. Reguły wyjściowe: P-1, P-2, P-3,
-  T-7 (szczyt około 4 tygodnie przed startem).
+- **Nauka (wykonana, §10.15):** P-12 — szczyt 5–7 tygodni przed startem ≥ HM,
+  około 0,6 szczytu 13–15 tygodni przed (n = 3). T-7 podaje około 4 tygodnie.
+  Silnik trzyma się T-7 i P-12 razem: szczyt w ostatnim bloku ładowania przed
+  taperem.
 - **Zmiana:**
   1. wzrost od `recentWeeklyKm` do szczytu rozłożony na bloki ładowania tak, by
-     szczyt wypadł zgodnie z T-7. Tempo wzrostu to mniejsza z wartości P-3
+     szczyt wypadł w ostatnim bloku przed taperem. Biegacz już na szczycie
+     zaczyna od około 0,7 szczytu (P-12, inż. dla dokładnej wartości). Tempo wzrostu to mniejsza z wartości P-3
      i potrzebnej;
   2. fala w bloku: trzy tygodnie ładowania rosną, np. 0,94, 0,97, 1,00 poziomu
      bloku (inż.), czwarty to odciążenie;
@@ -371,9 +376,9 @@ zostają w kodzie z komentarzem „inż." i wpisem w FOUNDATIONS.
 ### B4. Długie wybieganie
 
 - **Objaw:** obserwacja 2.
-- **Nauka:** J-1, J-2, P-7, P-8 już istnieją. Pomiar w korpusie
-  (`long_run_profile.py`): długość długiego w funkcji tygodni do startu oraz
-  udział w tygodniu z P90.
+- **Nauka (wykonana, §10.15):** J-10 — długie rośnie z ~15 km 15 tygodni przed
+  startem do 23–25 km 2–7 tygodni przed (n = 3). Udział długiego w tygodniu
+  0,29–0,41 według objętości.
 - **Zmiana:**
   1. osobny tor długiego: cel zależny od dystansu (półmaraton 22 km, maraton
      30–32 km, krócej według udziału), osiągany w bloku szczytowym;
@@ -389,19 +394,18 @@ zostają w kodzie z komentarzem „inż." i wpisem w FOUNDATIONS.
 ### B5. Progresja akcentów i repertuar
 
 - **Objaw:** obserwacje 1, 3, 9, 10.
-- **Nauka:** `tools/corpus/quality_profile.py`: typ i dawka części głównej
-  według fazy, tygodni do startu i kilometrażu oraz praca w tempie startowym
-  w ostatnich 8 tygodniach przed półmaratonem i maratonem. Do FOUNDATIONS:
-  J-8 „progresja dawki w bloku" i J-9 „praca w tempie startowym", każda
-  z siłą dowodu „korpus" albo „inż.". J-4 (drabinki 1000/400/200 m z korpusu)
-  jest zapisana, a kod jej nie realizuje.
+- **Nauka (wykonana, §10.15):** J-8 — km poza Z1 na sesję rosną ~3 → 7,5 → 9
+  → 10 w kolejnych pasmach czterotygodniowych przed startem. J-9 — praca
+  ciągła wydłuża się z 7 do 12–15 km. Tempa startowego korpus nie potwierdza
+  (§11.2 p. 12), więc jednostek „w tempie startowym" nie dodajemy. J-4
+  (drabinki 1000/400/200 m) jest zapisana, a kod jej nie realizuje.
 - **Zmiana:**
   1. pętla I-5 liczy udział po rozdaniu reszty kilometrów;
   2. dawka = dawka bazowa z kilometrażu + krok za tydzień w bloku, ograniczona
      przez I-5, udział mocnych kilometrów 25% i sufit jednostki. Po odciążeniu
      blok startuje z poziomu drugiego tygodnia poprzedniego bloku (inż.);
-  3. biblioteka jednostek według fazy z pomiaru, w tym drabinka J-4 i jednostki
-     w tempie startowym dla półmaratonu i maratonu, jeśli pomiar je potwierdzi;
+  3. biblioteka jednostek według fazy: drabinka J-4 w szczycie, wydłużany
+     blok ciągły w budowaniu (J-9), bez jednostek w tempie startowym;
   4. akcent w drugim tygodniu po starcie nie większy niż najmniejszy akcent
      ostatniego bloku budowania.
 - **Test:** macierz B0 bez `staleProgression` i `postRaceAccentHeavy`;
@@ -411,15 +415,12 @@ zostają w kodzie z komentarzem „inż." i wpisem w FOUNDATIONS.
 ### B6. Kolejność weekendu
 
 - **Objaw:** obserwacja 11. Sprawdzian w sobotę i 19 km w niedzielę.
-- **Nauka:** rozszerzyć `long_run_profile.py`: co wypada dzień po długim, jaka
-  jest kolejność, gdy akcent i długie są w tym samym weekendzie, oraz jak długie
-  jest wybieganie dzień po starcie B/C (T-11).
-- **Zmiana zależna od pomiaru:**
-  - jeśli kolejność „długie, potem akcent" jest w korpusie rzadka: przy obu
-    dniach weekendu wolnych i bez `athlete.longRunDay` akcent idzie na sobotę,
-    a długie na niedzielę, albo drugi akcent przechodzi na środek tygodnia;
-  - jeśli jest częsta: zostaje, dostaje ID reguły (S-9b) i zdanie w `why`.
-- **Test:** `microcycle.test.ts` dla preferencji dni; `validate.test.ts`
+- **Nauka (wykonana, §10.15):** S-9b — „długie→akcent" 52 razy,
+  „akcent→długie" 53 razy; dzień po długim to najczęściej akcent (66 z 97).
+  Po sobotnim starcie niedzielny bieg ma medianę 25 km (n = 15, T-11).
+- **Zmiana (po pomiarze):** układ zostaje. `why` dla akcentu dzień po długim
+  i dla długiego dzień po sprawdzianie cytuje S-9b albo T-11.
+- **Test:** `coach-flows.test.ts`: zdanie z S-9b w `why`; `validate.test.ts`
   `accentGap` bez zmian.
 
 ### B7. Budżet czasu zachowuje kształt makrocyklu
@@ -446,9 +447,9 @@ zostają w kodzie z komentarzem „inż." i wpisem w FOUNDATIONS.
 ### B8. Mała baza i powrót po przerwie
 
 - **Objaw:** obserwacja 13.
-- **Nauka:** przegląd literatury o roztrenowaniu i powrocie do objętości.
-  Wynik jako reguła R-11 z siłą dowodu albo jawnie „inż.". P-3 dopuszcza
-  większe skoki z twardym limitem 25–30%.
+- **Nauka (wykonana, §10.15):** R-11 jako wartość inżynierska: start z ~50–60%
+  objętości sprzed przerwy, pierwszy blok spokojnie, wzrost w granicach P-3.
+  RCT dotyczącego progresji powrotu nie znaleziono (§11.2 p. 11).
 - **Zmiana:**
   1. profil: `athlete.returning: { since, previousWeeklyKm }` z walidacją
      w `config.ts`. Kreator `init` pyta o przerwę. `init --from-intervals`

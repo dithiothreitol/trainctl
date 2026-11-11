@@ -1876,6 +1876,64 @@ w kodzie komentarzem „E-3 (inż.)". Lista służy przeglądowi trenerskiemu
 | tydzień startowy | 4 sesje bez danych ze szkieletu, biegi po 5 km | `microcycle.ts` |
 | udział jednej jednostki (lint) | najwyżej 35% tygodnia | `season.ts` |
 
+### 10.15 Pomiary sezonu w korpusie (2026-11-11, PLAN-v0.7 etap 1)
+
+Skrypt `tools/corpus/season_profile.py`, agregaty bez PII. Korpus to jeden
+trener i jeden biegacz z historią startów szosowych, trailowych i ultra.
+Tygodnie pełne (7 dni w korpusie), bez startów, po deduplikacji dat.
+
+**Liczba biegów i długie według objętości tygodnia:**
+
+| km/tydz. | tygodnie | mediana biegów | mediana akcentów | bieg spokojny / długie (mediana) | tygodnie ze spokojnym dłuższym od długiego | udział długiego | P90 udziału innej jednostki |
+|---|---|---|---|---|---|---|---|
+| <30 | 6 | 2 | 1 | 0,83 | 0 | 0,78 | 0,38 |
+| 30–40 | 9 | 3 | 2 | 0,67 | 0 | 0,41 | 0,36 |
+| 40–50 | 17 | 4 | 3 | 0,79 | 0 | 0,40 | 0,33 |
+| 50–60 | 29 | 4 | 3 | 0,79 | 0 | 0,36 | 0,30 |
+| 60–70 | 28 | 4 | 3 | 0,64 | 0 | 0,32 | 0,29 |
+| ≥70 | 41 | 5 | 3 | 0,60 | 0 | 0,29 | 0,27 |
+
+Akcent w korpusie to dzień oznaczony jako jakościowy przez parser, razem
+z podbiegami. Poniżej 30 km korpus ma 6 tygodni, wnioski tam są słabe.
+
+**Przed startem ≥ 21 km** (n = 3 starty z co najmniej 10 pełnymi tygodniami
+przed; tydzień startu = 0):
+
+| Tygodnie do startu | 15 | 13 | 11 | 9 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| objętość / szczyt (mediana) | 0,67 | 0,58 | 0,78 | 0,73 | 0,76 | 0,93 | 0,44 | 0,90 | 0,91 | 0,78 | 0,87 |
+| długie [km] (mediana) | 15 | 17 | 19,5 | 17,5 | 23,5 | 25 | 23,5 | 20 | 22,5 | 25 | 19 |
+
+Szczyt objętości wypadł 5, 6 i 7 tygodni przed startem.
+
+**Dawka akcentu** (kilometry poza Z1 w jednej sesji; ciągłe odcinki
+`steady` i narastające ≥ 5 km):
+
+| Tygodnie do startu | sesje | mediana km poza Z1 | bloki ciągłe ≥ 5 km | mediana bloku |
+|---|---|---|---|---|
+| 13–16 | 15 | 3,0 | 4 | 7 km |
+| 9–12 | 21 | 7,5 | 7 | 12 km |
+| 5–8 | 26 | 9,0 | 9 | 15 km |
+| 1–4 | 30 | 10,0 | 9 | 12 km |
+
+**Weekend:** sobota→niedziela „akcent→długie" 53 razy, „długie→akcent"
+52 razy, „start→długie" 14 razy. Dzień po długim: akcent 66, wolne 26,
+spokojne 5. Bieg w niedzielę po sobotnim starcie: n = 15, mediana 25 km.
+
+**Reguły wynikające z pomiaru:**
+
+| # | Reguła | Wartości / parametry | Źródło | Siła |
+|---|--------|----------------------|--------|------|
+| S-10 | Bieg spokojny **nie jest dłuższy od długiego** w tym samym tygodniu | stosunek mediany 0,60–0,83; zero wyjątków w 136 tygodniach | korpus | **korpus** |
+| S-11 | Liczba biegów rośnie z objętością: 3 przy 30–40 km, 4 przy 40–70 km, 5 powyżej | potwierdza `typicalKmPerSession` 14 od 30 km; poniżej 30 km brak danych | korpus | **korpus** |
+| S-12 | Dwa akcenty także przy trzech biegach w tygodniu | 30–40 km: mediana 3 biegi, 2 akcenty | korpus; uzupełnia I-8 | **korpus** |
+| S-9b | Kolejność weekendu dowolna: „długie→akcent" tak częste jak „akcent→długie" | 52 vs 53 | korpus; spójne z S-9a | **korpus** |
+| P-12 | Objętość rośnie do szczytu 5–7 tygodni przed startem ≥ HM, z ok. 0,6 szczytu 13–15 tygodni przed | n = 3 starty | korpus; T-7 (Knopp 2024) podaje ~4 tygodnie | **korpus (n=3)** |
+| J-8 | **Dawka akcentu rośnie w sezonie**: km poza Z1 na sesję ~3 → 7,5 → 9 → 10 w kolejnych czterotygodniowych pasmach przed startem | 92 sesje | korpus; spójne z P-1 | **korpus** |
+| J-9 | Praca ciągła (`steady`, narastające) wydłuża się przed startem: blok ≥ 5 km z 7 do 12–15 km | 29 bloków | korpus; **tempo startowe niepotwierdzone** — korpus nie ma wyników, do których dałoby się je odnieść | **korpus** |
+| J-10 | Długie rośnie przed startem ≥ HM: ~15 km 15 tygodni przed, 23–25 km 2–7 tygodni przed | n = 3 starty | korpus; spójne z J-2, P-7, P-8 | **korpus (n=3)** |
+| R-11 | **Powrót po przerwie** (≥ 2 tygodnie bez biegania): start z ~50–60% objętości sprzed przerwy, pierwszy blok wyłącznie spokojnie, wzrost do poprzedniej objętości w granicach P-3 (twardy limit 25–30%/tydz.) | VO₂max −4–14% po ≤ 4 tygodniach przerwy, −6–20% po dłuższej (Mujika & Padilla 2000, opis wtórny); brak RCT dotyczącego progresji powrotu; GRONORUN (Buist 2008, N-2) nie znalazł różnicy urazów między progresją 10% a szybszą | **brak źródła dla parametrów** (inż.); spójne z R-5 i P-3 | **—** |
+
 ## 11. DO WERYFIKACJI
 
 Rzeczy, których **nie** potwierdzono z pierwszej ręki. Nic z tej listy nie powinno
@@ -1942,6 +2000,13 @@ Te muszą być oznaczone w kodzie jako heurystyki, nie jako reguły oparte na do
    odkłada wyniki z trailu zamiast je przeliczać.
 10. **Kształt powrotu po starcie.** Poza R-1/R-2 (48 h po maratonie) brak badań nad
     objętością kolejnych tygodni; R-8 opiera się na trzech startach z korpusu.
+11. **Progresja objętości przy powrocie po przerwie.** Przeszukanie 2026-11-11 nie
+    znalazło RCT. Dane o roztrenowaniu (Mujika & Padilla 2000) pochodzą z opisu
+    wtórnego — oryginał nieotwarty. R-11 to heurystyka.
+12. **Tempo startowe w akcentach przed półmaratonem i maratonem.** Korpus pokazuje
+    wydłużanie pracy ciągłej (J-9), ale bez wyników biegacza nie da się ustalić,
+    czy to tempo startowe. Silnik nie dodaje jednostek „w tempie startowym" bez
+    dodatkowego źródła.
 
 ### 11.3 Znane niespójności w źródłach (do rozstrzygnięcia lub udokumentowania)
 
