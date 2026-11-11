@@ -30,6 +30,7 @@ export const improveEn = {
   calibrationPolicy: 'Policy: highest VDOT among non-excluded results from the past 540 days. This is a selection heuristic, not a measure of confidence.',
   calibrationMissing: 'This older plan does not record which results calibrated its zones.',
   selected: 'Used for zones', 'lower-vdot': 'Lower VDOT', excluded: 'Excluded by you', future: 'Future result', stale: 'Older than 540 days',
+  selectedStale: 'Used for zones; now older than 540 days — add a recent result',
   newer: 'Newer than the calibration — trainctl plan will consider it',
   calibratedOn: (date: string) => `Plan zones calibrated on ${date}; ages below count from today.`,
   age: (days: number) => `${days} days old`,

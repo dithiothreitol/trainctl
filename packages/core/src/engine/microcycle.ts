@@ -37,6 +37,8 @@ const QUALITY_MAIN_SHARE = 0.22
 /** E-3 (inż.): kilometry poza Z1 najwyżej 25% tygodnia — margines pod I-5 (≥75% Z1). */
 const HARD_SHARE_MAX = 0.25
 
+/** Środek zakresu tempa — tempo wpisywane w opis odcinka. */
+export const paceMid = (r: { loSecPerKm: number; hiSecPerKm: number }): number => mid(r)
 const mid = (r: { loSecPerKm: number; hiSecPerKm: number }) =>
   Math.round((r.loSecPerKm + r.hiSecPerKm) / 2)
 

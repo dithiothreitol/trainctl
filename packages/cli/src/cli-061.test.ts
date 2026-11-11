@@ -4,7 +4,7 @@
  * dziesiętne w formacie języka, status dziennika słowem z katalogu, adresy
  * nie cięte przy zawijaniu, wiek wyniku liczony od dziś.
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -170,5 +170,43 @@ describe('poprawki po przeglądzie etapu 1', () => {
   it('podtytuł tygodnia: bez planowanej sumy jedna liczba', () => {
     setLocale('en')
     expect(cmdWeek(dir).output).toMatch(/\(pyramidal\) · \d+ km/)
+  })
+})
+
+describe('poprawki po drugiej rundzie przeglądu etapu 1', () => {
+  it('review po starcie mówi „po starcie", nie „temu"', async () => {
+    process.env['TRAINCTL_TODAY'] = '2027-04-02'
+    setLocale('pl')
+    expect((await cmdReview(dir, {})).output).toContain('Do startu: 5 dni po starcie')
+    setLocale('en')
+    expect((await cmdReview(dir, {})).output).toContain('5 days after the race')
+  })
+
+  it('siła w dzienniku po polsku w rodzaju żeńskim', () => {
+    setLocale('pl')
+    process.env['TRAINCTL_TODAY'] = '2026-10-28'
+    const saved = cmdLog(dir, { date: '2026-10-28', strength: 'done' }).output
+    expect(saved).toContain('wykonana')
+    expect(cmdToday(dir).output).toContain('Siła zalogowana: wykonana')
+  })
+
+  it('why: wynik użyty do stref, dziś starszy niż 540 dni, mówi to wprost', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('"2026-09-27"', '"2025-06-09"'), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-12-21'
+    const out = cmdWhy(dir, { date: '2026-12-22' }).output
+    expect(out).toContain('now older than 540 days')
+    expect(out).not.toMatch(/Used for zones · \d+ days/)
+  })
+
+  it('nieznany status w log.jsonl pokazany bez zmian, nie „undefined"', () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'partial', loggedAt: '2026-10-27T10:00:00Z' }) + '\n')
+    for (const out of [cmdWeek(dir).output, cmdToday(dir).output, cmdStatus(dir).output]) {
+      expect(out).toContain('partial')
+      expect(out).not.toContain('undefined')
+    }
   })
 })

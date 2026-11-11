@@ -74,9 +74,8 @@ export function wrap(text: string, width: number, indent = '', keepTokens = true
         line = ''
       }
       if (keepTokens && visibleLength(word) > available && UNBREAKABLE.test(word)) {
-        // Adres albo ścieżka w całości, we własnym wierszu: pocięte po znakach
-        // przestają być klikalne i nie dają się skopiować. Resztę zawinie terminal.
-        if (line) lines.push(indent + line)
+        // Adres albo ścieżka w całości, we własnym wierszu (poprzedni wiersz został
+        // już zamknięty wyżej): pocięte po znakach przestają być klikalne.
         line = word
       } else if (visibleLength(word) > available) {
         for (const part of graphemes(word)) {

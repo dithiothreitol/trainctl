@@ -57,3 +57,27 @@ describe('akcenty w profilu sezonu', () => {
     expect(line.replace(/quality_continuous|easy_hills|build/g, '').replace(/\bkm\b/g, '')).not.toMatch(/[a-ząćęłńóśźż]{3,}/i)
   })
 })
+
+describe('postRaceAccentHeavy', () => {
+  const intervals = (reps: number): PlannedWorkout => ({
+    kind: 'quality_intervals', distanceKm: 4 + reps, ruleRefs: [],
+    segments: [
+      { type: 'warmup', distanceKm: 3, description: '' },
+      { type: 'intervals', reps, repM: 1000, distanceKm: reps, description: '' },
+      { type: 'cooldown', distanceKm: 1, description: '' },
+    ],
+  })
+  it('sufit to ostatni blok budowania, nie najlżejszy tydzień całego budowania', () => {
+    const deload = week('2027-01-11', { tue: easy(8), sat: long(12) })
+    deload.skeleton.deload = true
+    const weeks = [
+      week('2027-01-04', { tue: intervals(2), sat: long(16) }),
+      deload,
+      week('2027-01-18', { tue: intervals(4), sat: long(18) }),
+      week('2027-01-25', { tue: intervals(3), sat: long(8) }, 'transition'),
+    ]
+    expect(seasonShapeIssues({ goal: half, weeks }).some((i) => i.code === 'postRaceAccentHeavy')).toBe(false)
+    weeks[3] = week('2027-01-25', { tue: intervals(5), sat: long(8) }, 'transition')
+    expect(seasonShapeIssues({ goal: half, weeks }).some((i) => i.code === 'postRaceAccentHeavy')).toBe(true)
+  })
+})

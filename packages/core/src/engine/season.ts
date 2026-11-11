@@ -7,7 +7,7 @@
  * Progi oznaczone „inż." są wyborem inżynierskim (E-3), nie wynikiem badań.
  */
 import type { MacroPhase, Microcycle, PlannedWorkout, RaceGoal } from '../domain/types.ts'
-import { fmtPace, hardKmOf } from './microcycle.ts'
+import { fmtPace, hardKmOf, paceMid } from './microcycle.ts'
 
 export interface SeasonAccent {
   kind: PlannedWorkout['kind']
@@ -37,7 +37,7 @@ function accentOf(w: PlannedWorkout): SeasonAccent {
   const parts: string[] = []
   for (const s of w.segments) {
     if (s.type === 'intervals') {
-      parts.push(`${s.reps ?? 1}×${s.repM ?? 0}${s.pace ? '@' + fmtPace(Math.round((s.pace.loSecPerKm + s.pace.hiSecPerKm) / 2)) : ''}`)
+      parts.push(`${s.reps ?? 1}×${s.repM ?? 0}${s.pace ? '@' + fmtPace(paceMid(s.pace)) : ''}`)
     } else if (s.type === 'progression') {
       parts.push(`${s.distanceKm} km${s.pace ? ` ${fmtPace(s.pace.hiSecPerKm)}→${fmtPace(s.pace.loSecPerKm)}` : ''}`)
     } else if (s.type === 'alternating') {
@@ -157,9 +157,18 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
     }
   })
 
-  // R-8: akcent po starcie nie większy niż najmniejszy akcent ostatniego bloku budowania
-  const buildHard = rows.filter((r) => r.phase === 'build' && !r.deload && !r.flags.length)
-    .flatMap((r) => r.accents.filter((a) => a.kind !== 'easy_hills').map((a) => a.hardKm))
+  // R-8: akcent w bloku przejściowym (po starcie celu) nie większy niż najmniejszy
+  // akcent ostatniego bloku budowania — tygodni ładowania między ostatnimi odciążeniami
+  // (ostatni niepusty: blok z samym sprawdzianem po odciążeniu nie zeruje sufitu)
+  let lastBuildBlock: SeasonRow[] = []
+  let buildBlock: SeasonRow[] = []
+  for (const r of rows) {
+    if (r.phase !== 'build') continue
+    if (r.deload) { if (buildBlock.length) lastBuildBlock = buildBlock; buildBlock = []; continue }
+    if (!r.flags.length) buildBlock.push(r)
+  }
+  if (buildBlock.length) lastBuildBlock = buildBlock
+  const buildHard = lastBuildBlock.flatMap((r) => r.accents.filter((a) => a.kind !== 'easy_hills').map((a) => a.hardKm))
   if (buildHard.length) {
     const ceiling = Math.min(...buildHard)
     for (const r of rows.filter((x) => x.phase === 'transition')) {

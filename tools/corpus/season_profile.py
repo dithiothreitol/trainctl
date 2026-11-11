@@ -20,7 +20,6 @@ from collections import Counter, defaultdict
 from datetime import date, timedelta
 from pathlib import Path
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 ROOT = Path(__file__).resolve().parents[2]
 REP_WORK = {'intervals', 'hills', 'pickups', 'hills_drills', 'time_block', 'steady_time'}
 EASY = {'easy', 'warmup', 'cooldown'}
@@ -46,12 +45,14 @@ def race_km(w):
         return 21.0975
     if re.search(r'MARATON', raw):
         return 42.195
-    m = re.search(r'(\d{1,3})\s*KM', raw)
-    return float(m.group(1)) if m else None
+    m = re.search(r'(?<![\d,.])(\d{1,3}(?:[.,]\d+)?)\s*KM', raw)
+    return float(m.group(1).replace(',', '.')) if m else None
 
 
 def is_run(w):
-    return bool(w) and not w.get('race') and km(w) > 0 and not set(types(w)) <= NON_RUN
+    segments = set(types(w)) if w else set()
+    # brak rozpoznanych segmentów to nadal bieg, jeśli ma dystans
+    return bool(w) and not w.get('race') and km(w) > 0 and not (segments and segments <= NON_RUN)
 
 
 def hard_km(w):
@@ -77,6 +78,7 @@ def med(xs):
 
 
 def main():
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     plans = json.loads((ROOT / 'corpus' / 'parsed' / 'corpus.json').read_text(encoding='utf-8'))
     days = {}
     for p in plans:

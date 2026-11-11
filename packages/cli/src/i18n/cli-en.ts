@@ -267,6 +267,8 @@ export const cliEn = {
       `RPE "${rpe}" is off the scale — use a whole number 1–10 (10 = maximal effort).`,
     saved: (date: string, status: string) => `Logged ${date}: ${status}.`,
     statusWord: { done: 'done', skipped: 'skipped', modified: 'modified' } as Record<'done' | 'skipped' | 'modified', string>,
+    /** Siła ma własną odmianę (w polskim rodzaj żeński). */
+    strengthStatusWord: { done: 'done', skipped: 'skipped' } as Record<'done' | 'skipped', string>,
     planned: 'Planned',
     recorded: 'Recorded',
     testTime: (time: string) => `test segment ${time}`,

@@ -16,6 +16,7 @@ import { ENV_FILE, inspectEnvFile } from './env-file.ts'
 import { buildExecution } from './execution.ts'
 import { uncommitted } from './git.ts'
 import { ui } from './i18n/index.ts'
+import { logStatusText } from './format.ts'
 import { LOG_FILE, readLog } from './logfile.ts'
 import { cycleWeeksOf, readExistingPlan, unusablePlanMessage, PLAN_DIR, type StoredPlan } from './planfile.ts'
 import { listProposals } from './proposals.ts'
@@ -118,7 +119,7 @@ function statusImpl(cwd: string): StatusResult {
     [SYNC_FILE, snapshot
       ? t.syncValue(snapshot.pulledAt, snapshot.activities.length, snapshot.activities.filter((a) => a.dataWithheld).length)
       : t.never],
-    [LOG_FILE, last ? t.logValue(logs.length, last.date, ui().log.statusWord[last.status]) : t.empty],
+    [LOG_FILE, last ? t.logValue(logs.length, last.date, logStatusText(last.status)) : t.empty],
   ]))
   if (env.unprotected) blocks.push(b.warn(ui().envFile.unprotected(ENV_FILE, '.gitignore')))
   if (unconfirmed.length) blocks.push(b.info(t.unconfirmed(unconfirmed.join(', '))))

@@ -1,7 +1,7 @@
 """Testy pomocników season_profile. Uruchomienie: python -m unittest discover tools/corpus -v"""
 import unittest
 
-from season_profile import med, p90
+from season_profile import is_run, med, p90, race_km
 
 
 class TestStats(unittest.TestCase):
@@ -14,6 +14,17 @@ class TestStats(unittest.TestCase):
     def test_median(self):
         self.assertIsNone(med([]))
         self.assertEqual(med([1, 3]), 2)
+
+
+class TestParsing(unittest.TestCase):
+    def test_decimal_race_distance(self):
+        self.assertEqual(race_km({'race': {'raw': 'START NA 21,1 KM'}}), 21.1)
+        self.assertEqual(race_km({'race': {'raw': 'START NA 21,0975 KM'}}), 21.0975)
+        self.assertEqual(race_km({'race': {'raw': 'START NA 10 KM'}}), 10.0)
+
+    def test_run_without_segments(self):
+        self.assertTrue(is_run({'distance_km_est': [8, 10], 'segments': []}))
+        self.assertFalse(is_run({'distance_km_est': [0, 45], 'segments': [{'type': 'cross'}]}))
 
 
 if __name__ == '__main__':
