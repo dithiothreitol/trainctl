@@ -32,7 +32,7 @@ import {
 } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
 import { sameResults, sameSelection } from './calibration.ts'
-import { budgetWarnings, computePlan, dayFingerprint, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
+import { budgetWarnings, computePlan, dayFingerprint, mergeWeekNotes, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
 export type ProtectionReason = 'past' | 'recorded' | 'pinned' | 'baseline' | 'return' | 'approved' | 'edited' | 'budget'
@@ -186,7 +186,9 @@ export function rebuildPlan(
       weeks.push(structuredClone(ew))
       continue
     }
-    const week: Microcycle = { ...fw, days }
+    const { notes: freshNotes, ...freshWeek } = fw
+    const notes = mergeWeekNotes(ew?.notes, freshNotes, new Set(days.filter((d, i) => d === fw.days[i]).map((d) => d.date)))
+    const week: Microcycle = { ...freshWeek, days, ...(notes ? { notes } : {}) }
     // Tydzień zmieszany przez czas (przeszłe, zalogowane, dzień decyzji) domykamy jak
     // w propozycji; z ręcznymi zmianami (edycja, przypięcie, zatwierdzone skrócenie,
     // budżet dnia) — nie, żeby lint nadal pokazał, że dni nie sumują się do tygodnia.

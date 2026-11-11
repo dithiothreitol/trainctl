@@ -16,7 +16,8 @@ change between minor versions — a regenerated plan can differ.
   fit, the long run takes it up to the corpus P90 share, then a free day gets
   another run (S-11), instead of one 15–17 km easy day. With two running days
   the long run takes at most 80% of the week (the corpus P90 for two runs), so
-  the other day keeps a run. The peak is capped at what the available days can
+  the other day keeps a run; with one running day the long run is the week.
+  The peak is capped at what the available days can
   hold, so deloads and the taper stay lighter than loading weeks, and `plan`
   says when the days limit the peak.
 - Small weeks: an accent that would carry more than 35% of the week first loses
@@ -88,8 +89,9 @@ change between minor versions — a regenerated plan can differ.
 
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in
-  advance; days with a logged run stay as logged, and a weekday name in `--to`
-  counts from `--date` (`--date mon --to fri` is one week). The MCP
+  advance; days with a logged run stay as logged, a day logged again replaces
+  its earlier reason, and a weekday name in `--to` counts from `--date`
+  (`--date mon --to fri` is one week). The MCP
   `trainctl_log` tool and the log prompt take the same fields. After the break
   `adapt` proposes a return block you can approve:
   about 55% of the earlier volume, at least 7 days easy after illness (R-5) or
@@ -110,8 +112,8 @@ change between minor versions — a regenerated plan can differ.
   weeks or more without running (R-11): the plan restarts at 50–60% of the
   earlier volume (more when you have been back for some weeks, at most P-3
   growth a week), keeps the first block easy with no time trial, and grows back
-  within P-3. Once `recentWeeklyKm` is back at the earlier volume, the return
-  no longer applies. `init` asks for it, and `init --from-intervals` proposes it when
+  within P-3. Once `recentWeeklyKm` is above the earlier volume, the return no
+  longer applies; a `since` date in the future does not apply yet. `init` asks for it, and `init --from-intervals` proposes it when
   the history ends with two weeks off.
 - `trainctl rules E-3` lists the engine's fixed values that have no source
   (easy-run cap, accent share, phase split, recoveries, race-week sessions),

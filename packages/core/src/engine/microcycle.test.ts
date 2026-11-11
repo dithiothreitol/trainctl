@@ -316,6 +316,12 @@ describe('B2: rama i minimalna dawka przy małej objętości', () => {
     expect(long.distanceKm).toBeLessThanOrEqual(Math.max(0.8 * targetKm, targetKm - 3) + 0.05)
     for (const d of runs) expect(d.workout!.distanceKm).toBeGreaterThanOrEqual(3)
   })
+  it('jeden dzień biegowy: długie to cały tydzień, pojemność dni nie spada do 6 km', () => {
+    const one: AthleteProfile = { ...athlete, daysAvailable: ['sun'] }
+    expect(weekCapacityKm(one, 1, 20)).toBeGreaterThanOrEqual(15)
+    const mc = generateMicrocycle({ skeleton: skeleton({ targetKm: 15, qualitySessions: 1 }), athlete: one, zones })
+    expect(mc.days.filter((d) => d.workout).map((d) => d.workout!.distanceKm)).toEqual([15])
+  })
   it('przy jednym akcencie w tygodniu sprawdzian go zastępuje (T-12, W-13)', () => {
     const goal: RaceGoal = { name: 'HM', date: '2027-03-28', distanceKm: 21.0975, priority: 'A' }
     const macro = planMacrocycle({ today: '2026-10-22', goal, athlete: { ...athlete, daysAvailable: ['tue', 'thu', 'sat'], results: [] } })

@@ -26,6 +26,7 @@ import {
   type RaceGoal,
   type RacePrediction,
   type ReturnBlock,
+  type WeekNote,
   type WeekSkeleton,
 } from 'trainctl-core'
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
@@ -124,13 +125,28 @@ const beforeBoundary = (week: Microcycle, boundary: string | undefined) => bound
 
 /**
  * Tydzień złożony z dni dwóch planów (przeszłe albo chronione zostają, reszta
- * przychodzi z nowego): sumy z dni, a objętość po budżecie to to, co w nim
- * faktycznie jest — z nią lint porównuje dni (P-3). Wspólne dla propozycji
- * i regeneracji.
+ * przychodzi z nowego): sumy z dni, a objętość po budżecie i to, co dni mieszczą
+ * (`layoutKm`, B1), to to, co w nim faktycznie jest — z tym lint porównuje dni (P-3).
+ * Wspólne dla propozycji i regeneracji.
  */
 export function settleMixedWeek(week: Microcycle): void {
   Object.assign(week, weekTotals(week.days))
   if (week.skeleton.timeCappedKm !== undefined) week.skeleton = { ...week.skeleton, timeCappedKm: roundKm(week.totalKm) }
+  if (week.skeleton.layoutKm !== undefined) week.skeleton = { ...week.skeleton, layoutKm: roundKm(week.totalKm) }
+}
+
+/**
+ * Uwagi generatora tygodnia mieszanego (B1, `why`): uwaga dnia idzie z planu, z którego
+ * pochodzi ten dzień — dzień zachowany ze starego planu nie dostaje uwagi o układzie,
+ * którego nie ma. Uwagi całego tygodnia (bez daty) — z nowego planu.
+ */
+export function mergeWeekNotes(old: WeekNote[] | undefined, fresh: WeekNote[] | undefined, freshDates: Set<string>): WeekNote[] | undefined {
+  const dated = (n: WeekNote) => ('date' in n ? n.date : undefined)
+  const notes = [
+    ...(fresh ?? []).filter((n) => dated(n) === undefined || freshDates.has(dated(n)!)),
+    ...(old ?? []).filter((n) => dated(n) !== undefined && !freshDates.has(dated(n)!)),
+  ]
+  return notes.length ? notes : undefined
 }
 
 export function computePlan(config: TrainctlConfig, today: string, calibrationDate = today, opts: ComputePlanOptions = {}): StoredPlan {

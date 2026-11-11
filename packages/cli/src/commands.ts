@@ -1104,7 +1104,8 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       })
 
     // B11: wpisy przerwy z przyczyną — o bieżącej przerwie decyduje analiza (po ostatnim biegu)
-    const breakLog = logs.flatMap((l) => (l.reason ? [{ date: l.date, reason: l.reason }] : []))
+    // najnowszy wpis dnia: poprawiona przyczyna (albo jej usunięcie) zastępuje wcześniejszą
+    const breakLog = [...latestByDate(logs).values()].flatMap((l) => (l.reason ? [{ date: l.date, reason: l.reason }] : []))
     // B11: objętość sprzed przerwy to ostatni tydzień ładowania do tygodnia ostatniego biegu —
     // nie cel planu z czasu przerwy, którego biegacz nie biegał. Odciążenie, taper, tydzień
     // ze startem kontrolnym i blok po starcie mają cel niższy niż poziom bloku. Przyjęty

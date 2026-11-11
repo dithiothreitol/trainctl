@@ -118,7 +118,9 @@ export function volumeBase(athlete: AthleteProfile, today: string): { start: num
   const ret = athlete.returning
   // bieżąca objętość ponad poziom sprzed przerwy: powrót już się dokonał. Równa — to zwykle
   // objętość sprzed przerwy wpisana jako bieżąca (profil z historii, kreator), więc powrót trwa
-  const active = ret !== undefined && diffDays(ret.since, today) <= RETURN_WINDOW_DAYS && athlete.recentWeeklyKm <= ret.previousWeeklyKm
+  // powrót z datą w przyszłości jeszcze się nie zaczął — plan liczy się od bieżącej objętości
+  const daysBack = ret !== undefined ? diffDays(ret.since, today) : -1
+  const active = ret !== undefined && daysBack >= 0 && daysBack <= RETURN_WINDOW_DAYS && athlete.recentWeeklyKm <= ret.previousWeeklyKm
   if (!active) return { start: athlete.recentWeeklyKm, level: athlete.recentWeeklyKm, returning: false }
   const lo = RETURN_START_SHARE.min * ret.previousWeeklyKm
   // górna granica rośnie od `since` w tempie P-3: biegacz, który w oknie powrotu już

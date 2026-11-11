@@ -7,11 +7,11 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { plannedWeekKm, setLocale, type AdaptationProposal } from 'trainctl-core'
+import { plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
 import { applyProposal, prepareProposal } from './proposals.ts'
 import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
 import { latestByDate, readLog } from './logfile.ts'
-import { blockLevelOf, computePlan, cycleWeeksOf, loadPlan, writePlan } from './planfile.ts'
+import { blockLevelOf, computePlan, cycleWeeksOf, loadPlan, mergeWeekNotes, settleMixedWeek, writePlan } from './planfile.ts'
 import { inferredConfigYaml, loadConfig } from './config.ts'
 import { parse } from 'yaml'
 
@@ -240,6 +240,13 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(loadPlan(dir).returnState).toEqual(plan.returnState)
   })
 
+  it('adapt: poprawiona przyczyna przerwy zastępuje wcześniejszą (najnowszy wpis dnia)', () => {
+    breakUntilToday('injury')
+    // to jednak nie była kontuzja: te same dni jeszcze raz, bez przyczyny
+    expect(cmdLog(dir, { date: '2026-10-29', to: '2026-11-12', status: 'skipped' }).code).toBe(0)
+    expect(restartOf(cmdAdapt(dir, {}))?.returnBlock?.illness).toBe(false)
+  })
+
   it('adapt po kontuzji: bez propozycji objętości (R-6, R-7)', () => {
     breakUntilToday('injury')
     const r = cmdAdapt(dir, {})
@@ -393,6 +400,48 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(cmdLog(dir, { date: '2026-10-29', to: '2026-11-12', status: 'skipped' }).code).toBe(0)
     const restart = restartOf(cmdAdapt(dir, {}))
     expect(restart?.returnBlock?.illness).toBe(false)
+  })
+})
+
+describe('B1: tydzień mieszany (regeneracja, propozycja)', () => {
+  beforeEach(() => setLocale('en'))
+
+  it('settleMixedWeek: to, co dni mieszczą (layoutKm), to suma dni po złożeniu — bez fałszywego targetKmMismatch', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun'), 'utf-8')
+    const plan = computePlan(loadConfig(dir), '2026-10-22')
+    const week = structuredClone(plan.weeks[2]!)
+    week.skeleton = { ...week.skeleton, layoutKm: week.skeleton.targetKm - 4 }
+    // dzień zachowany ze starego planu, o kilometr dłuższy niż w nowym układzie
+    week.days.find((d) => d.workout)!.workout!.distanceKm += 1
+    settleMixedWeek(week)
+    expect(week.skeleton.layoutKm).toBe(week.totalKm)
+  })
+
+  it('mergeWeekNotes: uwaga dnia z planu, z którego pochodzi dzień; uwaga tygodnia z nowego', () => {
+    const old: WeekNote[] = [{ code: 'accentAsStrides', date: '2026-11-03' }, { code: 'hillsDropped', date: '2026-11-05' }]
+    const fresh: WeekNote[] = [{ code: 'hillsDropped', date: '2026-11-03' }, { code: 'volumeShort', targetKm: 40, plannedKm: 36 }]
+    expect(mergeWeekNotes(old, fresh, new Set(['2026-11-05']))).toEqual([
+      { code: 'volumeShort', targetKm: 40, plannedKm: 36 },
+      { code: 'accentAsStrides', date: '2026-11-03' },
+    ])
+  })
+
+  it('regeneracja: dzień zachowany ze starego planu zachowuje swoją uwagę w `why`', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    const before = loadPlan(dir)
+    const week = before.weeks.find((w) => w.weekStart > '2026-10-26' && (w.notes ?? []).some((n) => n.code === 'accentAsStrides'))!
+    const note = week.notes!.find((n) => n.code === 'accentAsStrides') as { code: 'accentAsStrides'; date: string }
+    process.env['TRAINCTL_TODAY'] = note.date
+    expect(cmdLog(dir, { date: note.date, status: 'done' }).code).toBe(0)
+    // nowy profil: przy 30 km ten dzień byłby akcentem, a nie przebieżkami
+    writeFileSync(join(dir, 'trainctl.yaml'), config(30, 'tue, wed, thu, sat, sun'), 'utf-8')
+    const fresh = computePlan(loadConfig(dir), before.generatedAt)
+    expect((fresh.weeks.find((w) => w.weekStart === week.weekStart)!.notes ?? []).some((n) => 'date' in n && n.date === note.date)).toBe(false)
+    expect(cmdPlan(dir).code).toBe(0)
+    const after = loadPlan(dir).weeks.find((w) => w.weekStart === week.weekStart)!
+    expect(after.notes).toContainEqual(note)
+    expect(cmdWhy(dir, { date: note.date }).output).toContain('This accent is an easy run with strides')
   })
 })
 

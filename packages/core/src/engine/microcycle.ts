@@ -636,7 +636,8 @@ function planNormalWeek(
   const longFloorKm = Math.ceil((MIN_EASY_KM / EASY_TO_LONG_MAX) * 10) / 10
   const longFloor = target >= longFloorKm + MIN_EASY_KM ? longFloorKm : 0
   // sufit do 0,1 km jak pozostałe biegi: pełne km spłaszczały długie przy wzroście tygodnia o 1 km
-  const twoRunCeil = longFloor ? floor1(Math.min(TWO_RUN_LONG_SHARE_P90 * target, target - MIN_EASY_KM)) : target
+  // jeden dostępny dzień: długie to cały tydzień — drugiego biegu nie ma gdzie postawić
+  const twoRunCeil = maxRuns === 2 && longFloor ? floor1(Math.min(TWO_RUN_LONG_SHARE_P90 * target, target - MIN_EASY_KM)) : target
   const longCeil = Math.min(style.longRunCapKm, shares ? floor1(longShareCeiling(target) * target) : twoRunCeil)
   // B4: tor długiego z makrocyklu jest podłogą; sufit udziału (P90) i 35 km — górą
   const longKm = longWd ? Math.max(longFloor, Math.min(longCeil, Math.max(skeleton.longKm ?? 0, Math.min(Math.round(style.longRunShare * target), style.longRunCapKm)))) : 0

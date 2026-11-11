@@ -398,6 +398,11 @@ describe('B8: powrót po przerwie (R-11) i data, od której próg jest osiągaln
     expect(planMacrocycle({ today, goal: half, athlete: past }).weeks[0]!.easyOnly).toBeUndefined()
   })
 
+  it('powrót z datą w przyszłości jeszcze się nie zaczął', () => {
+    const future: AthleteProfile = { ...runner, recentWeeklyKm: 40, returning: { since: '2026-11-20', previousWeeklyKm: 50 } }
+    expect(volumeBase(future, today)).toEqual({ start: 40, level: 40, returning: false })
+  })
+
   it('profil z historii: bieżąca objętość równa tej sprzed przerwy, powrót trwa (R-11)', () => {
     // init --from-intervals i kreator wpisują objętość sprzed przerwy jako bieżącą
     const inferred: AthleteProfile = { ...runner, recentWeeklyKm: 42, returning: { since: '2026-10-19', previousWeeklyKm: 42 } }

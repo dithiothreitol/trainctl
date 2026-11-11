@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { addDays, estimateWorkoutMinutes, mondayOf, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
 import { logFor, readLogForChanges, LOG_FILE } from './logfile.ts'
-import { budgetWarnings, computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, scaleToBaseline, settleMixedWeek, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
+import { budgetWarnings, computePlan, cycleWeeksOf, dayFingerprint, loadPlan, mergeWeekNotes, planEnd, scaleToBaseline, settleMixedWeek, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
 import { runningKmByDate } from './execution.ts'
@@ -203,8 +203,15 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
     }
     // Preserve the history and phase boundaries; refresh totals of changed weeks.
     const candidateWeek = candidate.weeks.find((w) => w.weekStart === week.weekStart)
-    if (changes.some((c) => week.days.some((d) => d.date === c.date))) {
-      if (candidateWeek) week.skeleton = structuredClone(candidateWeek.skeleton)
+    const changedHere = new Set(changes.filter((c) => week.days.some((d) => d.date === c.date)).map((c) => c.date))
+    if (changedHere.size) {
+      if (candidateWeek) {
+        week.skeleton = structuredClone(candidateWeek.skeleton)
+        // uwagi generatora (`why`): dni zmienione mówią o nowym układzie, pozostałe o starym
+        const notes = mergeWeekNotes(week.notes, candidateWeek.notes, changedHere)
+        if (notes) week.notes = notes
+        else delete week.notes
+      }
       settleMixedWeek(week)
     } else if (volume && candidateWeek && week.weekStart >= mondayOf(today) &&
       week.days.every((d) => { const after = candidateDays.get(d.date); return after !== undefined && dayFingerprint(d) === dayFingerprint(after) })) {
