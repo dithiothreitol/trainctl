@@ -3,7 +3,8 @@
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first; decisions live in the ADR table
 of [SPEC.md](SPEC.md) §10–§11, rule IDs in
 [docs/science/FOUNDATIONS.md](docs/science/FOUNDATIONS.md) §10. The current
-work plan is [docs/PLAN-v0.4.md](docs/PLAN-v0.4.md).
+work plan is [docs/PLAN-v0.7.md](docs/PLAN-v0.7.md); the completed one is
+[docs/PLAN-v0.4.md](docs/PLAN-v0.4.md).
 
 Gate before every commit: `pnpm check` (typecheck of all packages + vitest).
 
