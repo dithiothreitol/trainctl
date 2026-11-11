@@ -9,7 +9,8 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { earliestFeasibleRaceDate, plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
 import { applyProposal, prepareProposal } from './proposals.ts'
-import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
+import { cmdAdapt, cmdCheck, cmdInit, cmdLog, cmdPlan, cmdRules, cmdShift, cmdWhy } from './commands.ts'
+import { localDateOf } from './clock.ts'
 import { latestByDate, readLog } from './logfile.ts'
 import { writeSnapshot } from './sync.ts'
 import { buildExecution } from './execution.ts'
@@ -264,6 +265,37 @@ describe('B11: przerwa w trakcie planu', () => {
     const execution = buildExecution(loadPlan(dir), [run], readLog(dir), '2026-10-31')
     expect(execution.find((e) => e.date === '2026-10-27')).toMatchObject({ actualKm: 7 })
     expect(execution.find((e) => e.date === '2026-10-27')?.status).not.toBe('missed')
+  })
+
+  it('przerwa w obszarze multisport albo przy sile: jawny błąd zamiast cichego zapisu jednej sesji', () => {
+    expect(cmdInit(dir, undefined, { sports: 'run,bike' }).code).toBe(0)
+    const sports = cmdLog(dir, { date: '2026-10-26', to: '2026-10-30', reason: 'illness' })
+    expect(sports.code).toBe(1)
+    expect(sports.output).toContain('belong to the running plan')
+    const other = mkdtempSync(join(tmpdir(), 'trainctl-070-strength-'))
+    try {
+      writeFileSync(join(other, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun'), 'utf-8')
+      expect(cmdPlan(other).code).toBe(0)
+      const strength = cmdLog(other, { date: '2026-10-26', strength: 'skipped', to: '2026-10-30', reason: 'illness' })
+      expect(strength.code).toBe(1)
+      expect(strength.output).toContain('log strength separately')
+      expect(readLog(other)).toHaveLength(0)
+    } finally {
+      rmSync(other, { recursive: true, force: true, maxRetries: 3 })
+    }
+  })
+
+  it('shift: uwaga generatora (`why`) idzie za jednostką na nowy dzień', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    const week = loadPlan(dir).weeks.find((w) => w.weekStart > '2026-10-26' && (w.notes ?? []).some((n) => n.code === 'accentAsStrides'))!
+    const note = week.notes!.find((n) => n.code === 'accentAsStrides') as { code: 'accentAsStrides'; date: string }
+    const target = week.days.find((d) => d.date !== note.date && !d.workout && week.days.indexOf(d) > 0)!
+    const r = cmdShift(dir, { from: note.date, to: target.date })
+    expect(r.code, r.output).toBe(0)
+    const after = loadPlan(dir).weeks.find((w) => w.weekStart === week.weekStart)!
+    expect(after.notes).toContainEqual({ code: 'accentAsStrides', date: target.date })
+    expect(cmdWhy(dir, { date: target.date }).output).toContain('This accent is an easy run with strides')
   })
 
   it('log --to: dzień z biegiem z synchronizacji zostaje, przerwa go nie zeruje', () => {
@@ -628,6 +660,20 @@ describe('B7: budżet czasu na brzegach (E-2)', () => {
     const back = computePlan(cfg, '2027-01-04', '2027-01-04', { returnFrom: { since: '2027-01-04', previousWeeklyKm: 12, illness: false } })
     expect(back.weeks.filter((w) => w.skeleton.uncappedKm !== undefined)).toEqual([])
     expect(back.feasibilityWarnings.some((w) => budgetText.test(w))).toBe(false)
+  })
+
+  it('budżet trzyma szczyt, a długie zostaje poniżej progu dystansu: plan podaje liczby długiego (B4)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(60, 'tue, wed, thu, sat, sun').replace('distanceKm: 21.0975', 'distanceKm: 42.195') + 'time:\n  weeklyMinutes: 240\n', 'utf-8')
+    const plan = computePlan(loadConfig(dir), '2026-11-11')
+    // przypadek: budżet ogranicza szczyt, werdyktu o profilu nie ma
+    expect(plan.feasibilityWarnings.some((w) => /time budget (caps|holds) the plan/.test(w))).toBe(true)
+    expect(plan.feasibilityWarnings.join(' ')).not.toMatch(/stays below the thresholds/)
+    expect(plan.feasibilityWarnings.join(' ')).toMatch(/The longest run is [\d.]+ km against at least 25 km/)
+  })
+
+  it('data zapisu w dzienniku liczona w strefie biegacza, nie w UTC', () => {
+    expect(localDateOf(new Date(2026, 9, 27, 0, 30).toISOString())).toBe('2026-10-27')
+    expect(localDateOf(new Date(2026, 9, 26, 23, 30).toISOString())).toBe('2026-10-26')
   })
 
   it('budżet, w którym nie mieści się żaden kilometr, nie zeruje planu: tygodnie ponad budżetem z ostrzeżeniem', () => {

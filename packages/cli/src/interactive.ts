@@ -5,11 +5,11 @@
  */
 import { emitKeypressEvents } from 'node:readline'
 import { createInterface } from 'node:readline/promises'
-import { addDays, BREAK_REASONS, formatNumber, getLocale, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
+import { addDays, formatNumber, getLocale, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
 import { cmdLog, cmdShift, cmdWeek, kindLabel } from './commands.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, shownKm, workoutKm } from './format.ts'
-import { latestByDate, LOG_LIMITS, parseTime, readLog } from './logfile.ts'
+import { latestByDate, LOG_LIMITS, parseBreakReason, parseTime, readLog } from './logfile.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 import { renderAnsi } from './ui/blocks.ts'
 import { clampIndex, keyAction, type KeyEvent } from './ui/keys.ts'
@@ -123,11 +123,7 @@ const parseTimeText = (text: string): string => {
   parseTime(text.trim())
   return text.trim()
 }
-export const parseReasonText = (text: string): string => {
-  const value = text.trim().toLowerCase()
-  if (!(BREAK_REASONS as readonly string[]).includes(value)) throw new Error(ui().log.unknownReason(value, BREAK_REASONS.join(', ')))
-  return value
-}
+export const parseReasonText = (text: string): string => parseBreakReason(text)
 export const parseRpeText = (text: string): string => {
   const value = parseDecimal(text)
   if (!LOG_LIMITS.rpe(value)) throw new Error(ui().log.badRpe(text))

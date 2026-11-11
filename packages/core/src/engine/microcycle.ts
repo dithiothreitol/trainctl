@@ -593,7 +593,9 @@ function planNormalWeek(
   // sloty — dzień startu i dzień przed nim wypadają z puli
   const free = available.filter((wd) => wd !== peakWd && wd !== dayBeforePeak)
   // T-11: długie wybieganie ZOSTAJE po starcie (w korpusie: sobota start → niedziela long)
-  const longWd = inTaper || skeleton.firstAfterRace
+  // Pierwszy tydzień po starcie (R-8): jawny znacznik albo — w szkielecie zapisanym przez
+  // starszy silnik, bez znacznika — zero akcentów w tygodniu przejściowym bez bloku powrotu
+  const longWd = inTaper || skeleton.firstAfterRace || (recovering && skeleton.qualitySessions === 0 && !skeleton.easyOnly)
     ? undefined
     : (style.longRunDayPreference.find((wd) => free.includes(wd)) ?? free.at(-1))
   const qualityWds: Weekday[] = []

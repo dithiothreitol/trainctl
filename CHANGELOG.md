@@ -31,7 +31,8 @@ change between minor versions — a regenerated plan can differ.
   distributed, so accents are no longer trimmed for distance that easy runs
   carry.
 - `why` explains these layout decisions: a hills day turned into an easy run,
-  an accent turned into strides, a week shorter than its target.
+  an accent turned into strides, a week shorter than its target. The
+  explanation follows the session when `shift` or `reschedule` moves it.
 - Weekly volume grows across the loading blocks so that the peak falls in the
   last block before the taper (T-7, P-12) instead of in the second week, at most
   8% a week (P-3). When the growth is slow, or the runner is already at the
@@ -79,8 +80,10 @@ change between minor versions — a regenerated plan can differ.
   it, so a deload is lighter than a loading week and the taper keeps falling.
   When the budget holds the plan back, `plan` says so even above the distance's
   recommendation, and with strength on it leaves the choice to you: one strength
-  session a week (F-14) or more minutes. A budget too small for even a 3 km
-  week keeps 3 km weeks and lists the weeks over the budget.
+  session a week (F-14) or more minutes. When the budget also keeps the longest
+  run below the distance's threshold, `plan` gives the long-run numbers too. A
+  budget too small for even a 3 km week keeps 3 km weeks and lists the weeks
+  over the budget.
 - When the plan stays below the distance's thresholds, `plan` gives one verdict
   instead of two warnings: the plan peak, the recommended peak and the longest
   run, with the ways out — a later race date when the profile allows it
@@ -96,7 +99,8 @@ change between minor versions — a regenerated plan can differ.
   synced) stay as they are, a day
   logged again replaces its earlier reason, rest days in the range stay rest
   days, the reason is case-insensitive, `--commit` names the whole range, and a
-  weekday name in `--to` counts from `--date`
+  weekday name in `--to` counts from `--date` (a multisport workspace and
+  `--strength` reject `--to` and `--reason` instead of logging one session)
   (`--date mon --to fri` is one week). The MCP
   `trainctl_log` tool and the log prompt take the same fields. After the break
   `adapt` proposes a return block you can approve:

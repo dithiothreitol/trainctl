@@ -282,6 +282,10 @@ export const cliEn = {
     breakTooLong: (days: number) => `A break of more than ${days} days is a new plan rather than a break — record it in shorter parts or start a new plan.`,
     breakRecorded: (from: string, to: string, days: number, reason?: string) =>
       `Logged a break ${from} to ${to}: ${days} ${days === 1 ? 'day' : 'days'} skipped${reason ? `, reason: ${reason}` : ''}. After the break, adapt proposes how to come back.`,
+    /** B11: przerwa jako zakres dni jest częścią planu biegowego; w obszarze multisport — sesje. */
+    breakRunningPlanOnly: 'A break range (--to) and its reason (--reason) belong to the running plan; in a multisport workspace log each session.',
+    /** B11: przerwa dotyczy biegania — siła ma osobny wpis. */
+    breakRunsOnly: 'A break (--to, --reason) applies to running sessions; log strength separately.',
     /** B11: przerwa nie nadpisuje dnia z zapisanym biegiem (done albo modified). */
     breakKeptRuns: (dates: string) => `Days with a recorded run (log or sync) stay as they are: ${dates}.`,
     reasonWord: { illness: 'illness', injury: 'injury', travel: 'travel', other: 'other' } as Record<'illness' | 'injury' | 'travel' | 'other', string>,
@@ -960,6 +964,9 @@ export const cliEn = {
         : 'More minutes would let the volume grow (E-2).'),
     timeDayTooShort: (dates: string) =>
       `These sessions do not fit the day's time budget even shortened (races and time trials are never cut): ${dates} (E-2).`,
+    /** B4 + B7: budżet trzyma szczyt, długie poniżej progu dystansu — liczby długiego osobno. */
+    timeCapsLong: (v: { km: number; thresholdKm: number; atLeast: boolean; rules: string }) =>
+      `The longest run is ${n(v.km)} km against ${v.atLeast ? 'at least' : 'more than'} ${n(v.thresholdKm)} km for this distance (${v.rules}): the time budget holds it there. More minutes, above all on long-run days, would let it grow (E-2).`,
     /** R-5, R-11: start kontrolny w spokojnym bloku powrotu zostaje w planie (kalendarz biegacza). */
     tuneUpInReturn: (date: string, rule: string) =>
       `The tune-up race on ${date} falls in the easy block of your return (${rule}): run it easy or skip it.`,

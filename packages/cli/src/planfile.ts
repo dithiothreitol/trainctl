@@ -138,6 +138,23 @@ export function settleMixedWeek(week: Microcycle): void {
 }
 
 /**
+ * B1: uwagi generatora (`why`) idą za jednostką, gdy `shift` albo `reschedule` przestawia dni
+ * tygodnia; uwaga jednostki, której już nie ma w tygodniu, wypada.
+ */
+export function followNotes(week: Microcycle, before: PlannedDay[]): void {
+  if (!week.notes?.length) return
+  const keyOf = (d: PlannedDay | undefined) => (d?.workout ? JSON.stringify(d.workout) : undefined)
+  const notes = week.notes.flatMap((n): WeekNote[] => {
+    if (!('date' in n)) return [n]
+    const key = keyOf(before.find((d) => d.date === n.date))
+    const now = key === undefined ? undefined : week.days.find((d) => keyOf(d) === key)
+    return now ? [{ ...n, date: now.date }] : []
+  })
+  if (notes.length) week.notes = notes
+  else delete week.notes
+}
+
+/**
  * Uwagi generatora tygodnia mieszanego (B1, `why`): uwaga dnia idzie z planu, z którego
  * pochodzi ten dzień — dzień zachowany ze starego planu nie dostaje uwagi o układzie,
  * którego nie ma. Uwagi całego tygodnia (bez daty) — z nowego planu.
@@ -291,6 +308,11 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
       ...(threshold && longest > 0 ? { longest: { km: longest, thresholdKm: threshold.km, atLeast: threshold.inclusive, rules: threshold.ruleRefs.join(', ') } } : {}),
       ...(reachableFrom && reachableFrom > goal.date ? { reachableFrom } : {}),
     }))
+  }
+  // B4 + B7: budżet ogranicza szczyt, a długie zostaje poniżej progu dystansu — ostrzeżenie
+  // budżetu mówi o szczycie, więc liczby długiego osobno (bez werdyktu: wyjściem są minuty)
+  if (longShort && capped && !peakShort && threshold) {
+    plan.feasibilityWarnings.push(ui().planMd.timeCapsLong({ km: longest, thresholdKm: threshold.km, atLeast: threshold.inclusive, rules: threshold.ruleRefs.join(', ') }))
   }
   plan.generatedDays = Object.fromEntries(plan.weeks.flatMap((w) => w.days).map((d) => [d.date, dayFingerprint(d)]))
   return plan
@@ -843,6 +865,7 @@ export function shiftWorkout(
       throw new Error(ui().improve.badBudget)
     }
   }
+  const before = structuredClone(from.week.days)
   const tmp = from.day.workout
   const adjustment = from.day.timeAdjustment
   if (to.day.workout) from.day.workout = to.day.workout
@@ -853,6 +876,7 @@ export function shiftWorkout(
   else delete from.day.timeAdjustment
   if (adjustment) to.day.timeAdjustment = adjustment
   else delete to.day.timeAdjustment
+  followNotes(from.week, before)
 
   const warnings: string[] = []
   const qualityDays = from.week.days

@@ -288,6 +288,8 @@ export const cliPl: CliMessages = {
     breakTooLong: (days: number) => `Przerwa dłuższa niż ${days} dni to nowy plan, nie przerwa — zapisz ją w krótszych częściach albo zacznij nowy plan.`,
     breakRecorded: (from: string, to: string, days: number, reason?: string) =>
       `Zapisano przerwę ${from} do ${to}: ${days} ${days === 1 ? 'dzień' : 'dni'} opuszczonych${reason ? `, przyczyna: ${reason}` : ''}. Po przerwie adapt zaproponuje powrót.`,
+    breakRunningPlanOnly: 'Zakres przerwy (--to) i jej przyczyna (--reason) należą do planu biegowego; w obszarze multisport zapisz każdą sesję osobno.',
+    breakRunsOnly: 'Przerwa (--to, --reason) dotyczy biegania; siłę zapisz osobnym wpisem.',
     breakKeptRuns: (dates: string) => `Dni z zapisanym biegiem (dziennik albo synchronizacja) zostają bez zmian: ${dates}.`,
     reasonWord: { illness: 'choroba', injury: 'kontuzja', travel: 'wyjazd', other: 'inna' },
     badRpe: (rpe: string) =>
@@ -970,6 +972,8 @@ export const cliPl: CliMessages = {
         : 'Objętość urośnie przy większej liczbie minut (E-2).'),
     timeDayTooShort: (dates: string) =>
       `Te jednostki nie mieszczą się w budżecie dnia nawet po skróceniu (startów i sprawdzianów nie skracamy): ${dates} (E-2).`,
+    timeCapsLong: (v: { km: number; thresholdKm: number; atLeast: boolean; rules: string }) =>
+      `Najdłuższe wybieganie ma ${n(v.km)} km wobec ${v.atLeast ? 'co najmniej' : 'ponad'} ${n(v.thresholdKm)} km dla tego dystansu (${v.rules}): trzyma je budżet czasu. Urośnie przy większej liczbie minut, przede wszystkim w dni długiego (E-2).`,
     tuneUpInReturn: (date: string, rule: string) =>
       `Start kontrolny ${date} wypada w spokojnym bloku powrotu (${rule}): pobiegnij go spokojnie albo z niego zrezygnuj.`,
     verdict: (v: { distanceKm: number; peakKm: number; recommendedKm: number; longest?: { km: number; thresholdKm: number; atLeast: boolean; rules: string }; reachableFrom?: string; afterReturn?: boolean }) =>

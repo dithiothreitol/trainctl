@@ -1,6 +1,7 @@
 import type { ExecutionRecord, SyncedActivity } from 'trainctl-core'
 import type { StoredPlan } from './planfile.ts'
 import type { LogEntry } from './logfile.ts'
+import { localDateOf } from './clock.ts'
 
 export const isRunningActivity = (activity: SyncedActivity): boolean =>
   /^(run|running|trailrun|trailrunning|virtualrun|treadmill|treadmillrunning)$/i.test(activity.type.replace(/[ _-]/g, '')) &&
@@ -33,7 +34,8 @@ export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], l
     // Wpis przerwy (z przyczyną, B11) albo „skipped” zapisane z góry nie chowa biegu
     // z synchronizacji: jeśli biegacz tego dnia pobiegł, bieg się odbył. „Skipped” bez przyczyny
     // zapisane w dniu sesji albo po nim, a także korekta wcześniejszego „done”, zostaje decyzją.
-    const preLogged = log?.loggedAt !== undefined && log.loggedAt.slice(0, 10) < date
+    // data zapisu w strefie biegacza, jak data sesji — nie w UTC
+    const preLogged = log?.loggedAt !== undefined && localDateOf(log.loggedAt) < date
     const absence = (log?.reason !== undefined || preLogged) && !reported.has(date)
     const skipped = log?.status === 'skipped' && !(absence && (runs.get(date) ?? 0) > 0)
     const actualKm = skipped ? 0 : log?.km ?? runs.get(date) ?? (log?.status === 'done' ? plannedKm : undefined)

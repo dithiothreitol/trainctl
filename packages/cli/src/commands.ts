@@ -41,7 +41,7 @@ import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, shownKm, workoutKm } from './format.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
-import { appendLog, latestByDate, LOG_LIMITS, parseTime, readJournal, readLog, readLogForChanges, type LogEntry, type StrengthLogEntry } from './logfile.ts'
+import { appendLog, latestByDate, LOG_LIMITS, parseBreakReason, parseTime, readJournal, readLog, readLogForChanges, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
   blockLevelOf,
   computePlan,
@@ -49,6 +49,7 @@ import {
   dayFingerprint,
   findDay,
   fmtTime,
+  followNotes,
   loadPlan,
   loadPlanFile,
   planEnd,
@@ -676,7 +677,11 @@ type LogOptions = {
 const BREAK_MAX_DAYS = 60
 
 export function cmdLog(cwd: string, opts: LogOptions & { commit?: CommitOption } = {}): CmdResult {
-  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'log', opts)
+  if (isSportsWorkspace(cwd)) {
+    // B11: zakres przerwy i przyczyna to model planu biegowego — tu cicho zapisałyby jedną sesję jako wykonaną
+    if (opts.to !== undefined || opts.reason !== undefined) return fail(new Error(ui().log.breakRunningPlanOnly))
+    return sportsCommand(cwd, 'log', opts)
+  }
   if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   const result = logImpl(cwd, opts)
   const entry = result.data?.['entry'] as LogEntry | undefined
@@ -692,16 +697,16 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     const date = opts.date ?? localToday()
     const plan = loadPlan(cwd)
     if (!findDay(plan, date)) return fail(new Error(ui().log.outsidePlan(date)))
+    if (opts.strength !== undefined && (opts.to !== undefined || opts.reason !== undefined)) throw new Error(ui().log.breakRunsOnly)
     if (opts.strength !== undefined) return logStrength(cwd, plan, date, opts)
     // B11: zakres dni albo przyczyna bez statusu to przerwa — „skipped”, jak mówi pomoc `--to`
     const status = (opts.status ?? (opts.to !== undefined || opts.reason !== undefined ? 'skipped' : 'done')) as 'done' | 'skipped' | 'modified'
     if (!['done', 'skipped', 'modified'].includes(status)) {
       return fail(new Error(ui().log.unknownStatus(String(opts.status))))
     }
-    // B11: przerwa — przyczyna i zakres dni dotyczą tylko opuszczonych sesji; wielkość liter
-    // bez znaczenia, jak w kreatorze dziennika
-    const reason = opts.reason?.trim().toLowerCase()
-    if (reason !== undefined && !(BREAK_REASONS as readonly string[]).includes(reason)) throw new Error(ui().log.unknownReason(reason, BREAK_REASONS.join(', ')))
+    // B11: przerwa — przyczyna i zakres dni dotyczą tylko opuszczonych sesji; ta sama
+    // walidacja co w kreatorze dziennika (wielkość liter bez znaczenia)
+    const reason = opts.reason === undefined ? undefined : parseBreakReason(opts.reason)
     if ((reason !== undefined || opts.to !== undefined) && status !== 'skipped') throw new Error(ui().log.breakSkippedOnly)
     if (opts.to !== undefined) return logBreak(cwd, plan, date, opts.to, reason as BreakReason | undefined, opts)
     // CR-10 bez zera: wpis dotyczy odbytej sesji, a 0 znaczy „brak wysiłku" —
@@ -1422,7 +1427,10 @@ function rescheduleImpl(cwd: string, opts: RescheduleOptions): CmdResult {
         b.hint('--strategy ' + (request.strategy === 'long' ? 'quality' : 'long')))
     }
     if (opts.apply === true) {
+      const before = week.days
       week.days = result.days
+      // uwagi generatora (`why`) idą za jednostką na nowy dzień
+      followNotes(week, before)
       // Solver mógł odpuścić sesję (dropped) — bez przeliczenia totalKm/easyShare
       // zapisany plan kłamałby w sumach i `trainctl check` miałby rację, czerwieniejąc.
       Object.assign(week, weekTotals(week.days))

@@ -67,6 +67,16 @@ function lastChar(path: string): string {
   }
 }
 
+/**
+ * B11: przyczyna przerwy z wejścia (CLI, kreator dziennika) — jedna walidacja: bez znaczenia
+ * wielkości liter, spoza BREAK_REASONS to błąd z listą dozwolonych.
+ */
+export function parseBreakReason(text: string): BreakReason {
+  const value = text.trim().toLowerCase()
+  if (!(BREAK_REASONS as readonly string[]).includes(value)) throw new Error(ui().log.unknownReason(value, BREAK_REASONS.join(', ')))
+  return value as BreakReason
+}
+
 /** Ostatni wpis każdej daty — późniejszy nadpisuje wcześniejszy; jedna reguła dla wszystkich widoków. */
 export function latestByDate<T extends { date: string }>(entries: T[]): Map<string, T> {
   return new Map(entries.map((e) => [e.date, e]))

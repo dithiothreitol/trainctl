@@ -26,6 +26,13 @@ export function simulatedToday(): string | undefined {
 }
 
 /** „Dziś" dla wszystkich komend: symulacja, a bez niej lokalna data kalendarzowa. */
+/** Lokalna data kalendarzowa znacznika czasu ISO (np. `loggedAt`), a nie data w UTC. */
+export function localDateOf(iso: string): string {
+  const d = new Date(iso)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
 export function clockToday(): string {
   const simulated = simulatedToday()
   if (simulated) return simulated

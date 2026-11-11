@@ -316,6 +316,10 @@ describe('B2: rama i minimalna dawka przy małej objętości', () => {
     expect(long.distanceKm).toBeLessThanOrEqual(Math.max(0.8 * targetKm, targetKm - 3) + 0.05)
     for (const d of runs) expect(d.workout!.distanceKm).toBeGreaterThanOrEqual(3)
   })
+  it('szkielet ze starszego silnika (bez firstAfterRace): pierwszy tydzień po starcie nadal bez długiego (R-8)', () => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ phase: 'transition', targetKm: 20, qualitySessions: 0 }), athlete, zones })
+    expect(mc.days.some((d) => d.workout?.kind === 'long')).toBe(false)
+  })
   it('taper przy małej objętości (bez długiego): akcent zostaje, nie zamienia się w przebieżki (T-1)', () => {
     const mc = generateMicrocycle({ skeleton: skeleton({ phase: 'taper', intensityModel: 'polarized', targetKm: 16.8, keepFrequency: true, keepIntensity: true, sessionCount: 4, qualitySessions: 1 }), athlete, zones })
     expect(mc.days.some((d) => d.workout && ['quality_intervals', 'quality_continuous'].includes(d.workout.kind))).toBe(true)
