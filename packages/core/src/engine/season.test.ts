@@ -267,4 +267,20 @@ describe('etap 2: linty kształtu na syntetycznych tygodniach', () => {
     const growing = [...same.slice(0, 5), block('2027-02-08', 20)]
     expect(codes(growing)).not.toContain('staleProgression')
   })
+
+  it('staleProgression: bloki porównane tydzień do tygodnia od końca, bez tygodnia sprawdzianu', () => {
+    const block = (start: string, km: number) => week(start, { tue: quality(4), sat: long(km) })
+    const test = (start: string) => {
+      const w = week(start, { tue: quality(4), sat: long(16) })
+      w.skeleton.testPlanned = true
+      return w
+    }
+    const deload = week('2027-01-25', { tue: quality(3), sat: long(12) })
+    deload.skeleton.deload = true
+    // drugi blok kończy się sprawdzianem: porównujemy pozostałe pozycje, a tam długie rośnie
+    const rising = [block('2027-01-04', 18), block('2027-01-11', 18), block('2027-01-18', 18), deload, block('2027-02-01', 18), block('2027-02-08', 20), test('2027-02-15')]
+    expect(codes(rising)).not.toContain('staleProgression')
+    const flat = [block('2027-01-04', 18), block('2027-01-11', 18), block('2027-01-18', 18), deload, block('2027-02-01', 18), block('2027-02-08', 18), test('2027-02-15')]
+    expect(codes(flat)).toContain('staleProgression')
+  })
 })

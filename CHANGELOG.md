@@ -40,6 +40,16 @@ change between minor versions — a regenerated plan can differ.
   last block before the taper (J-1, J-2, J-10, N-19), and shortens in deloads.
   When the weekly volume cannot carry the distance's threshold, `plan` says so
   with the numbers.
+- Accents progress through the season (J-8): from about 3 km of work at the
+  start to the dose the week can carry in the last block, one step a week
+  within a block, each block starting from the second week of the previous one.
+  The taper keeps that dose; after the race the first accent is the smallest.
+- The peak phase uses a 1000/400/200 m ladder at interval pace (J-4) instead of
+  1 km repeats. When a week cannot hold the long run, both accents and the hills
+  day, the hills day goes first, then the second accent (J-5, I-8).
+- Interval segments record their recovery as walk or jog and the longer walk
+  halfway through a set, so later views can print them without parsing text.
+  Polish descriptions read `4×1 km` and `przerwy 2-minutowe`.
 
 ### Added
 

@@ -97,6 +97,11 @@ export interface WeekSkeleton {
    * (10 km, plan bez startu). Sufit udziału i 35 km nakłada generator mikrocyklu.
    */
   longKm?: number
+  /**
+   * Pozycja dawki akcentu w sezonie (B5, J-8): 0 na początku, 1 w ostatnim tygodniu
+   * ładowania; taper 1 (T-1), blok po starcie 0 (R-8). Brak = pełna dawka z objętości.
+   */
+  accentProgress?: number
   raceDate?: string
   /** Start kontrolny B/C w tym tygodniu (nie kończy planu — T-9…T-12). */
   tuneUp?: TuneUpRace
@@ -156,6 +161,10 @@ export interface PlannedSegment {
   pace?: PaceRange
   /** Przerwa między powtórzeniami [s] — potrzebna do eksportu na zegarek. */
   recoverySec?: number
+  /** Rodzaj przerwy (PLAN-v0.7 C1): marsz albo trucht — dla notacji, opis ma go w tekście. */
+  recoveryMode?: 'walk' | 'jog'
+  /** Dłuższa przerwa w połowie serii (C1): po którym odcinku, ile sekund i jak. */
+  setBreak?: { afterRep: number; sec: number; mode: 'walk' | 'jog' }
   /** Polska fraza w stylu korpusu — render dla człowieka/zegarka. */
   description: string
 }

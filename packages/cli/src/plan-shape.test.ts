@@ -65,6 +65,16 @@ describe('DoD etapu 2 (PLAN-v0.7 §4): macierz bez lintów kształtu', () => {
     expect(Math.max(...p1.rows.filter((r) => ['base', 'build', 'peak'].includes(r.phase)).map((r) => r.longKm))).toBeGreaterThan(21)
     for (const r of matrix().filter((x) => x.profile.goal === 'm')) expect(r.longest).toBeLessThanOrEqual(35)
   })
+  it('B5: akcent po starcie nie cięższy od bloku budowania (R-8): żaden profil', () => {
+    expect(hit('postRaceAccentHeavy')).toEqual([])
+  })
+  it('B3–B5: bez budżetu bloki rosną (P-1); wyjątek ma jawne ostrzeżenie wykonalności objętości', () => {
+    // szczyt zatrzymany sufitem (historia albo pojemność dni): ostatnie bloki stoją na nim
+    // i plan mówi o tym wprost — tak B0 opisuje zamknięcie lintu ostrzeżeniem wykonalności
+    for (const r of matrix().filter((x) => !x.profile.budget && x.shape.some((i) => i.code === 'staleProgression'))) {
+      expect(r.plan.feasibilityWarnings.join(' '), r.profile.id).toMatch(/below the \d+ km\/week recommended|running days? holds? \d+ km\/week/)
+    }
+  })
   it('bez budżetu czasu odciążenie jest lżejsze od tygodni ładowania (P-2); budżet to B7', () => {
     expect(hit('deloadNotLighter').filter((id) => !id.includes('min'))).toEqual([])
   })

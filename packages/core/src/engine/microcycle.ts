@@ -35,6 +35,14 @@ export function fmtPace(secPerKm: number): string {
 const EASY_RUN_CAP_KM = 18
 /** E-3 (inż.): część główna akcentu ≈ 22% tygodnia przed odjęciem rozgrzewki i schłodzenia. */
 const QUALITY_MAIN_SHARE = 0.22
+/** J-8 (korpus): na początku przygotowania ~3 km poza Z1 na sesję; stąd rośnie dawka akcentu (B5). */
+const START_DOSE_KM = 3
+/**
+ * J-4 (korpus): drabinka 1000/400/200 m @I w szczycie — trzy serie odcinków po kolei.
+ * Przerwy w truchcie: 2' po 1000 m, 1' po 400 i 200 m (E-3, inż.).
+ */
+const LADDER = [{ repM: 1000, recoverySec: 120 }, { repM: 400, recoverySec: 60 }, { repM: 200, recoverySec: 60 }] as const
+const LADDER_SET_KM = LADDER.reduce((s, r) => s + r.repM, 0) / 1000
 /** E-3 (inż.): kilometry poza Z1 najwyżej 25% tygodnia — margines pod I-5 (≥75% Z1). */
 const HARD_SHARE_MAX = 0.25
 /** S-10 (korpus): najdłuższy inny bieg spokojny ≤ 0,9 długiego — P90 stosunku 0,67–0,91 w 130 tygodniach. */
@@ -217,6 +225,9 @@ function buildQualityIntervals(
       distanceKm: reps,
       pace: z.interval,
       recoverySec: 180, // E-3 (inż.): przerwy 3' trucht przy odcinkach @I, z korpusu bez reguły
+      recoveryMode: 'jog',
+      // E-3 (inż.): 4' marsz po połowie serii — zapis korpusu
+      setBreak: { afterRep: Math.ceil(reps / 2), sec: 240, mode: 'walk' },
       description: messages().workout.intervalsVo2(
         reps, fmtPace(paceMid(z.interval)), 3, Math.ceil(reps / 2), 4,
       ),
@@ -231,6 +242,7 @@ function buildQualityIntervals(
       distanceKm: reps * 3,
       pace: z.threshold,
       recoverySec: 180, // E-3 (inż.)
+      recoveryMode: 'walk',
       description: messages().workout.intervals3Km(reps, fmtPace(paceMid(z.threshold)), 3),
     }
   } else {
@@ -242,6 +254,7 @@ function buildQualityIntervals(
       distanceKm: reps,
       pace: z.threshold,
       recoverySec: 120, // E-3 (inż.): 2' marsz — zapis korpusu, bez reguły w FOUNDATIONS
+      recoveryMode: 'walk',
       description: messages().workout.intervalsKm(reps, fmtPace(paceMid(z.threshold)), 2),
     }
   }
@@ -251,6 +264,28 @@ function buildQualityIntervals(
     distanceKm: frame.warmupKm + (main.distanceKm ?? 0) + style.cooldownKm,
     ruleRefs: ['I-7', 'I-8', polarized ? 'I-2' : 'I-1'],
     segments,
+  }
+}
+
+/** J-4: drabinka w szczycie — serie 1000/400/200 m @I, co najmniej dwie (dawka ~3,2 km). */
+function buildLadder(mainKm: number, style: HouseStyle, z: PaceZones, frame: Frame): PlannedWorkout {
+  const sets = Math.max(2, Math.round(mainKm / LADDER_SET_KM))
+  const pace = fmtPace(paceMid(z.interval))
+  const main: PlannedSegment[] = LADDER.map(({ repM, recoverySec }) => ({
+    type: 'intervals',
+    reps: sets,
+    repM,
+    distanceKm: (sets * repM) / 1000,
+    pace: z.interval,
+    recoverySec,
+    recoveryMode: 'jog',
+    description: messages().workout.intervalsShort(sets, repM, pace, recoverySec / 60),
+  }))
+  return {
+    kind: 'quality_intervals',
+    distanceKm: Math.round((frame.warmupKm + sets * LADDER_SET_KM + style.cooldownKm) * 10) / 10,
+    ruleRefs: ['I-7', 'I-8', 'I-2', 'J-4'],
+    segments: [segWarmup(frame.warmupKm, z), ...main, segCooldown(style.cooldownKm)],
   }
 }
 
@@ -308,6 +343,7 @@ function buildSharpener(style: HouseStyle, z: PaceZones): PlannedWorkout {
         distanceKm: (reps * repM) / 1000,
         pace: z.interval,
         recoverySec: 60,
+        recoveryMode: 'jog',
         description: messages().workout.intervalsShort(reps, repM, fmtPace(paceMid(z.interval)), 1),
       },
       segCooldown(style.cooldownKm),
@@ -588,7 +624,8 @@ function planNormalWeek(
   const shares = maxRuns >= 3
 
   // objętość
-  const longCeil = Math.min(style.longRunCapKm, shares ? Math.floor(longShareCeiling(target) * target) : target)
+  // sufit do 0,1 km jak pozostałe biegi: pełne km spłaszczały długie przy wzroście tygodnia o 1 km
+  const longCeil = Math.min(style.longRunCapKm, shares ? floor1(longShareCeiling(target) * target) : target)
   // B4: tor długiego z makrocyklu jest podłogą; sufit udziału (P90) i 35 km — górą
   const longKm = longWd ? Math.min(longCeil, Math.max(skeleton.longKm ?? 0, Math.min(Math.round(style.longRunShare * target), style.longRunCapKm))) : 0
   // udział jednej jednostki liczony od objętości tygodnia — od zamiaru, a gdy dni go nie
@@ -599,23 +636,39 @@ function planNormalWeek(
   // Taper i tydzień startowy trzymają liczbę biegów z ostatniego tygodnia ładowania (T-2):
   // bez dokładania dnia i bez usuwania krótkiego biegu.
   const fixedCount = skeleton.keepFrequency && skeleton.sessionCount !== undefined
-  // E-3 (inż.): część główna akcentu co najmniej 3 km
-  let qualityMainKm = Math.max(3, Math.round(QUALITY_MAIN_SHARE * target) - style.warmupKm - style.cooldownKm)
+  // E-3 (inż.): część główna akcentu co najmniej 3 km i ~22% tygodnia — dawka z objętości.
+  // B5 (J-8): dawka rośnie w sezonie od START_DOSE_KM do dawki z objętości w ostatnim
+  // tygodniu ładowania; pozycję w bloku i po odciążeniu daje makrocykl (accentProgress).
+  const volumeDose = Math.max(3, Math.round(QUALITY_MAIN_SHARE * target) - style.warmupKm - style.cooldownKm)
+  // Sufit dawki jednego akcentu z sufitu mocnych kilometrów tygodnia (E-3: 25%) po odjęciu
+  // podbiegów: progresja idzie do niego, a nie ponad — inaczej sufit spłaszczyłby różne
+  // pozycje w sezonie do tej samej dawki (P-1, lint `staleProgression`).
+  const hillsHardKm = hillsWd ? (style.hillsReps * style.hillsRepM) / 1000 : 0
+  const doseCap = Math.min(volumeDose, Math.floor(((HARD_SHARE_MAX * target - hillsHardKm) / Math.max(1, qualityWds.length)) * 2) / 2)
+  const progress = skeleton.accentProgress ?? 1
+  let qualityMainKm = doseCap <= START_DOSE_KM ? Math.max(3, doseCap)
+    : Math.round((START_DOSE_KM + (doseCap - START_DOSE_KM) * progress) * 2) / 2
+  // J-4: w szczycie interwały @I to drabinka 1000/400/200 m
+  const ladder = skeleton.phase === 'peak'
   // E-3 (inż.): spokojne wprowadzenie przed podbiegami 5–8 km, ~10% tygodnia
   const hillsEasyKm = hillsWd ? Math.min(8, Math.max(5, Math.round(0.1 * target))) : 0
 
   // Akcent z pełną ramą; gdy przekroczyłby udział jednej jednostki, mała rama (B2),
   // a gdy i ona — bieg spokojny z przebieżkami (undefined).
+  // Po starcie (R-8, B5.4) akcent od najmniejszej ramy — nie cięższy od bloku budowania.
+  const frames = recovering ? SMALLER_FRAMES(style) : [standardFrame(style), ...SMALLER_FRAMES(style)]
   const accent = (i: number, mainKm: number): PlannedWorkout | undefined => {
     const build = (frame: Frame) => i === 0
-      ? buildQualityIntervals(mainKm, polarized, style, zones, frame)
+      ? ladder ? buildLadder(mainKm, style, zones, frame) : buildQualityIntervals(mainKm, polarized, style, zones, frame)
       : buildQualityContinuous(mainKm, polarized, style, zones, frame)
-    return [standardFrame(style), ...SMALLER_FRAMES(style)].map(build).find((w) => w.distanceKm <= shareCap)
+    return frames.map(build).find((w) => w.distanceKm <= shareCap)
   }
 
   // Akcenty zwolnione przez sufit mocnych kilometrów albo objętość tygodnia stają się dniami spokojnymi.
   const released = new Set<Weekday>()
   let withHills = hillsWd !== undefined
+  // dzień podbiegów w najmniejszej wersji (spokojne wprowadzenie MIN_EASY_KM), gdy tydzień go nie mieści
+  let smallHills = false
   let notes: WeekNote[] = []
 
   /** Rozpisuje tydzień przy danej dawce akcentu; zwraca kilometry, których dni nie mieszczą. */
@@ -635,7 +688,7 @@ function planNormalWeek(
       }
     })
     const hillsDay = hillsWd && withHills
-      ? [hillsEasyKm, MIN_EASY_KM].map((km) => buildHillsDay(km, style, zones)).find((w) => w.distanceKm <= shareCap)
+      ? (smallHills ? [MIN_EASY_KM] : [hillsEasyKm, MIN_EASY_KM]).map((km) => buildHillsDay(km, style, zones)).find((w) => w.distanceKm <= shareCap)
       : undefined
     if (hillsWd && hillsDay) plan.set(hillsWd, hillsDay)
     else if (hillsWd) {
@@ -667,11 +720,18 @@ function planNormalWeek(
       remaining = Math.max(0, remaining - km)
     }
     let long = longKm
-    // Reszta, której dni spokojne nie mieszczą, wydłuża długie (do `longRoom`).
+    // Reszta, której dni spokojne nie mieszczą, wydłuża długie (do `longRoom`), a reszta
+    // krótsza niż bieg (E-3: MIN_EASY_KM) dolicza się do długiego także ponad sufit udziału
+    // (B2: krótsza reszta idzie do innego biegu); twardy sufit 35 km zostaje.
     if (longWd && remaining > 0.05) {
       const extra = Math.min(remaining, longRoom)
       long = round1(long + extra)
       remaining = Math.max(0, round1(remaining - extra))
+      if (remaining > 0.05 && remaining < MIN_EASY_KM) {
+        const rest = Math.min(remaining, style.longRunCapKm - long)
+        long = round1(long + rest)
+        remaining = Math.max(0, round1(remaining - rest))
+      }
     }
     if (longWd) plan.set(longWd, buildLong(long, zones))
     return remaining
@@ -691,12 +751,19 @@ function planNormalWeek(
   for (let guard = 0; guard < 8 && z1Share(plan) < 0.75 && qualityMainKm > 3; guard++) left = settle(--qualityMainKm)
 
   // Akcent minimalny jest opcjonalny: nie podnosi tygodnia ponad zamiar i nie łamie
-  // sufitu mocnych kilometrów — wtedy jego dzień staje się spokojny.
+  // sufitu mocnych kilometrów (od tego, co tydzień faktycznie ma — I-5 dotyczy
+  // przebiegniętej objętości). Najpierw krótszy dzień podbiegów, potem dodatki przed
+  // głównym akcentem: podbiegi są dodatkiem, nie zamiennikiem interwałów płaskich (J-5),
+  // drugi akcent wypada przed pierwszym (I-8). Zwolniony dzień staje się spokojny.
   const hardKm = () => [...plan.values()].filter((w) => w.kind !== 'race').reduce((n, w) => n + hardKmOf(w), 0)
-  // Sufit mocnych km od tego, co tydzień faktycznie ma — I-5 dotyczy przebiegniętej objętości.
-  for (const kind of ['quality_continuous', 'quality_intervals', 'easy_hills'] as const) {
+  const fits = () => sumKm(plan) <= target + 0.05 && hardKm() <= Math.min(target, sumKm(plan)) * HARD_SHARE_MAX
+  if (!fits() && withHills && hillsWd && !smallHills) {
+    smallHills = true
+    left = settle(qualityMainKm)
+  }
+  for (const kind of ['easy_hills', 'quality_continuous', 'quality_intervals'] as const) {
     for (const wd of [...plan.keys()]) {
-      if (sumKm(plan) <= target + 0.05 && hardKm() <= Math.min(target, sumKm(plan)) * HARD_SHARE_MAX) break
+      if (fits()) break
       if (plan.get(wd)?.kind !== kind) continue
       if (kind === 'easy_hills') withHills = false
       else released.add(wd)

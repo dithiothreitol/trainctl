@@ -305,3 +305,26 @@ describe('B4: tor długiego wybiegania (J-1, J-2, J-10, N-19)', () => {
     expect(Math.max(...longs)).toBeLessThanOrEqual(30)
   })
 })
+
+describe('B5: krok dawki akcentu w sezonie', () => {
+  const today = '2026-10-22'
+  const half: RaceGoal = { name: 'HM', date: '2027-03-28', distanceKm: 21.0975, priority: 'A' }
+  const plan = planMacrocycle({ today, goal: half, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] } })
+  const blocks: typeof plan.weeks[] = [[]]
+  for (const w of plan.weeks.filter((x) => ['base', 'build', 'peak'].includes(x.phase))) {
+    if (w.deload) blocks.push([])
+    else blocks.at(-1)!.push(w)
+  }
+
+  it('tydzień w bloku dodaje krok; blok po odciążeniu startuje z poziomu drugiego tygodnia poprzedniego', () => {
+    expect(blocks[0]![0]!.accentProgress).toBe(0)
+    expect(blocks[0]![1]!.accentProgress).toBeGreaterThan(0)
+    expect(blocks[1]![0]!.accentProgress).toBe(blocks[0]![1]!.accentProgress)
+    expect(blocks.at(-1)!.at(-1)!.accentProgress).toBe(1)
+  })
+
+  it('taper trzyma dawkę ostatniego bloku (T-1), blok po starcie zaczyna od zera (R-8)', () => {
+    for (const w of plan.weeks.filter((x) => x.phase === 'taper' || x.phase === 'race')) expect(w.accentProgress).toBe(1)
+    for (const w of plan.weeks.filter((x) => x.phase === 'transition')) expect(w.accentProgress).toBe(0)
+  })
+})

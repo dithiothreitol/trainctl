@@ -104,3 +104,21 @@ describe('time-constrained sessions', () => {
     expect(shortenWorkout(manual, 40)).toMatchObject({ status: 'unavailable', reason: 'unsupported' })
   })
 })
+
+describe('C1: przerwa w połowie serii przy skracaniu', () => {
+  it('skrócona seria trzyma przerwę w połowie (afterRep = połowa nowej liczby odcinków)', () => {
+    const workout = {
+      kind: 'quality_intervals' as const, distanceKm: 12, ruleRefs: [],
+      segments: [
+        { type: 'warmup' as const, distanceKm: 3, pace: { loSecPerKm: 300, hiSecPerKm: 360 }, description: '' },
+        { type: 'intervals' as const, reps: 8, repM: 1000, distanceKm: 8, pace: { loSecPerKm: 240, hiSecPerKm: 250 }, recoverySec: 180, recoveryMode: 'jog' as const, setBreak: { afterRep: 4, sec: 240, mode: 'walk' as const }, description: '' },
+        { type: 'cooldown' as const, distanceKm: 1, description: '' },
+      ],
+    }
+    const result = shortenWorkout(workout, 75)
+    expect(result.status).toBe('shortened')
+    const main = result.workout!.segments.find((s) => s.type === 'intervals')!
+    expect(main.reps).toBeLessThan(8)
+    expect(main.setBreak).toEqual({ afterRep: Math.ceil(main.reps! / 2), sec: 240, mode: 'walk' })
+  })
+})

@@ -106,7 +106,7 @@ const BASE_GROWTH = 1.15
  */
 const BLOCK_WAVE = [0.94, 0.97, 1.0]
 
-interface VolumeWeek { deload: boolean; km: number; longKm?: number }
+interface VolumeWeek { deload: boolean; km: number; longKm?: number; accentProgress: number }
 
 /**
  * B4: cel długiego wybiegania w ostatnim bloku ładowania. J-2: półmaraton ponad 21 km,
@@ -162,16 +162,23 @@ function volumeSchedule(loadWeeks: number, start: number, peak: number, baseOnly
     return Math.round(Math.min(longGoal, linear, startLong + LONG_STEP_KM * k))
   }
 
+  // B5: krok dawki akcentu — tydzień w bloku dodaje krok, a blok po odciążeniu startuje
+  // z poziomu drugiego tygodnia poprzedniego (inż.); znormalizowany do 0…1 na końcu
+  const steps: number[] = []
+  let block = 0
   const weeks: VolumeWeek[] = []
   let k = 0
   let level = s0
   let lastLong: number | undefined
   for (let i = 0; i < loadWeeks;) {
     if (deloads[i]) {
-      weeks.push({ deload: true, km: Math.round(level * DELOAD_FACTOR), ...(lastLong !== undefined ? { longKm: Math.round(lastLong * DELOAD_FACTOR) } : {}) })
+      // odciążenie: dawka z początku bloku, który właśnie się skończył
+      steps.push(Math.max(0, block - 1))
+      weeks.push({ deload: true, km: Math.round(level * DELOAD_FACTOR), ...(lastLong !== undefined ? { longKm: Math.round(lastLong * DELOAD_FACTOR) } : {}), accentProgress: 0 })
       i++
       continue
     }
+    block++
     // blok: kolejne tygodnie ładowania do najbliższego odciążenia
     let end = i
     while (end < loadWeeks && !deloads[end]) end++
@@ -183,15 +190,22 @@ function volumeSchedule(loadWeeks: number, start: number, peak: number, baseOnly
       const fromEnd = size - 1 - j
       const longKm = longAt(k + j)
       if (longKm !== undefined) lastLong = longKm
+      steps.push(block - 1 + j)
       weeks.push({
         deload: false,
         km: Math.round(wave ? level * BLOCK_WAVE[Math.max(0, BLOCK_WAVE.length - 1 - fromEnd)]! : trend(k + j)),
         ...(longKm !== undefined ? { longKm } : {}),
+        accentProgress: 0,
       })
     }
     k += size
     i = end
   }
+  // Pełna dawka w ostatnim tygodniu ładowania: krótki ostatni blok (jeden tydzień po
+  // odciążeniu) ma niższy krok niż koniec bloku przedostatniego — tamte tygodnie też
+  // dostają pełną dawkę, nie więcej.
+  const lastStep = Math.max(0, steps[deloads.lastIndexOf(false)] ?? 0)
+  weeks.forEach((w, i) => { w.accentProgress = lastStep > 0 ? Math.min(1, Math.round((steps[i]! / lastStep) * 100) / 100) : 1 })
   return { weeks, peakLevel: level }
 }
 
@@ -216,8 +230,9 @@ function transitionWeeks(goal: RaceGoal, weeks: WeekSkeleton[]): WeekSkeleton[] 
       deload: false,
       keepIntensity: false,
       keepFrequency: false,
-      // pierwszy tydzień wyłącznie spokojnie; akcent wraca w drugim (R-8)
+      // pierwszy tydzień wyłącznie spokojnie; akcent wraca w drugim (R-8) od najmniejszej dawki
       qualitySessions: j === 0 ? 0 : 1,
+      accentProgress: 0,
       ...(j === 0 && earliestRun > weekStart ? { earliestRun } : {}),
       flags: [messages().macro.transitionWeek(j + 1, factors.length)],
       ruleRefs: long ? (j === 0 ? ['R-1', 'R-2', 'R-8'] : ['R-8', 'R-9']) : ['R-10'],
@@ -331,6 +346,8 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
 
     let targetKm: number
     let longKm: number | undefined
+    // taper trzyma dawkę ostatniego bloku (T-1)
+    let accentProgress = 1
     let deload = false
     const flags: string[] = [...(i === 0 ? taper.flags : [])]
     const ruleRefs: string[] = []
@@ -344,6 +361,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       const planned = volume.weeks[i]!
       deload = planned.deload
       targetKm = planned.km
+      accentProgress = planned.accentProgress
       if (planned.longKm !== undefined) longKm = planned.longKm
       ruleRefs.push(...(deload ? ['P-2'] : ['P-1', 'P-3']), intensityModel === 'pyramidal' ? 'I-1' : 'I-2')
     }
@@ -399,6 +417,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       qualitySessions:
         phase === 'race' ? 1 : tuneUp || wantsTest ? qualityPerWeek - 1 : qualityPerWeek,
       ...(longKm !== undefined ? { longKm } : {}),
+      accentProgress,
       ...(phase === 'race' ? { raceDate: goal.date } : {}),
       ...(tuneUp && !inTaper ? { tuneUp } : {}),
       ...(wantsTest ? { testPlanned: true } : {}), // dzień wybiera mikrocykl (house style)

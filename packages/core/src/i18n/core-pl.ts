@@ -3,7 +3,7 @@
  * albo inna sygnatura to błąd kompilacji, nie cicha dziura w tłumaczeniu.
  *
  * Opisy jednostek są **głosem trenera z korpusu** (50 planów 2020–2025), nie
- * tłumaczeniem angielskiego: „przerwy 2 minutowe w marszu", „na koniec treningu
+ * tłumaczeniem angielskiego: „przerwy 2-minutowe w marszu", „na koniec treningu
  * 1 kilometr truchtu". To ta wersja jest oryginałem, angielska jest odpowiednikiem.
  *
  * Odmiana: `pluralPl` obsługuje trzy formy i ułamki (2,5 kilometra), a liczby
@@ -18,9 +18,9 @@ const km = (value: number) =>
   `${n(value)} ${pluralPl(value, { one: 'kilometr', few: 'kilometry', other: 'kilometrów' })}`
 const minut = (value: number) =>
   `${n(value)} ${pluralPl(value, { one: 'minuta', few: 'minuty', other: 'minut' })}`
-/** Forma przymiotnikowa przy przerwach: „przerwy 2 minutowe", „przerwa 1 minutowa". */
+/** Forma przymiotnikowa przy przerwach: „przerwy 2-minutowe", „przerwa 1-minutowa" (PLAN-v0.7, decyzja 4). */
 const przerwy = (value: number) =>
-  value === 1 ? 'przerwa 1 minutowa' : `przerwy ${n(value)} minutowe`
+  value === 1 ? 'przerwa 1-minutowa' : `przerwy ${n(value)}-minutowe`
 
 export const corePl: CoreMessages = {
   shorten: {
@@ -81,16 +81,16 @@ export const corePl: CoreMessages = {
     easyStrides: (value: number, count: number, meters: number) =>
       `${km(value)} (w tempie spokojnym), na koniec ${count} przebieżek po około ${n(meters)} metrów.`,
     easyBeforeHills: (value: number) => `${km(value)} (w tempie spokojnym)`,
-    hills: (reps: number, repM: number) => `podbiegi: ${reps}*${repM} metrów (spokojnie).`,
+    hills: (reps: number, repM: number) => `podbiegi: ${reps}×${repM} metrów (spokojnie).`,
     intervalsKm: (reps: number, pace: string, recoveryMin: number) =>
-      `${reps}*1 km (w tempie ${pace} na km), ${przerwy(recoveryMin)} w marszu.`,
+      `${reps}×1 km (w tempie ${pace} na km), ${przerwy(recoveryMin)} w marszu.`,
     intervals3Km: (reps: number, pace: string, recoveryMin: number) =>
-      `${reps}*3 km (w tempie ${pace} na km), ${przerwy(recoveryMin)} w marszu.`,
+      `${reps}×3 km (w tempie ${pace} na km), ${przerwy(recoveryMin)} w marszu.`,
     intervalsVo2: (reps: number, pace: string, jogMin: number, halfway: number, walkMin: number) =>
-      `${reps}*1 km (w tempie ${pace} na km), ${przerwy(jogMin)} w truchcie, ` +
-      `po ${halfway} odcinku przerwa ${n(walkMin)} minutowa w marszu.`,
+      `${reps}×1 km (w tempie ${pace} na km), ${przerwy(jogMin)} w truchcie, ` +
+      `po ${halfway} odcinku przerwa ${n(walkMin)}-minutowa w marszu.`,
     intervalsShort: (reps: number, repM: number, pace: string, jogMin: number) =>
-      `${reps}*${repM} metrów (w tempie ${pace} na km), ${przerwy(jogMin)} w truchcie.`,
+      `${reps}×${repM} metrów (w tempie ${pace} na km), ${przerwy(jogMin)} w truchcie.`,
     alternating: (totalKm: number, fast: string, easyPace: string) =>
       `${n(totalKm)} km biegu zmiennego (na zmianę 1 km w tempie ${fast} na km, ` +
       `1 km w tempie ${easyPace} na km).`,

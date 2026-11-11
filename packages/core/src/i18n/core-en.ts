@@ -3,7 +3,7 @@
  * Dodanie klucza tutaj wymusza jego dodanie w `core-pl.ts` (błąd `tsc`).
  *
  * Opisy jednostek celowo NIE są kalką z polskiego: polska wersja niesie głos
- * trenera z korpusu („przerwy 2 minutowe w marszu"), a angielska ma brzmieć jak
+ * trenera z korpusu („przerwy 2-minutowe w marszu"), a angielska ma brzmieć jak
  * zapis prawdziwego anglojęzycznego planu („2 min walk recovery"). Ta sama
  * treść fizjologiczna, dwa naturalne idiomy.
  */

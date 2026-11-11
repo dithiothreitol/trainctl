@@ -77,6 +77,8 @@ export function shortenWorkout(workout: PlannedWorkout, budgetMinutes: number,
         if (s.reps! <= floors[i]!) break
         s.reps!--
         s.distanceKm = round(s.reps! * s.repM! / 1000 * (s.type === 'hills' ? 2 : 1))
+        // przerwa w połowie serii zostaje w połowie skróconej serii
+        if (s.setBreak) s.setBreak = { ...s.setBreak, afterRep: Math.ceil(s.reps! / 2) }
       } else {
         const distance = round(kmOf(s) - 0.1)
         if (distance < floors[i]! - 0.0001 || distance <= 0) break

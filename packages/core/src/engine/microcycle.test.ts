@@ -296,3 +296,54 @@ describe('B2: rama i minimalna dawka przy małej objętości', () => {
     for (const w of testWeeks) expect(w.qualitySessions).toBe(0)
   })
 })
+
+describe('B5: progresja akcentów i repertuar (J-8, J-4, J-5, R-8)', () => {
+  const continuousKm = (accentProgress: number) => generateMicrocycle({ skeleton: skeleton({ targetKm: 60, accentProgress }), athlete, zones })
+    .days.find((d) => d.workout?.kind === 'quality_continuous')!.workout!.segments.find((s) => s.type === 'progression')!.distanceKm!
+
+  it('dawka rośnie z pozycją w sezonie: od 3 km (J-8) do sufitu dawki tygodnia', () => {
+    expect(continuousKm(0)).toBe(3)
+    expect(continuousKm(0.5)).toBeGreaterThan(continuousKm(0))
+    expect(continuousKm(1)).toBeGreaterThan(continuousKm(0.5))
+  })
+
+  it('szczyt: interwały @I to drabinka 1000/400/200 m w truchcie (J-4)', () => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ phase: 'peak', intensityModel: 'polarized' }), athlete, zones })
+    const ladder = mc.days.find((d) => d.workout?.ruleRefs.includes('J-4'))!.workout!
+    const reps = ladder.segments.filter((s) => s.type === 'intervals')
+    expect(reps.map((s) => s.repM)).toEqual([1000, 400, 200])
+    for (const s of reps) {
+      expect(s.recoveryMode).toBe('jog')
+      expect(s.pace!.hiSecPerKm).toBeLessThanOrEqual(zones.interval.hiSecPerKm + 1)
+    }
+  })
+
+  it('taper: 1 km @I z dłuższą przerwą marszową w połowie serii (C1)', () => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ phase: 'taper', intensityModel: 'polarized', keepIntensity: true, keepFrequency: true, targetKm: 40 }), athlete, zones })
+    const vo2 = mc.days.find((d) => d.workout?.kind === 'quality_intervals')!.workout!.segments.find((s) => s.type === 'intervals')!
+    expect(vo2.repM).toBe(1000)
+    expect(vo2.recoveryMode).toBe('jog')
+    expect(vo2.setBreak).toEqual({ afterRep: Math.ceil(vo2.reps! / 2), sec: 240, mode: 'walk' })
+  })
+
+  it('odcinki @T: przerwa w marszu w polu segmentu; zapis „4×1 km", „2-minutowe" (decyzja 4)', () => {
+    const s = generateMicrocycle({ skeleton: skeleton(), athlete, zones }).days.find((d) => d.workout?.kind === 'quality_intervals')!
+      .workout!.segments.find((x) => x.type === 'intervals')!
+    expect(s.recoveryMode).toBe('walk')
+    expect(s.description).toMatch(/^\d+×1 km/)
+    expect(s.description).toContain('2-minutowe')
+  })
+
+  it('tydzień, który nie mieści długiego, akcentu i podbiegów: wypadają podbiegi, nie interwały (J-5)', () => {
+    // długie 15 km z toru (maraton): długie, akcent i podbiegi to 33 km przy celu 30
+    const mc = generateMicrocycle({ skeleton: skeleton({ targetKm: 30, qualitySessions: 1, longKm: 15 }), athlete: { ...athlete, daysAvailable: ['tue', 'thu', 'sat'] }, zones })
+    expect(mc.days.some((d) => d.workout?.kind === 'quality_intervals')).toBe(true)
+    expect(mc.days.some((d) => d.workout?.kind === 'easy_hills')).toBe(false)
+    expect(mc.notes).toContainEqual({ code: 'hillsDropped', date: '2026-08-06' })
+  })
+
+  it('po starcie akcent od najmniejszej ramy: 3 odcinki (R-8, B5.4)', () => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ phase: 'transition', qualitySessions: 1, accentProgress: 0, targetKm: 44 }), athlete, zones })
+    expect(mc.days.find((d) => d.workout?.kind === 'quality_intervals')!.workout!.segments.find((s) => s.type === 'intervals')!.reps).toBe(3)
+  })
+})

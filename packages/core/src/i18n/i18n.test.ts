@@ -121,8 +121,9 @@ describe('odmiana liczebnika', () => {
   })
 
   it('przerwy odmieniają się razem z liczbą', () => {
-    expect(corePl.workout.intervalsKm(6, '4:15', 2)).toContain('przerwy 2 minutowe')
-    expect(corePl.workout.intervalsKm(6, '4:15', 1)).toContain('przerwa 1 minutowa')
+    expect(corePl.workout.intervalsKm(6, '4:15', 2)).toContain('przerwy 2-minutowe')
+    expect(corePl.workout.intervalsKm(6, '4:15', 1)).toContain('przerwa 1-minutowa')
+    expect(corePl.workout.intervalsKm(6, '4:15', 2)).toMatch(/^6×1 km/)
   })
 })
 

@@ -210,19 +210,32 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
     for (const a of r.accents) if (a.kind !== 'easy_hills' && a.hardKm > ceiling) issues.push({ code: 'postRaceAccentHeavy', date: r.weekStart, ruleRefs: ['R-8'], values: [a.hardKm, ceiling] })
   }
 
-  // P-1: kolejne bloki ładowania w budowaniu/szczycie nie powtarzają tej samej dawki
+  // P-1: kolejne bloki ładowania w budowaniu/szczycie nie powtarzają tej samej dawki.
+  // Bloki porównujemy tydzień do tygodnia od końca: powtórka to blok, którego każdy
+  // porównywalny tydzień ma tę samą dawkę obu akcentów i to samo długie co tydzień na tej
+  // samej pozycji w bloku poprzednim. Tydzień sprawdzianu albo startu kontrolnego nie jest
+  // porównywalny (pomiar zastępuje akcent). Sam ostatni tydzień bloku zestawiał koniec
+  // jednego bloku ze środkiem drugiego, gdy ten kończył się sprawdzianem — a blok po
+  // odciążeniu startuje z poziomu drugiego tygodnia poprzedniego (B5).
   const blocks: SeasonRow[][] = []
   let current: SeasonRow[] = []
   for (const r of rows) {
     if (r.phase !== 'build' && r.phase !== 'peak') { if (current.length) blocks.push(current); current = []; continue }
     if (r.deload) { if (current.length) blocks.push(current); current = []; continue }
-    if (!r.flags.length) current.push(r)
+    current.push(r)
   }
   if (current.length) blocks.push(current)
   const signature = (r: SeasonRow) => JSON.stringify([r.longKm, r.accents.map((a) => [a.kind, a.dose])])
   for (let i = 1; i < blocks.length; i++) {
-    const a = blocks[i - 1]!.at(-1)!, z = blocks[i]!.at(-1)!
-    if (signature(a) === signature(z)) issues.push({ code: 'staleProgression', date: z.weekStart, ruleRefs: ['P-1'], values: [a.index + 1, z.index + 1] })
+    const a = blocks[i - 1]!, z = blocks[i]!
+    const pairs: [SeasonRow, SeasonRow][] = []
+    for (let back = 1; back <= Math.min(a.length, z.length); back++) {
+      const x = a.at(-back)!, y = z.at(-back)!
+      if (!x.flags.length && !y.flags.length) pairs.push([x, y])
+    }
+    if (pairs.length && pairs.every(([x, y]) => signature(x) === signature(y))) {
+      issues.push({ code: 'staleProgression', date: z.at(-1)!.weekStart, ruleRefs: ['P-1'], values: [a.at(-1)!.index + 1, z.at(-1)!.index + 1] })
+    }
   }
 
   // J-2/P-7/P-8: najdłuższy bieg planu przed taperem a próg dla dystansu

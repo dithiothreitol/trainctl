@@ -94,7 +94,9 @@ describe('trainctl plan na istniejącym planie', () => {
     expect(withoutBudget).toBeLessThanOrEqual(45.5)
   })
   it('redukcja przy samych limitach dni: świeży plan bez ostrzeżenia, przycięte tygodnie pamiętają poziom redukcji', () => {
-    config.time = { weekdayMinutes: 60 }
+    // limit, który przycina także tydzień szczytu po redukcji: od B5 akcenty dochodzą
+    // do pełnej dawki dopiero na końcu, a przy 60 min tydzień szczytu już się mieści
+    config.time = { weekdayMinutes: 45 }
     const fresh = initialize()
     expect(fresh.feasibilityWarnings.join('\n')).not.toContain('time budget caps')
     const reduced = prepareProposal(dir, '2026-09-06', { ...reduction, actions: [{ ...reduction.actions[0]!, suggestedWeeklyKm: 30 }] })
