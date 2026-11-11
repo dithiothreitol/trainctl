@@ -107,19 +107,34 @@ export const LOG_LIMITS = {
  * pokazuje nieznany status bez zmian (logStatusText). 0 km przy opuszczonej
  * sesji to brak dystansu, nie informacja.
  */
-function normalize(raw: Record<string, unknown>): LogEntry | StrengthLogEntry {
+function normalize(raw: Record<string, unknown>, dropped: string[] = []): LogEntry | StrengthLogEntry {
   const entry = { ...raw }
   for (const key of ['km', 'timeSec', 'testTimeSec', 'rpe', 'minutes'] as const) {
     if (!(key in entry)) continue
     const value = typeof entry[key] === 'string' && (entry[key] as string).trim() ? fromText(key, entry[key] as string) : entry[key]
     if (typeof value === 'number' && LOG_LIMITS[key](value)) entry[key] = value
-    else delete entry[key]
+    else {
+      dropped.push(`${String(entry['date'] ?? '?')} ${key}`)
+      delete entry[key]
+    }
   }
   if (entry['status'] === 'skipped' && entry['km'] === 0) delete entry['km']
   return entry as unknown as LogEntry | StrengthLogEntry
 }
 
 const isStrength = (e: LogEntry | StrengthLogEntry): e is StrengthLogEntry => (e as StrengthLogEntry).activity === 'strength'
+
+/**
+ * Wartości z log.jsonl pominięte przy odczycie (poza granicami LOG_LIMITS albo nie
+ * liczby): „data pole". Widoki ich nie pokazują; `status` mówi o nich wprost.
+ */
+export function droppedLogValues(cwd: string): string[] {
+  const path = join(cwd, LOG_FILE)
+  if (!existsSync(path)) return []
+  const dropped: string[] = []
+  for (const line of readFileSync(path, 'utf-8').split('\n').filter((l) => l.trim())) normalize(JSON.parse(line) as Record<string, unknown>, dropped)
+  return dropped
+}
 
 /** Cały dziennik jednym odczytem: wpisy biegowe i siłowe osobno. */
 export function readJournal(cwd: string): { runs: LogEntry[]; strength: StrengthLogEntry[] } {

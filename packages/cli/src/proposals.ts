@@ -9,7 +9,7 @@ import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
 import { runningKmByDate } from './execution.ts'
 import { clockToday } from './clock.ts'
-import { resultKey } from './calibration.ts'
+import { sameResults } from './calibration.ts'
 
 export interface PlanProposal {
   /** Actual local date of creation; historical analysis does not authorize historical writes. */
@@ -130,7 +130,7 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   if (JSON.stringify(config.goal) !== JSON.stringify(plan.goal)) throw new Error(ui().improve.changedGoal)
   // A completed time trial with no result in the profile is a request for data,
   // not permission to rewrite calibration timestamps and call that a plan change.
-  if (!volume && JSON.stringify(config.athlete.results.map(resultKey).sort()) === JSON.stringify(plan.calibration.results.map(resultKey).sort()))
+  if (!volume && sameResults(config.athlete.results, plan.calibration.results))
     throw new Error(ui().improve.noPatch)
   const nextConfig = structuredClone(config)
   const candidate = withLocale(plan.locale === 'pl' ? 'pl' : 'en', () => computePlan(nextConfig, plan.generatedAt, today, {

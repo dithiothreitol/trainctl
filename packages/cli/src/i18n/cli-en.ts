@@ -103,7 +103,7 @@ export const cliEn = {
 
   common: {
     /** „N days" — liczba dni jako wartość pod etykietą (review). */
-    dayCount: (days: number) => dayCount(days),
+    dayCount,
     nextStep: (command: string) => `next step: ${command}`,
     saved: (what: string) => `Saved ${what}`,
     outsidePlan: (date: string, from: string, to: string) =>
@@ -811,6 +811,7 @@ export const cliEn = {
     logValue: (entries: number, date: string, status: string) =>
       `${entries} ${pluralEn(entries, { one: 'entry', other: 'entries' })}, last ${date} (${status})`,
     unconfirmed: (dates: string) => `Unconfirmed sessions this week: ${dates} — trainctl log or trainctl pull.`,
+    logDropped: (file: string, items: string) => `${file}: values outside the limits of trainctl log were ignored (${items}). Fix the line or log the session again.`,
     proposals: 'Proposals',
     columns: { id: 'id', kind: 'kind', for: 'for', state: 'state', changes: 'changes' },
     state: {

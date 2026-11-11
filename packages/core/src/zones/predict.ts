@@ -6,6 +6,7 @@ import type { RaceResult } from '../domain/types.ts'
 import { diffDays } from '../util/dates.ts'
 import { predictTimeSec, vdotFromRace } from './daniels.ts'
 import { messages } from '../i18n/index.ts'
+import { goalClass } from '../engine/macrocycle.ts'
 
 export interface RacePrediction {
   distanceKm: number
@@ -34,8 +35,10 @@ const MARATHON_KM = 42.195
 const HM_TO_MARATHON = 2.28
 const HM_TO_MARATHON_MAE = 0.0567
 
+/** Wynik na dystansie półmaratonu (wąski zakres tolerancji pomiaru) — nie klasa celu. */
 const isHm = (km: number) => km >= 20.9 && km <= 21.3
-const isMarathon = (km: number) => km >= 42.0 && km <= 42.5
+/** Klasa celu z tej samej funkcji co taper i szczyt (goalClass). */
+const targetClass = (km: number) => goalClass({ kind: 'race', distanceKm: km })
 
 function pickSource(results: RaceResult[], targetKm: number, today?: string): RaceResult {
   const valid = results.filter((r) => r.distanceKm > 0 && r.timeSec > 0)
@@ -59,7 +62,7 @@ export function predictRace(
   const ruleRefs: string[] = ['W-1']
 
   // Ultra: brak predykcji punktowej (W-7) — ekstrapolacja Riegla z szerokim pasmem
-  if (targetKm > 42.5) {
+  if (targetClass(targetKm) === 'ultra') {
     const source = pickSource(results, targetKm, opts.today)
     const base = riegelTimeSec(source.timeSec, source.distanceKm, targetKm)
     ruleRefs.push('W-5', 'W-7', 'W-8')
@@ -83,7 +86,7 @@ export function predictRace(
   }
 
   // Maraton: predyktor podstawowy = czas HM (W-2); VDOT tylko dla szybkich (W-3)
-  if (isMarathon(targetKm)) {
+  if (targetClass(targetKm) === 'marathon') {
     const hm = results.filter((r) => isHm(r.distanceKm) && r.timeSec > 0)
     if (hm.length > 0) {
       const source = pickSource(hm, targetKm, opts.today)

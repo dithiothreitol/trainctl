@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale, vdotFromRace } from 'trainctl-core'
 import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
-import { logChoices, plannedKmDefault } from './interactive.ts'
+import { logChoices, parseKmText, parseRpeText, plannedKmDefault } from './interactive.ts'
 import { recalibrationToday, zoneSource } from './calibration.ts'
 import { logStatusText, parseDecimal, shownKm } from './format.ts'
 import { loadPlan, writePlan } from './planfile.ts'
@@ -684,5 +684,23 @@ describe('siedemnasta runda: dni do startu, zbiór wyników, granice dziennika',
     const saved = cmdLog(dir, { date: '2026-10-27', status: 'done', km: '8.123456' })
     expect(readLog(dir).at(-1)).toMatchObject({ km: 8.1235 })
     expect(saved.output).toContain('8.1235 km')
+  })
+})
+
+describe('osiemnasta runda: kreator, pominięte wartości dziennika', () => {
+  it('kreator przekazuje tekst, który przyjął (bez zapisu wykładniczego)', () => {
+    expect(parseKmText('0.0000001')).toBe('0.0000001')
+    expect(parseKmText(' 8,5 ')).toBe('8,5')
+    expect(parseRpeText('7')).toBe('7')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    expect(cmdLog(dir, { date: '2026-10-27', status: 'done', km: parseKmText('0.0000001') }).code).toBe(0)
+  })
+
+  it('status mówi o wartościach dziennika pominiętych przy odczycie', () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'done', km: '8500', loggedAt: 'x' }) + '\n')
+    const out = cmdStatus(dir).output
+    expect(out).toContain('values outside the limits of trainctl log were ignored (2026-10-27 km)')
   })
 })

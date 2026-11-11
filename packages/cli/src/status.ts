@@ -17,7 +17,7 @@ import { buildExecution } from './execution.ts'
 import { uncommitted } from './git.ts'
 import { ui } from './i18n/index.ts'
 import { logStatusText } from './format.ts'
-import { LOG_FILE, readLog } from './logfile.ts'
+import { droppedLogValues, LOG_FILE, readLog } from './logfile.ts'
 import { cycleWeeksOf, readExistingPlan, unusablePlanMessage, PLAN_DIR, type StoredPlan } from './planfile.ts'
 import { listProposals } from './proposals.ts'
 import { API_KEY_ENV, apiKeySource, readSnapshot, SYNC_FILE } from './sync.ts'
@@ -122,6 +122,8 @@ function statusImpl(cwd: string): StatusResult {
     [LOG_FILE, last ? t.logValue(logs.length, last.date, logStatusText(last.status)) : t.empty],
   ]))
   if (env.unprotected) blocks.push(b.warn(ui().envFile.unprotected(ENV_FILE, '.gitignore')))
+  const dropped = droppedLogValues(cwd)
+  if (dropped.length) blocks.push(b.warn(t.logDropped(LOG_FILE, dropped.join(', '))))
   if (unconfirmed.length) blocks.push(b.info(t.unconfirmed(unconfirmed.join(', '))))
 
   // propozycje

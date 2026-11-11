@@ -114,7 +114,7 @@ export const cliPl: CliMessages = {
   },
 
   common: {
-    dayCount: (days: number) => dni(days),
+    dayCount: dni,
     nextStep: (command: string) => `następny krok: ${command}`,
     saved: (what: string) => `Zapisano ${what}`,
     outsidePlan: (date: string, from: string, to: string) =>
@@ -829,6 +829,7 @@ export const cliPl: CliMessages = {
     logValue: (entries: number, date: string, status: string) =>
       `${entries} ${pluralPl(entries, { one: 'wpis', few: 'wpisy', other: 'wpisów' })}, ostatni ${date} (${status})`,
     unconfirmed: (dates: string) => `Niepotwierdzone sesje w tym tygodniu: ${dates} — trainctl log albo trainctl pull.`,
+    logDropped: (file: string, items: string) => `${file}: pominięto wartości spoza granic trainctl log (${items}). Popraw wiersz albo zaloguj sesję ponownie.`,
     proposals: 'Propozycje',
     columns: { id: 'id', kind: 'rodzaj', for: 'dla', state: 'stan', changes: 'zmiany' },
     state: {

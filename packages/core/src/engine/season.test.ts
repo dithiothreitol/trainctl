@@ -176,3 +176,27 @@ describe('siedemnasta runda: długie wobec akcentów, R-8 bez budowania', () => 
     expect(seasonShapeIssues({ goal: half, weeks }).some((i) => i.code === 'postRaceAccentHeavy')).toBe(true)
   })
 })
+
+describe('osiemnasta runda: dwa długie w tygodniu, R-8 w kolejnym cyklu', () => {
+  const continuous = (main: number): PlannedWorkout => ({
+    kind: 'quality_continuous', distanceKm: 4 + main, ruleRefs: [],
+    segments: [
+      { type: 'warmup', distanceKm: 3, description: '' },
+      { type: 'steady', distanceKm: main, description: '' },
+      { type: 'cooldown', distanceKm: 1, description: '' },
+    ],
+  })
+  it('dwa długie: porównujemy najdłuższe z nich z resztą tygodnia', () => {
+    const weeks = [week('2027-01-04', { tue: easy(14), sat: long(12), sun: long(16) })]
+    expect(seasonShapeIssues({ goal: half, weeks }).some((i) => i.code === 'longNotLongest')).toBe(false)
+  })
+  it('drugi cykl bez budowania: sufit z jego bloku ładowania, nie z budowania poprzedniego cyklu', () => {
+    const weeks = [
+      week('2027-01-04', { tue: continuous(6), sat: long(18) }),
+      week('2027-01-11', { tue: easy(6), sat: long(8) }, 'transition'),
+      week('2027-01-18', { tue: continuous(3), sat: long(14) }, 'base'),
+      week('2027-01-25', { tue: continuous(5), sat: long(8) }, 'transition'),
+    ]
+    expect(seasonShapeIssues({ goal: half, weeks }).filter((i) => i.code === 'postRaceAccentHeavy').map((i) => i.date)).toEqual(['2027-01-25'])
+  })
+})

@@ -113,19 +113,20 @@ export function parseLogStatus(text: string): 'done' | 'skipped' | 'modified' {
   throw new Error(ui().log.prompt.badStatus)
 }
 
-const parseKmText = (text: string): string => {
+export const parseKmText = (text: string): string => {
   const value = parseDecimal(text)
   if (!LOG_LIMITS.km(value)) throw new Error(ui().improve.badDistance)
-  return String(value)
+  // tekst, nie String(value): bardzo mała liczba dałaby „1e-7", którego parser nie przyjmie
+  return text.trim()
 }
 const parseTimeText = (text: string): string => {
   parseTime(text.trim())
   return text.trim()
 }
-const parseRpeText = (text: string): string => {
+export const parseRpeText = (text: string): string => {
   const value = parseDecimal(text)
   if (!LOG_LIMITS.rpe(value)) throw new Error(ui().log.badRpe(text))
-  return String(value)
+  return text.trim()
 }
 
 /**

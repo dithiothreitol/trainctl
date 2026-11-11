@@ -142,7 +142,8 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
 
   for (const week of weeks) {
     const runs = week.days.flatMap((d) => (d.workout ? [{ date: d.date, w: d.workout }] : []))
-    const long = runs.find((r) => r.w.kind === 'long')
+    // najdłuższe z długich (po `shift` tydzień bywa ma dwa), porównane z resztą biegów
+    const long = runs.filter((r) => r.w.kind === 'long').sort((a, z) => z.w.distanceKm - a.w.distanceKm)[0]
     // J-1/S-2: długie jest najdłuższym biegiem tygodnia — także wobec akcentów i podbiegów
     const others = runs.filter((r) => r.w !== long?.w && !['race', 'test', 'sharpener'].includes(r.w.kind))
     const longest = Math.max(0, ...others.map((r) => r.w.distanceKm))
@@ -177,8 +178,11 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
   // z ostatniego bloku ładowania przed startem (baza, szczyt), żeby R-8 nie znikało.
   let buildBlock: number[] = [], buildCeiling: number[] = []
   let loadBlock: number[] = [], loadCeiling: number[] = []
+  let afterTransition = false
   for (const r of rows) {
     if (LOADING_PHASES.has(r.phase)) {
+      // nowy cykl po bloku przejściowym: sufity poprzedniego cyklu już nie obowiązują
+      if (afterTransition) { buildCeiling = []; loadCeiling = []; afterTransition = false }
       if (r.phase !== 'build' && buildBlock.length) { buildCeiling = buildBlock; buildBlock = [] }
       if (r.deload) {
         if (buildBlock.length) buildCeiling = buildBlock
@@ -195,6 +199,7 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
     if (buildBlock.length) { buildCeiling = buildBlock; buildBlock = [] }
     if (loadBlock.length) { loadCeiling = loadBlock; loadBlock = [] }
     const ceilingHard = buildCeiling.length ? buildCeiling : loadCeiling
+    if (r.phase === 'transition') afterTransition = true
     if (r.phase !== 'transition' || !ceilingHard.length) continue
     const ceiling = median(ceilingHard)
     for (const a of r.accents) if (a.kind !== 'easy_hills' && a.hardKm > ceiling) issues.push({ code: 'postRaceAccentHeavy', date: r.weekStart, ruleRefs: ['R-8'], values: [a.hardKm, ceiling] })
