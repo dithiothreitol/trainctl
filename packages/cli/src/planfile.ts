@@ -26,7 +26,7 @@ import {
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel } from './format.ts'
-import { inspectCalibration, isRoadGoal, type Calibration } from './calibration.ts'
+import { inspectCalibration, isRoadGoal, zoneSource, type Calibration } from './calibration.ts'
 import { packageVersion } from './version.ts'
 
 export const PLAN_DIR = 'plan'
@@ -135,11 +135,12 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   const trailOnly = roadGoal && selected?.terrain === 'trail'
   let vdot: number
   let vdotSource: StoredPlan['vdotSource']
+  const source = zoneSource(selected, goal)
   if (selected) {
     vdot = vdotFromRace(selected.distanceKm, selected.timeSec)
     vdotSource = 'result'
-  } else if (goal.targetTimeSec && goal.kind !== 'base') {
-    vdot = vdotFromRace(goal.distanceKm, goal.targetTimeSec)
+  } else if (source === 'goal-target') {
+    vdot = vdotFromRace(goal.distanceKm, goal.targetTimeSec!)
     vdotSource = 'goal-target'
   } else {
     throw new Error(ui().planMd.noCalibration)

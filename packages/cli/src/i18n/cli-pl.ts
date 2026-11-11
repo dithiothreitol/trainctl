@@ -281,7 +281,7 @@ export const cliPl: CliMessages = {
       `RPE „${rpe}” wypada poza skalę — podaj liczbę całkowitą 1–10 (10 = wysiłek maksymalny).`,
     saved: (date: string, status: string) => `Zalogowano ${date}: ${status}.`,
     statusWord: { done: 'wykonany', skipped: 'opuszczony', modified: 'zmieniony' },
-    strengthStatusWord: { done: 'wykonana', skipped: 'opuszczona' },
+    strengthStatusWord: { done: 'wykonana', skipped: 'opuszczona', modified: 'zmieniona' },
     planned: 'W planie',
     recorded: 'Zapis',
     testTime: (time: string) => `odcinek pomiarowy ${time}`,

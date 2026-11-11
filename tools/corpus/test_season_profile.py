@@ -32,5 +32,13 @@ class TestParsing(unittest.TestCase):
         self.assertFalse(is_run({'distance_km_est': [0, 45], 'segments': [{'type': 'cross'}]}))
 
 
+class TestSteadyDistance(unittest.TestCase):
+    def test_hard_km_ignores_malformed_distance(self):
+        # segment z niepełnym dystansem nie wywraca pomiaru (hard_km i bloki ciągłe)
+        from season_profile import hard_km
+        w = {'segments': [{'type': 'steady', 'distance_km': [5]}, {'type': 'steady', 'distance_km': [None, None]}]}
+        self.assertEqual(hard_km(w), 0.0)
+
+
 if __name__ == '__main__':
     unittest.main()

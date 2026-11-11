@@ -12,8 +12,8 @@ import { setLocale } from 'trainctl-core'
 import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices, plannedKmDefault } from './interactive.ts'
-import { recalibrationToday } from './calibration.ts'
-import { parseDecimal, shownKm } from './format.ts'
+import { recalibrationToday, zoneSource } from './calibration.ts'
+import { logStatusText, parseDecimal, shownKm } from './format.ts'
 import { loadPlan, writePlan } from './planfile.ts'
 import { appendLog, latestByDate, lineSeparator, LOG_LIMITS, readLog, readStrengthLog } from './logfile.ts'
 import { helpItem } from './ui/help.ts'
@@ -21,6 +21,7 @@ import { improveEn } from './i18n/improve-en.ts'
 import { improvePl } from './i18n/improve-pl.ts'
 import { shortenDetail } from './proposals.ts'
 import { renderAnsi, wrap, wrapText } from './ui/blocks.ts'
+import { parseDistanceInput } from './ui/wizard.ts'
 import { Theme, visibleLength } from './ui/theme.ts'
 
 const CONFIG = `athlete:
@@ -470,11 +471,11 @@ describe('why: kalibracja stref — decyzje z dnia kalibracji i podpowiedź na d
     const a = { date: '2026-09-27', distanceKm: 10, timeSec: 2580 }
     const b = { date: '2026-10-25', distanceKm: 5, timeSec: 1200 }
     const stored = { evaluatedAt: '2026-10-22', policy: 'best-vdot-540-days' as const, results: [a], selected: a, candidates: [] }
-    expect(recalibrationToday(stored, [a], '2026-10-29', true)).toEqual({ selected: a, changed: false })
-    expect(recalibrationToday(stored, [a, b], '2026-10-29', true)).toMatchObject({ selected: b, changed: true })
-    expect(recalibrationToday(stored, [{ ...a, excluded: true }], '2026-10-29', true)).toEqual({ selected: null, changed: true })
+    expect(recalibrationToday(stored, [a], '2026-10-29', { kind: 'race' })).toEqual({ selected: a, source: 'result', changed: false })
+    expect(recalibrationToday(stored, [a, b], '2026-10-29', { kind: 'race' })).toMatchObject({ selected: b, changed: true })
+    expect(recalibrationToday(stored, [{ ...a, excluded: true }], '2026-10-29', { kind: 'race' })).toEqual({ selected: null, source: 'none', changed: true })
     const { selected: _, ...withoutResult } = stored
-    expect(recalibrationToday(withoutResult, [], '2026-10-29', true)).toEqual({ selected: null, changed: false })
+    expect(recalibrationToday(withoutResult, [], '2026-10-29', { kind: 'race' })).toEqual({ selected: null, source: 'none', changed: false })
   })
 })
 
@@ -627,5 +628,28 @@ describe('piętnasta runda: zawijanie, komunikat bez wyniku, teren w podpowiedzi
     expect(cmdWhy(dir, { date: '2026-10-27' }).data).toMatchObject({ recalibration: { changed: true } })
     expect(cmdPlan(dir).data).toMatchObject({ regeneration: { upToDate: false } })
     expect(cmdWhy(dir, { date: '2026-10-27' }).data).toMatchObject({ recalibration: { changed: false } })
+  })
+})
+
+describe('szesnasta runda: źródło stref, siła „zmieniona", kreator init', () => {
+  it('zoneSource: wynik, czas docelowy przy celu ze startem, inaczej brak', () => {
+    const r = { date: '2026-09-27', distanceKm: 10, timeSec: 2580 }
+    expect(zoneSource(r, { kind: 'race' })).toBe('result')
+    expect(zoneSource(undefined, { kind: 'race', targetTimeSec: 5700 })).toBe('goal-target')
+    expect(zoneSource(undefined, { kind: 'base', targetTimeSec: 5700 })).toBe('none')
+    expect(zoneSource(undefined, { kind: 'race' })).toBe('none')
+  })
+
+  it('siła „zmieniona" po polsku słowem z katalogu', () => {
+    setLocale('pl')
+    expect(logStatusText('modified', true)).toBe('zmieniona')
+    setLocale('en')
+    expect(logStatusText('modified', true)).toBe('modified')
+  })
+
+  it('kreator init czyta dystans tym samym parserem: przecinek tak, „0x10" nie', () => {
+    expect(parseDistanceInput('21,1')).toBe(21.1)
+    expect(() => parseDistanceInput('0x10')).toThrow()
+    expect(() => parseDistanceInput('1e2')).toThrow()
   })
 })

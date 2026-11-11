@@ -29,9 +29,23 @@ export const sameSelection = (a: RaceResult | undefined, b: RaceResult | undefin
  * wyniku albo bez wyniku. Opisy zapisanych wyników w `why` zostają decyzjami z dnia
  * kalibracji; ta jedna odpowiedź mówi, co się od tego czasu zmieniło.
  */
-export function recalibrationToday(stored: Calibration, results: RaceResult[], today: string, roadGoal: boolean): { selected: RaceResult | null; changed: boolean } {
-  const selected = inspectCalibration(results, today, roadGoal).selected ?? null
-  return { selected, changed: !sameSelection(selected ?? undefined, stored.selected) }
+export function recalibrationToday(stored: Calibration, results: RaceResult[], today: string, goal: GoalForZones):
+  { selected: RaceResult | null; source: ZoneSource; changed: boolean } {
+  const selected = inspectCalibration(results, today, isRoadGoal(goal)).selected ?? null
+  return { selected, source: zoneSource(selected ?? undefined, goal), changed: !sameSelection(selected ?? undefined, stored.selected) }
+}
+
+type GoalForZones = { kind?: string | undefined; terrain?: string | undefined; targetTimeSec?: number | undefined }
+export type ZoneSource = 'result' | 'goal-target' | 'none'
+
+/**
+ * Skąd plan weźmie strefy: z wybranego wyniku, z czasu docelowego (cel ze startem
+ * i `targetTimeSec`) albo znikąd — wtedy `trainctl plan` zatrzymuje się błędem.
+ * Jedna reguła dla computePlan i podpowiedzi `why`.
+ */
+export function zoneSource(selected: RaceResult | undefined, goal: GoalForZones): ZoneSource {
+  if (selected) return 'result'
+  return goal.targetTimeSec && goal.kind !== 'base' ? 'goal-target' : 'none'
 }
 
 export function inspectCalibration(results: RaceResult[], today: string, roadGoal = true): Calibration {

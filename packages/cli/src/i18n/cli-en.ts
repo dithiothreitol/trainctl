@@ -10,6 +10,8 @@ import { improveEn } from './improve-en.ts'
 import { coachEn } from './coach-en.ts'
 
 const n = numberIn('en')
+/** „N days" — jedna odmiana dla status i review. */
+const dayCount = (days: number) => `${days} ${pluralEn(days, { one: 'day', other: 'days' })}`
 
 export const cliEn = {
   coach: coachEn,
@@ -101,7 +103,7 @@ export const cliEn = {
 
   common: {
     /** „N days" — liczba dni jako wartość pod etykietą (review). */
-    dayCount: (days: number) => `${days} ${pluralEn(days, { one: 'day', other: 'days' })}`,
+    dayCount: (days: number) => dayCount(days),
     nextStep: (command: string) => `next step: ${command}`,
     saved: (what: string) => `Saved ${what}`,
     outsidePlan: (date: string, from: string, to: string) =>
@@ -271,7 +273,7 @@ export const cliEn = {
     saved: (date: string, status: string) => `Logged ${date}: ${status}.`,
     statusWord: { done: 'done', skipped: 'skipped', modified: 'modified' } as Record<'done' | 'skipped' | 'modified', string>,
     /** Siła ma własną odmianę (w polskim rodzaj żeński). */
-    strengthStatusWord: { done: 'done', skipped: 'skipped' } as Record<'done' | 'skipped', string>,
+    strengthStatusWord: { done: 'done', skipped: 'skipped', modified: 'modified' } as Record<'done' | 'skipped' | 'modified', string>,
     planned: 'Planned',
     recorded: 'Recorded',
     testTime: (time: string) => `test segment ${time}`,
@@ -780,7 +782,7 @@ export const cliEn = {
     plan: 'Plan',
     goal: 'Goal',
     toRace: 'To race day',
-    daysToRace: (days: number) => (days >= 0 ? `${days} ${pluralEn(days, { one: 'day', other: 'days' })}` : `${-days} ${pluralEn(-days, { one: 'day', other: 'days' })} ago`),
+    daysToRace: (days: number) => (days >= 0 ? dayCount(days) : `${dayCount(-days)} ago`),
     weeks: 'This cycle',
     weeksSessions: (weeks: number, sessions: number) => `${weeks} ${pluralEn(weeks, { one: 'week', other: 'weeks' })}, ${sessions} ${pluralEn(sessions, { one: 'session', other: 'sessions' })}`,
     generated: 'Phases anchored to',

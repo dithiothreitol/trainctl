@@ -6,7 +6,7 @@
 import { createInterface, type Interface } from 'node:readline/promises'
 import type { InferenceOutcome, InferredProfile } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
-import { kmLabel } from '../format.ts'
+import { kmLabel, parseDecimal } from '../format.ts'
 import { sparkline, Theme } from './theme.ts'
 
 export interface WizardAnswers {
@@ -73,7 +73,7 @@ export function parseTimeInput(text: string): number {
 export function parseDistanceInput(text: string): number {
   const key = text.trim().toLowerCase()
   if (DISTANCES[key]) return DISTANCES[key]!
-  const num = Number(key.replace(',', '.'))
+  const num = parseDecimal(key)
   if (Number.isFinite(num) && num > 0) return num
   throw new Error(ui().wizard.errDistance)
 }
@@ -237,7 +237,7 @@ export async function runWizard(
 
     console.log(theme.bold(`\n${w.yourRunning}`))
     const parseKm = (t: string) => {
-      const n = Number(t.replace(',', '.'))
+      const n = parseDecimal(t)
       if (!Number.isFinite(n) || n <= 0) throw new Error(w.errKm)
       return n
     }

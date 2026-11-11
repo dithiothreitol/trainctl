@@ -60,13 +60,18 @@ def is_run(w):
     return bool(w) and not w.get('race') and km(w) > 0 and not (segments and segments <= NON_RUN)
 
 
+def segment_km(s):
+    """Górna granica dystansu segmentu; niepełny albo pusty zapis to 0, nie wyjątek."""
+    d = s.get('distance_km')
+    return float(d[1]) if isinstance(d, list) and len(d) == 2 and isinstance(d[1], (int, float)) else 0.0
+
+
 def hard_km(w):
     """Kilometry poza Z1: wszystko poza rozgrzewką, schłodzeniem i spokojnym biegiem; podbiegi w połowie."""
     total = 0.0
     for s in w.get('segments', []):
         t = s.get('type')
-        d = s.get('distance_km')
-        dist = float(d[1]) if isinstance(d, list) and len(d) == 2 else 0.0
+        dist = segment_km(s)
         if t in EASY or t in NON_RUN:
             continue
         total += dist / 2 if t in ('hills', 'hills_drills') else dist
@@ -176,9 +181,9 @@ def main():
                     band = '13-16' if off >= 13 else '9-12' if off >= 9 else '5-8' if off >= 5 else '1-4'
                     dose[band].append(hard_km(w))
                     for s in w.get('segments', []):
-                        d = s.get('distance_km')
-                        if s.get('type') in ('steady', 'progression') and isinstance(d, list) and d[1] >= 5:
-                            steady_blocks[band].append(float(d[1]))
+                        dist = segment_km(s)
+                        if s.get('type') in ('steady', 'progression') and dist >= 5:
+                            steady_blocks[band].append(dist)
     b = {
         'races': len(peak_offsets),
         'peakWeekBeforeRace': dict(sorted(Counter(peak_offsets).items())),

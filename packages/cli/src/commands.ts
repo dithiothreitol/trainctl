@@ -76,7 +76,7 @@ import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 import { buildExecution, isRunningActivity } from './execution.ts'
-import { isRoadGoal, recalibrationToday, resultKey } from './calibration.ts'
+import { recalibrationToday, resultKey } from './calibration.ts'
 import { applyProposal, prepareProposal, prepareShortening, raceDayKm, recordedDates, type PlanProposal } from './proposals.ts'
 import { explainSession } from './explain-session.ts'
 export { buildExecution } from './execution.ts'
@@ -841,9 +841,9 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     // Co zrobiłby dziś `trainctl plan`, mówi jedna podpowiedź liczona tak jak przy
     // regeneracji, z dzisiejszego trainctl.yaml; bez czytelnego profilu jej nie ma.
     const now = localToday()
-    const config = (() => { try { return loadConfig(cwd) } catch { return undefined } })()
+    const config = plan.calibration ? (() => { try { return loadConfig(cwd) } catch { return undefined } })() : undefined
     const recalibration = plan.calibration && config
-      ? recalibrationToday(plan.calibration, config.athlete.results, now, isRoadGoal(config.goal)) : null
+      ? recalibrationToday(plan.calibration, config.athlete.results, now, config.goal) : null
     if (plan.calibration) {
       blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c) => {
         const age = diffDays(c.result.date, now)
@@ -851,10 +851,9 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
       })))
       if (recalibration?.changed) {
         const next = recalibration.selected
-        // bez wyniku plan liczy strefy z czasu docelowego, a bez niego się zatrzyma
-        const target = config && config.goal.kind !== 'base' ? config.goal.targetTimeSec : undefined
+        // bez wyniku plan liczy strefy z czasu docelowego, a bez niego się zatrzyma (zoneSource)
         blocks.push(b.info(next ? ui().improve.recalibrateTo(next.date, kmLabel(next.distanceKm))
-          : target ? ui().improve.recalibrateGoal(fmtTime(target)) : ui().improve.recalibrateNone))
+          : recalibration.source === 'goal-target' ? ui().improve.recalibrateGoal(fmtTime(config!.goal.targetTimeSec!)) : ui().improve.recalibrateNone))
       }
     } else blocks.push(b.info(ui().improve.calibrationMissing))
     const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...(day.strength?.ruleRefs ?? [])])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
