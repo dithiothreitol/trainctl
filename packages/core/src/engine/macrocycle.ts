@@ -116,8 +116,9 @@ const RETURN_START_SHARE = { min: 0.5, max: 0.6 }
  */
 export function volumeBase(athlete: AthleteProfile, today: string): { start: number; level: number; returning: boolean } {
   const ret = athlete.returning
-  // bieżąca objętość na poziomie sprzed przerwy albo wyżej: powrót już się dokonał
-  const active = ret !== undefined && diffDays(ret.since, today) <= RETURN_WINDOW_DAYS && athlete.recentWeeklyKm < ret.previousWeeklyKm
+  // bieżąca objętość ponad poziom sprzed przerwy: powrót już się dokonał. Równa — to zwykle
+  // objętość sprzed przerwy wpisana jako bieżąca (profil z historii, kreator), więc powrót trwa
+  const active = ret !== undefined && diffDays(ret.since, today) <= RETURN_WINDOW_DAYS && athlete.recentWeeklyKm <= ret.previousWeeklyKm
   if (!active) return { start: athlete.recentWeeklyKm, level: athlete.recentWeeklyKm, returning: false }
   const lo = RETURN_START_SHARE.min * ret.previousWeeklyKm
   // górna granica rośnie od `since` w tempie P-3: biegacz, który w oknie powrotu już
@@ -280,17 +281,22 @@ const RETURN_RESTART_SHARE = 0.55
  * B11: blok powrotu po przerwie w trakcie planu. Od tygodnia powrotu cel tygodnia to
  * mniejsza z wartości z planu i krzywej powrotu: ~55% objętości sprzed przerwy (R-5
  * po chorobie, R-11 po innej), wzrost w tempie P-3 na tydzień ładowania, odciążenie
- * planu zostaje (×0,7 krzywej, P-2). Po chorobie pierwszy tydzień wyłącznie spokojnie
- * (R-5: zero Z3 przez 5–7 dni), po innej przerwie pierwszy blok z odciążeniem (R-11).
- * Gdy krzywa dogoni plan, plan idzie dalej swoim kształtem. Sprawdzian w bloku powrotu
- * wypada (kalibracja zaraz po przerwie mierzy przerwę, nie formę).
+ * planu zostaje (×0,7 krzywej, P-2). Po chorobie spokojnie co najmniej 7 dni od powrotu
+ * (R-5: zero Z3 przez 5–7 dni; skeleton ma całe tygodnie, więc do końca tygodnia, w którym
+ * mija siódmy dzień), po innej przerwie pierwszy blok z odciążeniem (R-11) — gdy powrót
+ * wypada w odciążeniu, blok trwa do następnego. Tor długiego (B4) maleje w tej samej
+ * proporcji co tydzień. Gdy krzywa dogoni plan, plan idzie dalej swoim kształtem.
+ * Sprawdzian w bloku powrotu wypada (kalibracja zaraz po przerwie mierzy przerwę, nie formę).
  */
 export function applyReturnBlock(weeks: WeekSkeleton[], ret: ReturnBlock): WeekSkeleton[] {
   const from = mondayOf(ret.since)
   const start = weeks.findIndex((w) => w.weekStart >= from)
   if (start === -1) return weeks
-  const firstDeload = weeks.findIndex((w, i) => i >= start && w.deload)
-  const easyEnd = ret.illness ? start + 1 : firstDeload === -1 ? weeks.length : firstDeload + 1
+  const firstDeload = weeks.findIndex((w, i) => i > start && w.deload)
+  const afterIllness = weeks.findIndex((w) => w.weekStart > addDays(ret.since, 6))
+  const easyEnd = ret.illness
+    ? (afterIllness === -1 ? weeks.length : afterIllness)
+    : firstDeload === -1 ? weeks.length : firstDeload + 1
   const rule = ret.illness ? 'R-5' : 'R-11'
   let loading = 0
   // ostatni tydzień ładowania: krzywa i cel planu — od nich taper, start i blok po starcie
@@ -317,10 +323,13 @@ export function applyReturnBlock(weeks: WeekSkeleton[], ret: ReturnBlock): WeekS
     // sprawdzian zastępował (T-12, W-13), wraca
     const { testPlanned, ...rest } = w
     const testRules = new Set(testPlanned ? ['W-11', 'W-12', 'W-13'] : [])
+    const targetKm = Math.min(w.targetKm, capped)
     return {
       ...rest,
       ...(testPlanned ? { flags: w.flags.filter((f) => f !== messages().macro.timeTrialForCalibration), qualitySessions: w.qualitySessions + 1 } : {}),
-      targetKm: Math.min(w.targetKm, capped),
+      targetKm,
+      // tor długiego sprzed przerwy jest podłogą generatora — maleje razem z tygodniem
+      ...(w.longKm !== undefined && w.targetKm > 0 ? { longKm: Math.round((w.longKm * targetKm) / w.targetKm) } : {}),
       ...(easy ? { qualitySessions: 0, easyOnly: true } : {}),
       ruleRefs: [...new Set([...w.ruleRefs.filter((r) => !testRules.has(r)), rule, 'P-3'])],
     }

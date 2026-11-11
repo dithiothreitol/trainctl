@@ -37,8 +37,9 @@ change between minor versions — a regenerated plan can differ.
 - An approved volume baseline (`adapt --apply`) replaces the level of the
   current block, and every later week keeps the plan's proportions from it:
   the wave within a block, deloads, the taper and the growth of later blocks
-  ("progress from there"). A raised baseline does not lift the plan above its
-  peak unless the baseline itself is higher.
+  ("progress from there"). A lower baseline shortens the long-run track with
+  the week; a raised one does not lift the plan above its peak unless the
+  baseline itself is higher.
 - The long run has its own track: it grows by at most 2 km a loading week to
   22 km for a half marathon, 30 km for a marathon and 32 km for an ultra in the
   last block before the taper (J-1, J-2, J-10, N-19), and shortens in deloads.
@@ -87,9 +88,10 @@ change between minor versions — a regenerated plan can differ.
   counts from `--date` (`--date mon --to fri` is one week). The MCP
   `trainctl_log` tool and the log prompt take the same fields. After the break
   `adapt` proposes a return block you can approve:
-  about 55% of the earlier volume, the first week easy after illness (R-5) or
+  about 55% of the earlier volume, at least 7 days easy after illness (R-5) or
   the loading weeks of the first block easy after any other break (R-11; the
-  taper keeps its intensity), growth within P-3 until the plan catches up, and
+  taper keeps its intensity), the long run shrinking with the week, growth
+  within P-3 until the plan catches up, and
   no time trial in the return block (the accent it replaced comes back). The
   earlier volume stays the same when you run `adapt` again during the return.
   The earlier

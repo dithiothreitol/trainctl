@@ -93,8 +93,12 @@ describe('trainctl plan na istniejącym planie', () => {
     expect(levels[0]).toBe(45)
     for (let i = 1; i < levels.length; i++) expect(levels[i]!).toBeGreaterThanOrEqual(levels[i - 1]!)
     expect(levels.at(-1)!).toBeGreaterThan(45)
-    // redukcja obniża każdy przyszły tydzień, nie tylko blok decyzji
-    for (const w of reduced.plan.weeks.filter((x) => x.weekStart > '2026-09-06')) expect(w.skeleton.targetKm).toBeLessThanOrEqual(targetOn(fresh, w.weekStart))
+    // redukcja obniża każdy przyszły tydzień, nie tylko blok decyzji — razem z torem długiego (B4)
+    for (const w of reduced.plan.weeks.filter((x) => x.weekStart > '2026-09-06')) {
+      const original = fresh.weeks.find((x) => x.weekStart === w.weekStart)!.skeleton
+      expect(w.skeleton.targetKm).toBeLessThanOrEqual(original.targetKm)
+      if (original.longKm !== undefined && original.longKm >= 10) expect(w.skeleton.longKm!, w.weekStart).toBeLessThan(original.longKm)
+    }
   })
   it('podniesiona baza: blok decyzji na bazie, plan nie wychodzi ponad swój szczyt sprzed decyzji', () => {
     const fresh = initialize()

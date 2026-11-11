@@ -35,7 +35,7 @@ import { sameResults, sameSelection } from './calibration.ts'
 import { budgetWarnings, computePlan, dayFingerprint, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
-export type ProtectionReason = 'past' | 'recorded' | 'pinned' | 'baseline' | 'approved' | 'edited' | 'budget'
+export type ProtectionReason = 'past' | 'recorded' | 'pinned' | 'baseline' | 'return' | 'approved' | 'edited' | 'budget'
 export type RegenerationMode = 'same-cycle' | 'new-cycle'
 
 export interface Regeneration {
@@ -128,6 +128,8 @@ export function rebuildPlan(
     // dzień zatwierdzenia bazy: propozycja zmienia dopiero dni PO nim, więc
     // regeneracja w tym samym dniu też go nie rusza (inaczej „aktualny" plan by nie był)
     if (mode === 'same-cycle' && keepLoad && before.date <= ls!.effectiveFrom) return 'baseline'
+    // B11: tak samo dzień zatwierdzenia powrotu — blok zmienia dni od jutra
+    if (returnState && before.date <= returnState.decidedOn) return 'return'
     if (before.pinned) return 'pinned'
     if (before.timeAdjustment && before.timeAdjustment.origin !== 'profile') return 'approved'
     // Bez mapy odcisków (plan sprzed 0.2.0) edycji nie da się odróżnić od generacji.

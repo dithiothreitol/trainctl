@@ -7,7 +7,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { plannedWeekKm, setLocale } from 'trainctl-core'
+import { plannedWeekKm, setLocale, type AdaptationProposal } from 'trainctl-core'
+import { applyProposal, prepareProposal } from './proposals.ts'
 import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
 import { latestByDate, readLog } from './logfile.ts'
 import { computePlan, loadPlan, writePlan } from './planfile.ts'
@@ -301,6 +302,52 @@ describe('B11: przerwa w trakcie planu', () => {
     process.env['TRAINCTL_TODAY'] = '2026-11-21'
     expect(cmdLog(dir, { date: '2026-11-20', to: '2026-11-21', status: 'skipped', reason: 'illness' }).code).toBe(0)
     expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toEqual(first)
+  })
+
+  const restartAnalysis = (illness: boolean): AdaptationProposal => ({
+    dataStatus: 'complete', unknownSessions: 0, windowDays: 21, complianceKm: 0, missedSessions: 0, diagnosis: [], warnings: [],
+    actions: [{ type: 'conservative-restart', detail: 'restart', suggestedWeeklyKm: 25, ruleRefs: ['R-5', 'P-3'], returnBlock: { previousWeeklyKm: 45, illness } }],
+  })
+
+  it('plan w dniu przyjęcia powrotu: dzisiejsza sesja zostaje, plan aktualny (ADR-033)', () => {
+    setup()
+    // dzień z sesją w środku tygodnia ładowania: blok powrotu od jutra obniża ten tydzień
+    const week = loadPlan(dir).weeks.find((w) => w.weekStart >= '2026-11-16' && !w.skeleton.deload)!
+    const today = week.days.find((d, i) => i >= 1 && i <= 4 && d.workout)!
+    process.env['TRAINCTL_TODAY'] = today.date
+    applyProposal(dir, prepareProposal(dir, today.date, restartAnalysis(true)).id)
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(r.data).toMatchObject({ regeneration: { upToDate: true } })
+    expect(loadPlan(dir).weeks.flatMap((w) => w.days).find((d) => d.date === today.date)).toEqual(today)
+  })
+
+  it('nowa baza w trakcie przyjętego powrotu zastępuje powrót, a plan po --apply jest aktualny (ADR-033)', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-12'
+    applyProposal(dir, prepareProposal(dir, '2026-11-12', restartAnalysis(false)).id)
+    expect(loadPlan(dir).returnState).toBeDefined()
+    const reduction: AdaptationProposal = { ...restartAnalysis(false), actions: [{ type: 'reduce-volume', detail: 'reduce', suggestedWeeklyKm: 30, ruleRefs: [] }] }
+    applyProposal(dir, prepareProposal(dir, '2026-11-12', reduction).id)
+    expect(loadPlan(dir).returnState).toBeUndefined()
+    expect(cmdPlan(dir).data).toMatchObject({ regeneration: { upToDate: true } })
+  })
+
+  it('plan po powrocie: data, od której start jest osiągalny, liczy się od powrotu, choć profil ma objętość sprzed przerwy', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(50, 'tue, wed, thu, sat, sun'), 'utf-8')
+    // powrót siedem tygodni przed startem z 45 km: krzywa nie dojdzie do 42 km
+    const plan = computePlan(loadConfig(dir), '2027-02-08', '2027-02-08', { returnFrom: { since: '2027-02-08', previousWeeklyKm: 45, illness: false } })
+    expect(plan.feasibilityWarnings.join(' ')).toMatch(/stays below the thresholds/)
+    expect(plan.feasibilityWarnings.join(' ')).toMatch(/a race on or after 2027-\d\d-\d\d/)
+  })
+
+  it('plan po przerwie pod koniec przygotowań: szczyt i werdykt od powrotu, nie z tygodni sprzed przerwy', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun'), 'utf-8')
+    const cfg = loadConfig(dir)
+    expect(computePlan(cfg, '2026-10-22').peakKmPlanned).toBeGreaterThanOrEqual(42)
+    const plan = computePlan(cfg, '2026-10-22', '2026-10-22', { returnFrom: { since: '2027-02-22', previousWeeklyKm: 45, illness: false } })
+    expect(plan.peakKmPlanned).toBeLessThan(42)
+    expect(plan.feasibilityWarnings.join(' ')).toMatch(/stays below the thresholds/)
   })
 
   it('plan po powrocie z budżetem czasu: werdykt mówi o profilu, a nie o budżecie (E-2)', () => {

@@ -1885,7 +1885,7 @@ w kodzie komentarzem „E-3 (inż.)". Lista służy przeglądowi trenerskiemu
 | dawka akcentu w sezonie | od 3 km pracy (J-8) do sufitu tygodnia; krok za tydzień w bloku, blok po odciążeniu od poziomu drugiego tygodnia poprzedniego | `macrocycle.ts`, `microcycle.ts` (`START_DOSE_KM`) |
 | drabinka J-4 | serie 1000/400/200 m @I, co najmniej dwie; przerwy w truchcie 2' / 1' / 1' | `microcycle.ts` (`LADDER`) |
 | powrót po przerwie (profil) | start z 50–60% objętości sprzed przerwy, okno 6 tygodni od `since`; górna granica rośnie od `since` w tempie P-3; bieżąca objętość na poziomie sprzed przerwy kończy powrót | `macrocycle.ts` (`RETURN_START_SHARE`, `RETURN_WINDOW_DAYS`) |
-| powrót w trakcie planu | ~55% objętości sprzed przerwy, wzrost P-3; przerwa zapisywana jednym poleceniem najwyżej 60 dni | `macrocycle.ts` (`RETURN_RESTART_SHARE`), `commands.ts` (`BREAK_MAX_DAYS`) |
+| powrót w trakcie planu | ~55% objętości sprzed przerwy, wzrost P-3, tor długiego w tej samej proporcji; po chorobie co najmniej 7 dni spokojnie (R-5, do końca tygodnia, w którym mija siódmy dzień); przerwa zapisywana jednym poleceniem najwyżej 60 dni | `macrocycle.ts` (`RETURN_RESTART_SHARE`), `commands.ts` (`BREAK_MAX_DAYS`) |
 | kilometry poza Z1 | najwyżej 25% tygodnia | `microcycle.ts` |
 | przerwy w interwałach | 2' marsz (@T, 1 km), 3' trucht (@T 3 km, @I) | `microcycle.ts` |
 | akcent tygodnia startowego | 5×300 m @I, p. 1' | `microcycle.ts` |

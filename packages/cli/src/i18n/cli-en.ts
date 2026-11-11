@@ -204,6 +204,7 @@ export const cliEn = {
       recorded: 'logged',
       pinned: 'pinned',
       baseline: 'day of the approved baseline',
+      return: 'day of the approved return',
       approved: 'approved time exception',
       edited: 'manual edit',
       budget: 'over its time budget',

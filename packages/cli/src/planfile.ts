@@ -222,8 +222,15 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
     if (opts.budgetWarnings !== false) plan.feasibilityWarnings.push(...budgetWarnings(plan, config, today))
   }
-  // B11: po bloku powrotu szczyt planu to to, co rozpisano — od niego werdykt
-  if (opts.returnFrom) plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
+  // B11: po bloku powrotu szczyt planu to to, co rozpisano od powrotu — tygodnie sprzed
+  // przerwy już minęły i nie mówią, dokąd plan jeszcze dojdzie. Powrót w taperze: szczyt był
+  // przed przerwą i zostaje.
+  const loadingPhase = (phase: string) => ['base', 'build', 'peak'].includes(phase)
+  const returnMonday = opts.returnFrom ? mondayOf(opts.returnFrom.since) : undefined
+  if (returnMonday) {
+    const ahead = cycleWeeksOf(plan).filter((w) => w.weekStart >= returnMonday && loadingPhase(w.skeleton.phase))
+    if (ahead.length) plan.peakKmPlanned = Math.max(...ahead.map((w) => w.totalKm))
+  }
   // B8: werdykt wykonalności — szczyt i najdłuższe wybieganie wobec progów dystansu
   // (P-7/P-8, J-2; ten sam próg co lint `longBelowGoal`) i trzy wyjścia, jednym blokiem
   // zamiast dwóch ostrzeżeń. Liczony na planie po budżecie czasu.
@@ -233,17 +240,20 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   const longShort = threshold !== undefined && longest > 0 && !(threshold.inclusive ? longest >= threshold.km : longest > threshold.km)
   // szczyt obniżony przez budżet ma własne ostrzeżenie (E-2) — werdykt mówi o profilu,
   // a po przerwie o profilu z blokiem powrotu, nadal bez budżetu
-  const freePeak = opts.returnFrom
-    ? Math.max(0, ...freeReturned.filter((w) => ['base', 'build', 'peak'].includes(w.phase)).map((w) => w.targetKm))
+  const returnedAhead = returnMonday ? freeReturned.filter((w) => w.weekStart >= returnMonday && loadingPhase(w.phase)) : []
+  const freePeak = returnMonday
+    ? returnedAhead.length ? Math.max(...returnedAhead.map((w) => w.targetKm)) : Infinity
     : free.peakKmPlanned
   const peakShort = goal.kind !== 'base' && freePeak < macro.peakKmRecommended
   // ostrzeżenie makrocyklu o szczycie zastępuje werdykt albo ostrzeżenie budżetu
   const peakText = messages().macro.peakBelowRecommended(macro.peakKmPlanned, macro.peakKmRecommended, goal.distanceKm)
   if (peakShort || longShort || capped) plan.feasibilityWarnings = plan.feasibilityWarnings.filter((w) => w !== peakText)
   if (peakShort || (longShort && !capped)) {
-    // po bloku powrotu data liczy się od powrotu, z objętości sprzed przerwy (B11.5)
-    const reachableFrom = opts.returnFrom
-      ? earliestFeasibleRaceDate({ ...athlete, returning: { since: opts.returnFrom.since, previousWeeklyKm: opts.returnFrom.previousWeeklyKm } }, goal, opts.returnFrom.since)
+    // po bloku powrotu data liczy się od powrotu, z objętości sprzed przerwy (B11.5); powrót
+    // jest decyzją, więc obowiązuje także wtedy, gdy profil ma jeszcze objętość sprzed przerwy
+    const ret = opts.returnFrom
+    const reachableFrom = ret
+      ? earliestFeasibleRaceDate({ ...athlete, recentWeeklyKm: Math.min(athlete.recentWeeklyKm, ret.previousWeeklyKm), returning: { since: ret.since, previousWeeklyKm: ret.previousWeeklyKm } }, goal, ret.since)
       : earliestFeasibleRaceDate(athlete, goal, today)
     plan.feasibilityWarnings.push(ui().planMd.verdict({
       distanceKm: goal.distanceKm,
@@ -325,7 +335,10 @@ export function scaleToBaseline(weeks: Microcycle[], opts: {
     const skeleton = structuredClone(week.skeleton)
     delete skeleton.timeCappedKm
     delete skeleton.uncappedKm
+    const before = skeleton.targetKm
     skeleton.targetKm = Math.min(ceiling, Math.round(skeleton.targetKm * factor))
+    // tor długiego (B4) jest podłogą generatora: po redukcji maleje razem z tygodniem
+    if (skeleton.longKm !== undefined && skeleton.targetKm < before && before > 0) skeleton.longKm = Math.round((skeleton.longKm * skeleton.targetKm) / before)
     const generated = generateMicrocycle({ skeleton, athlete: opts.config.athlete, goal: opts.goal, zones, testDistanceKm: testDistanceKm(opts.goal) })
     for (const day of generated.days) {
       const strength = strengthDays.get(day.date)

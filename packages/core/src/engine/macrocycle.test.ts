@@ -392,10 +392,19 @@ describe('B8: powrót po przerwie (R-11) i data, od której próg jest osiągaln
     expect(volumeBase({ ...rebuilt, returning: { since: today, previousWeeklyKm: 50 } }, today).start).toBe(30)
   })
 
-  it('bieżąca objętość na poziomie sprzed przerwy albo wyżej: powrót się dokonał, plan startuje od niej', () => {
+  it('bieżąca objętość ponad poziom sprzed przerwy: powrót się dokonał, plan startuje od niej', () => {
     const past: AthleteProfile = { ...runner, recentWeeklyKm: 50, returning: { since: '2026-10-01', previousWeeklyKm: 40 } }
     expect(volumeBase(past, today)).toEqual({ start: 50, level: 50, returning: false })
     expect(planMacrocycle({ today, goal: half, athlete: past }).weeks[0]!.easyOnly).toBeUndefined()
+  })
+
+  it('profil z historii: bieżąca objętość równa tej sprzed przerwy, powrót trwa (R-11)', () => {
+    // init --from-intervals i kreator wpisują objętość sprzed przerwy jako bieżącą
+    const inferred: AthleteProfile = { ...runner, recentWeeklyKm: 42, returning: { since: '2026-10-19', previousWeeklyKm: 42 } }
+    const { start, returning } = volumeBase(inferred, today)
+    expect(returning).toBe(true)
+    expect(start).toBeLessThanOrEqual(Math.round(0.6 * 42))
+    expect(planMacrocycle({ today, goal: half, athlete: inferred }).weeks[0]!.easyOnly).toBe(true)
   })
 })
 
@@ -405,14 +414,21 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
   const since = '2026-12-16'
   const at = plan.weeks.findIndex((w) => w.weekStart === '2026-12-14')
 
-  it('po chorobie: tygodnie przed powrotem bez zmian, od powrotu 55% objętości sprzed przerwy, pierwszy tydzień spokojnie (R-5)', () => {
+  it('po chorobie: tygodnie przed powrotem bez zmian, od powrotu 55% objętości sprzed przerwy, 7 dni spokojnie (R-5)', () => {
     const weeks = applyReturnBlock(plan.weeks, { since, previousWeeklyKm: 50, illness: true })
     expect(weeks.slice(0, at)).toEqual(plan.weeks.slice(0, at))
     expect(weeks[at]!.targetKm).toBe(Math.min(plan.weeks[at]!.targetKm, Math.round(0.55 * 50)))
-    expect(weeks[at]!.easyOnly).toBe(true)
-    expect(weeks[at]!.qualitySessions).toBe(0)
-    expect(weeks[at]!.ruleRefs).toContain('R-5')
-    expect(weeks[at + 1]!.easyOnly).toBeUndefined()
+    // powrót w środę 2026-12-16: siódmy dzień to wtorek 12-22, więc spokojne są oba tygodnie
+    for (const w of weeks.slice(at, at + 2)) {
+      expect(w.easyOnly).toBe(true)
+      expect(w.qualitySessions).toBe(0)
+      expect(w.ruleRefs).toContain('R-5')
+    }
+    expect(weeks[at + 2]!.easyOnly).toBeUndefined()
+    // powrót w poniedziałek: 7 dni to jeden tydzień
+    const monday = applyReturnBlock(plan.weeks, { since: '2026-12-14', previousWeeklyKm: 50, illness: true })
+    expect(monday[at]!.easyOnly).toBe(true)
+    expect(monday[at + 1]!.easyOnly).toBeUndefined()
     // wzrost w tempie P-3, aż krzywa dogoni plan; taper i start z planu, gdy krzywa jest wyżej
     for (let i = at + 1; i < weeks.length; i++) expect(weeks[i]!.targetKm).toBeLessThanOrEqual(plan.weeks[i]!.targetKm)
     expect(weeks.at(-1)).toEqual(plan.weeks.at(-1))
@@ -458,6 +474,25 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
     expect(weeks[testAt]!.easyOnly).toBeUndefined()
     expect(weeks[testAt]!.testPlanned).toBeUndefined()
     expect(weeks[testAt]!.qualitySessions).toBe(1)
+  })
+
+  it('po innej przerwie zaczętej w odciążeniu: spokojny blok trwa do następnego odciążenia (R-11)', () => {
+    const deloadAt = plan.weeks.findIndex((w, i) => i > 2 && w.deload)
+    const next = plan.weeks.findIndex((w, i) => i > deloadAt && w.deload)
+    const weeks = applyReturnBlock(plan.weeks, { since: plan.weeks[deloadAt]!.weekStart, previousWeeklyKm: 50, illness: false })
+    for (const w of weeks.slice(deloadAt, next + 1)) expect(w.easyOnly, w.weekStart).toBe(true)
+    expect(weeks[next + 1]!.easyOnly).toBeUndefined()
+  })
+
+  it('tor długiego w bloku powrotu maleje razem z tygodniem — dwa dni biegowe nie robią z tygodnia jednego długiego', () => {
+    const marathon: RaceGoal = { name: 'M', date: '2027-03-28', distanceKm: 42.195, priority: 'A' }
+    const base = planMacrocycle({ today: '2026-10-22', goal: marathon, athlete: { recentWeeklyKm: 60, daysAvailable: ['sat', 'sun'], results: [] } })
+    const late = base.weeks.findIndex((w, i) => i > 10 && !w.deload && (w.longKm ?? 0) >= 20)
+    expect(late).toBeGreaterThan(10)
+    const weeks = applyReturnBlock(base.weeks, { since: base.weeks[late]!.weekStart, previousWeeklyKm: 60, illness: true })
+    const w = weeks[late]!
+    expect(w.targetKm).toBeLessThan(base.weeks[late]!.targetKm)
+    expect(w.longKm! / w.targetKm).toBeCloseTo(base.weeks[late]!.longKm! / base.weeks[late]!.targetKm, 1)
   })
 
   it('po innej przerwie zaczętej w taperze: taper trzyma intensywność (T-1), tygodnie po starcie swoje reguły (R-8)', () => {

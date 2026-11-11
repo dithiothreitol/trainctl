@@ -163,8 +163,10 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
         return
       }
       if (volume) {
-        // siła to osobny tor — korekta objętości jej nie przestawia
-        metadata.weeks = scaleToBaseline(plan.weeks, {
+        // siła to osobny tor — korekta objętości jej nie przestawia. Nowa baza zastępuje
+        // przyjęty powrót (B11), więc skalujemy tygodnie bez bloku powrotu — tak jak potem
+        // regeneracja, która bloku już nie stosuje
+        metadata.weeks = scaleToBaseline(plan.returnState ? metadata.weeks : plan.weeks, {
           baselineKm: volume.suggestedWeeklyKm!, decidedOn: today, config: nextConfig, goal: plan.goal, vdot: metadata.vdot,
           reference: plan.weeks,
         })
