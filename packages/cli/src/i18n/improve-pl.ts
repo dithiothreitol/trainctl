@@ -36,6 +36,7 @@ export const improvePl: typeof improveEn = {
   selected: 'Użyty do stref', 'lower-vdot': 'Niższy VDOT', excluded: 'Wykluczony przez Ciebie', future: 'Późniejszy niż dzień kalibracji', stale: 'Starszy niż 540 dni w dniu kalibracji',
   calibratedOn: (date: string) => `Strefy planu skalibrowano ${date}: opisy poniżej to decyzje z tego dnia, wiek liczony od dziś.`,
   recalibrateTo: (date: string, km: string) => `Dziś trainctl plan skalibrowałby strefy z wyniku z ${date} (${km}). Uruchom trainctl plan, aby zaktualizować plan.`,
+  recalibrateUnknown: 'Nie da się odczytać trainctl.yaml, więc nie wiadomo, czy trainctl plan skalibrowałby strefy inaczej (zobacz trainctl status).',
   recalibrateGoal: (time: string) => `Dziś żaden wynik nie spełnia zasady wyboru, więc trainctl plan skalibrowałby strefy z czasu docelowego ${time}. Dopisz świeży wynik do athlete.results.`,
   recalibrateNone: 'Dziś żaden wynik nie spełnia zasady wyboru, a cel nie ma czasu docelowego — trainctl plan zatrzyma się, dopóki nie dopiszesz wyniku do athlete.results.',
   age: (days: number) => `sprzed ${days} dni`,

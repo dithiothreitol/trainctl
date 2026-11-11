@@ -35,9 +35,9 @@ import {
 import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
 import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
-import { kmLabel, logStatusText, parseDecimal, shownKm } from './format.ts'
+import { kmLabel, logStatusText, parseDecimal, shownKm, workoutKm } from './format.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
-import { appendLog, latestByDate, LOG_LIMITS, parseTime, readJournal, readLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
+import { appendLog, latestByDate, LOG_LIMITS, parseTime, readJournal, readLog, readLogForChanges, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
   computePlan,
   cycleWeeksOf,
@@ -549,7 +549,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
       const w = day.workout
       blocks.push(
         b.panel(
-          `${kindLabel(w.kind)} · ${kmLabel(shownKm(w))}`,
+          `${kindLabel(w.kind)} · ${workoutKm(w)}`,
           [workoutText(day)],
           KIND_COLOR[w.kind] ?? 'accent',
         ),
@@ -625,7 +625,7 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
       rows.push([
         weekdayShort(day.weekday),
         day.date.slice(5),
-        day.workout ? kmLabel(shownKm(day.workout)) : '—',
+        day.workout ? workoutKm(day.workout) : '—',
         day.workout ? `${workoutText(day)}${strength}${mark}` : `${ui().week.rest}${strength}`,
       ])
       accents.push(kind ? KIND_COLOR[kind] : 'muted')
@@ -690,11 +690,12 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     // przecinek jak w polskim wyjściu („8,5"); ta sama reguła co kreator i odczyt log.jsonl
     const km = opts.km === undefined ? undefined : parseDecimal(String(opts.km))
     if (km !== undefined && !LOG_LIMITS.km(km)) throw new Error(ui().improve.badDistance)
+    // opuszczona sesja nie ma ani dystansu, ani czasu — ten komunikat przed oceną zapisu czasu
+    if (status === 'skipped' && ((km ?? 0) > 0 || opts.time !== undefined)) throw new Error(ui().improve.skippedMetrics)
     // parseTime odrzuca czas zerowy i błędny zapis — to ta sama granica co LOG_LIMITS przy odczycie
     const timeSec = opts.time ? parseTime(opts.time) : undefined
     const testTimeSec = opts.testTime === undefined ? undefined : parseTime(opts.testTime)
     if (testTimeSec !== undefined && (status === 'skipped' || !['test', 'race'].includes(findDay(plan, date)?.day.workout?.kind ?? ''))) throw new Error(ui().improve.testTimeOnly)
-    if (status === 'skipped' && ((km ?? 0) > 0 || opts.time !== undefined)) throw new Error(ui().improve.skippedMetrics)
     if (testTimeSec !== undefined && timeSec !== undefined && testTimeSec > timeSec) throw new Error(ui().improve.testTimeOnly)
     const entry: LogEntry = {
       date,
@@ -715,7 +716,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     const minutes = workout ? estimateWorkoutMinutes(workout, plan.preparationMinutes ?? 15) : undefined
     const knownMinutes = minutes !== undefined && Number.isFinite(minutes) ? minutes : null
     const planned = workout
-      ? [kindLabel(workout.kind), kmLabel(shownKm(workout)), ...(knownMinutes !== null ? [`~${knownMinutes} min`] : [])].join(' · ')
+      ? [kindLabel(workout.kind), workoutKm(workout), ...(knownMinutes !== null ? [`~${knownMinutes} min`] : [])].join(' · ')
       : ui().week.rest
     const recorded = [
       logStatusText(entry.status),
@@ -779,7 +780,7 @@ function shiftImpl(cwd: string, opts: { from: string; to: string }): CmdResult {
   try {
     if (opts.from < localToday() || opts.to < localToday()) throw new Error(ui().improve.pastWrite)
     const plan = loadPlan(cwd)
-    const recorded = new Set(readLog(cwd).map(l => l.date))
+    const recorded = new Set(readLogForChanges(cwd).map(l => l.date))
     for (const a of readSnapshot(cwd)?.activities ?? []) if (isRunningActivity(a) && (a.distanceKm ?? 0) > 0) recorded.add(a.date)
     if (recorded.has(opts.from) || recorded.has(opts.to)) throw new Error(ui().improve.pastWrite)
     const { warnings } = shiftWorkout(plan, opts.from, opts.to)
@@ -848,6 +849,7 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
         const age = diffDays(c.result.date, now)
         return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[c.reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
       })))
+      if (!config) blocks.push(b.text(ui().improve.recalibrateUnknown, 'muted'))
       if (recalibration?.changed) {
         const next = recalibration.selected
         // bez wyniku plan liczy strefy z czasu docelowego, a bez niego się zatrzyma (zoneSource)
@@ -1179,7 +1181,7 @@ export function cmdDesk(
     if (workout) {
       blocks.push(
         b.panel(
-          `${kindLabel(workout.kind)} · ${kmLabel(shownKm(workout))}`,
+          `${kindLabel(workout.kind)} · ${workoutKm(workout)}`,
           day.recommended
             ? [ui().desk.proposedWindow(day.recommended.label, day.recommended.from, day.recommended.to)]
             : [ui().desk.noWindowFits],
@@ -1268,7 +1270,7 @@ function rescheduleImpl(cwd: string, opts: RescheduleOptions): CmdResult {
       pinnedDates: opts.pin ?? [],
       fixedDates: [...new Set([
         ...week.days.filter((d) => d.date < date || d.date < localToday()).map((d) => d.date),
-        ...readLog(cwd).filter((l) => week.days.some((d) => d.date === l.date)).map((l) => l.date),
+        ...readLogForChanges(cwd).filter((l) => week.days.some((d) => d.date === l.date)).map((l) => l.date),
         ...(readSnapshot(cwd)?.activities ?? []).filter((a) => isRunningActivity(a) && (a.distanceKm ?? 0) > 0 && week.days.some((d) => d.date === a.date)).map((a) => a.date),
       ])],
       strategy: (opts.strategy ?? 'long') as 'long' | 'quality',

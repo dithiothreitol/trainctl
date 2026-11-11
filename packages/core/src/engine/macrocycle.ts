@@ -16,7 +16,7 @@ import type {
 import { addDays, diffDays, mondayOf } from '../util/dates.ts'
 import { messages } from '../i18n/index.ts'
 import { COACH_STYLE } from './house-style.ts'
-import { goalClass } from '../domain/goal-class.ts'
+import { goalClass, type GoalClass } from '../domain/goal-class.ts'
 
 /** P-2: tydzień odciążenia po 3 tygodniach ładowania. Współczynnik 0,7 — inż. */
 const DELOAD_EVERY = 4
@@ -90,10 +90,7 @@ export interface MacrocycleInput {
 const TRANSITION_FACTORS_LONG = [0.5, 1.0]
 const TRANSITION_FACTORS_SHORT = [0.7]
 /** R-1: 48 h ciszy po maratonie → pierwszy bieg 3. dnia; po HM 2. dnia, po krótszym nazajutrz (inż.). */
-const firstRunOffset = (goal: RaceGoal) => {
-  const kind = goalClass(goal)
-  return kind === 'marathon' || kind === 'ultra' ? 3 : kind === 'half' ? 2 : 1
-}
+const firstRunOffset = (cls: GoalClass) => (cls === 'marathon' || cls === 'ultra' ? 3 : cls === 'half' ? 2 : 1)
 /**
  * P-11 (inż.): plan bez zawodów rośnie do udokumentowanego szczytu
  * (`peakWeeklyKm`) albo +15% bieżącej objętości i tam się wypłaszcza.
@@ -106,9 +103,10 @@ function transitionWeeks(goal: RaceGoal, weeks: WeekSkeleton[]): WeekSkeleton[] 
   if (!raceWeek) return []
   const before = weeks.slice(-5, -1)
   const base = before.length ? before.reduce((s, w) => s + w.targetKm, 0) / before.length : raceWeek.targetKm
-  const long = ['half', 'marathon', 'ultra'].includes(goalClass(goal))
+  const cls = goalClass(goal)
+  const long = cls === 'half' || cls === 'marathon' || cls === 'ultra'
   const factors = long ? TRANSITION_FACTORS_LONG : TRANSITION_FACTORS_SHORT
-  const earliestRun = addDays(goal.date, firstRunOffset(goal))
+  const earliestRun = addDays(goal.date, firstRunOffset(cls))
   return factors.map((factor, j): WeekSkeleton => {
     const weekStart = addDays(raceWeek.weekStart, 7 * (j + 1))
     return {

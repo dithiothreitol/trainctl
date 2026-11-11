@@ -8,7 +8,7 @@ import { createInterface } from 'node:readline/promises'
 import { addDays, formatNumber, getLocale, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
 import { cmdLog, cmdShift, cmdWeek, kindLabel } from './commands.ts'
 import { ui } from './i18n/index.ts'
-import { kmLabel, logStatusText, parseDecimal, shownKm } from './format.ts'
+import { kmLabel, logStatusText, parseDecimal, shownKm, workoutKm } from './format.ts'
 import { latestByDate, LOG_LIMITS, parseTime, readLog } from './logfile.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 import { renderAnsi } from './ui/blocks.ts'
@@ -25,7 +25,7 @@ export function dayChoices(week: Microcycle, exclude?: string): Choice<string>[]
       const isRace = day.workout?.kind === 'race'
       const label = `${messages().weekdayShort[day.weekday]} ${day.date.slice(5)}`
       const what = day.workout
-        ? `${kmLabel(shownKm(day.workout))} · ${workoutText(day)}`
+        ? `${workoutKm(day.workout)} · ${workoutText(day)}`
         : ui().week.rest
       return {
         label,
@@ -98,7 +98,7 @@ export function logChoices(plan: StoredPlan, today: string, logged: Map<string, 
       label: `${messages().weekdayShort[day.weekday]} ${day.date.slice(5)}`,
       value: day.date,
       hint: [
-        day.workout ? `${kindLabel(day.workout.kind)} · ${kmLabel(shownKm(day.workout))}` : ui().week.rest,
+        day.workout ? `${kindLabel(day.workout.kind)} · ${workoutKm(day.workout)}` : ui().week.rest,
         logged.has(day.date) ? `[${ui().log.prompt.logged}: ${logStatusText(logged.get(day.date)!.status)}]` : '',
       ].filter(Boolean).join(' '),
     }))

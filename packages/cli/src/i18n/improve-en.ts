@@ -36,6 +36,7 @@ export const improveEn = {
   selected: 'Used for zones', 'lower-vdot': 'Lower VDOT', excluded: 'Excluded by you', future: 'After the calibration date', stale: 'Older than 540 days on the calibration date',
   calibratedOn: (date: string) => `Plan zones calibrated on ${date}: the notes below are that day's decisions; ages count from today.`,
   recalibrateTo: (date: string, km: string) => `Today trainctl plan would calibrate the zones from the ${date} result (${km}). Run trainctl plan to update the plan.`,
+  recalibrateUnknown: 'trainctl.yaml cannot be read, so there is no check whether trainctl plan would recalibrate the zones (see trainctl status).',
   recalibrateGoal: (time: string) => `No result meets the policy today, so trainctl plan would calibrate the zones from the goal time ${time}. Add a recent result to athlete.results.`,
   recalibrateNone: 'No result meets the policy today and the goal has no target time, so trainctl plan would stop until a result is added to athlete.results.',
   age: (days: number) => `${days} days old`,

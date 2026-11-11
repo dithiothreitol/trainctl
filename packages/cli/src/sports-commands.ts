@@ -171,7 +171,7 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
       if ((o.actualSport !== undefined && !ENDURANCE_SPORTS.includes(actualSport as EnduranceSport)) || (spontaneous && (s.sport === 'strength' || status === 'skipped'))) throw new Error(t.invalid)
       if (!['done', 'skipped', 'modified'].includes(status) || (o.km !== undefined && o.meters !== undefined) || (o.minutes !== undefined && o.time !== undefined)) throw new Error(t.invalid)
       const durationSec = typeof o.time === 'string' ? parseTime(o.time) : o.minutes !== undefined ? number(o.minutes, 0, 3000) * 60 : undefined
-      const distanceM = o.meters !== undefined ? number(o.meters, 0, 2e6) : o.km !== undefined ? number(o.km, 0, actualSport === 'run' ? LOG_KM_MAX : 2000, true) * 1000 : undefined
+      const distanceM = o.meters !== undefined ? number(o.meters, 0, actualSport === 'run' ? LOG_KM_MAX * 1000 : 2e6) : o.km !== undefined ? number(o.km, 0, actualSport === 'run' ? LOG_KM_MAX : 2000, true) * 1000 : undefined
       const testTimeSec = o.testTime === undefined ? undefined : parseTime(o.testTime)
       if (testTimeSec !== undefined && (s.sport !== 'run' || spontaneous || status === 'skipped' || !(s.purpose === 'race' || s.legacyWorkout?.kind === 'test') || (durationSec !== undefined && testTimeSec > durationSec))) throw new Error(t.invalid)
       const rpe = o.rpe === undefined ? undefined : number(o.rpe, 1, 10)

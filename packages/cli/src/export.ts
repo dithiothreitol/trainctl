@@ -19,7 +19,7 @@ import {
   type RaceScenario,
 } from 'trainctl-export'
 import { ui } from './i18n/index.ts'
-import { kmLabel, shownKm } from './format.ts'
+import { kmLabel, shownKm, workoutKm } from './format.ts'
 import { cycleWeeksOf, findDay, loadPlan, weekPosition, workoutText, type StoredPlan } from './planfile.ts'
 import { kindPurpose, ruleExplain, ruleEvidence } from './rules-explain.ts'
 
@@ -111,7 +111,7 @@ function fitFor(plan: StoredPlan, day: PlannedDay, dir: string): ExportedFile | 
   return {
     path: file,
     bytes: bytes.length,
-    description: `${name} · ${kmLabel(shownKm(day.workout))}`,
+    description: `${name} · ${workoutKm(day.workout)}`,
   }
 }
 
@@ -175,7 +175,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
       .map((day) => {
         const runLabel = day.workout
           ? `${kindLabel(day.workout.kind)}${
-              shownKm(day.workout) ? ` ${kmLabel(shownKm(day.workout))}` : ''
+              shownKm(day.workout) ? ` ${workoutKm(day.workout)}` : ''
             }`
           : undefined
         const strengthLabel = day.strength
@@ -235,7 +235,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
     days: w.days.map((d) => ({
       weekday: core.weekdayShort[d.weekday],
       date: d.date.slice(5).replace('-', '.'),
-      km: d.workout && shownKm(d.workout) ? kmLabel(shownKm(d.workout)) : '',
+      km: d.workout && shownKm(d.workout) ? workoutKm(d.workout) : '',
       rest: !d.workout,
       text:
         (d.workout ? workoutText(d) : p.rest) +

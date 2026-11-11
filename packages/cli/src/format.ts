@@ -25,6 +25,13 @@ export function parseDecimal(text: string, comma = true): number {
   return pattern.test(value) ? Number(value.replace(',', '.')) : NaN
 }
 
+/**
+ * Dystans jednostki do pokazania jako tekst: start z jednym miejscem po przecinku
+ * („21,1 km", „42,2 km"), sesja treningowa do dwóch („10,25 km" po skróceniu).
+ */
+export const workoutKm = (workout: { raceDistanceKm?: number | undefined; distanceKm: number }): string =>
+  workout.raceDistanceKm !== undefined ? kmLabel(workout.raceDistanceKm) : kmLabel(workout.distanceKm, 2)
+
 /** Dystans jednostki do pokazania: dystans startu dla startu (jego `distanceKm` to 0 km objętości). */
 export const shownKm = (workout: { raceDistanceKm?: number | undefined; distanceKm: number }): number =>
   workout.raceDistanceKm ?? workout.distanceKm

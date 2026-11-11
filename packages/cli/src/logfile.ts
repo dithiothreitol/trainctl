@@ -142,6 +142,17 @@ function normalize(raw: Record<string, unknown>, dropped: string[] = []): LogEnt
 const isStrength = (e: LogEntry | StrengthLogEntry): e is StrengthLogEntry => (e as StrengthLogEntry).activity === 'strength'
 
 /**
+ * Dziennik do zmiany planu: uszkodzony wiersz mógł być wpisem dnia, który trzeba
+ * chronić, więc każda ścieżka zmieniająca plan (regeneracja, propozycje, `shift`,
+ * `reschedule`) najpierw czeka, aż plik zostanie poprawiony. Widoki tylko go pomijają.
+ */
+export function readLogForChanges(cwd: string): LogEntry[] {
+  const journal = readJournal(cwd)
+  if (journal.broken.length) throw new Error(ui().common.logBroken(LOG_FILE, journal.broken.join(', ')))
+  return journal.runs
+}
+
+/**
  * Cały dziennik jednym odczytem: wpisy biegowe i siłowe osobno, wartości pominięte
  * przy odczycie (poza granicami LOG_LIMITS albo nie liczby, „data pole") i wiersze,
  * których nie da się odczytać („wiersz N"). Widoki je pomijają, `status` je wymienia,

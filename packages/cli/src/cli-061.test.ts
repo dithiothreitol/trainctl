@@ -9,11 +9,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale, vdotFromRace } from 'trainctl-core'
-import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
+import { cmdDesk, cmdLog, cmdPlan, cmdReschedule, cmdReview, cmdRules, cmdShift, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices, parseKmText, parseRpeText, plannedKmDefault } from './interactive.ts'
 import { recalibrationToday, roundVdot, zoneCalibration, zoneSource } from './calibration.ts'
-import { logStatusText, parseDecimal, shownKm } from './format.ts'
+import { logStatusText, parseDecimal, shownKm, workoutKm } from './format.ts'
 import { loadPlan, writePlan } from './planfile.ts'
 import { appendLog, latestByDate, lineSeparator, LOG_LIMITS, readLog, readStrengthLog } from './logfile.ts'
 import { helpItem } from './ui/help.ts'
@@ -468,6 +468,7 @@ describe('why: kalibracja stref — decyzje z dnia kalibracji i podpowiedź na d
     const why = whyOn('2026-10-29', '2026-10-27')
     expect(why.code).toBe(0)
     expect(why.data).toMatchObject({ recalibration: null })
+    expect(why.output).toContain('trainctl.yaml cannot be read')
   })
 
   it('recalibrationToday: ten sam wynik, inny wynik, brak wyniku, zmiana czasu docelowego', () => {
@@ -767,5 +768,48 @@ describe('dwudziesta pierwsza runda: ochrona dni przy uszkodzonym dzienniku, dok
     expect(coachEn.segment('strides', 1.25, '')).toContain('1.25 km')
     expect(coachPl.segment('przebieżki', 1.25, '')).toContain('1,25 km')
     expect(coachEn.adjusted('easy', 10.25, 40)).toContain('10.25 km')
+  })
+})
+
+describe('dwudziesta druga runda: shift i reschedule przy uszkodzonym dzienniku', () => {
+  const breakLog = () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    cmdLog(dir, { date: '2026-10-27', status: 'done', km: '8' })
+    appendFileSync(join(dir, 'log.jsonl'), '{"date": "2026-10-27", "status": "done", "km": 8\n')
+    return readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')
+  }
+
+  it('shift czeka na poprawkę dziennika', () => {
+    const before = breakLog()
+    const r = cmdShift(dir, { from: '2026-10-27', to: '2026-10-28' })
+    expect(r.code).not.toBe(0)
+    expect(r.output).toContain('cannot read line 2')
+    expect(readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')).toBe(before)
+  })
+
+  it('reschedule czeka na poprawkę dziennika', () => {
+    const before = breakLog()
+    const r = cmdReschedule(dir, { block: ['2026-10-29'], date: '2026-10-27', apply: true })
+    expect(r.code).not.toBe(0)
+    expect(r.output).toContain('cannot read line 2')
+    expect(readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')).toBe(before)
+  })
+
+  it('status nazywa uszkodzony wiersz komunikatem o zmianie planu', () => {
+    breakLog()
+    expect(cmdStatus(dir).output).toContain('Fix the file before changing the plan')
+  })
+
+  it('opuszczona sesja z czasem: komunikat o opuszczonej sesji, nie o zapisie czasu', () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    expect(cmdLog(dir, { date: '2026-10-27', status: 'skipped', time: '5km' }).output).toContain('A skipped session cannot have a distance or duration.')
+  })
+
+  it('workoutKm: start z jednym miejscem, sesja do dwóch', () => {
+    setLocale('en')
+    expect(workoutKm({ distanceKm: 0, raceDistanceKm: 42.195 })).toBe('42.2 km')
+    expect(workoutKm({ distanceKm: 10.25 })).toBe('10.25 km')
   })
 })
