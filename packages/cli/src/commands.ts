@@ -591,7 +591,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
     if ((day.workout || day.strength) && Number.isFinite(estimatedMinutes)) blocks.push(b.text(ui().today.estimate(estimatedMinutes), 'muted'))
     const next = plan.weeks.flatMap((w) => w.days).find((d) => d.date > date && d.workout)
     if (next?.workout) {
-      blocks.push(b.text(ui().today.next(next.date, weekdayName(next.weekday), kindLabel(next.workout.kind), shownKm(next.workout)), 'muted'))
+      blocks.push(b.text(ui().today.next(next.date, weekdayName(next.weekday), kindLabel(next.workout.kind), workoutKm(next.workout)), 'muted'))
     }
     if (day.workout) blocks.push(b.hint(ui().today.whyHint(date)))
     return okDoc(blocks, { date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null, estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : null, next: next ? { date: next.date, kind: next.workout!.kind, distanceKm: shownKm(next.workout!) } : null })
@@ -688,8 +688,11 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
       return fail(new Error(ui().log.badRpe(String(opts.rpe))))
     }
     // przecinek jak w polskim wyjściu („8,5"); ta sama reguła co kreator i odczyt log.jsonl
-    const km = opts.km === undefined ? undefined : parseDecimal(String(opts.km))
+    const typed = opts.km === undefined ? undefined : parseDecimal(String(opts.km))
+    // zapis z dokładnością 0,1 m (4 miejsca); wartość dodatnia, która by przy tym znikła, to błąd
+    const km = typed === undefined ? undefined : Math.round(typed * 1e4) / 1e4
     if (km !== undefined && !LOG_LIMITS.km(km)) throw new Error(ui().improve.badDistance)
+    if (typed !== undefined && typed > 0 && km === 0) throw new Error(ui().improve.distanceTooSmall)
     // opuszczona sesja nie ma ani dystansu, ani czasu — ten komunikat przed oceną zapisu czasu
     if (status === 'skipped' && ((km ?? 0) > 0 || opts.time !== undefined)) throw new Error(ui().improve.skippedMetrics)
     // parseTime odrzuca czas zerowy i błędny zapis — to ta sama granica co LOG_LIMITS przy odczycie
@@ -701,8 +704,8 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
       date,
       status,
       // opuszczona sesja nie ma dystansu (0 km to brak informacji, nie wynik)
-      // dokładność 0,1 m (4 miejsca): echo i today pokazują dokładnie to, co zapisano
-      ...(km !== undefined && status !== 'skipped' ? { km: Math.round(km * 1e4) / 1e4 } : {}),
+      // echo i today pokazują dokładnie to, co zapisano (km już zaokrąglone do 0,1 m)
+      ...(km !== undefined && status !== 'skipped' ? { km } : {}),
       ...(timeSec !== undefined ? { timeSec } : {}),
       ...(testTimeSec !== undefined ? { testTimeSec } : {}),
       ...(rpe !== undefined ? { rpe } : {}),

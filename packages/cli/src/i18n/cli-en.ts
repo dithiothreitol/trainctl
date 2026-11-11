@@ -240,7 +240,8 @@ export const cliEn = {
     whyHint: (date: string) => `why this session: trainctl why --date ${date}`,
     strengthLogged: (status: string) => `Strength logged: ${status}`,
     estimate: (minutes: number) => `about ${minutes} min including preparation`,
-    next: (date: string, weekday: string, kind: string, km: number) => `next: ${weekday} ${date} · ${kind} · ${n(km)} km`,
+    /** `distance` już sformatowany (workoutKm): ta sama dokładność co w panelu dnia. */
+    next: (date: string, weekday: string, kind: string, distance: string) => `next: ${weekday} ${date} · ${kind} · ${distance}`,
     strengthTitle: (minutes: number) => `Strength · ~${n(minutes)} min`,
     strengthAloneDay: 'No running today — a clean day for the gym (no clash with running).',
     strengthWithEasy:

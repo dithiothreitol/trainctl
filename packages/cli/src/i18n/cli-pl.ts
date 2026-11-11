@@ -249,7 +249,7 @@ export const cliPl: CliMessages = {
     whyHint: (date: string) => `dlaczego ten trening: trainctl why --date ${date}`,
     strengthLogged: (status: string) => `Siła zalogowana: ${status}`,
     estimate: (minutes: number) => `około ${minutes} min razem z przygotowaniem`,
-    next: (date: string, weekday: string, kind: string, km: number) => `następny: ${weekday} ${date} · ${kind} · ${n(km)} km`,
+    next: (date: string, weekday: string, kind: string, distance: string) => `następny: ${weekday} ${date} · ${kind} · ${distance}`,
     strengthTitle: (minutes: number) => `Siła · ~${n(minutes)} min`,
     strengthAloneDay: 'Dzień bez biegania — idealny na siłownię (zero konfliktu z sesjami biegowymi).',
     strengthWithEasy:

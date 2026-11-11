@@ -143,8 +143,9 @@ const isStrength = (e: LogEntry | StrengthLogEntry): e is StrengthLogEntry => (e
 
 /**
  * Dziennik do zmiany planu: uszkodzony wiersz mógł być wpisem dnia, który trzeba
- * chronić, więc każda ścieżka zmieniająca plan (regeneracja, propozycje, `shift`,
- * `reschedule`) najpierw czeka, aż plik zostanie poprawiony. Widoki tylko go pomijają.
+ * chronić, więc każda ścieżka zmieniająca plan albo doradzająca zmianę (regeneracja,
+ * propozycje, `shift`, `reschedule`, diagnoza `adapt`) najpierw czeka, aż plik zostanie
+ * poprawiony. Widoki (`today`, `week`, `review`, `status`) tylko go pomijają i ostrzegają.
  */
 export function readLogForChanges(cwd: string): LogEntry[] {
   const journal = readJournal(cwd)

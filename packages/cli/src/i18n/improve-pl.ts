@@ -7,6 +7,7 @@ export const improvePl: typeof improveEn = {
   pastWrite: 'Nie można zmieniać dni przeszłych lub zapisanych w dzienniku.',
   pinnedShift: 'Przed przesunięciem jawnie odblokuj przypięty dzień.',
   badDistance: 'Dystans musi być skończoną liczbą nieujemną.',
+  distanceTooSmall: 'Dystansu poniżej 0,1 m nie da się zapisać. Podaj co najmniej 0,0001 km albo 0.',
   skippedMetrics: 'Opuszczony trening nie może mieć dystansu ani czasu wykonania.',
   testTime: 'czas samego sprawdzianu lub startu, bez rozgrzewki i schłodzenia',
   testTimeOnly: 'Czas pomiaru dotyczy wykonanego testu lub startu i nie może przekraczać czasu całej sesji.',

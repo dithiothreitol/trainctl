@@ -125,7 +125,9 @@ const LOADING_PHASES = new Set<MacroPhase>(['base', 'build', 'peak'])
 
 /**
  * Początek bieżącego cyklu w planie bez `cycleStart`: pierwszy tydzień po ostatnim
- * bloku przejściowym. Plan z jednym cyklem — undefined (cały plan).
+ * bloku przejściowym. Plan z jednym cyklem — undefined (cały plan). Regeneracja
+ * z historią zawsze zapisuje `cycleStart`, więc to tylko zabezpieczenie dla planów
+ * złożonych inaczej (testy, starsze pliki).
  */
 function currentCycleStart(weeks: Microcycle[]): string | undefined {
   let start: string | undefined

@@ -37,8 +37,6 @@ const HM_TO_MARATHON_MAE = 0.0567
 
 /** Wynik na dystansie półmaratonu (wąski zakres tolerancji pomiaru) — nie klasa celu. */
 const isHm = (km: number) => km >= 20.9 && km <= 21.3
-/** Klasa dystansu celu z tej samej funkcji co taper i szczyt (distanceClass). */
-const targetClass = distanceClass
 
 function pickSource(results: RaceResult[], targetKm: number, today?: string): RaceResult {
   const valid = results.filter((r) => r.distanceKm > 0 && r.timeSec > 0)
@@ -62,7 +60,7 @@ export function predictRace(
   const ruleRefs: string[] = ['W-1']
 
   // Ultra: brak predykcji punktowej (W-7) — ekstrapolacja Riegla z szerokim pasmem
-  if (targetClass(targetKm) === 'ultra') {
+  if (distanceClass(targetKm) === 'ultra') {
     const source = pickSource(results, targetKm, opts.today)
     const base = riegelTimeSec(source.timeSec, source.distanceKm, targetKm)
     ruleRefs.push('W-5', 'W-7', 'W-8')
@@ -86,7 +84,7 @@ export function predictRace(
   }
 
   // Maraton: predyktor podstawowy = czas HM (W-2); VDOT tylko dla szybkich (W-3)
-  if (targetClass(targetKm) === 'marathon') {
+  if (distanceClass(targetKm) === 'marathon') {
     const hm = results.filter((r) => isHm(r.distanceKm) && r.timeSec > 0)
     if (hm.length > 0) {
       const source = pickSource(hm, targetKm, opts.today)

@@ -13,7 +13,7 @@ import { cmdAdapt, cmdDesk, cmdLog, cmdPlan, cmdReschedule, cmdReview, cmdRules,
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices, parseKmText, parseRpeText, plannedKmDefault } from './interactive.ts'
 import { recalibrationToday, roundVdot, zoneCalibration, zoneSource } from './calibration.ts'
-import { logStatusText, parseDecimal, shownKm, workoutKm } from './format.ts'
+import { kmLabel, logStatusText, parseDecimal, shownKm, workoutKm } from './format.ts'
 import { loadPlan, writePlan } from './planfile.ts'
 import { appendLog, latestByDate, lineSeparator, LOG_LIMITS, readLog, readStrengthLog } from './logfile.ts'
 import { helpItem } from './ui/help.ts'
@@ -697,7 +697,11 @@ describe('osiemnasta runda: kreator, pominięte wartości dziennika', () => {
     expect(parseKmText(' 8,5 ')).toBe('8,5')
     expect(parseRpeText('7')).toBe('7')
     process.env['TRAINCTL_TODAY'] = '2026-10-27'
-    expect(cmdLog(dir, { date: '2026-10-27', status: 'done', km: parseKmText('0.0000001') }).code).toBe(0)
+    // tak mała wartość znikłaby przy zapisie z dokładnością 0,1 m — błąd z własnym komunikatem, nie cichy zapis 0 km
+    setLocale('en')
+    const tiny = cmdLog(dir, { date: '2026-10-27', status: 'done', km: parseKmText('0.0000001') })
+    expect(tiny.code).not.toBe(0)
+    expect(tiny.output).toContain('below 0.1 m cannot be recorded')
   })
 
   it('status mówi o wartościach dziennika pominiętych przy odczycie', () => {
@@ -842,5 +846,25 @@ describe('dwudziesta trzecia runda: adapt i review przy uszkodzonym dzienniku, k
     expect(distanceClass(21.0975)).toBe('half')
     expect(distanceClass(10)).toBe('short')
     expect(goalClass({ kind: 'base', distanceKm: 0 })).toBe('base')
+  })
+})
+
+describe('dwudziesta czwarta runda: jedna dokładność dystansu', () => {
+  it('kmLabel: do dwóch miejsc w każdym widoku, start bez artefaktu zapisu binarnego', () => {
+    setLocale('en')
+    expect(kmLabel(42.195)).toBe('42.2 km')
+    expect(kmLabel(21.0975)).toBe('21.1 km')
+    expect(kmLabel(10.25)).toBe('10.25 km')
+    expect(kmLabel(8.123)).toBe('8.12 km')
+    expect(kmLabel(1.005)).toBe('1.01 km')
+    expect(kmLabel(21.0975, 4)).toBe('21.0975 km')
+    setLocale('pl')
+    expect(kmLabel(10.25)).toBe('10,25 km')
+  })
+
+  it('today: „następny" ma tę samą dokładność co panel dnia', () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2027-03-26'
+    expect(cmdToday(dir).output).toMatch(/next: .* · 21\.1 km/)
   })
 })

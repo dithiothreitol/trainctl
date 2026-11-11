@@ -7,6 +7,7 @@ export const improveEn = {
   pastWrite: 'Past or recorded days cannot be changed.',
   pinnedShift: 'Unpin the day explicitly before moving its workout.',
   badDistance: 'Distance must be a finite, non-negative number.',
+  distanceTooSmall: 'A distance below 0.1 m cannot be recorded. Enter at least 0.0001 km, or 0.',
   skippedMetrics: 'A skipped session cannot have a distance or duration.',
   testTime: 'time of the measured test/race segment, excluding warmup and cooldown',
   testTimeOnly: 'Record a test time only for a completed test or race; it cannot exceed session time.',
