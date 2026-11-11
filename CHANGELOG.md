@@ -6,6 +6,28 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
+### Changed
+
+- The running engine lays out weeks differently, so the first `trainctl plan`
+  after updating rewrites future days of an existing plan. Past, logged,
+  pinned and hand-edited days stay (ADR-033).
+- An easy run stays below the long run (at most 0.9 of it, S-10) and below 35%
+  of a week that has a long run. When the rest of the weekly distance does not
+  fit, the long run takes it up to the corpus P90 share, then a free day gets
+  another run (S-11), instead of one 15–17 km easy day. The peak is capped at
+  what the available days can hold, so deloads and the taper stay lighter than
+  loading weeks, and `plan` says when the days limit the peak.
+- Small weeks: an accent that would carry more than 35% of the week first loses
+  a repetition, then gets a 2 km warm-up, and below that becomes an easy run
+  with strides (J-6). A time trial is planned only when the whole session with
+  warm-up and cool-down fits the same share; with one accent a week, the time
+  trial replaces it instead of adding a second hard day.
+- The I-5 check (at least 75% easy) runs after the rest of the week is
+  distributed, so accents are no longer trimmed for distance that easy runs
+  carry.
+- `why` explains these layout decisions: a hills day turned into an easy run,
+  an accent turned into strides, a week shorter than its target.
+
 ### Added
 
 - `trainctl rules E-3` lists the engine's fixed values that have no source

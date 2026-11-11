@@ -16,6 +16,7 @@ import type {
 import { addDays, diffDays, mondayOf } from '../util/dates.ts'
 import { messages } from '../i18n/index.ts'
 import { COACH_STYLE } from './house-style.ts'
+import { SESSION_SHARE_MAX, weekCapacityKm } from './microcycle.ts'
 import { goalClass, type GoalClass } from '../domain/goal-class.ts'
 
 /** P-2: tydzień odciążenia po 3 tygodniach ładowania. Współczynnik 0,7 — inż. */
@@ -157,20 +158,26 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
     )
   }
 
+  const qualityPerWeek = athlete.daysAvailable.length >= 4 ? 2 : 1 // I-8
+
   // Objętość: ramp od recentWeeklyKm do osiągalnego szczytu (P-3), sufit z historii
   const start = athlete.recentWeeklyKm
   // E-3 (inż.): bez `peakWeeklyKm` sufit to bieżąca objętość +40% — brak źródła
-  const cap = Math.min(athlete.peakWeeklyKm ?? start * 1.4, SANITY_CAP_KM)
+  const historyCap = Math.min(athlete.peakWeeklyKm ?? start * 1.4, SANITY_CAP_KM)
   const recommended = recommendedPeakKm(goal)
   const loadOnly = Math.max(0, loadWeeks - Math.floor(loadWeeks / DELOAD_EVERY))
   const reachable = start * Math.pow(RAMP_PER_LOAD_WEEK, Math.max(0, loadOnly - 1))
   // P-7/P-8 to podłoga dla niedotrenowanych, nie sufit: atlecie z bazą powyżej
   // rekomendacji utrzymujemy (lekko rozwijamy) jego wolumen zamiast go ciąć.
-  // E-3 (inż.): plan ze startem celuje w bieżącą objętość +15% (sufit `cap`), nie niżej niż rekomendacja P-7/P-8
+  // E-3 (inż.): plan ze startem celuje w bieżącą objętość +15% (sufit z historii), nie niżej niż rekomendacja P-7/P-8
   const targetPeak = baseOnly
-    ? Math.min(athlete.peakWeeklyKm ?? start * BASE_GROWTH, cap)
-    : Math.max(recommended, Math.min(start * 1.15, cap))
-  const peakPlanned = Math.round(Math.min(targetPeak, cap, reachable))
+    ? Math.min(athlete.peakWeeklyKm ?? start * BASE_GROWTH, historyCap)
+    : Math.max(recommended, Math.min(start * 1.15, historyCap))
+  // ile szczytu plan miałby bez limitu dni — ostrzeżenie mówi, co daje dodatkowy dzień
+  const withoutDays = Math.round(Math.min(targetPeak, historyCap, reachable))
+  // B1: szczyt nie wyższy niż to, co dni biegacza mieszczą pod sufitami jednostek
+  const peakPlanned = weekCapacityKm(athlete, qualityPerWeek, withoutDays)
+  if (peakPlanned < withoutDays) feasibilityWarnings.push(messages().macro.daysCapVolume(peakPlanned, withoutDays, athlete.daysAvailable.length))
   if (!baseOnly && peakPlanned < recommended) {
     feasibilityWarnings.push(
       messages().macro.peakBelowRecommended(peakPlanned, recommended, goal.distanceKm),
@@ -182,8 +189,6 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   const baseWeeks = Math.max(0, Math.round(loadWeeks * 0.4))
   const peakWeeks = Math.max(loadWeeks >= 3 ? 1 : 0, Math.round(loadWeeks * 0.2))
   const buildWeeks = Math.max(0, loadWeeks - baseWeeks - peakWeeks)
-
-  const qualityPerWeek = athlete.daysAvailable.length >= 4 ? 2 : 1 // I-8
 
   // Starty kontrolne: tylko te w oknie planu i przed celem A (T-9…T-12)
   const tuneUps = (athlete.tuneUpRaces ?? [])
@@ -275,7 +280,8 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
     const weeksToGoal = totalWeeks - 1 - i
     const wantsTest =
       !tuneUp &&
-      targetKm >= testDistanceKm(goal) * 4 &&
+      // cała jednostka z ramą, nie sam dystans pomiaru, mieści się w udziale jednej sesji (B2)
+      COACH_STYLE.warmupKm + testDistanceKm(goal) + COACH_STYLE.cooldownKm <= SESSION_SHARE_MAX * targetKm &&
       !inTaper &&
       !deload &&
       !tuneUps.some(r => Math.abs(diffDays(weekStart, r.date)) < CALIBRATION_GAP_WEEKS * 7) &&
@@ -299,8 +305,9 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       keepFrequency: inTaper, // T-2
       ...(inTaper ? { sessionCount: Math.min(new Set(athlete.daysAvailable).size, Math.max(COACH_STYLE.minWorkoutsPerWeek, Math.ceil(loadTarget / COACH_STYLE.typicalKmPerSession))) } : {}),
       // start kontrolny liczy się jako akcent tygodnia (T-12), sprawdzian też (W-13)
+      // przy jednym akcencie w tygodniu start albo sprawdzian go zastępuje, a nie dochodzi obok
       qualitySessions:
-        phase === 'race' ? 1 : Math.max(1, qualityPerWeek - (tuneUp || wantsTest ? 1 : 0)),
+        phase === 'race' ? 1 : tuneUp || wantsTest ? qualityPerWeek - 1 : qualityPerWeek,
       ...(phase === 'race' ? { raceDate: goal.date } : {}),
       ...(tuneUp && !inTaper ? { tuneUp } : {}),
       ...(wantsTest ? { testPlanned: true } : {}), // dzień wybiera mikrocykl (house style)

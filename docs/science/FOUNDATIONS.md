@@ -1869,12 +1869,15 @@ w kodzie komentarzem „E-3 (inż.)". Lista służy przeglądowi trenerskiemu
 | podział faz przed taperem | 40% baza, 20% szczyt, reszta budowanie | `macrocycle.ts` |
 | część główna akcentu | 22% tygodnia minus rozgrzewka i schłodzenie, co najmniej 3 km | `microcycle.ts` |
 | spokojne przed podbiegami | 5–8 km, ~10% tygodnia | `microcycle.ts` |
-| bieg spokojny | wstępnie co najmniej 5 km, najwyżej 18 km | `microcycle.ts` (`EASY_RUN_CAP_KM`) |
+| bieg spokojny | co najmniej 3 km (krótsza reszta idzie do długiego), najwyżej 18 km i 0,9 długiego (S-10) | `microcycle.ts` (`MIN_EASY_KM`, `EASY_RUN_CAP_KM`) |
+| odcinki kilometrowe w akcencie | co najmniej 4 | `microcycle.ts` |
+| rama akcentu przy małej objętości | gdy akcent przekroczyłby udział jednej jednostki: najpierw 3 odcinki, potem rozgrzewka 2 km; gdy i to za dużo — bieg spokojny z 6 przebieżkami po ~80 m (J-6) | `microcycle.ts` |
+| sufit udziału długiego między pasmami | interpolacja liniowa P90 z §10.15 między środkami pasm; poniżej 30 km pasmo 30–40 km | `microcycle.ts` (`longShareCeiling`) |
 | kilometry poza Z1 | najwyżej 25% tygodnia | `microcycle.ts` |
 | przerwy w interwałach | 2' marsz (@T, 1 km), 3' trucht (@T 3 km, @I) | `microcycle.ts` |
 | akcent tygodnia startowego | 5×300 m @I, p. 1' | `microcycle.ts` |
 | tydzień startowy | 4 sesje bez danych ze szkieletu, biegi po 5 km | `microcycle.ts` |
-| udział jednej jednostki (lint) | najwyżej 35% tygodnia | `season.ts` |
+| udział jednej jednostki | najwyżej 35% tygodnia z długim i co najmniej trzema biegami; ten sam próg w generatorze, w lincie kształtu i w warunku sprawdzianu (cała jednostka z ramą) | `microcycle.ts` (`SESSION_SHARE_MAX`) |
 
 ### 10.15 Pomiary sezonu w korpusie (2026-11-11, PLAN-v0.7 etap 1)
 
@@ -1884,14 +1887,14 @@ Tygodnie pełne (7 dni w korpusie), bez startów, po deduplikacji dat.
 
 **Liczba biegów i długie według objętości tygodnia:**
 
-| km/tydz. | tygodnie | mediana biegów | mediana akcentów | inny bieg spokojny / długie: mediana | P90 | udział długiego | P90 udziału innej jednostki |
-|---|---|---|---|---|---|---|---|
-| <30 | 6 | 2 | 1 | 0,83 | 0,83 | 0,78 | 0,38 |
-| 30–40 | 9 | 3 | 2 | 0,67 | 0,67 | 0,41 | 0,36 |
-| 40–50 | 17 | 4 | 3 | 0,79 | 0,80 | 0,40 | 0,33 |
-| 50–60 | 29 | 4 | 3 | 0,79 | 0,86 | 0,36 | 0,30 |
-| 60–70 | 28 | 4 | 3 | 0,64 | 0,83 | 0,32 | 0,29 |
-| ≥70 | 41 | 5 | 3 | 0,60 | 0,91 | 0,29 | 0,27 |
+| km/tydz. | tygodnie | mediana biegów | mediana akcentów | inny bieg spokojny / długie: mediana | P90 | udział długiego | P90 udziału długiego | P90 udziału innej jednostki |
+|---|---|---|---|---|---|---|---|---|
+| <30 | 6 | 2 | 1 | 0,83 | 0,83 | 0,78 | 0,80 | 0,38 |
+| 30–40 | 9 | 3 | 2 | 0,67 | 0,67 | 0,41 | 0,53 | 0,36 |
+| 40–50 | 17 | 4 | 3 | 0,79 | 0,80 | 0,40 | 0,52 | 0,33 |
+| 50–60 | 29 | 4 | 3 | 0,79 | 0,86 | 0,36 | 0,46 | 0,30 |
+| 60–70 | 28 | 4 | 3 | 0,64 | 0,83 | 0,32 | 0,41 | 0,29 |
+| ≥70 | 41 | 5 | 3 | 0,60 | 0,91 | 0,29 | 0,36 | 0,27 |
 
 Długie w pomiarze to najdłuższy bieg tygodnia bez pracy odcinkowej (≥ 12 km),
 więc inny bieg spokojny nie może być dłuższy z definicji. Pomiar mówi, jak
@@ -1899,6 +1902,12 @@ daleko pod długim zostaje najdłuższy inny bieg spokojny. Razem 130 tygodni.
 
 Akcent w korpusie to dzień oznaczony jako jakościowy przez parser, razem
 z podbiegami. Poniżej 30 km korpus ma 6 tygodni, wnioski tam są słabe.
+
+Generator używa z tej tabeli dwóch sufitów (PLAN-v0.7 B1): bieg spokojny
+najwyżej 0,9 długiego (P90 stosunku) i długie najwyżej P90 swojego udziału, gdy
+wchłania resztę kilometrów, której dni spokojne nie mieszczą. Tydzień z dwoma
+biegami nie ma sufitu udziału: jeden z dwóch biegów ma połowę tygodnia
+z definicji, a pasmo <30 km pokazuje długie na 0,78–0,80 tygodnia.
 
 **Przed startem ≥ 21 km** (n = 3 starty z co najmniej 10 pełnymi tygodniami
 przed; tydzień startu = 0):

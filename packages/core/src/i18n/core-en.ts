@@ -68,6 +68,8 @@ export const coreEn = {
     cooldown: (value: number) => `${km(value)} cool-down jog to finish.`,
     easy: (value: number) => `${km(value)} easy.`,
     veryEasy: (value: number) => `${km(value)} very easy.`,
+    easyStrides: (value: number, count: number, meters: number) =>
+      `${km(value)} easy, finishing with ${count} strides of about ${meters} m.`,
     easyBeforeHills: (value: number) => `${km(value)} easy`,
     hills: (reps: number, repM: number) => `hills: ${reps} × ${repM} m (relaxed).`,
     intervalsKm: (reps: number, pace: string, recoveryMin: number) =>
@@ -186,6 +188,9 @@ export const coreEn = {
     baseEndInPast: 'The end date of the base plan (goal.until) is in the past',
     transitionWeek: (week: number, total: number) => `after the race: week ${week} of ${total} back to training (R-8)`,
     ultraTaperExtrapolated: 'T-8: ultra — extrapolated, no direct source',
+    daysCapVolume: (planned: number, wanted: number, days: number) =>
+      `${days === 1 ? '1 running day holds' : `${days} running days hold`} ${planned} km/week without overloading one session (S-10, E-3) — ` +
+      `the plan stops there instead of ${wanted} km/week; another running day would add the rest`,
     compressedPlan: (weeks: number) =>
       `only ${weeks} weeks to the race — the plan is compressed, without a full progression`,
     peakBelowRecommended: (planned: number, recommended: number, distanceKm: number) =>

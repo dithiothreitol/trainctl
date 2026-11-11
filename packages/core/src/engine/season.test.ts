@@ -229,3 +229,42 @@ describe('dwudziesta pierwsza runda: cykl bez tygodni ładowania', () => {
     expect(seasonShapeIssues({ goal: half, weeks }).map((i) => i.code)).not.toContain('longNotLongest')
   })
 })
+
+describe('etap 2: linty kształtu na syntetycznych tygodniach', () => {
+  const codes = (weeks: Microcycle[]) => seasonShapeIssues({ goal: half, weeks }).map((i) => i.code)
+  const quality = (main: number): PlannedWorkout => ({
+    kind: 'quality_intervals', distanceKm: 4 + main, ruleRefs: [],
+    segments: [
+      { type: 'warmup', distanceKm: 3, description: '' },
+      { type: 'intervals', reps: main, repM: 1000, distanceKm: main, description: '' },
+      { type: 'cooldown', distanceKm: 1, description: '' },
+    ],
+  })
+
+  it('sessionShareHigh: bieg spokojny ponad 35% tygodnia obok długiego (P1, czwartek 17 km)', () => {
+    expect(codes([week('2027-01-04', { tue: easy(8), thu: easy(17), sat: long(19) })])).toContain('sessionShareHigh')
+    expect(codes([week('2027-01-04', { tue: easy(8), thu: easy(14), sat: long(19) })])).not.toContain('sessionShareHigh')
+  })
+
+  it('sessionShareHigh: tydzień bez długiego i tydzień z dwoma biegami nie mają czego chronić', () => {
+    expect(codes([week('2027-01-04', { tue: quality(4), thu: easy(13), sat: easy(13) }, 'taper')])).not.toContain('sessionShareHigh')
+    expect(codes([week('2027-01-04', { tue: easy(10), sat: long(12) })])).not.toContain('sessionShareHigh')
+  })
+
+  it('deloadNotLighter: odciążenie cięższe od sąsiedniego tygodnia ładowania (P-2)', () => {
+    const deload = week('2027-01-11', { tue: easy(10), sat: long(16) })
+    deload.skeleton.deload = true
+    const weeks = [week('2027-01-04', { tue: easy(8), sat: long(16) }), deload, week('2027-01-18', { tue: easy(12), sat: long(18) })]
+    expect(seasonShapeIssues({ goal: half, weeks }).filter((i) => i.code === 'deloadNotLighter').map((i) => i.values)).toEqual([[26, 24]])
+  })
+
+  it('staleProgression: dwa bloki budowania kończą się tą samą dawką i tym samym długim (P-1)', () => {
+    const block = (start: string, km: number) => week(start, { tue: quality(4), sat: long(km) })
+    const deload = week('2027-01-25', { tue: quality(3), sat: long(12) })
+    deload.skeleton.deload = true
+    const same = [block('2027-01-04', 18), block('2027-01-11', 18), block('2027-01-18', 18), deload, block('2027-02-01', 18), block('2027-02-08', 18)]
+    expect(codes(same)).toContain('staleProgression')
+    const growing = [...same.slice(0, 5), block('2027-02-08', 20)]
+    expect(codes(growing)).not.toContain('staleProgression')
+  })
+})

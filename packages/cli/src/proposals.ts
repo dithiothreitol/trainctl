@@ -188,10 +188,15 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
       next.generatedDays![before.date] = dayFingerprint(after)
     }
     // Preserve the history and phase boundaries; refresh totals of changed weeks.
+    const candidateWeek = candidate.weeks.find((w) => w.weekStart === week.weekStart)
     if (changes.some((c) => week.days.some((d) => d.date === c.date))) {
-      const skeleton = candidate.weeks.find((w) => w.weekStart === week.weekStart)?.skeleton
-      if (skeleton) week.skeleton = structuredClone(skeleton)
+      if (candidateWeek) week.skeleton = structuredClone(candidateWeek.skeleton)
       settleMixedWeek(week)
+    } else if (volume && candidateWeek && week.weekStart >= mondayOf(today) &&
+      week.days.every((d) => { const after = candidateDays.get(d.date); return after !== undefined && dayFingerprint(d) === dayFingerprint(after) })) {
+      // Dni bez zmian (budżet czasu tnie stary i nowy zamiar do tych samych dni), ale
+      // zamiarem tygodnia jest już nowa baza — z niej „bez budżetu" w ostrzeżeniu (E-2).
+      week.skeleton = structuredClone(candidateWeek.skeleton)
     }
   }
   next.calibration = candidate.calibration!

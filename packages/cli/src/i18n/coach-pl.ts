@@ -28,6 +28,11 @@ export const coachPl: typeof coachEn = {
   goal: (name: string, distance: number, date: string, days: number) => `Cel: ${name}, ${n(distance)} km, ${date}; od tej jednostki pozostaje ${days} dni.`,
   weekContext: (phase: string, actual: number, target: number, share: number) => `Faza: ${phase}. Tydzień: ${n(actual)} km przy celu ${n(target)} km; ${share}% spokojnego biegania.`,
   deload: 'W zapisanym planie ten tydzień ma obniżoną objętość.',
+  weekNote: {
+    hillsDropped: 'Dzień podbiegów jest w tym tygodniu biegiem spokojnym: ten dzień był potrzebny na resztę kilometrów (S-11, E-3).',
+    accentAsStrides: 'Akcent zamieniony na bieg spokojny z przebieżkami: z rozgrzewką i schłodzeniem miałby ponad 35% tak małego tygodnia (J-6, E-3).',
+    volumeShort: (planned: string, target: string) => `Tydzień ma ${planned} zamiast ${target}: dostępne dni nie mieszczą reszty pod sufitem biegu spokojnego (S-10).`,
+  },
   taper: 'Zapisany taper zmniejsza objętość przy założeniu utrzymania intensywności i częstotliwości sesji.',
   dose: 'Konkretna dawka treningu',
   segment: (description: string, km: number, pace: string) => `${description} · ${n2(km)} km${pace ? ` · ${pace}/km` : ''}`,

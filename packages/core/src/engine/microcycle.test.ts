@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { AthleteProfile, RaceGoal, WeekSkeleton } from '../domain/types.ts'
+import type { AthleteProfile, Microcycle, RaceGoal, Weekday, WeekSkeleton } from '../domain/types.ts'
+import { planMacrocycle } from './macrocycle.ts'
 import { paceZones } from '../zones/daniels.ts'
 import { setLocale } from '../i18n/index.ts'
-import { fmtPace, generateMicrocycle, kmText } from './microcycle.ts'
+import { fmtPace, generateMicrocycle, kmText, SESSION_SHARE_MAX, weekCapacityKm } from './microcycle.ts'
 
 // Ten plik weryfikuje HOUSE STYLE TRENERA, czyli polskie brzmienie opisów
 // (korpus 2020–2025). Angielski ma własny plik — microcycle-i18n.test.ts.
@@ -204,5 +205,94 @@ describe('polska odmiana liczebników', () => {
     const mc = generateMicrocycle({ skeleton: skeleton({ targetKm: 65 }), athlete, zones })
     const long = mc.days.find((d) => d.workout?.kind === 'long')!.workout!
     expect(long.segments[0]!.description).not.toMatch(/\d+ kilometrów \(w tempie bardzo/)
+  })
+})
+
+describe('B1: liczba biegów i układ tygodnia (S-10, S-11)', () => {
+  const DAYS: Record<number, Weekday[]> = { 3: ['tue', 'thu', 'sat'], 4: ['tue', 'thu', 'sat', 'sun'], 5: ['tue', 'wed', 'thu', 'sat', 'sun'] }
+  const runs = (mc: Microcycle) => mc.days.flatMap((d) => (d.workout ? [d.workout] : []))
+  for (const days of [3, 4, 5]) {
+    for (const km of [30, 45, 60]) {
+      it(`${days} dni, ${km} km: bieg spokojny pod długim, żadna jednostka ponad 35% obok długiego`, () => {
+        const mc = generateMicrocycle({ skeleton: skeleton({ targetKm: km, qualitySessions: days >= 4 ? 2 : 1 }), athlete: { ...athlete, daysAvailable: DAYS[days]! }, zones })
+        const long = runs(mc).find((w) => w.kind === 'long')!
+        for (const w of runs(mc).filter((x) => x.kind === 'easy')) {
+          expect(w.distanceKm).toBeLessThanOrEqual(0.9 * long.distanceKm + 0.05) // S-10
+          expect(w.distanceKm).toBeGreaterThanOrEqual(3) // E-3: MIN_EASY_KM
+        }
+        if (runs(mc).length >= 3) {
+          for (const w of runs(mc).filter((x) => x.kind !== 'long')) expect(w.distanceKm).toBeLessThanOrEqual(SESSION_SHARE_MAX * mc.totalKm + 0.05)
+        }
+        // tydzień krótszy od zamiaru zapisuje, ile dni mieszczą, i mówi o tym uwagą
+        if (mc.totalKm < km - 0.5) {
+          expect(mc.skeleton.layoutKm).toBeCloseTo(mc.totalKm, 1)
+          expect(mc.notes).toContainEqual(expect.objectContaining({ code: 'volumeShort', targetKm: km }))
+        } else expect(mc.skeleton.layoutKm).toBeUndefined()
+      })
+    }
+  }
+
+  it('reszta ponad sufit dostaje kolejny dzień zamiast biegu dłuższego od długiego', () => {
+    // dawny P1 w odciążeniu: długie 13 km i spokojne 15 km
+    const mc = generateMicrocycle({ skeleton: skeleton({ targetKm: 36, deload: true }), athlete, zones })
+    const long = runs(mc).find((w) => w.kind === 'long')!
+    expect(Math.max(...runs(mc).filter((w) => w.kind !== 'long').map((w) => w.distanceKm))).toBeLessThan(long.distanceKm)
+    expect(mc.totalKm).toBeCloseTo(36, 0)
+  })
+
+  it('dzień podbiegów, który musi wziąć resztę kilometrów, zostawia uwagę z datą (B1.4)', () => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ targetKm: 52, qualitySessions: 1 }), athlete: { ...athlete, daysAvailable: ['tue', 'thu', 'sat'] }, zones })
+    expect(mc.notes).toContainEqual({ code: 'hillsDropped', date: '2026-08-06' })
+    expect(mc.days.find((d) => d.date === '2026-08-06')!.workout!.kind).toBe('easy')
+  })
+
+  it('pojemność dni: dwa dni mieszczą mniej niż trzy, trzy mniej niż pięć', () => {
+    const cap = (daysAvailable: Weekday[]) => weekCapacityKm({ ...athlete, daysAvailable }, daysAvailable.length >= 4 ? 2 : 1, 120)
+    const two = cap(['sat', 'sun']), three = cap(DAYS[3]!), five = cap(DAYS[5]!)
+    expect(two).toBeGreaterThan(30)
+    expect(two).toBeLessThan(three)
+    expect(three).toBeLessThan(five)
+  })
+
+  it('makrocykl nie planuje szczytu, którego dni nie mieszczą, i mówi o tym', () => {
+    const macro = planMacrocycle({
+      today: '2026-08-03',
+      goal: { name: 'HM', date: '2026-11-29', distanceKm: 21.0975, priority: 'A' },
+      athlete: { ...athlete, recentWeeklyKm: 70, daysAvailable: DAYS[3]! },
+    })
+    const capacity = weekCapacityKm({ ...athlete, daysAvailable: DAYS[3]! }, 1, 120)
+    expect(macro.peakKmPlanned).toBe(capacity)
+    expect(Math.max(...macro.weeks.map((w) => w.targetKm))).toBeLessThanOrEqual(capacity)
+    expect(macro.feasibilityWarnings.join(' ')).toContain(`tydzień mieści ${capacity} km`)
+  })
+})
+
+describe('B2: rama i minimalna dawka przy małej objętości', () => {
+  const small = (targetKm: number) => generateMicrocycle({ skeleton: skeleton({ targetKm }), athlete, zones })
+  it('akcent ponad 35% tygodnia: najpierw mniej odcinków, potem rozgrzewka 2 km', () => {
+    const at = (km: number) => small(km).days.find((d) => d.workout?.kind === 'quality_intervals')?.workout
+    expect(at(22)!.segments.find((s) => s.type === 'intervals')!.reps).toBe(3) // 3 + 3 + 1 = 7 ≤ 7,7
+    expect(at(22)!.segments[0]!.distanceKm).toBe(3)
+    expect(at(18)!.segments[0]!.distanceKm).toBe(2) // 2 + 3 + 1 = 6 ≤ 6,3
+  })
+  it('gdy i mała rama przekracza udział: bieg spokojny z przebieżkami w miejscu akcentu (J-6)', () => {
+    const mc = small(14)
+    expect(mc.days.some((d) => d.workout && ['quality_intervals', 'quality_continuous'].includes(d.workout.kind))).toBe(false)
+    const strides = mc.days.filter((d) => d.workout?.ruleRefs.includes('J-6'))
+    expect(strides.length).toBeGreaterThan(0)
+    expect(strides[0]!.workout!.segments[0]!.description).toContain('przebieżek')
+    expect(mc.notes).toContainEqual({ code: 'accentAsStrides', date: strides[0]!.date })
+  })
+  it('sprawdzian tylko wtedy, gdy cała jednostka z ramą mieści się w 35% tygodnia', () => {
+    const goal: RaceGoal = { name: 'HM', date: '2027-03-28', distanceKm: 21.0975, priority: 'A' }
+    const macro = planMacrocycle({ today: '2026-10-22', goal, athlete: { ...athlete, recentWeeklyKm: 12, peakWeeklyKm: 50, results: [] } })
+    for (const w of macro.weeks.filter((x) => x.testPlanned)) expect(3 + 5 + 1).toBeLessThanOrEqual(SESSION_SHARE_MAX * w.targetKm)
+  })
+  it('przy jednym akcencie w tygodniu sprawdzian go zastępuje (T-12, W-13)', () => {
+    const goal: RaceGoal = { name: 'HM', date: '2027-03-28', distanceKm: 21.0975, priority: 'A' }
+    const macro = planMacrocycle({ today: '2026-10-22', goal, athlete: { ...athlete, daysAvailable: ['tue', 'thu', 'sat'], results: [] } })
+    const testWeeks = macro.weeks.filter((w) => w.testPlanned)
+    expect(testWeeks.length).toBeGreaterThan(0)
+    for (const w of testWeeks) expect(w.qualitySessions).toBe(0)
   })
 })

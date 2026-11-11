@@ -2,6 +2,7 @@ import { diffDays, estimateWorkoutMinutes, fmtPace, messages, plannedWeekKm, typ
 import { dayFingerprint, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { kindPurpose } from './rules-explain.ts'
+import { kmLabel } from './format.ts'
 
 /** Facts from the stored plan, with no invented rationale for arbitrary edits. */
 export function explainSession(plan: StoredPlan, week: Microcycle, day: PlannedDay, execution?: ExecutionRecord) {
@@ -20,6 +21,11 @@ export function explainSession(plan: StoredPlan, week: Microcycle, day: PlannedD
     t.weekContext(messages().phase[week.skeleton.phase], week.totalKm, plannedWeekKm(week.skeleton), Math.round(week.easyShare * 100))]
   if (week.skeleton.deload) context.push(t.deload)
   if (week.skeleton.keepIntensity || week.skeleton.keepFrequency) context.push(t.taper)
+  // Decyzje generatora o układzie tygodnia: dotyczące dnia — przy tym dniu, objętość — przy każdym.
+  const notes = (week.notes ?? []).filter((n) => !('date' in n) || n.date === day.date)
+  for (const note of notes) {
+    context.push(note.code === 'volumeShort' ? t.weekNote.volumeShort(kmLabel(note.plannedKm), kmLabel(note.targetKm)) : t.weekNote[note.code])
+  }
   if (placement.previous) context.push(t.previous(placement.previous.date, kindLabel(placement.previous.kind), placement.previous.gapDays))
   if (placement.next) context.push(t.next(placement.next.date, kindLabel(placement.next.kind), placement.next.gapDays))
   if (!previous && !next) context.push(t.noNeighbors)
@@ -42,6 +48,6 @@ export function explainSession(plan: StoredPlan, week: Microcycle, day: PlannedD
   }))
   const dose = prescription.map(s => t.segment(s.description, s.distanceKm, s.pace ? `${fmtPace(s.pace.loSecPerKm)}–${fmtPace(s.pace.hiSecPerKm)}` : ''))
   return { purpose: day.workout ? kindPurpose(day.workout.kind) : day.strength ? ui().why.strengthPurpose : t.restPurpose,
-    context, placement, prescription, dose, execution: status,
+    context, placement, prescription, dose, execution: status, notes,
     estimatedMinutes: Number.isFinite(estimate) ? estimate : null, budgetMinutes: budget ?? null }
 }

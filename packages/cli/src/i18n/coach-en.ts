@@ -29,6 +29,12 @@ export const coachEn = {
   weekContext: (phase: string, actual: number, target: number, share: number) => `Phase: ${phase}. Week: ${n(actual)} km against a ${n(target)} km target; ${share}% easy running.`,
   deload: 'This is a reduced-volume week in the stored plan.',
   taper: 'The stored taper reduces volume while aiming to retain intensity and session frequency.',
+  /** Decyzje generatora o układzie tygodnia (WeekNote): dystanse już sformatowane. */
+  weekNote: {
+    hillsDropped: 'The hills day is an easy run this week: the rest of the weekly distance needed the day (S-11, E-3).',
+    accentAsStrides: 'This accent is an easy run with strides: with warm-up and cool-down it would carry more than 35% of a week this small (J-6, E-3).',
+    volumeShort: (planned: string, target: string) => `This week has ${planned} instead of ${target}: the available days cannot hold the rest under the easy-run ceiling (S-10).`,
+  },
   dose: 'The actual prescription',
   segment: (description: string, km: number, pace: string) => `${description} · ${n2(km)} km${pace ? ` · ${pace}/km` : ''}`,
   previous: (date: string, kind: string, days: number) => `Previous demanding session: ${date}, ${kind}, ${days} calendar days earlier.`,

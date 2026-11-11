@@ -123,6 +123,8 @@ def main():
             'medianLongestEasyToLong': med([r['ratio'] for r in rows if r['ratio'] is not None]),
             'p90LongestEasyToLong': p90([r['ratio'] for r in rows if r['ratio'] is not None]),
             'medianLongShare': med([r['longShare'] for r in rows if r['longShare']]),
+            # sufit udziału długiego w generatorze (PLAN-v0.7 B1, microcycle.ts LONG_SHARE_P90)
+            'p90LongShare': p90([r['longShare'] for r in rows if r['longShare']]),
             'p90MaxShareNonLong': p90([r['maxShareNonLong'] for r in rows if r['maxShareNonLong'] is not None]),
         }
     print('A. liczba biegów i długie według objętości tygodnia (tygodnie pełne, bez startów)')

@@ -78,6 +78,8 @@ export const corePl: CoreMessages = {
     cooldown: (value: number) => `Na koniec treningu ${km(value)} truchtu.`,
     easy: (value: number) => `${km(value)} (w tempie spokojnym).`,
     veryEasy: (value: number) => `${km(value)} (w tempie bardzo spokojnym).`,
+    easyStrides: (value: number, count: number, meters: number) =>
+      `${km(value)} (w tempie spokojnym), na koniec ${count} przebieżek po około ${n(meters)} metrów.`,
     easyBeforeHills: (value: number) => `${km(value)} (w tempie spokojnym)`,
     hills: (reps: number, repM: number) => `podbiegi: ${reps}*${repM} metrów (spokojnie).`,
     intervalsKm: (reps: number, pace: string, recoveryMin: number) =>
@@ -192,6 +194,9 @@ export const corePl: CoreMessages = {
     baseEndInPast: 'Data końca planu bazowego (goal.until) jest w przeszłości',
     transitionWeek: (week: number, total: number) => `po starcie: tydzień ${week} z ${total} powrotu do treningu (R-8)`,
     ultraTaperExtrapolated: 'T-8: ultra — ekstrapolacja bez źródła',
+    daysCapVolume: (planned: number, wanted: number, days: number) =>
+      `${days === 1 ? 'przy 1 dniu biegowym' : `przy ${days} dniach biegowych`} tydzień mieści ${planned} km bez przeciążenia jednej jednostki (S-10, E-3) — ` +
+      `plan zatrzymuje szczyt na tej wartości zamiast ${wanted} km/tydz.; resztę da kolejny dzień biegowy`,
     compressedPlan: (weeks: number) =>
       `tylko ${weeks} tyg. do startu — plan skompresowany, bez pełnej progresji`,
     peakBelowRecommended: (planned: number, recommended: number, distanceKm: number) =>

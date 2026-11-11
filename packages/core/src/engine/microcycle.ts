@@ -12,9 +12,10 @@ import type {
   RaceGoal,
   TuneUpRace,
   Weekday,
+  WeekNote,
   WeekSkeleton,
 } from '../domain/types.ts'
-import type { PaceZones } from '../zones/daniels.ts'
+import { paceZones, type PaceZones } from '../zones/daniels.ts'
 import { messages } from '../i18n/index.ts'
 import { addDays, diffDays } from '../util/dates.ts'
 import { COACH_STYLE, type HouseStyle } from './house-style.ts'
@@ -36,6 +37,47 @@ const EASY_RUN_CAP_KM = 18
 const QUALITY_MAIN_SHARE = 0.22
 /** E-3 (inż.): kilometry poza Z1 najwyżej 25% tygodnia — margines pod I-5 (≥75% Z1). */
 const HARD_SHARE_MAX = 0.25
+/** S-10 (korpus): najdłuższy inny bieg spokojny ≤ 0,9 długiego — P90 stosunku 0,67–0,91 w 130 tygodniach. */
+const EASY_TO_LONG_MAX = 0.9
+/**
+ * E-3 (inż.): jedna jednostka poza długim, startem i sprawdzianem najwyżej 35% tygodnia.
+ * Ten sam próg ma lint kształtu `sessionShareHigh` i warunek sprawdzianu w makrocyklu.
+ */
+export const SESSION_SHARE_MAX = 0.35
+/** E-3 (inż.): najkrótszy bieg spokojny — krótsza reszta dolicza się do długiego. Poniżej zakresu korpusu (decyzja 1). */
+const MIN_EASY_KM = 3
+/** Rama akcentu: rozgrzewka i najmniejsza liczba odcinków kilometrowych. */
+interface Frame { warmupKm: number; minReps: number }
+/** E-3 (inż.): co najmniej 4 odcinki kilometrowe — zapis korpusu bez reguły w FOUNDATIONS. */
+const standardFrame = (style: HouseStyle): Frame => ({ warmupKm: style.warmupKm, minReps: 4 })
+/**
+ * E-3 (inż.): ramy przy małej objętości, po kolei, gdy pełna przekroczyłaby
+ * SESSION_SHARE_MAX tygodnia — najpierw mniej odcinków, potem krótsza rozgrzewka.
+ */
+const SMALLER_FRAMES = (style: HouseStyle): Frame[] => [{ warmupKm: style.warmupKm, minReps: 3 }, { warmupKm: 2, minReps: 3 }]
+/** E-3 (inż.): przebieżki w biegu, który zastępuje akcent — J-6 opisuje je jako praktykę, bez liczb. */
+const STRIDES = { count: 6, meters: 80 }
+const round1 = (km: number) => Math.round(km * 10) / 10
+/** Sufit w dół do 0,1 km: zaokrąglony w górę przekraczałby próg, z którego powstał. */
+const floor1 = (km: number) => Math.floor(km * 10 + 1e-9) / 10
+/**
+ * §10.15 (korpus): sufit udziału długiego w tygodniu — P90 według objętości (130
+ * tygodni), w środkach pasm 30–40, 40–50, 50–60, 60–70 i ≥70 km. Między środkami
+ * interpolacja liniowa (inż.): schodek na granicy pasma skracałby długie o 3 km przy
+ * +1 km tygodnia. Poniżej 30 km korpus ma 5 tygodni — obowiązuje pasmo 30–40 km
+ * (inż., decyzja 1 z PLAN-v0.7).
+ */
+const LONG_SHARE_P90: [weekKm: number, share: number][] = [[35, 0.53], [45, 0.52], [55, 0.46], [65, 0.41], [75, 0.36]]
+export function longShareCeiling(weekKm: number): number {
+  const [first] = LONG_SHARE_P90
+  if (weekKm <= first![0]) return first![1]
+  for (let i = 1; i < LONG_SHARE_P90.length; i++) {
+    const [km, share] = LONG_SHARE_P90[i]!
+    const [prevKm, prevShare] = LONG_SHARE_P90[i - 1]!
+    if (weekKm <= km) return prevShare + ((share - prevShare) * (weekKm - prevKm)) / (km - prevKm)
+  }
+  return LONG_SHARE_P90.at(-1)![1]
+}
 
 /** Środek zakresu tempa — tempo wpisywane w opis odcinka. */
 export const paceMid = (r: { loSecPerKm: number; hiSecPerKm: number }): number =>
@@ -101,6 +143,21 @@ function buildEasy(km: number, z: PaceZones): PlannedWorkout {
   }
 }
 
+/** J-6: bieg spokojny z przebieżkami w miejscu akcentu, gdy tydzień jest za mały na akcent z ramą. */
+function buildStrides(km: number, z: PaceZones): PlannedWorkout {
+  return {
+    kind: 'easy',
+    distanceKm: km,
+    ruleRefs: ['I-5', 'J-6'],
+    segments: [{
+      type: 'easy',
+      distanceKm: km,
+      pace: z.easy,
+      description: messages().workout.easyStrides(km, STRIDES.count, STRIDES.meters),
+    }],
+  }
+}
+
 function buildLong(km: number, z: PaceZones): PlannedWorkout {
   const pace = { loSecPerKm: z.easy.hiSecPerKm, hiSecPerKm: z.easy.hiSecPerKm + 30 }
   return {
@@ -146,12 +203,13 @@ function buildQualityIntervals(
   polarized: boolean,
   style: HouseStyle,
   z: PaceZones,
+  frame: Frame = standardFrame(style),
 ): PlannedWorkout {
-  const segments: PlannedSegment[] = [segWarmup(style.warmupKm, z)]
+  const segments: PlannedSegment[] = [segWarmup(frame.warmupKm, z)]
   let main: PlannedSegment
   if (polarized) {
     // peak: Z3 — interwały VO2max @I (I-2)
-    const reps = Math.max(4, Math.round(mainKm))
+    const reps = Math.max(frame.minReps, Math.round(mainKm))
     main = {
       type: 'intervals',
       reps,
@@ -176,7 +234,7 @@ function buildQualityIntervals(
       description: messages().workout.intervals3Km(reps, fmtPace(paceMid(z.threshold)), 3),
     }
   } else {
-    const reps = Math.max(4, Math.round(mainKm))
+    const reps = Math.max(frame.minReps, Math.round(mainKm))
     main = {
       type: 'intervals',
       reps,
@@ -190,7 +248,7 @@ function buildQualityIntervals(
   segments.push(main, segCooldown(style.cooldownKm))
   return {
     kind: 'quality_intervals',
-    distanceKm: style.warmupKm + (main.distanceKm ?? 0) + style.cooldownKm,
+    distanceKm: frame.warmupKm + (main.distanceKm ?? 0) + style.cooldownKm,
     ruleRefs: ['I-7', 'I-8', polarized ? 'I-2' : 'I-1'],
     segments,
   }
@@ -201,8 +259,9 @@ function buildQualityContinuous(
   polarized: boolean,
   style: HouseStyle,
   z: PaceZones,
+  frame: Frame = standardFrame(style),
 ): PlannedWorkout {
-  const segments: PlannedSegment[] = [segWarmup(style.warmupKm, z)]
+  const segments: PlannedSegment[] = [segWarmup(frame.warmupKm, z)]
   let main: PlannedSegment
   if (polarized) {
     const fast = z.threshold.loSecPerKm
@@ -226,7 +285,7 @@ function buildQualityContinuous(
   segments.push(main, segCooldown(style.cooldownKm))
   return {
     kind: 'quality_continuous',
-    distanceKm: style.warmupKm + mainKm + style.cooldownKm,
+    distanceKm: frame.warmupKm + mainKm + style.cooldownKm,
     ruleRefs: ['I-7', 'I-8', polarized ? 'I-2' : 'I-1'],
     segments,
   }
@@ -325,10 +384,11 @@ export function generateMicrocycle(input: MicrocycleInput): Microcycle {
 
   const plan = new Map<Weekday, PlannedWorkout>()
 
+  let notes: WeekNote[] = []
   if (skeleton.raceDate && input.goal) {
     planRaceWeek(plan, skeleton.raceDate, input.goal, available, style, zones, skeleton.weekStart, skeleton.sessionCount)
   } else {
-    planNormalWeek(plan, skeleton, available, style, zones, input.testDistanceKm)
+    notes = planNormalWeek(plan, skeleton, available, style, zones, input.testDistanceKm)
   }
 
   const days: PlannedDay[] = WEEKDAY_ORDER.map((wd) => {
@@ -340,22 +400,54 @@ export function generateMicrocycle(input: MicrocycleInput): Microcycle {
     }
   })
 
+  const totals = weekTotals(days)
+  // Dni mieszczą mniej niż zamiar (B1): zapis obok `targetKm`, z nim lint porównuje sumy.
+  // Wartość z poprzedniego przebiegu (regeneracja z zapisanego szkieletu) nie przechodzi.
+  const { layoutKm: _previous, ...base } = skeleton
+  const short = !skeleton.raceDate && totals.totalKm < skeleton.targetKm - 0.5
   return {
     weekStart: skeleton.weekStart,
-    skeleton,
+    skeleton: short ? { ...base, layoutKm: round1(totals.totalKm) } : base,
     days,
-    ...weekTotals(days),
+    ...totals,
+    ...(notes.length ? { notes } : {}),
   }
 }
 
 /**
- * Objętość tygodnia, którą biegacz faktycznie ma: po budżecie czasu z profilu
- * (`timeCappedKm`, E-2), bez budżetu — zamiar makrocyklu (`targetKm`). Co pokazuje
- * albo skaluje „bieżącą objętość", czyta ją stąd; samo `targetKm` jest wejściem
- * skalowania bazy, nie tym, co rozpisano na dni.
+ * Największa objętość tygodnia ładowania do `upToKm`, którą dni biegacza mieszczą pod
+ * sufitami jednostek (S-10, E-3): makrocykl nie planuje szczytu, którego nie da się
+ * rozpisać, bo wtedy odciążenie i taper liczone od zamiaru wychodzą cięższe od tygodni,
+ * które biegacz naprawdę ma (B1). Próbny tydzień budowania i szczytu; tempo nie zmienia
+ * kilometrów, więc strefy są stałe. Układ nie jest monotoniczny (dzień podbiegów zostaje
+ * albo wypada), dlatego przegląd idzie od góry co 1 km.
  */
-export const plannedWeekKm = (skeleton: Pick<WeekSkeleton, 'targetKm' | 'timeCappedKm'>): number =>
-  skeleton.timeCappedKm ?? skeleton.targetKm
+export function weekCapacityKm(athlete: AthleteProfile, qualitySessions: number, upToKm: number, style: HouseStyle = COACH_STYLE): number {
+  const zones = paceZones(50)
+  const fits = (km: number) => (['pyramidal', 'polarized'] as const).every((model) => {
+    const week = generateMicrocycle({
+      skeleton: {
+        weekStart: '2026-01-05', index: 1, phase: model === 'polarized' ? 'peak' : 'build', intensityModel: model,
+        targetKm: km, deload: false, keepIntensity: false, keepFrequency: false, qualitySessions, flags: [], ruleRefs: [],
+      },
+      athlete,
+      zones,
+      style,
+    })
+    return week.totalKm >= km - 0.5
+  })
+  for (let km = Math.round(upToKm); km > 0; km--) if (fits(km)) return km
+  return 0
+}
+
+/**
+ * Objętość tygodnia, którą biegacz faktycznie ma: po budżecie czasu z profilu
+ * (`timeCappedKm`, E-2), po pojemności dni (`layoutKm`, B1), bez nich — zamiar
+ * makrocyklu (`targetKm`). Co pokazuje albo skaluje „bieżącą objętość", czyta ją
+ * stąd; samo `targetKm` jest wejściem skalowania bazy, nie tym, co rozpisano na dni.
+ */
+export const plannedWeekKm = (skeleton: Pick<WeekSkeleton, 'targetKm' | 'timeCappedKm' | 'layoutKm'>): number =>
+  skeleton.timeCappedKm ?? skeleton.layoutKm ?? skeleton.targetKm
 
 /**
  * Kilometry poza Z1 jednej jednostki: wszystko poza rozgrzewką, schłodzeniem
@@ -425,7 +517,7 @@ function planNormalWeek(
   style: HouseStyle,
   zones: PaceZones,
   testDistanceKm?: number,
-): void {
+): WeekNote[] {
   const target = skeleton.targetKm
   const polarized = skeleton.intensityModel === 'polarized'
   const inTaper = skeleton.phase === 'taper'
@@ -468,7 +560,11 @@ function planNormalWeek(
     )
     if (okGap) qualityWds.push(wd)
   }
-  let hillsWd = inTaper || recovering
+  // dzień podbiegów tylko wtedy, gdy jego najmniejsza wersja mieści się w udziale jednej
+  // jednostki — inaczej przy małej objętości „wypadałby" co tydzień
+  // (przy dwóch dniach podbiegów i tak nie ma: dzień zajmują długie i akcent)
+  const hillsFit = buildHillsDay(MIN_EASY_KM, style, zones).distanceKm <= SESSION_SHARE_MAX * target
+  let hillsWd = inTaper || recovering || !hillsFit
     ? undefined
     : style.hillsDayPreference.find(
         (wd) => free.includes(wd) && wd !== longWd && !qualityWds.includes(wd),
@@ -479,91 +575,156 @@ function planNormalWeek(
     hillsWd = undefined
   }
   const easyWds = free.filter((wd) => !used.has(wd)).slice(0, Math.max(0, workoutsCount - used.size))
+  // Dni wolne do dołożenia biegu (S-11): najpierw te, które trener zostawia na bieganie,
+  // dni odpoczynku z house style na końcu.
+  const restLast = (wd: Weekday) => (style.restDays.includes(wd) ? 1 : 0)
+  const spareDays = free.filter((wd) => wd !== longWd && !used.has(wd) && !easyWds.includes(wd))
+    .sort((a, b) => restLast(a) - restLast(b))
+
+  // Tydzień, który nie może mieć trzech biegów (dwa dni), nie ma udziałów do pilnowania:
+  // jeden z dwóch biegów ma połowę tygodnia z definicji, a długie w korpusie przy dwóch
+  // biegach to 0,78–0,80 tygodnia (§10.15). Zostają twarde sufity: 35 km i S-10.
+  const maxRuns = (peakWd ? 1 : 0) + used.size + easyWds.length + spareDays.length
+  const shares = maxRuns >= 3
 
   // objętość
   const longKm = longWd ? Math.min(Math.round(style.longRunShare * target), style.longRunCapKm) : 0
+  const longCeil = Math.min(style.longRunCapKm, shares ? Math.floor(longShareCeiling(target) * target) : target)
+  // udział jednej jednostki liczony od objętości tygodnia — od zamiaru, a gdy dni go nie
+  // mieszczą, od tego, co rozpisano (tak liczy lint), w drugim przebiegu niżej
+  let shareCap = shares ? floor1(SESSION_SHARE_MAX * target) : Infinity
+  // sufit biegu spokojnego: 18 km (E-3) i pod długim (S-10)
+  const easyCap = Math.min(EASY_RUN_CAP_KM, longKm > 0 ? floor1(EASY_TO_LONG_MAX * longKm) : Infinity)
+  // Taper i tydzień startowy trzymają liczbę biegów z ostatniego tygodnia ładowania (T-2):
+  // bez dokładania dnia i bez usuwania krótkiego biegu.
+  const fixedCount = skeleton.keepFrequency && skeleton.sessionCount !== undefined
   // E-3 (inż.): część główna akcentu co najmniej 3 km
   let qualityMainKm = Math.max(3, Math.round(QUALITY_MAIN_SHARE * target) - style.warmupKm - style.cooldownKm)
-  const hillsRepsKm = (style.hillsReps * style.hillsRepM) / 1000
   // E-3 (inż.): spokojne wprowadzenie przed podbiegami 5–8 km, ~10% tygodnia
   const hillsEasyKm = hillsWd ? Math.min(8, Math.max(5, Math.round(0.1 * target))) : 0
 
-  const buildAll = () => {
+  // Akcent z pełną ramą; gdy przekroczyłby udział jednej jednostki, mała rama (B2),
+  // a gdy i ona — bieg spokojny z przebieżkami (undefined).
+  const accent = (i: number, mainKm: number): PlannedWorkout | undefined => {
+    const build = (frame: Frame) => i === 0
+      ? buildQualityIntervals(mainKm, polarized, style, zones, frame)
+      : buildQualityContinuous(mainKm, polarized, style, zones, frame)
+    return [standardFrame(style), ...SMALLER_FRAMES(style)].map(build).find((w) => w.distanceKm <= shareCap)
+  }
+
+  // Akcenty zwolnione przez sufit mocnych kilometrów albo objętość tygodnia stają się dniami spokojnymi.
+  const released = new Set<Weekday>()
+  let withHills = hillsWd !== undefined
+  let notes: WeekNote[] = []
+
+  /** Rozpisuje tydzień przy danej dawce akcentu; zwraca kilometry, których dni nie mieszczą. */
+  const layout = (mainKm: number): number => {
     plan.clear()
+    notes = []
     if (peakWd && peakWorkout) plan.set(peakWd, peakWorkout)
-    if (longWd) plan.set(longWd, buildLong(longKm, zones))
+    const strides: Weekday[] = []
+    const easy = [...easyWds]
     qualityWds.forEach((wd, i) => {
-      const w =
-        i === 0
-          ? buildQualityIntervals(qualityMainKm, polarized, style, zones)
-          : buildQualityContinuous(qualityMainKm, polarized, style, zones)
-      plan.set(wd, w)
+      const w = released.has(wd) ? undefined : accent(i, mainKm)
+      if (w) plan.set(wd, w)
+      else if (released.has(wd)) easy.push(wd)
+      else {
+        strides.push(wd)
+        notes.push({ code: 'accentAsStrides', date: addDays(skeleton.weekStart, idxOf(wd)) })
+      }
     })
-    if (hillsWd) plan.set(hillsWd, buildHillsDay(hillsEasyKm, style, zones))
-
-    const usedKm = [...plan.values()].reduce((s, w) => s + w.distanceKm, 0)
-    const remaining = Math.max(0, target - usedKm)
-    // E-3 (inż.): wstępny przydział biegu spokojnego co najmniej 5 km
-    const perEasy = easyWds.length
-      ? Math.min(EASY_RUN_CAP_KM, Math.max(5, Math.round(remaining / easyWds.length)))
-      : 0
-    for (const wd of easyWds) plan.set(wd, buildEasy(perEasy, zones))
+    const hillsDay = hillsWd && withHills
+      ? [hillsEasyKm, MIN_EASY_KM].map((km) => buildHillsDay(km, style, zones)).find((w) => w.distanceKm <= shareCap)
+      : undefined
+    if (hillsWd && hillsDay) plan.set(hillsWd, hillsDay)
+    else if (hillsWd) {
+      easy.push(hillsWd)
+      notes.push({ code: 'hillsDropped', date: addDays(skeleton.weekStart, idxOf(hillsWd)) })
+    }
+    let remaining = Math.max(0, target - longKm - sumKm(plan))
+    // przebieżki pierwsze: zastępują akcent, więc nie wypadają przy małej reszcie
+    const slots = [...strides, ...easy]
+    const spare = spareDays.filter((wd) => !plan.has(wd) && !slots.includes(wd))
+    // Ile może jeszcze wziąć długie (do sufitu udziału, P90). W tygodniu startu kontrolnego
+    // albo sprawdzianu tylko krótką resztę: ten tydzień ma być lżejszy.
+    const longRoom = longWd ? Math.max(0, Math.min(longCeil - longKm, peakWd ? MIN_EASY_KM : Infinity)) : 0
+    // S-11: kolejny dzień dopiero wtedy, gdy reszty nie mieszczą dni spokojne (sufit biegu
+    // i udział jednej jednostki, E-3) ani długie — i bieg zostaje nie krótszy niż MIN_EASY_KM
+    const perRunCap = Math.min(easyCap, shareCap)
+    while (!fixedCount && spare.length && remaining > slots.length * perRunCap + longRoom + 0.05 &&
+      remaining / (slots.length + 1) >= MIN_EASY_KM) slots.push(spare.shift()!)
+    // E-3: biegu krótszego niż MIN_EASY_KM nie ma — zwykły dzień spokojny wypada
+    while (!fixedCount && slots.length > strides.length && remaining + 0.05 < slots.length * MIN_EASY_KM) slots.pop()
+    // W tygodniu z długim i co najmniej trzema biegami żaden spokojny nie przekracza udziału
+    // jednej jednostki. Bez długiego (taper, pierwszy tydzień po starcie) jego rolę ma
+    // najdłuższy bieg spokojny, a przy dwóch biegach jeden ma połowę tygodnia z definicji —
+    // tak samo liczy lint `sessionShareHigh`.
+    const runCap = longWd && plan.size + 1 + slots.length >= 3 ? perRunCap : easyCap
+    for (const [i, wd] of slots.entries()) {
+      const km = Math.min(runCap, round1(remaining / (slots.length - i)))
+      plan.set(wd, strides.includes(wd) ? buildStrides(km, zones) : buildEasy(km, zones))
+      remaining = Math.max(0, remaining - km)
+    }
+    let long = longKm
+    // Reszta, której dni spokojne nie mieszczą, wydłuża długie (do `longRoom`).
+    if (longWd && remaining > 0.05) {
+      const extra = Math.min(remaining, longRoom)
+      long = round1(long + extra)
+      remaining = Math.max(0, round1(remaining - extra))
+    }
+    if (longWd) plan.set(longWd, buildLong(long, zones))
+    return remaining
   }
 
-  buildAll()
-
-  // I-5: ≥75% objętości w Z1 — w razie potrzeby skróć akcenty
-  for (let guard = 0; guard < 8; guard++) {
-    const total = [...plan.values()].reduce((s, w) => s + w.distanceKm, 0)
-    const z1 = [...plan.values()].reduce(
-      (s, w) =>
-        s +
-        w.segments
-          .filter((x) => x.type === 'easy' || x.type === 'warmup' || x.type === 'cooldown')
-          .reduce((a, x) => a + (x.distanceKm ?? 0), 0) +
-        w.segments.filter(x => x.type === 'hills').reduce((a, x) => a + (x.distanceKm ?? 0) / 2, 0),
-      0,
-    )
-    if (total === 0 || z1 / total >= 0.75 || qualityMainKm <= 3) break
-    qualityMainKm -= 1
-    buildAll()
+  // Reszta, której dni nie mieszczą, zamienia najpierw dzień podbiegów w dzień spokojny
+  // (B1: tak trener robi z dniem doklejanym do spokojnego biegu), dopiero potem zostaje uwagą.
+  const settle = (mainKm: number): number => {
+    const left = layout(mainKm)
+    if (left < MIN_EASY_KM || !withHills || !hillsWd) return left
+    withHills = false
+    return layout(mainKm)
   }
 
-  // Reconcile actual sessions with the macro budget. Minimum-sized accents are
-  // optional; they must never force an unrequested increase in weekly distance.
-  const total = () => [...plan.values()].reduce((n, w) => n + w.distanceKm, 0)
-  const hardKm = () => [...plan.values()].filter(w => w.kind !== 'race').reduce((n, w) => n + hardKmOf(w), 0)
+  let left = settle(qualityMainKm)
+  // I-5: ≥75% objętości w Z1 — liczone na tygodniu z rozdaną resztą kilometrów
+  for (let guard = 0; guard < 8 && z1Share(plan) < 0.75 && qualityMainKm > 3; guard++) left = settle(--qualityMainKm)
+
+  // Akcent minimalny jest opcjonalny: nie podnosi tygodnia ponad zamiar i nie łamie
+  // sufitu mocnych kilometrów — wtedy jego dzień staje się spokojny.
+  const hardKm = () => [...plan.values()].filter((w) => w.kind !== 'race').reduce((n, w) => n + hardKmOf(w), 0)
+  // Sufit mocnych km od tego, co tydzień faktycznie ma — I-5 dotyczy przebiegniętej objętości.
   for (const kind of ['quality_continuous', 'quality_intervals', 'easy_hills'] as const) {
-    for (const [wd, workout] of plan) {
-      if (total() <= target && hardKm() <= target * HARD_SHARE_MAX) break
-      if (workout.kind === kind) plan.set(wd, buildEasy(0, zones))
+    for (const wd of [...plan.keys()]) {
+      if (sumKm(plan) <= target + 0.05 && hardKm() <= Math.min(target, sumKm(plan)) * HARD_SHARE_MAX) break
+      if (plan.get(wd)?.kind !== kind) continue
+      if (kind === 'easy_hills') withHills = false
+      else released.add(wd)
+      left = settle(qualityMainKm)
     }
   }
-  // Distribute the residual only to easy running; keep race/test and long intact.
-  for (const [wd, w] of plan) if (w.kind === 'easy') plan.set(wd, buildEasy(0, zones))
-  const easySlots = [...plan.keys()].filter(wd => plan.get(wd)?.kind === 'easy')
-  for (const wd of free) {
-    if (plan.size >= workoutsCount) break
-    if (!plan.has(wd)) { plan.set(wd, buildEasy(0, zones)); easySlots.push(wd) }
+  // Tydzień krótszy od zamiaru: jednostki mierzone udziałem w tym, co faktycznie rozpisano.
+  // Każde zmniejszenie obniża sumę, więc przebiegi idą do punktu stałego (zbieżność ~0,35
+  // na przebieg, sufit zaokrąglany w dół).
+  for (let pass = 0; pass < 12 && shares && longWd && sumKm(plan) < target - 0.5; pass++) {
+    const before = sumKm(plan)
+    const next = floor1(SESSION_SHARE_MAX * before)
+    if (next >= shareCap) break
+    shareCap = next
+    left = settle(qualityMainKm)
+    if (before - sumKm(plan) < 0.05) break
   }
-  let remaining = Math.max(0, target - total())
-  for (const [i, wd] of easySlots.entries()) {
-    const km = Math.min(EASY_RUN_CAP_KM, Math.round(remaining / (easySlots.length - i) * 10) / 10)
-    if (km > 0) plan.set(wd, buildEasy(km, zones))
-    else plan.delete(wd)
-    remaining = Math.max(0, remaining - km)
-  }
-  // An all-quality template can leave no easy slot: release its smallest accent.
-  if (remaining > 0.5 && !easySlots.length) {
-    const replace = [...plan].reverse().find(([, w]) => w.kind === 'quality_continuous' || w.kind === 'easy_hills')
-    if (replace) plan.set(replace[0], buildEasy(Math.min(EASY_RUN_CAP_KM, replace[1].distanceKm + remaining), zones))
-  }
-  remaining = Math.max(0, target - total())
-  for (const wd of free) {
-    if (remaining <= 0.05) break
-    if (plan.has(wd)) continue
-    const km = Math.min(EASY_RUN_CAP_KM, Math.round(remaining * 10) / 10)
-    plan.set(wd, buildEasy(km, zones))
-    remaining -= km
-  }
+  if (left > 0.5) notes.push({ code: 'volumeShort', targetKm: target, plannedKm: round1(sumKm(plan)) })
+  return notes
+}
+
+const sumKm = (plan: Map<Weekday, PlannedWorkout>): number => [...plan.values()].reduce((s, w) => s + w.distanceKm, 0)
+
+/** Udział Z1 jak w `weekTotals`: rozgrzewka, schłodzenie, bieg spokojny i zbieg z podbiegów. */
+function z1Share(plan: Map<Weekday, PlannedWorkout>): number {
+  const total = sumKm(plan)
+  if (total === 0) return 1
+  const z1 = [...plan.values()].reduce((s, w) => s +
+    w.segments.filter((x) => x.type === 'easy' || x.type === 'warmup' || x.type === 'cooldown').reduce((a, x) => a + (x.distanceKm ?? 0), 0) +
+    w.segments.filter((x) => x.type === 'hills').reduce((a, x) => a + (x.distanceKm ?? 0) / 2, 0), 0)
+  return z1 / total
 }

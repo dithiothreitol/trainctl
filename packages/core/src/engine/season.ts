@@ -9,7 +9,7 @@
 import type { MacroPhase, Microcycle, PlannedWorkout, RaceGoal } from '../domain/types.ts'
 import { goalClass } from '../domain/goal-class.ts'
 import { median } from '../util/stats.ts'
-import { fmtPace, hardKmOf, paceMid } from './microcycle.ts'
+import { fmtPace, hardKmOf, paceMid, SESSION_SHARE_MAX } from './microcycle.ts'
 
 export interface SeasonAccent {
   kind: PlannedWorkout['kind']
@@ -107,8 +107,6 @@ export interface ShapeIssue {
   values: number[]
 }
 
-/** Udział jednej jednostki w tygodniu, powyżej którego tydzień „wisi" na niej (inż., E-3). */
-export const SESSION_SHARE_MAX = 0.35
 /**
  * Próg najdłuższego biegu dla dystansu: HM — dłuższy niż 21 km (J-2, P-7),
  * maraton — co najmniej 25 km (P-8 karze „najdłuższy <25 km").
@@ -158,8 +156,10 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
     const others = runs.filter((r) => r.w !== long?.w && !['race', 'test', 'sharpener'].includes(r.w.kind))
     const longest = Math.max(0, ...others.map((r) => r.w.distanceKm))
     if (long && longest > long.w.distanceKm) issues.push({ code: 'longNotLongest', date: week.weekStart, ruleRefs: ['S-2', 'J-1'], values: [long.w.distanceKm, longest] })
-    // jedna jednostka nie dźwiga tygodnia (inż.)
-    if (week.totalKm > 0 && week.skeleton.phase !== 'race') {
+    // Jedna jednostka nie dźwiga tygodnia obok długiego (inż.). Tydzień bez długiego (taper,
+    // pierwszy po starcie) nie ma czego chronić — jego rolę pełni najdłuższy bieg spokojny;
+    // przy dwóch biegach jeden ma połowę tygodnia z definicji.
+    if (week.totalKm > 0 && week.skeleton.phase !== 'race' && long && runs.length >= 3) {
       for (const r of runs) {
         if (['long', 'race', 'test'].includes(r.w.kind)) continue
         if (r.w.distanceKm > SESSION_SHARE_MAX * week.totalKm) issues.push({ code: 'sessionShareHigh', date: r.date, ruleRefs: ['E-3'], values: [r.w.distanceKm, round1(week.totalKm)] })

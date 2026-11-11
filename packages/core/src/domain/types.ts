@@ -110,6 +110,12 @@ export interface WeekSkeleton {
    * także przy rekalibracji, która dostaje tygodnie już przycięte.
    */
   uncappedKm?: number
+  /**
+   * Objętość, którą dni tygodnia mieszczą pod sufitami jednostek (S-10, E-3), gdy
+   * jest mniejsza od `targetKm`. Zapisuje ją generator mikrocyklu; lint porównuje
+   * z nią sumy dni tak jak z `timeCappedKm`, a `targetKm` zostaje zamiarem makrocyklu.
+   */
+  layoutKm?: number
   flags: string[]
   ruleRefs: string[]
 }
@@ -195,6 +201,18 @@ export interface PlannedDay {
   strength?: StrengthSession
 }
 
+/**
+ * Decyzja generatora o układzie tygodnia (PLAN-v0.7 B1, B2): kod bez języka, zdanie
+ * składa CLI w `why`. Jawność zamiast cichej zmiany jednostki.
+ */
+export type WeekNote =
+  /** Dzień podbiegów był w układzie i wypadł: za duży udział w tygodniu albo potrzebny dzień na resztę kilometrów. */
+  | { code: 'hillsDropped'; date: string }
+  /** Akcent zastąpiony biegiem spokojnym z przebieżkami: z ramą przekroczyłby udział jednej jednostki (J-6, E-3). */
+  | { code: 'accentAsStrides'; date: string }
+  /** Reszta kilometrów nie mieści się w dostępnych dniach pod sufitem biegu spokojnego (S-10). */
+  | { code: 'volumeShort'; targetKm: number; plannedKm: number }
+
 export interface Microcycle {
   weekStart: string
   skeleton: WeekSkeleton
@@ -204,4 +222,6 @@ export interface Microcycle {
   easyShare: number
   /** Uwagi modułu siły (np. „zmieściła się 1 z 2 sesji") — jawność zamiast cichego przycięcia. */
   strengthNotes?: string[]
+  /** Uwagi generatora o układzie tygodnia — `why` je tłumaczy. */
+  notes?: WeekNote[]
 }
