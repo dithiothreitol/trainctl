@@ -6,6 +6,7 @@
 import { createInterface, type Interface } from 'node:readline/promises'
 import type { InferenceOutcome, InferredProfile } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
+import { kmLabel } from '../format.ts'
 import { sparkline, Theme } from './theme.ts'
 
 export interface WizardAnswers {
@@ -264,7 +265,7 @@ export async function runWizard(
     if (candidate) {
       const label =
         `${candidate.date} · ${candidate.name ?? ui().init.unnamed} · ` +
-        `${candidate.distanceKm} km — ${fmtClock(candidate.timeSec)}`
+        `${kmLabel(candidate.distanceKm)} — ${fmtClock(candidate.timeSec)}`
       console.log(theme.dim(`  ${w.raceLooksLike(label, candidate.reason)}`))
       if (await askYesNo(rl, theme, w.useThisResult)) {
         resultDate = candidate.date

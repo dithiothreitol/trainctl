@@ -1026,7 +1026,7 @@ export const cliEn = {
     'R-9': 'strength returns in the second week after the race, one lighter session — an engineering choice, no source',
     'R-10': 'after a shorter goal race, one transition week at ~70% — an engineering choice; no data behind it',
     'P-11': 'a plan without a race grows to your documented peak (or +15%) and levels off there, deload every fourth week — an engineering choice',
-    'E-3': 'fixed engine values without a source: easy run ≤18 km, accent main set ~22% of the week, hard km ≤25%, phase split 40/20%, recoveries 2–3 min, race-week sessions — engineering choices to confirm against the corpus or a coach',
+    'E-3': 'fixed engine values without a source: easy run ≤18 km, accent main set ~22% of the week, hard km ≤25%, phase split 40/20%, recoveries 2–3 min, race-week sessions — engineering choices to confirm by measurement or coach review',
     'E-2': 'the time budget from trainctl.yaml caps weekly volume and shortens sessions with the same rules as E-1 — an engineering choice, no source',
     'Z-10': 'a trail result does not calibrate road zones while a road result exists — an engineering choice; VDOT tables come from road and track',
   },

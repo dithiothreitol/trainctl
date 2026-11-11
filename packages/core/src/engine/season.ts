@@ -125,10 +125,10 @@ export function longRunThreshold(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): {
 const LOADING_PHASES = new Set<MacroPhase>(['base', 'build', 'peak'])
 const isLoading = (w: Microcycle) => LOADING_PHASES.has(w.skeleton.phase) && !w.skeleton.deload
 
-export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanceKm'>; weeks: Microcycle[] }): ShapeIssue[] {
+/** `rows` — profil już policzony przez wołającego (unika drugiego przebiegu). */
+export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanceKm'>; weeks: Microcycle[] }, rows = seasonProfile(plan.weeks)): ShapeIssue[] {
   const issues: ShapeIssue[] = []
   const weeks = plan.weeks
-  const rows = seasonProfile(weeks)
 
   for (const week of weeks) {
     const runs = week.days.flatMap((d) => (d.workout ? [{ date: d.date, w: d.workout }] : []))

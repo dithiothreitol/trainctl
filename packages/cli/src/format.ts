@@ -6,5 +6,7 @@ import { ui } from './i18n/index.ts'
 export const kmLabel = (km: number): string => `${formatNumber(getLocale(), km)} km`
 
 /** Status wpisu dziennika słowem z katalogu; nieznany status (ręczna edycja log.jsonl) bez zmian. */
-export const logStatusText = (status: string, strength = false): string =>
-  (strength ? ui().log.strengthStatusWord : ui().log.statusWord)[status as 'done'] ?? status
+export function logStatusText(status: string, strength = false): string {
+  const words: Record<string, string> = strength ? ui().log.strengthStatusWord : ui().log.statusWord
+  return Object.hasOwn(words, status) ? words[status]! : status
+}

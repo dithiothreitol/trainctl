@@ -241,7 +241,7 @@ export async function cmdInitFromIntervals(
           : []),
         [ui().init.trainingDays, p.daysAvailable.join(', ')],
         ...(p.longRunDay ? ([[ui().init.longRunDay, p.longRunDay]] as [string, string][]) : []),
-        [ui().init.lastFourWeeks, recent4.map((km) => `${kmLabel(km)}`).join(' · ')],
+        [ui().init.lastFourWeeks, recent4.map((km) => kmLabel(km)).join(' · ')],
       ]),
     ]
     for (const c of p.caveats) blocks.push(b.warn(c))
@@ -575,7 +575,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
       blocks.push(
         b.success(
           ui().today.logged(logStatusText(entry.status)) +
-            (entry.km !== undefined ? `, ${kmLabel(entry.km)}` : '') +
+            (typeof entry.km === 'number' && Number.isFinite(entry.km) ? `, ${kmLabel(entry.km)}` : '') +
             (entry.rpe !== undefined ? `, RPE ${entry.rpe}` : '') +
             (entry.note ? ` — ${entry.note}` : ''),
         ),
@@ -619,7 +619,7 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
       rows.push([
         weekdayShort(day.weekday),
         day.date.slice(5),
-        day.workout ? `${kmLabel(day.workout.raceDistanceKm ?? day.workout.distanceKm)}` : '—',
+        day.workout ? kmLabel(day.workout.raceDistanceKm ?? day.workout.distanceKm) : '—',
         day.workout ? `${workoutText(day)}${strength}${mark}` : `${ui().week.rest}${strength}`,
       ])
       accents.push(kind ? KIND_COLOR[kind] : 'muted')
@@ -703,11 +703,11 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     const minutes = workout ? estimateWorkoutMinutes(workout, plan.preparationMinutes ?? 15) : undefined
     const knownMinutes = minutes !== undefined && Number.isFinite(minutes) ? minutes : null
     const planned = workout
-      ? [kindLabel(workout.kind), `${kmLabel(workout.raceDistanceKm ?? workout.distanceKm)}`, ...(knownMinutes !== null ? [`~${knownMinutes} min`] : [])].join(' · ')
+      ? [kindLabel(workout.kind), kmLabel(workout.raceDistanceKm ?? workout.distanceKm), ...(knownMinutes !== null ? [`~${knownMinutes} min`] : [])].join(' · ')
       : ui().week.rest
     const recorded = [
       logStatusText(entry.status),
-      ...(entry.km !== undefined ? [`${kmLabel(entry.km)}`] : []),
+      ...(entry.km !== undefined ? [kmLabel(entry.km)] : []),
       ...(entry.timeSec !== undefined ? [fmtTime(entry.timeSec)] : []),
       ...(entry.testTimeSec !== undefined ? [ui().log.testTime(fmtTime(entry.testTimeSec))] : []),
       ...(entry.rpe !== undefined ? [`RPE ${entry.rpe}`] : []),
@@ -831,7 +831,7 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
         // stanu dzisiejszego — inaczej etykieta i wiek przeczyłyby sobie.
         const age = diffDays(c.result.date, now)
         const reason = c.reason === 'future' && age >= 0 ? 'newer' : c.reason === 'lower-vdot' && age > 540 ? 'stale' : c.reason === 'selected' && age > 540 ? 'selectedStale' : c.reason
-        return [c.result.date, c.result.name ?? formatNumber(getLocale(), c.result.distanceKm) + ' km', 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
+        return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
       })))
     } else blocks.push(b.info(ui().improve.calibrationMissing))
     const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...(day.strength?.ruleRefs ?? [])])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
@@ -957,8 +957,8 @@ export async function cmdPull(
             [ui().pull.columns.date, ui().pull.columns.planned, ui().pull.columns.actual, ui().pull.columns.status],
             rows.slice(-10).map((r) => [
               r.date,
-              `${kmLabel(r.plannedKm)}`,
-              r.actualKm === undefined ? '—' : `${kmLabel(r.actualKm)}`,
+              kmLabel(r.plannedKm),
+              r.actualKm === undefined ? '—' : kmLabel(r.actualKm),
               ui().compare[r.status],
             ]),
             rows.slice(-10).map((r) => (r.status === 'missed' ? 'warn' : 'muted')),
@@ -1461,7 +1461,7 @@ export async function cmdReview(
       ]),
     )
     blocks.push(b.section(ui().coach.reviewFacts), b.table([ui().improve.date, ui().review.columns.planned, ui().review.columns.actual, ui().review.columns.status],
-      execution.filter(e => e.kind || e.status === 'unplanned').map(e => [e.date, `${kmLabel(e.plannedKm)}`, e.actualKm === undefined ? ui().compare.unknown : `${kmLabel(e.actualKm)}`, ui().coach.status[e.status]])))
+      execution.filter(e => e.kind || e.status === 'unplanned').map(e => [e.date, kmLabel(e.plannedKm), e.actualKm === undefined ? ui().compare.unknown : kmLabel(e.actualKm), ui().coach.status[e.status]])))
     const unknown = execution.filter(e => e.status === 'unknown').map(e => e.date)
     if (unknown.length) blocks.push(b.warn(ui().coach.reviewUnknown(unknown.join(', '))))
 
@@ -1570,7 +1570,7 @@ export async function cmdReview(
     const nextRace = (config.athlete.tuneUpRaces ?? []).find((r) => r.date > today)
     if (nextRace) {
       todo.push(
-        ui().review.todoNextRace(nextRace.date, nextRace.name ?? `${kmLabel(nextRace.distanceKm)}`),
+        ui().review.todoNextRace(nextRace.date, nextRace.name ?? kmLabel(nextRace.distanceKm)),
       )
     }
     blocks.push(b.section(ui().review.todo), b.bullets(todo))

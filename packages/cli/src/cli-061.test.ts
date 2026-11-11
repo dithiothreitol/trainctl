@@ -4,7 +4,7 @@
  * dziesiętne w formacie języka, status dziennika słowem z katalogu, adresy
  * nie cięte przy zawijaniu, wiek wyniku liczony od dziś.
  */
-import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -161,10 +161,14 @@ describe('poprawki po przeglądzie etapu 1', () => {
     expect(out.split('\n').some((line) => line.trim() === url)).toBe(true)
   })
 
-  it('handlery nie wstawiają surowych kilometrów (format języka przez formatNumber)', () => {
-    const src = readFileSync(join(import.meta.dirname, 'commands.ts'), 'utf-8')
-    expect(src).not.toMatch(/\$\{[\w.]*(?:km|Km)\} km`/)
-    expect(src).not.toContain('String(w.totalKm)')
+  it('kod CLI nie wstawia surowych kilometrów (format języka przez kmLabel albo n())', () => {
+    const files = readdirSync(import.meta.dirname, { recursive: true, encoding: 'utf-8' })
+      .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+    for (const f of files) {
+      const src = readFileSync(join(import.meta.dirname, f), 'utf-8')
+      expect(src, f).not.toMatch(/\$\{[\w.!?]*(?:km|Km)\} km/)
+      expect(src, f).not.toContain('String(w.totalKm)')
+    }
   })
 
   it('podtytuł tygodnia: bez planowanej sumy jedna liczba', () => {
@@ -208,5 +212,45 @@ describe('poprawki po drugiej rundzie przeglądu etapu 1', () => {
       expect(out).toContain('partial')
       expect(out).not.toContain('undefined')
     }
+  })
+})
+
+describe('poprawki po trzeciej rundzie przeglądu etapu 1', () => {
+  it('why w dniu startu: dystans segmentu w formacie języka', () => {
+    setLocale('pl')
+    const out = cmdWhy(dir, { date: '2027-03-28' }).output
+    expect(out).toContain('21,1 km')
+    expect(out).not.toContain('21.0975')
+  })
+
+  it('PLAN.md: objętość tygodnia w formacie języka', () => {
+    setLocale('pl')
+    cmdPlan(dir, { fresh: true })
+    const md = readFileSync(join(dir, 'plan', 'PLAN.md'), 'utf-8')
+    expect(md).not.toMatch(/\d\.\d+ km/)
+  })
+
+  it('today nie pada na km spoza liczb w ręcznie edytowanym log.jsonl', () => {
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'done', km: null, loggedAt: '2026-10-27T10:00:00Z' }) + '\n')
+    const today = cmdToday(dir)
+    expect(today.code).toBe(0)
+    expect(today.output).not.toContain('null')
+  })
+
+  it('status równy kluczowi Object.prototype nie zwraca funkcji', () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'constructor', loggedAt: '2026-10-27T10:00:00Z' }) + '\n')
+    const out = cmdWeek(dir).output
+    expect(out).toContain('[constructor]')
+    expect(out).not.toContain('native code')
+  })
+
+  it('macierz profili nie trafia do paczki npm', () => {
+    const pkg = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'package.json'), 'utf-8')) as { files: string[] }
+    const build = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'tsconfig.build.json'), 'utf-8')) as { exclude: string[] }
+    expect(pkg.files).toContain('!src/**/*.fixture.ts')
+    expect(build.exclude).toContain('src/**/*.fixture.ts')
   })
 })

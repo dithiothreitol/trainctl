@@ -1,9 +1,10 @@
 /**
  * Macierz profili syntetycznych do testów kształtu sezonu (docs/PLAN-v0.7.md, B0).
  * Bez danych osobowych: wynik 10 km 43:00, dni z korpusowego wzorca tygodnia.
- * Używa jej `plan-shape.test.ts` i skrypt przeglądu trenerskiego (F1).
+ * Używa jej `plan-shape.test.ts` i skrypt przeglądu trenerskiego (F1). Plik
+ * `.fixture.ts` nie trafia do paczki npm (package.json `files`, tsconfig.build).
  */
-import { seasonLine, seasonProfile, seasonShapeIssues, type ShapeIssue, type Weekday } from 'trainctl-core'
+import { addDays, seasonLine, seasonProfile, seasonShapeIssues, type ShapeIssue, type Weekday } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
 import { computePlan, type StoredPlan } from './planfile.ts'
 
@@ -33,8 +34,6 @@ export interface MatrixProfile {
   strength?: boolean
   peakKm?: number
 }
-
-const addDays = (iso: string, days: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10)
 
 /** Data celu: niedziela tygodnia, który jest `weeks`-tym tygodniem planu. */
 export function matrixConfig(p: MatrixProfile): TrainctlConfig {
@@ -78,5 +77,6 @@ export function matrixPlan(p: MatrixProfile): StoredPlan {
 }
 
 export function shapeReport(p: MatrixProfile, plan = matrixPlan(p)): { lines: string[]; issues: ShapeIssue[] } {
-  return { lines: seasonProfile(plan.weeks).map(seasonLine), issues: seasonShapeIssues(plan) }
+  const rows = seasonProfile(plan.weeks)
+  return { lines: rows.map(seasonLine), issues: seasonShapeIssues(plan, rows) }
 }

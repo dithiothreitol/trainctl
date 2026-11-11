@@ -38,8 +38,7 @@ const QUALITY_MAIN_SHARE = 0.22
 const HARD_SHARE_MAX = 0.25
 
 /** Środek zakresu tempa — tempo wpisywane w opis odcinka. */
-export const paceMid = (r: { loSecPerKm: number; hiSecPerKm: number }): number => mid(r)
-const mid = (r: { loSecPerKm: number; hiSecPerKm: number }) =>
+export const paceMid = (r: { loSecPerKm: number; hiSecPerKm: number }): number =>
   Math.round((r.loSecPerKm + r.hiSecPerKm) / 2)
 
 /**
@@ -57,9 +56,9 @@ export function recalibrateWorkout(workout: PlannedWorkout, zones: PaceZones, po
         ? { loSecPerKm: zones.easy.hiSecPerKm, hiSecPerKm: zones.easy.hiSecPerKm + 30 } : { ...zones.easy }
     } else if (s.type === 'intervals') {
       s.pace = { ...(polarized || workout.kind === 'sharpener' ? zones.interval : zones.threshold) }
-      s.description = s.description.replace(/\d+:\d{2}/g, fmtPace(mid(s.pace)))
+      s.description = s.description.replace(/\d+:\d{2}/g, fmtPace(paceMid(s.pace)))
     } else if (s.type === 'progression') {
-      s.pace = { loSecPerKm: mid(zones.threshold), hiSecPerKm: zones.marathon.hiSecPerKm }
+      s.pace = { loSecPerKm: paceMid(zones.threshold), hiSecPerKm: zones.marathon.hiSecPerKm }
       s.description = messages().workout.progression(s.distanceKm ?? 0, fmtPace(s.pace.hiSecPerKm), fmtPace(s.pace.loSecPerKm))
     } else if (s.type === 'alternating') {
       s.pace = { loSecPerKm: zones.threshold.loSecPerKm, hiSecPerKm: zones.easy.loSecPerKm }
@@ -161,7 +160,7 @@ function buildQualityIntervals(
       pace: z.interval,
       recoverySec: 180, // E-3 (inż.): przerwy 3' trucht przy odcinkach @I, z korpusu bez reguły
       description: messages().workout.intervalsVo2(
-        reps, fmtPace(mid(z.interval)), 3, Math.ceil(reps / 2), 4,
+        reps, fmtPace(paceMid(z.interval)), 3, Math.ceil(reps / 2), 4,
       ),
     }
   } else if (mainKm >= 9) {
@@ -174,7 +173,7 @@ function buildQualityIntervals(
       distanceKm: reps * 3,
       pace: z.threshold,
       recoverySec: 180, // E-3 (inż.)
-      description: messages().workout.intervals3Km(reps, fmtPace(mid(z.threshold)), 3),
+      description: messages().workout.intervals3Km(reps, fmtPace(paceMid(z.threshold)), 3),
     }
   } else {
     const reps = Math.max(4, Math.round(mainKm))
@@ -185,7 +184,7 @@ function buildQualityIntervals(
       distanceKm: reps,
       pace: z.threshold,
       recoverySec: 120, // E-3 (inż.): 2' marsz — zapis korpusu, bez reguły w FOUNDATIONS
-      description: messages().workout.intervalsKm(reps, fmtPace(mid(z.threshold)), 2),
+      description: messages().workout.intervalsKm(reps, fmtPace(paceMid(z.threshold)), 2),
     }
   }
   segments.push(main, segCooldown(style.cooldownKm))
@@ -216,7 +215,7 @@ function buildQualityContinuous(
     }
   } else {
     const from = z.marathon.hiSecPerKm
-    const to = mid(z.threshold)
+    const to = paceMid(z.threshold)
     main = {
       type: 'progression',
       distanceKm: mainKm,
@@ -250,7 +249,7 @@ function buildSharpener(style: HouseStyle, z: PaceZones): PlannedWorkout {
         distanceKm: (reps * repM) / 1000,
         pace: z.interval,
         recoverySec: 60,
-        description: messages().workout.intervalsShort(reps, repM, fmtPace(mid(z.interval)), 1),
+        description: messages().workout.intervalsShort(reps, repM, fmtPace(paceMid(z.interval)), 1),
       },
       segCooldown(style.cooldownKm),
     ],

@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { setLocale, validatePlan, type ShapeCode } from 'trainctl-core'
-import { REVIEW_PROFILES, fullMatrix, matrixPlan, shapeReport, type MatrixProfile } from './plan-shape-matrix.ts'
+import { REVIEW_PROFILES, fullMatrix, matrixPlan, shapeReport, type MatrixProfile } from './plan-shape.fixture.ts'
 
 setLocale('en')
 

@@ -25,6 +25,7 @@ import {
 } from 'trainctl-core'
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
+import { kmLabel } from './format.ts'
 import { inspectCalibration, type Calibration } from './calibration.ts'
 import { packageVersion } from './version.ts'
 
@@ -598,7 +599,7 @@ export function renderMarkdown(plan: StoredPlan): string {
     const label = [
       core.phase[sk.phase] ?? sk.phase,
       core.intensityModel[sk.intensityModel],
-      `${week.totalKm} km`,
+      kmLabel(week.totalKm),
       ...(sk.deload ? [m.deload] : []),
     ].join(' · ')
     lines.push('', `## ${m.weekHeading(weekPosition(plan, week).index + 1, week.weekStart, label)}`, '')

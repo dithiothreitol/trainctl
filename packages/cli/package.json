@@ -35,6 +35,7 @@
     "dist",
     "src/**/*.ts",
     "!src/**/*.test.ts",
+    "!src/**/*.fixture.ts",
     "README.md",
     "LICENSE"
   ],

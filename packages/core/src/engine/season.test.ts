@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { Microcycle, PlannedWorkout, RaceGoal, Weekday } from '../domain/types.ts'
+import { addDays } from '../util/dates.ts'
 import { seasonLine, seasonProfile, seasonShapeIssues } from './season.ts'
 
 const WD: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10)
 
 function week(start: string, workouts: Partial<Record<Weekday, PlannedWorkout>>, phase: Microcycle['skeleton']['phase'] = 'build'): Microcycle {
   const days = WD.map((weekday, i) => ({ date: addDays(start, i), weekday, ...(workouts[weekday] ? { workout: workouts[weekday] } : {}) }))
