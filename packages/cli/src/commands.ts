@@ -1827,7 +1827,9 @@ export function cmdCheck(cwd: string, opts: { strict?: boolean | undefined } = {
     const t = ui().check
     // B10 (ADR-047): linty kształtu sezonu na pliku, który przechodzi kontrolę integralności.
     // Długie poniżej progu dystansu to ostrzeżenie wykonalności w `plan`, nie lint tygodnia.
-    const shape = errors.length === 0 && plan.goal && Array.isArray(plan.weeks)
+    // Walidator przyjmuje tydzień bez szkieletu (ręczna edycja), linty kształtu go potrzebują.
+    const withSkeletons = Array.isArray(plan.weeks) && plan.weeks.every((w) => typeof w?.skeleton === 'object' && w.skeleton !== null)
+    const shape = errors.length === 0 && plan.goal && Array.isArray(plan.weeks) && withSkeletons
       ? seasonShapeIssues({ goal: plan.goal, weeks: plan.weeks, cycleStart: plan.cycleStart }).filter((i) => i.code !== 'longBelowGoal')
       : []
     const warns: string[] = [...issues.filter((i) => i.severity === 'warn').map(describeIssue), ...shape.map(describeShapeIssue)]

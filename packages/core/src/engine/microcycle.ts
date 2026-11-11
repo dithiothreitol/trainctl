@@ -272,7 +272,11 @@ function buildQualityIntervals(
   }
 }
 
-/** J-4: drabinka w szczycie — serie 1000/400/200 m @I, co najmniej dwie (dawka ~3,2 km). */
+/**
+ * J-4: drabinka w szczycie — bloki 1000, 400 i 200 m @I po kolei, każdy co najmniej dwa
+ * razy (dawka ~3,2 km). Kolejność bloków po dystansie to wybór inżynierski: korpus nie
+ * rozstrzyga, czy powtarza się cała seria 1000/400/200 (pytanie do przeglądu F1).
+ */
 function buildLadder(mainKm: number, style: HouseStyle, z: PaceZones, frame: Frame): PlannedWorkout {
   const sets = Math.max(2, Math.round(mainKm / LADDER_SET_KM))
   const pace = fmtPace(paceMid(z.interval))

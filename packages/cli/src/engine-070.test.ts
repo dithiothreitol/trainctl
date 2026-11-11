@@ -15,7 +15,7 @@ import { writeSnapshot } from './sync.ts'
 import { buildExecution } from './execution.ts'
 import { blockLevelOf, computePlan, cycleWeeksOf, loadPlan, mergeWeekNotes, settleMixedWeek, writePlan } from './planfile.ts'
 import { inferredConfigYaml, loadConfig } from './config.ts'
-import { parse } from 'yaml'
+import { parse, stringify } from 'yaml'
 
 const config = (weeklyKm: number, days: string) => `athlete:
   recentWeeklyKm: ${weeklyKm}
@@ -160,6 +160,17 @@ describe('B8: profil z historii proponuje powrót po przerwie', () => {
 
 describe('B10: linty kształtu w check (ADR-047)', () => {
   beforeEach(() => setLocale('en'))
+  it('tydzień bez szkieletu (ręczna edycja): check raportuje, nie wywraca się na lintach kształtu', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    const plan = loadPlan(dir)
+    delete (plan.weeks[3] as { skeleton?: unknown }).skeleton
+    // ręczna edycja pliku: tylko plan.yaml, bez PLAN.md
+    writeFileSync(join(dir, 'plan', 'plan.yaml'), stringify(plan), 'utf-8')
+    const r = cmdCheck(dir, {})
+    expect(r.output).not.toMatch(/Cannot read properties|TypeError/)
+    expect((r.data as { shape?: unknown[] } | undefined)?.shape).toEqual([])
+  })
   it('świeży plan przechodzi; zamienione długie i spokojne (te same sumy) dają ostrzeżenie S-2, J-1, a --strict zawodzi', () => {
     writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun'), 'utf-8')
     expect(cmdPlan(dir).code).toBe(0)
