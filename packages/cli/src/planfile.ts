@@ -236,7 +236,8 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   // (ADR-011), ale plan mówi, że reguła powrotu go nie przewiduje
   for (const w of plan.weeks) {
     const race = w.skeleton.tuneUp
-    if (w.skeleton.easyOnly && race && race.date >= today) {
+    // przyszłe względem dzisiejszej daty, nie startu planu (regeneracja liczy plan od startu)
+    if (w.skeleton.easyOnly && race && race.date >= calibrationDate) {
       plan.feasibilityWarnings.push(ui().planMd.tuneUpInReturn(race.date, w.skeleton.ruleRefs.includes('R-5') ? 'R-5' : 'R-11'))
     }
   }
@@ -274,12 +275,14 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   const peakText = messages().macro.peakBelowRecommended(macro.peakKmPlanned, macro.peakKmRecommended, goal.distanceKm)
   if (peakShort || longShort || capped) plan.feasibilityWarnings = plan.feasibilityWarnings.filter((w) => w !== peakText)
   if (peakShort || (longShort && !capped)) {
-    // po bloku powrotu data liczy się od powrotu, z objętości sprzed przerwy (B11.5); powrót
-    // jest decyzją, więc obowiązuje także wtedy, gdy profil ma jeszcze objętość sprzed przerwy
+    // po bloku powrotu data liczy się od powrotu, ze startu bloku (RETURN_RESTART_SHARE, ten
+    // sam co applyReturnBlock) — powrót jest decyzją, więc obowiązuje także wtedy, gdy profil
+    // ma jeszcze objętość sprzed przerwy (B11.5). Bez powrotu: od dzisiejszej daty, nie od
+    // startu planu — regeneracja liczy plan od startu, a rada dotyczy planu zaczętego dziś.
     const ret = returnFrom
     const reachableFrom = ret
-      ? earliestFeasibleRaceDate({ ...athlete, recentWeeklyKm: Math.min(athlete.recentWeeklyKm, ret.previousWeeklyKm), returning: { since: ret.since, previousWeeklyKm: ret.previousWeeklyKm } }, goal, ret.since)
-      : earliestFeasibleRaceDate(athlete, goal, today)
+      ? earliestFeasibleRaceDate({ ...athlete, recentWeeklyKm: Math.round(RETURN_RESTART_SHARE * ret.previousWeeklyKm), returning: { since: ret.since, previousWeeklyKm: ret.previousWeeklyKm } }, goal, ret.since)
+      : earliestFeasibleRaceDate(athlete, goal, calibrationDate)
     plan.feasibilityWarnings.push(ui().planMd.verdict({
       distanceKm: goal.distanceKm,
       peakKm: verdictPeak,

@@ -20,9 +20,9 @@ change between minor versions — a regenerated plan can differ.
   The peak is capped at what the available days can
   hold, so deloads and the taper stay lighter than loading weeks, and `plan`
   says when the days limit the peak.
-- Small weeks: an accent that would carry more than 35% of the week first loses
-  a repetition, then gets a 2 km warm-up, and below that becomes an easy run
-  with strides (J-6). No run besides the long run is shorter than 3 km: two
+- Small weeks: an accent that would carry more than 35% of a week with a long
+  run first loses a repetition, then gets a 2 km warm-up, and below that
+  becomes an easy run with strides (J-6); in the taper the accent stays (T-1). No run besides the long run is shorter than 3 km: two
   2 km strides days become one 4 km day, and the long run beside easy runs is
   at least 3.4 km. A time trial is planned only when the whole session with
   warm-up and cool-down fits the same share; with one accent a week, the time
@@ -82,7 +82,8 @@ change between minor versions — a regenerated plan can differ.
   week keeps 3 km weeks and lists the weeks over the budget.
 - When the plan stays below the distance's thresholds, `plan` gives one verdict
   instead of two warnings: the plan peak, the recommended peak and the longest
-  run, with the ways out — a later race date when the profile allows it,
+  run, with the ways out — a later race date when the profile allows it
+  (counted from today, or from the return after a break),
   `peakWeeklyKm` or `returning` if you have run more before, or a base goal.
 
 ### Added

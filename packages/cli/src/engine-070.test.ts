@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
+import { earliestFeasibleRaceDate, plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
 import { applyProposal, prepareProposal } from './proposals.ts'
 import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
 import { latestByDate, readLog } from './logfile.ts'
@@ -91,6 +91,14 @@ describe.each(['pl', 'en'] as const)('B1, B2 w komendach · %s', (lang) => {
     const r = cmdPlan(dir)
     expect(r.code).toBe(0)
     expect(r.output).toMatch(lang === 'pl' ? /start nie wcześniej niż 2027-\d\d-\d\d/ : /a race on or after 2027-\d\d-\d\d/)
+    // regeneracja kilka tygodni później: data liczy się od dziś, nie od startu planu
+    process.env['TRAINCTL_TODAY'] = '2026-11-20'
+    const again = cmdPlan(dir)
+    expect(again.code).toBe(0)
+    const cfg = loadConfig(dir)
+    const fromToday = earliestFeasibleRaceDate(cfg.athlete, cfg.goal, '2026-11-20')!
+    expect(fromToday > earliestFeasibleRaceDate(cfg.athlete, cfg.goal, '2026-10-22')!).toBe(true)
+    expect(again.output).toContain(fromToday)
   })
 
   it('plan po przerwie (R-11): pierwszy blok spokojny, start od połowy objętości sprzed przerwy', () => {
@@ -337,6 +345,11 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(plan.feasibilityWarnings).toContain('The tune-up race on 2026-11-01 falls in the easy block of your return (R-11): run it easy or skip it.')
     expect(r.output).toContain('2026-11-01 falls in the easy block')
     expect(plan.weeks.flatMap((w) => w.days).find((d) => d.date === '2026-11-01')?.workout?.kind).toBe('race')
+    // po starcie kontrolnym regeneracja już o nim nie mówi
+    process.env['TRAINCTL_TODAY'] = '2026-11-05'
+    const again = cmdPlan(dir)
+    expect(again.code).toBe(0)
+    expect(again.output).not.toContain('2026-11-01 falls in the easy block')
   })
 
   it('adapt w tygodniu odciążenia: podniesienie bazy liczy się od poziomu bloku, nie od odciążenia (B3)', () => {
@@ -408,9 +421,12 @@ describe('B11: przerwa w trakcie planu', () => {
   it('plan po powrocie: data, od której start jest osiągalny, liczy się od powrotu, choć profil ma objętość sprzed przerwy', () => {
     writeFileSync(join(dir, 'trainctl.yaml'), config(50, 'tue, wed, thu, sat, sun'), 'utf-8')
     // powrót siedem tygodni przed startem z 45 km: krzywa nie dojdzie do 42 km
-    const plan = computePlan(loadConfig(dir), '2027-02-08', '2027-02-08', { returnFrom: { since: '2027-02-08', previousWeeklyKm: 45, illness: false } })
+    const cfg = loadConfig(dir)
+    const plan = computePlan(cfg, '2027-02-08', '2027-02-08', { returnFrom: { since: '2027-02-08', previousWeeklyKm: 45, illness: false } })
     expect(plan.feasibilityWarnings.join(' ')).toMatch(/stays below the thresholds/)
-    expect(plan.feasibilityWarnings.join(' ')).toMatch(/a race on or after 2027-\d\d-\d\d/)
+    // data liczona od tego samego startu co blok powrotu (55% objętości sprzed przerwy)
+    const expected = earliestFeasibleRaceDate({ ...cfg.athlete, recentWeeklyKm: Math.round(0.55 * 45), returning: { since: '2027-02-08', previousWeeklyKm: 45 } }, cfg.goal, '2027-02-08')!
+    expect(plan.feasibilityWarnings.join(' ')).toContain(`a race on or after ${expected}`)
   })
 
   it('plan po przerwie pod koniec przygotowań: szczyt i werdykt od powrotu, nie z tygodni sprzed przerwy', () => {

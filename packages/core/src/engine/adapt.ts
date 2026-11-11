@@ -16,6 +16,7 @@ import type { BreakReason, RaceResult, WorkoutKind } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
 import { diffDays } from '../util/dates.ts'
 import { distanceClass } from '../domain/goal-class.ts'
+import { RETURN_RESTART_SHARE } from './macrocycle.ts'
 
 export interface ExecutionRecord {
   date: string
@@ -142,7 +143,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
       // B11: restart do przyjęcia jako blok powrotu — po chorobie R-5, po innej przerwie R-11
       const illness = breakReason === 'illness'
       const previousWeeklyKm = input.preBreakWeeklyKm ?? input.currentWeeklyKm
-      const restartKm = Math.round(previousWeeklyKm * 0.55)
+      const restartKm = Math.round(previousWeeklyKm * RETURN_RESTART_SHARE)
       actions.push({
         type: 'conservative-restart',
         detail: illness ? m.adapt.restartAfterIllness(restartKm, layoff) : m.adapt.restartAfterLayoff(restartKm, layoff),
