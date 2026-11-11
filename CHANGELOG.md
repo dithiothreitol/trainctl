@@ -43,7 +43,9 @@ change between minor versions — a regenerated plan can differ.
 - Hand-edited `log.jsonl` values are read with the limits `trainctl log`
   applies: numbers written as text or with a comma are accepted, values the
   CLI would reject are ignored, and a missing final newline no longer merges
-  the next entry into the last one.
+  the next entry into the last one. A line that is not a JSON object is
+  skipped instead of stopping every command; `status` lists the ignored lines
+  and values.
 - `week` prints one volume when the target equals the planned total.
 
 ## [0.6.0] — 2026-11-04

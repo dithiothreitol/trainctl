@@ -25,7 +25,7 @@ import {
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel } from './format.ts'
-import { inspectCalibration, isRoadGoal, roundVdot, zoneSource, zoneVdot, type Calibration } from './calibration.ts'
+import { inspectCalibration, isRoadGoal, roundVdot, zoneCalibration, type Calibration } from './calibration.ts'
 import { packageVersion } from './version.ts'
 
 export const PLAN_DIR = 'plan'
@@ -132,10 +132,10 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   // wyniki, które przeszły zasadę wyboru (z wybranym) — z nich liczy się też predykcja
   const usable = calibration.candidates.filter((c) => c.reason === 'selected' || c.reason === 'lower-vdot').map((c) => c.result)
   const trailOnly = roadGoal && selected?.terrain === 'trail'
-  // źródło stref i VDOT — te same funkcje co podpowiedź `why` (zoneSource, zoneVdot)
-  const vdotSource = zoneSource(selected, goal)
-  const vdot = zoneVdot(selected, goal)
-  if (vdot === undefined || vdotSource === 'none') throw new Error(ui().planMd.noCalibration)
+  // źródło stref i VDOT — ta sama funkcja co podpowiedź `why` (zoneCalibration)
+  const zoneFrom = zoneCalibration(selected, goal)
+  if (zoneFrom.source === 'none') throw new Error(ui().planMd.noCalibration)
+  const { source: vdotSource, vdot } = zoneFrom
   const zones = paceZones(vdot)
   const macro = planMacrocycle({ today, goal, athlete })
   let previousFrequency: number | undefined

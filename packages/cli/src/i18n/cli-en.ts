@@ -104,6 +104,8 @@ export const cliEn = {
   common: {
     /** „N days" — liczba dni jako wartość pod etykietą (review). */
     dayCount,
+    /** Wiersz log.jsonl, którego nie da się odczytać. */
+    logLine: (line: number) => `line ${line}`,
     nextStep: (command: string) => `next step: ${command}`,
     saved: (what: string) => `Saved ${what}`,
     outsidePlan: (date: string, from: string, to: string) =>

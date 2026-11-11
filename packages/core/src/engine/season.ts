@@ -154,7 +154,6 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
     // J-1/S-2: długie jest najdłuższym biegiem tygodnia — także wobec akcentów i podbiegów
     const others = runs.filter((r) => r.w !== long?.w && !['race', 'test', 'sharpener'].includes(r.w.kind))
     const longest = Math.max(0, ...others.map((r) => r.w.distanceKm))
-    // S-2/J-1: długie jest najdłuższym biegiem tygodnia
     if (long && longest > long.w.distanceKm) issues.push({ code: 'longNotLongest', date: week.weekStart, ruleRefs: ['S-2', 'J-1'], values: [long.w.distanceKm, longest] })
     // jedna jednostka nie dźwiga tygodnia (inż.)
     if (week.totalKm > 0 && week.skeleton.phase !== 'race') {

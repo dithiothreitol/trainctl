@@ -690,11 +690,9 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     // przecinek jak w polskim wyjściu („8,5"); ta sama reguła co kreator i odczyt log.jsonl
     const km = opts.km === undefined ? undefined : parseDecimal(String(opts.km))
     if (km !== undefined && !LOG_LIMITS.km(km)) throw new Error(ui().improve.badDistance)
-    // czasy: parseTime i te same granice co odczyt log.jsonl (LOG_LIMITS)
+    // parseTime odrzuca czas zerowy i błędny zapis — to ta sama granica co LOG_LIMITS przy odczycie
     const timeSec = opts.time ? parseTime(opts.time) : undefined
-    if (timeSec !== undefined && !LOG_LIMITS.timeSec(timeSec)) throw new Error(ui().common.badTime(String(opts.time)))
     const testTimeSec = opts.testTime === undefined ? undefined : parseTime(opts.testTime)
-    if (testTimeSec !== undefined && !LOG_LIMITS.testTimeSec(testTimeSec)) throw new Error(ui().common.badTime(String(opts.testTime)))
     if (testTimeSec !== undefined && (status === 'skipped' || !['test', 'race'].includes(findDay(plan, date)?.day.workout?.kind ?? ''))) throw new Error(ui().improve.testTimeOnly)
     if (status === 'skipped' && ((km ?? 0) > 0 || opts.time !== undefined)) throw new Error(ui().improve.skippedMetrics)
     if (testTimeSec !== undefined && timeSec !== undefined && testTimeSec > timeSec) throw new Error(ui().improve.testTimeOnly)

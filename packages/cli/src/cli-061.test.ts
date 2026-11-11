@@ -12,7 +12,7 @@ import { setLocale, vdotFromRace } from 'trainctl-core'
 import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices, parseKmText, parseRpeText, plannedKmDefault } from './interactive.ts'
-import { recalibrationToday, roundVdot, zoneSource, zoneVdot } from './calibration.ts'
+import { recalibrationToday, roundVdot, zoneCalibration, zoneSource } from './calibration.ts'
 import { logStatusText, parseDecimal, shownKm } from './format.ts'
 import { loadPlan, writePlan } from './planfile.ts'
 import { appendLog, latestByDate, lineSeparator, LOG_LIMITS, readLog, readStrengthLog } from './logfile.ts'
@@ -22,6 +22,7 @@ import { improvePl } from './i18n/improve-pl.ts'
 import { shortenDetail } from './proposals.ts'
 import { renderAnsi, wrap, wrapText } from './ui/blocks.ts'
 import { parseDistanceInput } from './ui/wizard.ts'
+import { renderChoices } from './ui/select.ts'
 import { Theme, visibleLength } from './ui/theme.ts'
 
 const CONFIG = `athlete:
@@ -706,12 +707,41 @@ describe('osiemnasta runda: kreator, pominięte wartości dziennika', () => {
 })
 
 describe('dziewiętnasta runda: VDOT stref z jednej funkcji', () => {
-  it('zoneVdot: wynik, czas docelowy, brak; roundVdot jak w planie', () => {
+  it('zoneCalibration: wynik, czas docelowy, brak; roundVdot jak w planie', () => {
     const r = { date: '2026-09-27', distanceKm: 10, timeSec: 2580 }
-    expect(zoneVdot(r, { kind: 'race', distanceKm: 21.0975 })).toBe(vdotFromRace(10, 2580))
-    expect(zoneVdot(undefined, { kind: 'race', distanceKm: 21.0975, targetTimeSec: 5700 })).toBe(vdotFromRace(21.0975, 5700))
-    expect(zoneVdot(undefined, { kind: 'race', distanceKm: 21.0975 })).toBeUndefined()
+    expect(zoneCalibration(r, { kind: 'race', distanceKm: 21.0975 })).toEqual({ source: 'result', vdot: vdotFromRace(10, 2580) })
+    expect(zoneCalibration(undefined, { kind: 'race', distanceKm: 21.0975, targetTimeSec: 5700 })).toEqual({ source: 'goal-target', vdot: vdotFromRace(21.0975, 5700) })
+    expect(zoneCalibration(undefined, { kind: 'race', distanceKm: 21.0975 })).toEqual({ source: 'none' })
     expect(roundVdot(47.66)).toBe(47.7)
     expect(loadPlan(dir).vdot).toBe(roundVdot(vdotFromRace(10, 2580)))
+  })
+})
+
+describe('dwudziesta runda: wybór, uszkodzone wiersze dziennika, przecinek', () => {
+  it('lista wyboru trzyma szerokość terminala także z adresem we wskazówce', () => {
+    const theme = new Theme({ color: false, unicode: true, width: 40 })
+    const url = 'https://github.com/dithiothreitol/trainctl/blob/v0.6.0/docs/science/FOUNDATIONS.md'
+    const lines = renderChoices([{ label: 'jeden', value: 1, hint: `źródło ${url} i długa wskazówka, która nie mieści się w jednym wierszu` }], 0, theme)
+    for (const line of lines) expect(visibleLength(line)).toBeLessThanOrEqual(40)
+  })
+
+  it('log.jsonl: wiersz, który nie jest obiektem JSON, pominięty i zgłoszony, reszta działa', () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    appendFileSync(join(dir, 'log.jsonl'), [
+      JSON.stringify({ date: '2026-10-26', status: 'done', loggedAt: 'x' }),
+      '{"date": "2026-10-27", "status": "done",',
+      '"abc"',
+      JSON.stringify({ date: '2026-10-27', status: 'done', km: 8, loggedAt: 'y' }),
+    ].join('\n') + '\n')
+    expect(readLog(dir).map((e) => e.date)).toEqual(['2026-10-26', '2026-10-27'])
+    expect(cmdToday(dir).code).toBe(0)
+    expect(cmdStatus(dir).output).toContain('line 2, line 3')
+  })
+
+  it('parseDecimal bez przecinka: „1,500" to nie 1,5', () => {
+    expect(parseDecimal('1,500', false)).toBeNaN()
+    expect(parseDecimal('1.5', false)).toBe(1.5)
+    expect(parseDecimal('1,5')).toBe(1.5)
   })
 })

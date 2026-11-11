@@ -16,11 +16,13 @@ export const kmLabel = (km: number, decimals = 1): string => `${formatNumber(get
  * Liczba wpisana przez człowieka: „8", „8.5", „8,5", „.5" albo „5." (przecinek jak
  * w polskim wyjściu). Tylko zwykły zapis dziesiętny — bez „0x10" i „1e3", które
  * Number() też przyjmuje; wszystko inne to NaN. Jedna reguła dla wszystkich liczb
- * dziennika: `log` (km, RPE, minuty siły), kreator i odczyt log.jsonl.
+ * dziennika: `log` (km, RPE, minuty siły), kreator i odczyt log.jsonl. `comma` false:
+ * metry i minuty w ścieżce v2, gdzie „1,500" to raczej separator tysięcy niż 1,5.
  */
-export function parseDecimal(text: string): number {
+export function parseDecimal(text: string, comma = true): number {
   const value = text.trim()
-  return /^(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(value) ? Number(value.replace(',', '.')) : NaN
+  const pattern = comma ? /^(?:\d+(?:[.,]\d*)?|[.,]\d+)$/ : /^(?:\d+(?:\.\d*)?|\.\d+)$/
+  return pattern.test(value) ? Number(value.replace(',', '.')) : NaN
 }
 
 /** Dystans jednostki do pokazania: dystans startu dla startu (jego `distanceKm` to 0 km objętości). */

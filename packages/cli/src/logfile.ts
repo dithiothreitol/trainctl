@@ -72,10 +72,24 @@ export function latestByDate<T extends { date: string }>(entries: T[]): Map<stri
 function readAll(cwd: string, dropped: string[] = []): (LogEntry | StrengthLogEntry)[] {
   const path = join(cwd, LOG_FILE)
   if (!existsSync(path)) return []
-  return readFileSync(path, 'utf-8')
-    .split('\n')
-    .filter((l) => l.trim())
-    .map((l) => normalize(JSON.parse(l) as Record<string, unknown>, dropped))
+  // Ręczna edycja bywa niedokończona: wiersz, który nie jest obiektem JSON, pomijamy
+  // i zgłaszamy („wiersz N"), zamiast wywracać każdą komendę czytającą dziennik.
+  return readFileSync(path, 'utf-8').split('\n').flatMap((line, index) => {
+    if (!line.trim()) return []
+    const parsed = parseLine(line)
+    if (!parsed) { dropped.push(ui().common.logLine(index + 1)); return [] }
+    return [normalize(parsed, dropped)]
+  })
+}
+
+function parseLine(line: string): Record<string, unknown> | undefined {
+  try {
+    const value: unknown = JSON.parse(line)
+    return value !== null && typeof value === 'object' && !Array.isArray(value) && typeof (value as { date?: unknown }).date === 'string'
+      ? value as Record<string, unknown> : undefined
+  } catch {
+    return undefined
+  }
 }
 
 /** Czas wpisany tak, jak przyjmuje go CLI („58:30"), albo liczba tekstem, także z przecinkiem („8,5"). */
@@ -92,10 +106,11 @@ function fromText(key: string, text: string): number {
  * minuty siły całkowite 1–300, dystans 0–500 km, czasy dodatnie.
  */
 const positiveSeconds = (v: number): boolean => Number.isFinite(v) && v > 0
+/** 500 km (inż.): sufit literówki („8500" zamiast „8.5"), z zapasem dla ultra. */
+export const LOG_KM_MAX = 500
 
 export const LOG_LIMITS = {
-  // 500 km (inż.): sufit literówki („8500" zamiast „8.5"), z zapasem dla ultra
-  km: (v: number): boolean => Number.isFinite(v) && v >= 0 && v <= 500,
+  km: (v: number): boolean => Number.isFinite(v) && v >= 0 && v <= LOG_KM_MAX,
   timeSec: positiveSeconds,
   testTimeSec: positiveSeconds,
   rpe: (v: number): boolean => Number.isInteger(v) && v >= 1 && v <= 10,

@@ -182,8 +182,9 @@ describe('status', () => {
     cmdPlan(dir, { date: '2026-08-08' })
     writeFileSync(join(dir, 'log.jsonl'), '{"date":"2026-08-11"\n', 'utf-8')
     const r = cmdStatus(dir)
-    expect(r.code).toBe(1)
-    expect(r.data).toMatchObject({ error: expect.any(String) })
+    // od 0.6.1 uszkodzony wiersz jest pomijany, a status nazywa go w ostrzeżeniu
+    expect(r.code).toBe(0)
+    expect(r.output).toContain('line 1')
   })
   it('podpowiedź commita wymienia tylko pliki treningowe, nigdy git add -A', () => {
     cmdPlan(dir, { date: '2026-08-08' })
