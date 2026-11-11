@@ -162,7 +162,8 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
     if (week.totalKm > 0 && week.skeleton.phase !== 'race' && long && runs.length >= 3) {
       for (const r of runs) {
         if (['long', 'race', 'test'].includes(r.w.kind)) continue
-        if (r.w.distanceKm > SESSION_SHARE_MAX * week.totalKm) issues.push({ code: 'sessionShareHigh', date: r.date, ruleRefs: ['E-3'], values: [r.w.distanceKm, round1(week.totalKm)] })
+        // równo 35% mieści się w progu — tolerancja na zapis zmiennoprzecinkowy (0,35 × 48)
+        if (r.w.distanceKm > SESSION_SHARE_MAX * week.totalKm + 1e-9) issues.push({ code: 'sessionShareHigh', date: r.date, ruleRefs: ['E-3'], values: [r.w.distanceKm, round1(week.totalKm)] })
       }
     }
   }

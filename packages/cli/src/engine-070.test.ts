@@ -65,6 +65,14 @@ describe.each(['pl', 'en'] as const)('B1, B2 w komendach · %s', (lang) => {
     expect(cmdWhy(dir, { date: other.date }).output).not.toContain(text)
   })
 
+  it('plan: długie poniżej progu dystansu ma ostrzeżenie z liczbami (B4, J-2)', () => {
+    const { output, plan } = planFor(12, 'tue, wed, thu, sat, sun')
+    const longest = Math.max(...plan.weeks.flatMap((w) => w.days).filter((d) => d.workout?.kind === 'long').map((d) => d.workout!.distanceKm))
+    expect(output).toContain(lang === 'pl' ? `Najdłuższe wybieganie planu ma ${longest} km, a dystans wymaga ponad 21 km` : `The longest run in this plan is ${longest} km; the distance needs more than 21 km`)
+    // P1: próg spełniony — bez ostrzeżenia
+    expect(planFor(45, 'tue, wed, thu, sat, sun').output).not.toMatch(/Najdłuższe wybieganie planu|The longest run in this plan/)
+  })
+
   it('plan: szczyt ograniczony przez dni ma ostrzeżenie z liczbami (S-10, E-3)', () => {
     const { output, plan } = planFor(70, 'tue, thu, sat')
     expect(output).toContain(lang === 'pl' ? `przy 3 dniach biegowych tydzień mieści ${plan.peakKmPlanned} km` : `3 running days hold ${plan.peakKmPlanned} km/week`)

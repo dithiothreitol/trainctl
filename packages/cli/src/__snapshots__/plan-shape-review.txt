@@ -9,16 +9,16 @@
  8 2026-12-07 base↓          33 4b L12 S1 quality_intervals:4×1000@4:32 | quality_continuous:3 km 5:01→4:32
  9 2026-12-14 build          46 4b L18 S2 quality_intervals:4×1000@4:32 | easy_hills:15×200 | quality_continuous:4 km 5:01→4:32
 10 2026-12-21 build          47 4b L19 S2 quality_intervals:4×1000@4:32 | easy_hills:15×200 | quality_continuous:4 km 5:01→4:32
-11 2026-12-28 build          49 5b L17 S1 [test] quality_intervals:4×1000@4:32 | easy_hills:15×200 | test:5 km
-12 2027-01-04 build↓         34 4b L12 S1 quality_intervals:4×1000@4:32 | quality_continuous:3 km 5:01→4:32
+11 2026-12-28 build          49 4b L20 S1 [test] quality_intervals:4×1000@4:32 | easy_hills:15×200 | test:5 km
+12 2027-01-04 build↓         34 4b L13 S1 quality_intervals:4×1000@4:32 | quality_continuous:3 km 5:01→4:32
 13 2027-01-11 build          47 4b L19 S2 quality_intervals:4×1000@4:32 | easy_hills:15×200 | quality_continuous:4 km 5:01→4:32
 14 2027-01-18 build          49 4b L21 S2 quality_intervals:4×1000@4:32 | easy_hills:15×200 | quality_continuous:4 km 5:01→4:32
 15 2027-01-25 build          50 4b L22 S2 quality_intervals:4×1000@4:32 | easy_hills:15×200 | quality_continuous:4 km 5:01→4:32
-16 2027-02-01 build↓         35 4b L12 S1 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
-17 2027-02-08 build          48 4b L19 S1 [test] quality_intervals:4×1000@4:32 | easy_hills:15×200 | test:5 km
+16 2027-02-01 build↓         35 4b L14 S1 quality_intervals:4×1000@4:32 | quality_continuous:4 km 5:01→4:32
+17 2027-02-08 build          48 5b L21 S2 [test] easy_hills:15×200 | test:5 km
 18 2027-02-15 peak           50 4b L22 S1 quality_intervals:4×1000@4:04 | easy_hills:15×200 | quality_continuous:4 km 4:25/5:05
 19 2027-02-22 peak           52 4b L22 S1 quality_intervals:5×1000@4:04 | easy_hills:15×200 | quality_continuous:5 km 4:25/5:05
-20 2027-03-01 peak↓          36 4b L13 S1 quality_intervals:4×1000@4:04 | quality_continuous:4 km 4:25/5:05
+20 2027-03-01 peak↓          36 4b L15 S1 quality_intervals:4×1000@4:04 | quality_continuous:4 km 4:25/5:05
 21 2027-03-08 peak           52 4b L22 S1 quality_intervals:5×1000@4:04 | easy_hills:15×200 | quality_continuous:5 km 4:25/5:05
 22 2027-03-15 taper          36 4b L0 S0 quality_intervals:4×1000@4:04 | quality_continuous:4 km 4:25/5:05
 23 2027-03-22 race           16 3b L0 S0 [race] sharpener:5×300@4:04
@@ -31,95 +31,96 @@ staleProgression 2027-03-08 19/21 [P-1]
 ## P2
  1 2026-10-19 base           12 3b L4.8 S2
  2 2026-10-26 base           13 3b L5 S2
- 3 2026-11-02 base           14 3b L5 S2
+ 3 2026-11-02 base           14 3b L6 S2
  4 2026-11-09 base↓          10 3b L4 S1
- 5 2026-11-16 base           15 3b L6 S2
- 6 2026-11-23 base           16 3b L6 S2
- 7 2026-11-30 base           18 3b L6.6 S2 quality_intervals:3×1000@4:32
- 8 2026-12-07 base↓          12 3b L4.8 S1
- 9 2026-12-14 build          19 3b L7 S2 quality_intervals:3×1000@4:32
-10 2026-12-21 build          21 3b L7.7 S2 quality_intervals:3×1000@4:32
-11 2026-12-28 build          22 3b L8 S2 quality_intervals:3×1000@4:32
-12 2027-01-04 build↓         16 3b L6 S1
-13 2027-01-11 build          24 3b L9 S2 quality_intervals:4×1000@4:32
-14 2027-01-18 build          26 4b L9 S2 [test] test:5 km
-15 2027-01-25 build          28 3b L13 S2 quality_intervals:4×1000@4:32 | quality_continuous:3 km 5:01→4:32
-16 2027-02-01 build↓         20 3b L7 S1 quality_intervals:3×1000@4:32
+ 5 2026-11-16 base           15 3b L7 S2
+ 6 2026-11-23 base           16 3b L8 S2
+ 7 2026-11-30 base           18 3b L9 S2 quality_intervals:3×1000@4:32
+ 8 2026-12-07 base↓          12 3b L6 S1
+ 9 2026-12-14 build          19 3b L10 S2 quality_intervals:3×1000@4:32
+10 2026-12-21 build          21 3b L11 S2 quality_intervals:3×1000@4:32
+11 2026-12-28 build          22 3b L11 S2 quality_intervals:3×1000@4:32
+12 2027-01-04 build↓         16 3b L8 S1
+13 2027-01-11 build          24 3b L12 S2 quality_intervals:4×1000@4:32
+14 2027-01-18 build          26 3b L13 S2 [test] test:5 km
+15 2027-01-25 build          28 3b L14 S2 quality_intervals:4×1000@4:32
+16 2027-02-01 build↓         20 3b L10 S1 quality_intervals:3×1000@4:32
 17 2027-02-08 build          30 3b L15 S2 quality_intervals:4×1000@4:32 | quality_continuous:3 km 5:01→4:32
-18 2027-02-15 peak           33 4b L12 S1 quality_intervals:4×1000@4:04 | quality_continuous:3 km 4:25/5:05
-19 2027-02-22 peak           35 4b L12 S1 quality_intervals:4×1000@4:04 | quality_continuous:4 km 4:25/5:05
-20 2027-03-01 peak↓          25 3b L9 S1 quality_intervals:4×1000@4:04
-21 2027-03-08 peak           38 4b L14 S1 quality_intervals:4×1000@4:04 | quality_continuous:4 km 4:25/5:05
-22 2027-03-15 taper          27 4b L0 S0 quality_intervals:4×1000@4:04
-23 2027-03-22 race           16 3b L0 S0 [race] sharpener:5×300@4:04
+18 2027-02-15 peak           32 3b L17 S1 quality_intervals:4×1000@4:04 | quality_continuous:3 km 4:25/5:05
+19 2027-02-22 peak           34 3b L18 S1 quality_intervals:4×1000@4:04 | quality_continuous:4 km 4:25/5:05
+20 2027-03-01 peak↓          25 3b L13 S1 quality_intervals:4×1000@4:04
+21 2027-03-08 peak           36 3b L20 S1 quality_intervals:4×1000@4:04 | quality_continuous:4 km 4:25/5:05
+22 2027-03-15 taper          27 3b L0 S0 quality_intervals:4×1000@4:04
+23 2027-03-22 race           10 2b L0 S0 [race]
 24 2027-03-29 transition     16 3b L0 S0
 25 2027-04-05 transition     31 3b L13.1 S1 quality_intervals:4×1000@4:32
 
 postRaceAccentHeavy 2027-04-05 4/3.5 [R-8]
-longBelowGoal  15/21 [J-2,P-7]
+longBelowGoal  20/21 [J-2,P-7]
 
 ## P2b
  1 2026-10-19 base           12 3b L4.8 S2
- 2 2026-10-26 base           12 3b L4.8 S2
- 3 2026-11-02 base           13 3b L5 S2
- 4 2026-11-09 base↓           9 3b L3.6 S1
- 5 2026-11-16 base           13 3b L5 S2
- 6 2026-11-23 base           13 3b L5 S2
- 7 2026-11-30 base           13 3b L5 S2
- 8 2026-12-07 base↓           9 3b L3.6 S1
- 9 2026-12-14 build          14 3b L5 S2
-10 2026-12-21 build          14 3b L5 S2
-11 2026-12-28 build          14 3b L5 S2
-12 2027-01-04 build↓         10 3b L4 S1
-13 2027-01-11 build          15 3b L6 S2
-14 2027-01-18 build          15 3b L6 S2
-15 2027-01-25 build          15 3b L6 S2
-16 2027-02-01 build↓         11 3b L4 S1
-17 2027-02-08 build          16 3b L6 S2
-18 2027-02-15 peak           16 3b L6 S1
-19 2027-02-22 peak           17 3b L6.2 S1
-20 2027-03-01 peak↓          12 3b L4.8 S1
-21 2027-03-08 peak           17 3b L6.2 S1
+ 2 2026-10-26 base           12 3b L5 S2
+ 3 2026-11-02 base           13 3b L6 S2
+ 4 2026-11-09 base↓           9 3b L4 S1
+ 5 2026-11-16 base           13 3b L6 S2
+ 6 2026-11-23 base           13 3b L6 S2
+ 7 2026-11-30 base           13 3b L6 S2
+ 8 2026-12-07 base↓           9 3b L4 S1
+ 9 2026-12-14 build          14 3b L7 S2
+10 2026-12-21 build          14 3b L7 S2
+11 2026-12-28 build          14 3b L7 S2
+12 2027-01-04 build↓         10 3b L5 S1
+13 2027-01-11 build          15 3b L7 S2
+14 2027-01-18 build          15 3b L7 S2
+15 2027-01-25 build          15 3b L7 S2
+16 2027-02-01 build↓         11 3b L5 S1
+17 2027-02-08 build          16 3b L8 S2
+18 2027-02-15 peak           16 3b L8 S1
+19 2027-02-22 peak           17 3b L9 S1
+20 2027-03-01 peak↓          12 3b L6 S1
+21 2027-03-08 peak           17 3b L9 S1
 22 2027-03-15 taper          12 3b L0 S0
 23 2027-03-22 race           10 2b L0 S0 [race]
 24 2027-03-29 transition      7 2b L0 S0
 25 2027-04-05 transition     15 3b L6 S1
 
+staleProgression 2027-01-25 11/15 [P-1]
 staleProgression 2027-03-08 19/21 [P-1]
-longBelowGoal  6.2/21 [J-2,P-7]
+longBelowGoal  9/21 [J-2,P-7]
 
 ## P3
- 1 2026-10-19 base           16 3b L6 S2
- 2 2026-10-26 base           16 3b L6 S2
- 3 2026-11-02 base           16 3b L6 S2
- 4 2026-11-09 base↓          22 3b L8 S1 quality_intervals:3×1000@4:32
- 5 2026-11-16 base           14 3b L5 S2 [test] test:5 km
- 6 2026-11-23 base           16 3b L6 S2
- 7 2026-11-30 base           16 3b L6 S2
- 8 2026-12-07 base↓          22 3b L8 S1 quality_intervals:3×1000@4:32
- 9 2026-12-14 build          16 3b L6 S2
-10 2026-12-21 build          16 3b L6 S2
-11 2026-12-28 build          19 3b L7 S2 [test] test:5 km
-12 2027-01-04 build↓         22 3b L8 S1 quality_intervals:3×1000@4:32
-13 2027-01-11 build          16 3b L6 S2
-14 2027-01-18 build          16 3b L6 S2
-15 2027-01-25 build          16 3b L6 S2
-16 2027-02-01 build↓         23 3b L8 S1 quality_intervals:4×1000@4:32
-17 2027-02-08 build          21 3b L7 S2 [test] test:5 km
-18 2027-02-15 peak           23 3b L8 S1 quality_intervals:4×1000@4:04
-19 2027-02-22 peak           23 3b L8 S1 quality_intervals:4×1000@4:04
-20 2027-03-01 peak↓          24 3b L9 S1 quality_intervals:4×1000@4:04
-21 2027-03-08 peak           23 3b L8 S1 quality_intervals:4×1000@4:04
+ 1 2026-10-19 base           16 3b L8 S2
+ 2 2026-10-26 base           16 3b L8 S2
+ 3 2026-11-02 base           16 3b L8 S2
+ 4 2026-11-09 base↓          22 3b L11 S1 quality_intervals:3×1000@4:32
+ 5 2026-11-16 base           15 3b L6 S2 [test] test:5 km
+ 6 2026-11-23 base           16 3b L8 S2
+ 7 2026-11-30 base           16 3b L8 S2
+ 8 2026-12-07 base↓          22 3b L11 S1 quality_intervals:3×1000@4:32
+ 9 2026-12-14 build          16 3b L8 S2
+10 2026-12-21 build          16 3b L8 S2
+11 2026-12-28 build          20 2b L11 S2 [test] test:5 km
+12 2027-01-04 build↓         22 3b L11 S1 quality_intervals:3×1000@4:32
+13 2027-01-11 build          16 3b L8 S2
+14 2027-01-18 build          16 3b L8 S2
+15 2027-01-25 build          16 3b L8 S2
+16 2027-02-01 build↓         22 3b L11 S1 quality_intervals:3×1000@4:32
+17 2027-02-08 build          15 3b L6 S2 [test] test:5 km
+18 2027-02-15 peak           23 3b L12 S1 quality_intervals:4×1000@4:04
+19 2027-02-22 peak           23 3b L12 S1 quality_intervals:4×1000@4:04
+20 2027-03-01 peak↓          24 3b L12 S1 quality_intervals:4×1000@4:04
+21 2027-03-08 peak           23 3b L12 S1 quality_intervals:4×1000@4:04
 22 2027-03-15 taper          29 4b L0 S0 quality_intervals:4×1000@4:04 | quality_continuous:3 km 4:25/5:05
 23 2027-03-22 race           16 3b L0 S0 [race] sharpener:5×300@4:04
 24 2027-03-29 transition     22 3b L0 S0
 25 2027-04-05 transition     21 3b L7.7 S1 quality_intervals:3×1000@4:32
 
-deloadNotLighter 2026-11-09 22/14 [P-2]
+deloadNotLighter 2026-11-09 22/15 [P-2]
 deloadNotLighter 2026-12-07 22/16 [P-2]
 deloadNotLighter 2027-01-04 22/16 [P-2]
-deloadNotLighter 2027-02-01 23/16 [P-2]
+deloadNotLighter 2027-02-01 22/15 [P-2]
 deloadNotLighter 2027-03-01 24/23 [P-2]
 staleProgression 2027-01-25 10/15 [P-1]
 staleProgression 2027-03-08 19/21 [P-1]
-longBelowGoal  9/21 [J-2,P-7]
+longBelowGoal  12/21 [J-2,P-7]

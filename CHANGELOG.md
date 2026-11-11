@@ -35,6 +35,11 @@ change between minor versions — a regenerated plan can differ.
 - An approved volume baseline (`adapt --apply`) sets every later block at that
   level and keeps the rise within each block; the plan no longer grows past a
   baseline the runner approved.
+- The long run has its own track: it grows by at most 2 km a loading week to
+  22 km for a half marathon, 30 km for a marathon and 32 km for an ultra in the
+  last block before the taper (J-1, J-2, J-10, N-19), and shortens in deloads.
+  When the weekly volume cannot carry the distance's threshold, `plan` says so
+  with the numbers.
 
 ### Added
 

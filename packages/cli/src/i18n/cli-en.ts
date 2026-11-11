@@ -918,6 +918,10 @@ export const cliEn = {
       `(${n(recommended)} km/week recommended for this distance, P-7/P-8). More minutes, or a closer goal, changes that (E-2).`,
     timeDayTooShort: (dates: string) =>
       `These sessions do not fit the day's time budget even shortened (races and time trials are never cut): ${dates} (E-2).`,
+    /** B4: najdłuższe wybieganie poniżej progu dystansu (J-2, P-7/P-8); `atLeast` = próg włącznie (maraton ≥25 km). */
+    longBelowGoal: (longest: number, threshold: number, atLeast: boolean, rules: string) =>
+      `The longest run in this plan is ${n(longest)} km; the distance needs ${atLeast ? 'at least' : 'more than'} ${n(threshold)} km (${rules}). ` +
+      'The weekly volume cannot carry a longer one without one run taking too much of the week.',
     timeWeekOver: (weeks: string) => `These weeks stay over the weekly time budget: ${weeks} (E-2).`,
     trailOnlyCalibration:
       'Zones come from a trail result — terrain slows a trail race, so road paces may be too easy. Add a road result (Z-10).',

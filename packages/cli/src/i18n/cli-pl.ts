@@ -933,6 +933,9 @@ export const cliPl: CliMessages = {
       `(rekomendowane dla tego dystansu: ${n(recommended)} km/tydz., P-7/P-8). Zmieni to więcej minut albo bliższy cel (E-2).`,
     timeDayTooShort: (dates: string) =>
       `Te jednostki nie mieszczą się w budżecie dnia nawet po skróceniu (startów i sprawdzianów nie skracamy): ${dates} (E-2).`,
+    longBelowGoal: (longest: number, threshold: number, atLeast: boolean, rules: string) =>
+      `Najdłuższe wybieganie planu ma ${n(longest)} km, a dystans wymaga ${atLeast ? 'co najmniej' : 'ponad'} ${n(threshold)} km (${rules}). ` +
+      'Objętość tygodnia nie uniesie dłuższego bez przeciążenia jednego biegu.',
     timeWeekOver: (weeks: string) => `Te tygodnie zostają ponad budżetem tygodnia: ${weeks} (E-2).`,
     trailOnlyCalibration:
       'Strefy pochodzą z wyniku na trailu — teren spowalnia bieg, więc tempa szosowe mogą być za łatwe. Dopisz wynik szosowy (Z-10).',

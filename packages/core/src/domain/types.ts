@@ -91,6 +91,12 @@ export interface WeekSkeleton {
   sessionCount?: number
   /** Liczba sesji jakościowych w tygodniu (I-8). */
   qualitySessions: number
+  /**
+   * Tor długiego wybiegania (B4): najkrótsze długie tego tygodnia, rosnące do celu
+   * dystansu w ostatnim bloku ładowania. Brak = długie z udziału w tygodniu
+   * (10 km, plan bez startu). Sufit udziału i 35 km nakłada generator mikrocyklu.
+   */
+  longKm?: number
   raceDate?: string
   /** Start kontrolny B/C w tym tygodniu (nie kończy planu — T-9…T-12). */
   tuneUp?: TuneUpRace

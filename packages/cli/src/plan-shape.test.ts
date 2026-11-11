@@ -60,6 +60,11 @@ describe('DoD etapu 2 (PLAN-v0.7 §4): macierz bez lintów kształtu', () => {
   for (const code of ['easyShareLow', 'targetKmMismatch'] as const) {
     it(`świeży plan bez ostrzeżenia ${code}`, () => expect(hit(code)).toEqual([]))
   }
+  it('B4: P1 dochodzi z długim ponad 21 km przed taperem (J-2), maraton nie ponad 35 km (N-19)', () => {
+    const p1 = shapeReport(REVIEW_PROFILES.find((p) => p.id === 'P1')!)
+    expect(Math.max(...p1.rows.filter((r) => ['base', 'build', 'peak'].includes(r.phase)).map((r) => r.longKm))).toBeGreaterThan(21)
+    for (const r of matrix().filter((x) => x.profile.goal === 'm')) expect(r.longest).toBeLessThanOrEqual(35)
+  })
   it('bez budżetu czasu odciążenie jest lżejsze od tygodni ładowania (P-2); budżet to B7', () => {
     expect(hit('deloadNotLighter').filter((id) => !id.includes('min'))).toEqual([])
   })

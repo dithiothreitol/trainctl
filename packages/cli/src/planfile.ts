@@ -11,6 +11,7 @@ import {
   shortenWorkout,
   weekTotals,
   getLocale,
+  longRunThreshold,
   messages,
   paceZones,
   planMacrocycle,
@@ -175,6 +176,15 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     fitTimeBudget(plan.weeks, config, zones, testDistanceKm(goal), { from: opts.budgetFrom, weeklyFrom: opts.weeklyBudgetFrom ?? opts.budgetFrom })
     plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
     if (opts.budgetWarnings !== false) plan.feasibilityWarnings.push(...budgetWarnings(plan, config, today))
+  }
+  // B4: długie poniżej progu dystansu mówi o sobie liczbami (J-2, P-7/P-8), ten sam
+  // próg co lint kształtu `longBelowGoal`; liczone na planie po budżecie czasu
+  const threshold = goal.kind === 'base' ? undefined : longRunThreshold(goal)
+  if (threshold) {
+    const longest = Math.max(0, ...cycleWeeksOf(plan).filter((w) => ['base', 'build', 'peak'].includes(w.skeleton.phase))
+      .flatMap((w) => w.days).filter((d) => d.workout?.kind === 'long').map((d) => d.workout!.distanceKm))
+    const meets = threshold.inclusive ? longest >= threshold.km : longest > threshold.km
+    if (longest > 0 && !meets) plan.feasibilityWarnings.push(ui().planMd.longBelowGoal(longest, threshold.km, threshold.inclusive, threshold.ruleRefs.join(', ')))
   }
   plan.generatedDays = Object.fromEntries(plan.weeks.flatMap((w) => w.days).map((d) => [d.date, dayFingerprint(d)]))
   return plan

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AthleteProfile, RaceGoal } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
-import { planMacrocycle, recommendedPeakKm, taperWeeksFor } from './macrocycle.ts'
+import { longGoalKm, planMacrocycle, recommendedPeakKm, taperWeeksFor } from './macrocycle.ts'
 
 const athlete: AthleteProfile = {
   recentWeeklyKm: 50,
@@ -263,5 +263,45 @@ describe('B3: trajektoria objętości (P-12, T-7, P-3)', () => {
     const plan = planMacrocycle({ today, goal: half, athlete: noPeak(45) })
     const taper = plan.weeks.find((w) => w.phase === 'taper')!
     expect(taper.targetKm).toBe(Math.round(plan.peakKmPlanned * 0.7))
+  })
+})
+
+describe('B4: tor długiego wybiegania (J-1, J-2, J-10, N-19)', () => {
+  const today = '2026-10-22'
+  const half: RaceGoal = { name: 'HM', date: '2027-03-28', distanceKm: 21.0975, priority: 'A' }
+  const runner: AthleteProfile = { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] }
+  const loading = (weeks: ReturnType<typeof planMacrocycle>['weeks']) => weeks.filter((w) => ['base', 'build', 'peak'].includes(w.phase))
+
+  it('cel długiego według dystansu; krótszy cel i plan bez startu bez toru', () => {
+    expect(longGoalKm(half)).toBe(22)
+    expect(longGoalKm(marathon)).toBe(30)
+    expect(longGoalKm({ ...marathon, distanceKm: 100 })).toBe(32)
+    expect(longGoalKm({ ...marathon, distanceKm: 10 })).toBeUndefined()
+    const tenK = planMacrocycle({ today, goal: { ...half, distanceKm: 10 }, athlete: runner })
+    expect(tenK.weeks.every((w) => w.longKm === undefined)).toBe(true)
+  })
+
+  it('półmaraton: długie rośnie najwyżej 2 km na tydzień ładowania i dochodzi do 22 km w ostatnim bloku', () => {
+    const weeks = loading(planMacrocycle({ today, goal: half, athlete: runner }).weeks)
+    const load = weeks.filter((w) => !w.deload)
+    for (let i = 1; i < load.length; i++) expect(load[i]!.longKm! - load[i - 1]!.longKm!).toBeLessThanOrEqual(2)
+    expect(load.at(-1)!.longKm).toBe(22)
+    // cel nie przychodzi w pierwszej połowie planu
+    expect(load.slice(0, Math.floor(load.length / 2)).every((w) => w.longKm! < 22)).toBe(true)
+  })
+
+  it('odciążenie skraca długie tak jak objętość (P-2)', () => {
+    const weeks = loading(planMacrocycle({ today, goal: half, athlete: runner }).weeks)
+    for (const [i, w] of weeks.entries()) {
+      if (!w.deload) continue
+      const prev = weeks.slice(0, i).reverse().find((x) => !x.deload)!
+      expect(w.longKm).toBe(Math.round(prev.longKm! * 0.7))
+    }
+  })
+
+  it('maraton: tor kończy się na 30 km, nie ponad 35 (N-19)', () => {
+    const plan = planMacrocycle({ today: '2026-08-05', goal: marathon, athlete })
+    const longs = loading(plan.weeks).filter((w) => !w.deload).map((w) => w.longKm!)
+    expect(Math.max(...longs)).toBeLessThanOrEqual(30)
   })
 })

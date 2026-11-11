@@ -588,8 +588,9 @@ function planNormalWeek(
   const shares = maxRuns >= 3
 
   // objętość
-  const longKm = longWd ? Math.min(Math.round(style.longRunShare * target), style.longRunCapKm) : 0
   const longCeil = Math.min(style.longRunCapKm, shares ? Math.floor(longShareCeiling(target) * target) : target)
+  // B4: tor długiego z makrocyklu jest podłogą; sufit udziału (P90) i 35 km — górą
+  const longKm = longWd ? Math.min(longCeil, Math.max(skeleton.longKm ?? 0, Math.min(Math.round(style.longRunShare * target), style.longRunCapKm))) : 0
   // udział jednej jednostki liczony od objętości tygodnia — od zamiaru, a gdy dni go nie
   // mieszczą, od tego, co rozpisano (tak liczy lint), w drugim przebiegu niżej
   let shareCap = shares ? floor1(SESSION_SHARE_MAX * target) : Infinity
@@ -705,13 +706,15 @@ function planNormalWeek(
   // Tydzień krótszy od zamiaru: jednostki mierzone udziałem w tym, co faktycznie rozpisano.
   // Każde zmniejszenie obniża sumę, więc przebiegi idą do punktu stałego (zbieżność ~0,35
   // na przebieg, sufit zaokrąglany w dół).
-  for (let pass = 0; pass < 12 && shares && longWd && sumKm(plan) < target - 0.5; pass++) {
-    const before = sumKm(plan)
-    const next = floor1(SESSION_SHARE_MAX * before)
+  // Przebieg rusza, gdy któraś jednostka poza długim, startem i sprawdzianem ma więcej
+  // niż SESSION_SHARE_MAX rozpisanej sumy — tak samo liczy lint `sessionShareHigh`.
+  const overShare = () => [...plan].some(([wd, w]) =>
+    wd !== longWd && w.kind !== 'race' && w.kind !== 'test' && w.distanceKm > SESSION_SHARE_MAX * sumKm(plan) + 1e-9)
+  for (let pass = 0; pass < 12 && shares && longWd && overShare(); pass++) {
+    const next = floor1(SESSION_SHARE_MAX * sumKm(plan))
     if (next >= shareCap) break
     shareCap = next
     left = settle(qualityMainKm)
-    if (before - sumKm(plan) < 0.05) break
   }
   if (left > 0.5) notes.push({ code: 'volumeShort', targetKm: target, plannedKm: round1(sumKm(plan)) })
   return notes

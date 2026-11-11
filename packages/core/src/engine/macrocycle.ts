@@ -106,7 +106,25 @@ const BASE_GROWTH = 1.15
  */
 const BLOCK_WAVE = [0.94, 0.97, 1.0]
 
-interface VolumeWeek { deload: boolean; km: number }
+interface VolumeWeek { deload: boolean; km: number; longKm?: number }
+
+/**
+ * B4: cel długiego wybiegania w ostatnim bloku ładowania. J-2: półmaraton ponad 21 km,
+ * J-10 (korpus, n = 3): 23–25 km na 2–7 tygodni przed startem — 22 km to dolna,
+ * ostrożna wartość (inż.). J-1: maraton 30–35 km, P-8 karze najdłuższy poniżej 25 km.
+ * Ultra: N-19 — nie ponad 35 km bez dodatkowej korzyści, 32 km inż. Krótszy cel
+ * i plan bez startu nie mają toru: długie wynika z udziału w tygodniu.
+ */
+export function longGoalKm(goal: RaceGoal): number | undefined {
+  switch (goalClass(goal)) {
+    case 'half': return 22
+    case 'marathon': return 30
+    case 'ultra': return 32
+    default: return undefined
+  }
+}
+/** E-3 (inż.): długie rośnie najwyżej 2 km na tydzień ładowania. */
+const LONG_STEP_KM = 2
 
 /**
  * B3: trajektoria objętości tygodni przed taperem. Trend tygodni ładowania rośnie od
@@ -115,7 +133,7 @@ interface VolumeWeek { deload: boolean; km: number }
  * w tempie P-3 do szczytu i tam się wypłaszcza (P-11). Odciążenie to DELOAD_FACTOR
  * poziomu bloku przed nim (P-2). Zwraca też poziom ostatniego bloku — od niego taper.
  */
-function volumeSchedule(loadWeeks: number, start: number, peak: number, baseOnly: boolean): { weeks: VolumeWeek[]; peakLevel: number } {
+function volumeSchedule(loadWeeks: number, start: number, peak: number, baseOnly: boolean, longGoal: number | undefined): { weeks: VolumeWeek[]; peakLevel: number } {
   const deloads: boolean[] = []
   let since = 0
   for (let i = 0; i < loadWeeks; i++) {
@@ -132,12 +150,25 @@ function volumeSchedule(loadWeeks: number, start: number, peak: number, baseOnly
     : Math.min(RAMP_PER_LOAD_WEEK, Math.max(1, Math.pow(peak / Math.max(1, s0), 1 / Math.max(1, loading - 1))))
   const trend = (k: number) => Math.min(peak, s0 * Math.pow(growth, k))
 
+  // B4: tor długiego — od długiego z udziału w pierwszym tygodniu do celu w pierwszym
+  // tygodniu ostatniego bloku ładowania, liniowo po tygodniach ładowania, najwyżej
+  // LONG_STEP_KM na tydzień; odciążenie skraca długie tak jak objętość (P-2)
+  const lastBlock = loadWeeks - 1 - deloads.lastIndexOf(true)
+  const goalAt = Math.max(1, loading - Math.max(1, Math.min(lastBlock, loading)))
+  const startLong = Math.round(COACH_STYLE.longRunShare * s0 * BLOCK_WAVE[0]!)
+  const longAt = (k: number): number | undefined => {
+    if (longGoal === undefined) return undefined
+    const linear = startLong + ((longGoal - startLong) * Math.min(1, k / goalAt))
+    return Math.round(Math.min(longGoal, linear, startLong + LONG_STEP_KM * k))
+  }
+
   const weeks: VolumeWeek[] = []
   let k = 0
   let level = s0
+  let lastLong: number | undefined
   for (let i = 0; i < loadWeeks;) {
     if (deloads[i]) {
-      weeks.push({ deload: true, km: Math.round(level * DELOAD_FACTOR) })
+      weeks.push({ deload: true, km: Math.round(level * DELOAD_FACTOR), ...(lastLong !== undefined ? { longKm: Math.round(lastLong * DELOAD_FACTOR) } : {}) })
       i++
       continue
     }
@@ -150,7 +181,13 @@ function volumeSchedule(loadWeeks: number, start: number, peak: number, baseOnly
     const wave = level / first < 1 / BLOCK_WAVE[0]!
     for (let j = 0; j < size; j++) {
       const fromEnd = size - 1 - j
-      weeks.push({ deload: false, km: Math.round(wave ? level * BLOCK_WAVE[Math.max(0, BLOCK_WAVE.length - 1 - fromEnd)]! : trend(k + j)) })
+      const longKm = longAt(k + j)
+      if (longKm !== undefined) lastLong = longKm
+      weeks.push({
+        deload: false,
+        km: Math.round(wave ? level * BLOCK_WAVE[Math.max(0, BLOCK_WAVE.length - 1 - fromEnd)]! : trend(k + j)),
+        ...(longKm !== undefined ? { longKm } : {}),
+      })
     }
     k += size
     i = end
@@ -264,7 +301,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   }
 
   const weeks: WeekSkeleton[] = []
-  const volume = volumeSchedule(loadWeeks, start, peakPlanned, baseOnly)
+  const volume = volumeSchedule(loadWeeks, start, peakPlanned, baseOnly, baseOnly ? undefined : longGoalKm(goal))
   // rytm kalibracji: liczony od ostatniego wyniku, resetowany startem kontrolnym (W-12)
   const lastResult = lastResultBefore(athlete, firstWeek)
   const resultDates = athlete.results.map((r) => r.date)
@@ -293,6 +330,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
     }
 
     let targetKm: number
+    let longKm: number | undefined
     let deload = false
     const flags: string[] = [...(i === 0 ? taper.flags : [])]
     const ruleRefs: string[] = []
@@ -306,6 +344,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       const planned = volume.weeks[i]!
       deload = planned.deload
       targetKm = planned.km
+      if (planned.longKm !== undefined) longKm = planned.longKm
       ruleRefs.push(...(deload ? ['P-2'] : ['P-1', 'P-3']), intensityModel === 'pyramidal' ? 'I-1' : 'I-2')
     }
 
@@ -359,6 +398,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       // przy jednym akcencie w tygodniu start albo sprawdzian go zastępuje, a nie dochodzi obok
       qualitySessions:
         phase === 'race' ? 1 : tuneUp || wantsTest ? qualityPerWeek - 1 : qualityPerWeek,
+      ...(longKm !== undefined ? { longKm } : {}),
       ...(phase === 'race' ? { raceDate: goal.date } : {}),
       ...(tuneUp && !inTaper ? { tuneUp } : {}),
       ...(wantsTest ? { testPlanned: true } : {}), // dzień wybiera mikrocykl (house style)
