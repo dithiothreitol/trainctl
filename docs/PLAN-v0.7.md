@@ -181,6 +181,13 @@ danych w jednym przeglądzie ze zmianą silnika nie dałaby się ocenić.
 | **3. Widoki i wykonanie** | 0.8.0 | C1–C7, D1–D5, F3 | migawki przy 60, 80, 100, 120 kolumnach w PL, EN i ASCII; budżety wierszy z C2; MCP bez ANSI; syntetyczne FIT i TCX; `pnpm plugin:build` i `scripts/verify-plugin.mjs` |
 | **4. Jeden model danych** | 0.9.0 | pakiet E | ten sam kształt sezonu w v1 i v2 na macierzy; lista parytetu; migracja; `pnpm simulate:multisport --artifacts`; weryfikacja pluginu |
 
+**Stan (2026-11-11):** etap 1 zrealizowany na gałęzi `plan-0.7/etap-1`, czeka na
+scalenie. Bramka: `pnpm check` 1204 testy, `pnpm build`, `verify:distribution`
+PASS, testy korpusu. Przegląd `/code-review high`: 24 rundy, każde przyjęte
+znalezisko z testem sprawdzonym mutacją. Rundy nie zbiegły do zera — późne rundy
+dawały pojedyncze przypadki brzegowe (głównie odczyt ręcznie edytowanego
+`log.jsonl`) i sugestie porządkowe. Odrzucone sugestie są w §13.
+
 **Etap 1** nie zmienia żadnej liczby w silniku ani zapisanych planów. Pierwszy
 commit tworzy migawkę macierzy na silniku z 0.6.0. Linty kształtu działają
 w tym etapie tylko w teście macierzy. Do `check` trafiają w etapie 2, żeby
@@ -816,4 +823,8 @@ Wypełniany w trakcie realizacji przez krok 6 zamknięcia etapu.
 | 2026-11-11 | 1 | `packages/cli/src/commands.ts:684` | `log --km 8,5` odrzucone, a odczyt dziennika i kreator przyjmują przecinek; trzy parsery km | naprawione w etapie 1 (11. runda): `parseDecimal` i `LOG_LIMITS` wspólne dla `log`, kreatora i odczytu log.jsonl |
 | 2026-11-11 | 1 | `packages/cli/src/interactive.ts:157` | domyślna wartość km w kreatorze dziennika to surowe `21.0975` | naprawione w etapie 1 (12. runda): `plannedKmDefault` w formacie języka |
 | 2026-11-11 | 1 | `packages/core/src/engine/microcycle.ts` | pętla I-5 i `weekTotals` liczą Z1 osobno, obok `hardKmOf` | etap 2 (B5 zmienia pętlę I-5) |
+| 2026-11-11 | 1 | `packages/cli/src/commands.ts` (`raceCountdown`) | sugestia połączenia z `raceDistanceLine` (rundy 13–21) | odrzucone: dwie formy tej samej informacji (etykieta z wartością, zdanie); wspólne jest tylko porównanie znaku |
+| 2026-11-11 | 1 | `packages/core/src/engine/season.ts` | definicja bieżącego cyklu w lintach różna od `cycleWeeksOf` w CLI | odrzucone: CLI bez `cycleStart` pokazuje cały plan, linty potrzebują jednego cyklu |
+| 2026-11-11 | 1 | `packages/cli/src/plan-shape.test.ts` | pełna macierz 576 profili w bramce | odrzucone: ~1,6 s; do ponownej oceny, gdy silnik zwolni |
+| 2026-11-11 | 1 | `season.ts`, `planfile.ts`, `calibration.ts` | trzy zaokrąglenia do 0,1 | odrzucone: różne paczki i znaczenia (km lintów, km planu, VDOT) |
 | 2026-11-11 | 1 | `packages/cli/src/bin.test.ts` | testy uruchamiające binarkę przekraczają 30 s przy obciążonej maszynie | do rozważenia: osobny limit czasu dla tych testów |
