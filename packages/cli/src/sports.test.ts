@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parse, stringify } from 'yaml'
 import ICAL from 'ical.js'
-import { buildSportSession, type SportsPlan, type SportsConfig, type SyncProvider, type PushableWorkout } from 'trainctl-core'
+import { buildSportSession, setLocale, type SportsPlan, type SportsConfig, type SyncProvider, type PushableWorkout } from 'trainctl-core'
 import { cmdInit, cmdPlan, cmdReplace, cmdMigrate, cmdLog, cmdCheck, cmdWeek, cmdToday, cmdShorten, cmdShift, cmdExport, cmdPush, cmdPull, cmdAdapt, cmdDiff, cmdReview, cmdWhy, cmdReschedule } from './commands.ts'
 import { loadSportsPlan, sportsTemplate } from './sports-store.ts'
 import { pushableSession, sessionExternalId } from './sports-sync.ts'
@@ -92,6 +92,15 @@ describe('multisport CLI workflows',()=>{
     expect(readFileSync(join(dir,'plan/plan.yaml'),'utf8')).toBe(before)
     expect(existsSync(join(dir,'export'))).toBe(false)
     expect(cmdLog(dir,{date:day,status:'done'}).code).toBe(0)
+  })
+  it('potwierdzenie wpisu sesji podaje status słowem z katalogu', () => {
+    const plan = init(), first = [...plan.sessions].sort((a, z) => a.date.localeCompare(z.date))[0]!
+    setLocale('pl')
+    try {
+      const saved = cmdLog(dir, { session: first.id, status: 'done' })
+      expect(saved.code, saved.output).toBe(0)
+      expect(saved.output).toContain(`${first.id}: wykonany`)
+    } finally { setLocale('en') }
   })
   it('records actual swimming repetitions without inferring full duration or distance',async()=>{
     const plan=init(), swim=plan.sessions.find(s=>s.sport==='swim')!, run=plan.sessions.find(s=>s.sport==='run')!

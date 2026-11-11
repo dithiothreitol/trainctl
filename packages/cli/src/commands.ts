@@ -575,7 +575,8 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
       blocks.push(
         b.success(
           ui().today.logged(logStatusText(entry.status)) +
-            (entry.km !== undefined ? `, ${kmLabel(entry.km, 3)}` : '') +
+            // 0 km w podsumowaniu dnia to brak dystansu; echo `log` pokazuje to, co zapisano
+            (entry.km !== undefined && entry.km > 0 ? `, ${kmLabel(entry.km, 4)}` : '') +
             (entry.rpe !== undefined ? `, RPE ${entry.rpe}` : '') +
             (entry.note ? ` — ${entry.note}` : ''),
         ),
@@ -588,10 +589,10 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
     if ((day.workout || day.strength) && Number.isFinite(estimatedMinutes)) blocks.push(b.text(ui().today.estimate(estimatedMinutes), 'muted'))
     const next = plan.weeks.flatMap((w) => w.days).find((d) => d.date > date && d.workout)
     if (next?.workout) {
-      blocks.push(b.text(ui().today.next(next.date, weekdayName(next.weekday), kindLabel(next.workout.kind), next.workout.raceDistanceKm ?? next.workout.distanceKm), 'muted'))
+      blocks.push(b.text(ui().today.next(next.date, weekdayName(next.weekday), kindLabel(next.workout.kind), shownKm(next.workout)), 'muted'))
     }
     if (day.workout) blocks.push(b.hint(ui().today.whyHint(date)))
-    return okDoc(blocks, { date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null, estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : null, next: next ? { date: next.date, kind: next.workout!.kind, distanceKm: next.workout!.raceDistanceKm ?? next.workout!.distanceKm } : null })
+    return okDoc(blocks, { date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null, estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : null, next: next ? { date: next.date, kind: next.workout!.kind, distanceKm: shownKm(next.workout!) } : null })
   } catch (e) {
     return fail(e)
   }
@@ -687,16 +688,20 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     // przecinek jak w polskim wyjściu („8,5"); ta sama reguła co kreator i odczyt log.jsonl
     const km = opts.km === undefined ? undefined : parseDecimal(String(opts.km))
     if (km !== undefined && !LOG_LIMITS.km(km)) throw new Error(ui().improve.badDistance)
+    // czasy: parseTime i te same granice co odczyt log.jsonl (LOG_LIMITS)
+    const timeSec = opts.time ? parseTime(opts.time) : undefined
+    if (timeSec !== undefined && !LOG_LIMITS.timeSec(timeSec)) throw new Error(ui().common.badTime(String(opts.time)))
     const testTimeSec = opts.testTime === undefined ? undefined : parseTime(opts.testTime)
+    if (testTimeSec !== undefined && !LOG_LIMITS.testTimeSec(testTimeSec)) throw new Error(ui().common.badTime(String(opts.testTime)))
     if (testTimeSec !== undefined && (status === 'skipped' || !['test', 'race'].includes(findDay(plan, date)?.day.workout?.kind ?? ''))) throw new Error(ui().improve.testTimeOnly)
     if (status === 'skipped' && ((km ?? 0) > 0 || opts.time !== undefined)) throw new Error(ui().improve.skippedMetrics)
-    if (testTimeSec !== undefined && opts.time && testTimeSec > parseTime(opts.time)) throw new Error(ui().improve.testTimeOnly)
+    if (testTimeSec !== undefined && timeSec !== undefined && testTimeSec > timeSec) throw new Error(ui().improve.testTimeOnly)
     const entry: LogEntry = {
       date,
       status,
       // opuszczona sesja nie ma dystansu (0 km to brak informacji, nie wynik)
       ...(km !== undefined && status !== 'skipped' ? { km } : {}),
-      ...(opts.time ? { timeSec: parseTime(opts.time) } : {}),
+      ...(timeSec !== undefined ? { timeSec } : {}),
       ...(testTimeSec !== undefined ? { testTimeSec } : {}),
       ...(rpe !== undefined ? { rpe } : {}),
       ...(opts.note ? { note: opts.note } : {}),
@@ -713,7 +718,8 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
       : ui().week.rest
     const recorded = [
       logStatusText(entry.status),
-      ...(entry.km !== undefined ? [kmLabel(entry.km, 3)] : []),
+      // echo zapisu: dokładnie to, co zapisano (podpowiedź kreatora ma 4 miejsca)
+      ...(entry.km !== undefined ? [kmLabel(entry.km, 4)] : []),
       ...(entry.timeSec !== undefined ? [fmtTime(entry.timeSec)] : []),
       ...(entry.testTimeSec !== undefined ? [ui().log.testTime(fmtTime(entry.testTimeSec))] : []),
       ...(entry.rpe !== undefined ? [`RPE ${entry.rpe}`] : []),
@@ -727,7 +733,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     blocks.push(b.hint(ui().shift.weekHint(date)))
     return okDoc(blocks, {
       entry,
-      planned: workout ? { kind: workout.kind, distanceKm: workout.raceDistanceKm ?? workout.distanceKm, estimatedMinutes: knownMinutes } : null,
+      planned: workout ? { kind: workout.kind, distanceKm: shownKm(workout), estimatedMinutes: knownMinutes } : null,
     })
   } catch (e) {
     return fail(e)
@@ -1944,12 +1950,11 @@ function strengthRow(plan: StoredPlan, entries: StrengthLogEntry[], from: string
 
 /**
  * Wiersz przeglądu: „Do startu: N dni" przed startem, „Od startu: N dni" po nim.
- * Wartość „N dni" to ten sam zapis co w `status` (status.daysToRace) — jeden
- * formatter liczby dni dla obu komend. Podtytuł `today` to zdanie, nie etykieta
- * z wartością, dlatego ma własną funkcję (raceDistanceLine).
+ * Liczba dni z neutralnego `common.dayCount`. Podtytuł `today` to zdanie, nie
+ * etykieta z wartością, dlatego ma własną funkcję (raceDistanceLine).
  */
 function raceCountdown(toRace: number): [string, string][] {
-  return toRace >= 0 ? [[ui().review.toRace, ui().status.daysToRace(toRace)]] : [[ui().review.sinceRace, ui().status.daysToRace(-toRace)]]
+  return toRace >= 0 ? [[ui().review.toRace, ui().common.dayCount(toRace)]] : [[ui().review.sinceRace, ui().common.dayCount(-toRace)]]
 }
 
 /** „N dni do startu", „N dni po starcie" albo koniec planu bazowego (P-11). */

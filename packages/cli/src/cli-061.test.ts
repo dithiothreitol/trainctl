@@ -137,13 +137,13 @@ describe('B9: stałe silnika bez źródła mają regułę E-3', () => {
 })
 
 describe('poprawki po przeglądzie etapu 1', () => {
-  it('today pokazuje zalogowane km w formacie języka, także 0 km', () => {
+  it('today pokazuje zalogowane km w formacie języka; 0 km to brak dystansu, echo log je pokazuje', () => {
     setLocale('pl')
     process.env['TRAINCTL_TODAY'] = '2026-10-27'
     cmdLog(dir, { date: '2026-10-27', status: 'modified', km: '8.5' })
     expect(cmdToday(dir).output).toContain('8,5 km')
-    cmdLog(dir, { date: '2026-10-27', status: 'modified', km: '0' })
-    expect(cmdToday(dir).output).toContain(', 0 km')
+    expect(cmdLog(dir, { date: '2026-10-27', status: 'modified', km: '0' }).output).toContain('0 km')
+    expect(cmdToday(dir).output).not.toContain('0 km')
     cmdLog(dir, { date: '2026-10-27', status: 'skipped', km: '0' })
     expect(cmdToday(dir).output).not.toContain('0 km')
   })
@@ -560,5 +560,32 @@ describe('dziennik: jedna reguła liczb i wpisów', () => {
     plan.changes.push({ at: '2026-10-27', action: 'shorten', detail: '2026-10-27: 8.5 → 6 km; 40 min; shortened' })
     writePlan(dir, plan)
     expect(readFileSync(join(dir, 'plan', 'PLAN.md'), 'utf-8')).toContain('2026-10-27: 8.5 → 6 km; 40 min; shortened')
+  })
+})
+
+describe('regeneracja zapisuje zmianę wyniku, z którego liczone są strefy', () => {
+  it('nowy wynik z tym samym VDOT: podpowiedź w why znika po trainctl plan', () => {
+    const r1 = '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }'
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(r1, `${r1}\n    - { date: "2026-10-10", distanceKm: 10, timeSec: 2580 }`), 'utf-8')
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-29'
+    expect(cmdWhy(dir, { date: '2026-10-27' }).output).toContain('would calibrate the zones from the 2026-10-10 result')
+    expect(cmdPlan(dir).data).toMatchObject({ regeneration: { upToDate: false } })
+    const why = cmdWhy(dir, { date: '2026-10-27' })
+    expect(why.output).not.toContain('would calibrate')
+    expect(why.data).toMatchObject({ recalibration: { changed: false } })
+    // ten sam profil drugi raz: nic do zapisania
+    expect(cmdPlan(dir).data).toMatchObject({ regeneration: { upToDate: true } })
+  })
+
+  it('echo zapisu pokazuje dystans z podpowiedzi kreatora bez zaokrąglenia', () => {
+    setLocale('pl')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    expect(cmdLog(dir, { date: '2026-10-27', status: 'modified', km: '21,0975' }).output).toContain('21,0975 km')
+  })
+
+  it('adres w nawiasie zostaje w całości', () => {
+    const url = 'https://github.com/dithiothreitol/trainctl/blob/v0.6.0/docs/science/FOUNDATIONS.md'
+    expect(wrap(`pliki aktywności (${url})`, 40).some((line) => line.trim() === `(${url})`)).toBe(true)
   })
 })

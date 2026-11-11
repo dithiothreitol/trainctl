@@ -14,6 +14,7 @@ import { clockToday } from './clock.ts'
 import { packageVersion } from './version.ts'
 import { CONFIG_FILE } from './config.ts'
 import { lineSeparator, LOG_FILE, parseTime } from './logfile.ts'
+import { logStatusText } from './format.ts'
 import { PLAN_MD, PLAN_YAML } from './planfile.ts'
 import { commitFiles } from './git.ts'
 import { readSnapshot, SYNC_FILE } from './sync.ts'
@@ -199,7 +200,7 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
       if (completedRepeats) entry.completedRepeats = completedRepeats
       const before = readOptional(cwd, LOG_FILE) ?? ''
       writeTransaction(cwd, { [LOG_FILE]: before + lineSeparator(before) + JSON.stringify(entry) + '\n' })
-      return commitResult(cwd, o, sportsResult([b.success(t.logged), b.text(`${s.id}: ${status}`), ...(spontaneous ? [b.info(t.spontaneous)] : [])], { entry, applied: true }), [LOG_FILE], action)
+      return commitResult(cwd, o, sportsResult([b.success(t.logged), b.text(`${s.id}: ${logStatusText(status)}`), ...(spontaneous ? [b.info(t.spontaneous)] : [])], { entry, applied: true }), [LOG_FILE], action)
     }
     if (action === 'replace') {
       const s = select(plan, o); editable(cwd, plan, s)

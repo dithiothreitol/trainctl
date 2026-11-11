@@ -114,6 +114,7 @@ export const cliPl: CliMessages = {
   },
 
   common: {
+    dayCount: (days: number) => dni(days),
     nextStep: (command: string) => `następny krok: ${command}`,
     saved: (what: string) => `Zapisano ${what}`,
     outsidePlan: (date: string, from: string, to: string) =>

@@ -55,7 +55,7 @@ export const b = {
 }
 
 /** URL albo ścieżka (Windows, POSIX, względna) — tokeny, których nie tniemy. */
-const UNBREAKABLE = /^(?:[a-z][a-z0-9+.-]*:\/\/|[A-Za-z]:[\\/]|\.{0,2}[\\/]|~[\\/])\S+$/i
+const UNBREAKABLE = /^[(\[{"'„«]*(?:[a-z][a-z0-9+.-]*:\/\/|[A-Za-z]:[\\/]|\.{0,2}[\\/]|~[\\/])\S+$/i
 
 /**
  * Zawijanie tekstu do szerokości, po słowach. `keepTokens` zostawia URL-e

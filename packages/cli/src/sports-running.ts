@@ -3,6 +3,7 @@ import { attachRunningCoaching, estimateWorkoutMinutes, predictTimeSec, type Pla
 import { computePlan, dayFingerprint, workoutText, type StoredPlan } from './planfile.ts'
 import type { TrainctlConfig } from './config.ts'
 import { rebuildPlan } from './regenerate.ts'
+import { shownKm } from './format.ts'
 
 export function runningDurationMinutes(plan: StoredPlan, workout: PlannedWorkout, date: string): number {
   const explicit = estimateWorkoutMinutes(workout, 0)
@@ -10,7 +11,7 @@ export function runningDurationMinutes(plan: StoredPlan, workout: PlannedWorkout
   const seconds = date === plan.goal.date ? plan.goal.targetTimeSec ?? plan.prediction?.hiSec : undefined
   // Legacy races may lack an estimate. Use only the existing running calibration,
   // retaining the original workout unchanged and labelling the estimate's source.
-  return Math.ceil((seconds ?? predictTimeSec(workout.raceDistanceKm ?? workout.distanceKm, plan.vdot)) / 60)
+  return Math.ceil((seconds ?? predictTimeSec(shownKm(workout), plan.vdot)) / 60)
 }
 
 export function runningSessions(plan: StoredPlan, cycleId: string): TrainingSession[] {
@@ -26,7 +27,7 @@ export function runningSessions(plan: StoredPlan, cycleId: string): TrainingSess
       ruleRefs: sport === 'run' ? workout!.ruleRefs : strength!.ruleRefs,
       ...(sport === 'run' && !Number.isFinite(estimateWorkoutMinutes(workout!,0)) ? {durationSource:'running-prediction'} : {}),
       ...(approved ? { approved: true } : {}), ...(d.pinned ? { pinned: true } : {}),
-      ...(sport === 'run' ? { legacyWorkout: workout!, distanceM: (workout!.raceDistanceKm ?? workout!.distanceKm) * 1000, description: workoutText(d), externalId: `trainctl-${d.date}` } : { description: strength!.description, externalId: `trainctl-${d.date}-strength` }),
+      ...(sport === 'run' ? { legacyWorkout: workout!, distanceM: shownKm(workout!) * 1000, description: workoutText(d), externalId: `trainctl-${d.date}` } : { description: strength!.description, externalId: `trainctl-${d.date}-strength` }),
     } as TrainingSession, {phase:w.skeleton.deload?'deload':w.skeleton.phase==='transition'?'recovery':w.skeleton.phase==='peak'?'build':w.skeleton.phase,weekIndex:w.skeleton.index,goal:{kind:plan.goal.kind==='base'?'base':'race',name:plan.goal.name,date:plan.goal.date,sport:'run',distanceM:plan.goal.distanceKm*1000}})]
   })))
 }

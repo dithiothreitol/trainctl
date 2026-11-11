@@ -29,8 +29,10 @@ import {
   weekTotals,
   type Microcycle,
   type PlannedDay,
+  type RaceResult,
 } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
+import { sameResult } from './calibration.ts'
 import { budgetWarnings, computePlan, dayFingerprint, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
@@ -61,6 +63,9 @@ const sameDistance = (a: number, b: number) => Math.abs(a - b) < 0.001
  * start — prawie cały dystans, nawet z krótszym pomiarem zegarka.
  */
 const RACE_DONE_SHARE = 0.8
+
+const sameSelection = (a: RaceResult | undefined, b: RaceResult | undefined): boolean =>
+  a === undefined || b === undefined ? a === b : sameResult(a, b)
 
 export function rebuildPlan(
   existing: StoredPlan,
@@ -224,6 +229,9 @@ export function rebuildPlan(
     droppedWeeks.length === 0 &&
     sameWeeks &&
     plan.vdot === existing.vdot &&
+    // wynik, z którego policzono strefy, to też treść planu: `why` porównuje go
+    // z dzisiejszym profilem — bez zapisu podpowiedź „uruchom trainctl plan" by nie znikła
+    sameSelection(plan.calibration?.selected, existing.calibration?.selected) &&
     JSON.stringify(plan.goal) === JSON.stringify(existing.goal) &&
     plan.locale === existing.locale &&
     plan.engineVersion === existing.engineVersion &&

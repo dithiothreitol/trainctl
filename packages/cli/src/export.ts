@@ -131,7 +131,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
     const html = toMobileHtml({
       lang: getLocale(), title: labels.mobile, date: day.date, goal: plan.goal.name,
       kind: day.workout ? kindLabel(day.workout.kind) : labels.mobileRest,
-      distance: day.workout ? messages().units.km(day.workout.raceDistanceKm ?? day.workout.distanceKm) : '',
+      distance: day.workout ? messages().units.km(shownKm(day.workout)) : '',
       duration: Number.isFinite(minutes) ? labels.minuteEstimate(minutes) : labels.unknownDuration,
       purpose: day.workout ? kindPurpose(day.workout.kind) : ui().today.restDayBody,
       steps: day.workout?.segments.map((s) => s.description) ?? [ui().today.restDayBody],

@@ -123,19 +123,20 @@ export function settleMixedWeek(week: Microcycle): void {
 
 export function computePlan(config: TrainctlConfig, today: string, calibrationDate = today, opts: ComputePlanOptions = {}): StoredPlan {
   const { athlete, goal } = config
-  const recent = athlete.results.filter(
-    (r) => !r.excluded && r.date <= calibrationDate && diffDays(r.date, calibrationDate) <= 540,
-  )
+  // Wybór wyniku (540 dni, wykluczenia, Z-10) ma jedną implementację — inspectCalibration;
+  // z niej korzysta też `why`, żeby podpowiedź o rekalibracji mówiła to, co zrobi plan.
   // Z-10 (inż.): wynik z trailu nie kalibruje stref szosowych — czas w terenie mówi
   // o terenie tak samo jak o formie. Gdy innych wyników brak, używamy go z ostrzeżeniem.
   const roadGoal = isRoadGoal(goal)
-  const road = roadGoal ? recent.filter((r) => r.terrain !== 'trail') : recent
-  const usable = road.length ? road : recent
-  const trailOnly = roadGoal && road.length === 0 && recent.length > 0
+  const calibration = inspectCalibration(athlete.results, calibrationDate, roadGoal)
+  const selected = calibration.selected
+  // wyniki, które przeszły zasadę wyboru (z wybranym) — z nich liczy się też predykcja
+  const usable = calibration.candidates.filter((c) => c.reason === 'selected' || c.reason === 'lower-vdot').map((c) => c.result)
+  const trailOnly = roadGoal && selected?.terrain === 'trail'
   let vdot: number
   let vdotSource: StoredPlan['vdotSource']
-  if (usable.length > 0) {
-    vdot = Math.max(...usable.map((r) => vdotFromRace(r.distanceKm, r.timeSec)))
+  if (selected) {
+    vdot = vdotFromRace(selected.distanceKm, selected.timeSec)
     vdotSource = 'result'
   } else if (goal.targetTimeSec && goal.kind !== 'base') {
     vdot = vdotFromRace(goal.distanceKm, goal.targetTimeSec)
@@ -156,7 +157,7 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   const plan: StoredPlan = {
     schemaVersion: PLAN_SCHEMA_VERSION,
     engineVersion: packageVersion(),
-    calibration: inspectCalibration(athlete.results, calibrationDate, roadGoal),
+    calibration,
     generatedAt: today,
     locale: getLocale(),
     vdot: Math.round(vdot * 10) / 10,

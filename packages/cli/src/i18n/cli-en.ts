@@ -100,6 +100,8 @@ export const cliEn = {
   },
 
   common: {
+    /** „N days" — liczba dni jako wartość pod etykietą (review). */
+    dayCount: (days: number) => `${days} ${pluralEn(days, { one: 'day', other: 'days' })}`,
     nextStep: (command: string) => `next step: ${command}`,
     saved: (what: string) => `Saved ${what}`,
     outsidePlan: (date: string, from: string, to: string) =>
