@@ -6,6 +6,20 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
+### Added
+
+- `trainctl rules E-3` lists the engine's fixed values that have no source
+  (easy-run cap, accent share, phase split, recoveries, race-week sessions),
+  each marked in code for review.
+- Season shape checks in the engine (`seasonProfile`, `seasonShapeIssues`):
+  long run not the longest, deload not lighter, one session carrying the week,
+  heavy accent after the race, repeated blocks, long run below the distance
+  threshold. In this release they run only in the test matrix of 576
+  synthetic profiles; `check` will use them once the engine changes.
+- FOUNDATIONS §10.15: corpus measurements of run count, volume and long-run
+  trajectory, accent dose and weekend order, with rules S-9b–S-12, P-12,
+  J-8–J-10 and the return-after-break heuristic R-11.
+
 ### Fixed
 
 - `review`: the day-by-day execution table is headed Plan / Actual / Status
