@@ -142,7 +142,7 @@ describe('reguły i cele jednostek', () => {
   it('każde objaśnienie cytuje źródło albo korpus', () => {
     // Reguły inżynierskie bez bezpośredniego źródła — wymienione jawnie, żeby
     // dopisanie kolejnej wymagało świadomej decyzji, nie przeoczenia.
-    const withoutSource = ['T-9', 'T-12', 'W-13', 'F-18', 'Z-10', 'E-2', 'E-3', 'R-9', 'R-10', 'P-11', 'J-6']
+    const withoutSource = ['T-9', 'T-12', 'W-13', 'F-18', 'Z-10', 'E-2', 'E-3', 'R-9', 'R-10', 'P-11', 'J-6', 'R-5']
     // rok publikacji, odwołanie do korpusu albo nazwisko (Daniels & Gilbert, bez roku)
     const cites = /(19|20)\d{2}|korpus|corpus|Daniels/
     for (const catalog of [cliEn.rules, cliPl.rules]) {

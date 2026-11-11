@@ -123,15 +123,18 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   const baseHash = workspaceHash(cwd)
   const plan = loadPlan(cwd)
   if (!plan.calibration || !plan.generatedDays) throw new Error(ui().improve.oldPlan)
-  if (analysis.actions.some((a) => a.type === 'post-race-recovery' || a.type === 'conservative-restart')) throw new Error(ui().improve.manualRecovery)
-  const volume = analysis.actions.find((a) => a.suggestedWeeklyKm !== undefined)
+  if (analysis.actions.some((a) => a.type === 'post-race-recovery' || (a.type === 'conservative-restart' && !a.returnBlock))) throw new Error(ui().improve.manualRecovery)
+  // B11: restart po przerwie to blok powrotu od jutra (R-5 po chorobie, R-11 po innej)
+  const restart = analysis.actions.find((a) => a.type === 'conservative-restart' && a.returnBlock)
+  const returnFrom = restart?.returnBlock ? { since: addDays(today, 1), ...restart.returnBlock } : undefined
+  const volume = returnFrom ? undefined : analysis.actions.find((a) => a.suggestedWeeklyKm !== undefined)
   const recalibrate = analysis.actions.some((a) => a.type === 'recalibrate-zones')
-  if (!volume && !recalibrate) throw new Error(ui().improve.noPatch)
+  if (!volume && !recalibrate && !returnFrom) throw new Error(ui().improve.noPatch)
   const config = loadConfig(cwd)
   if (JSON.stringify(config.goal) !== JSON.stringify(plan.goal)) throw new Error(ui().improve.changedGoal)
   // A completed time trial with no result in the profile is a request for data,
   // not permission to rewrite calibration timestamps and call that a plan change.
-  if (!volume && sameResults(config.athlete.results, plan.calibration.results))
+  if (!volume && !returnFrom && sameResults(config.athlete.results, plan.calibration.results))
     throw new Error(ui().improve.noPatch)
   const nextConfig = structuredClone(config)
   const candidate = withLocale(plan.locale === 'pl' ? 'pl' : 'en', () => computePlan(nextConfig, plan.generatedAt, today, {
@@ -144,12 +147,19 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
     // propozycja może zmienić.
     budgetFrom: mondayOf(today),
     budgetWarnings: false,
-    ...(volume ? {} : { weeklyBudgetFrom: addDays(mondayOf(today), 7) }),
+    ...(volume || returnFrom ? {} : { weeklyBudgetFrom: addDays(mondayOf(today), 7) }),
+    ...(returnFrom ? { returnFrom } : {}),
     beforeTimeBudget: (metadata) => {
       // Metadane kalibracji liczy computePlan; nowa baza nie sięga wstecz (tygodnie
       // sprzed decyzji zostają). Bieżący cykl jak w zapisanym planie — szczyt
       // i ostrzeżenia nie liczą historii poprzedniego.
       if (plan.cycleStart) metadata.cycleStart = plan.cycleStart
+      // blok powrotu: tygodnie od powrotu z computePlan, wcześniejsze z zapisanego planu
+      if (returnFrom) {
+        const from = mondayOf(returnFrom.since)
+        metadata.weeks = metadata.weeks.map((w) => w.weekStart < from ? structuredClone(plan.weeks.find((x) => x.weekStart === w.weekStart) ?? w) : w)
+        return
+      }
       if (volume) {
         // siła to osobny tor — korekta objętości jej nie przestawia
         metadata.weeks = scaleToBaseline(plan.weeks, {
@@ -201,6 +211,11 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   }
   next.calibration = candidate.calibration!
   if (volume) next.loadState = { baselineWeeklyKm: volume.suggestedWeeklyKm!, effectiveFrom: today, profileWeeklyKm: config.athlete.recentWeeklyKm }
+  // jedna decyzja o objętości naraz: powrót po przerwie zastępuje bazę, nowa baza — powrót
+  if (returnFrom) {
+    next.returnState = { ...returnFrom, decidedOn: today }
+    delete next.loadState
+  } else if (volume) delete next.returnState
   next.vdot = candidate.vdot
   next.vdotSource = candidate.vdotSource
   if (candidate.prediction) next.prediction = candidate.prediction

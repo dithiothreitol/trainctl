@@ -233,6 +233,14 @@ export const corePl: CoreMessages = {
     restartExtrapolated:
       'Protokół restartu po przerwie to ekstrapolacja bez bezpośredniego źródła (R-5) — ' +
       'traktuj jako punkt wyjścia, nie normę.',
+    restartAfterIllness: (weeklyKm: number, days: number) =>
+      `Powrót po chorobie: objętość ×0,5–0,6 (≈${weeklyKm} km/tydz.) po ${days} ` +
+      `${pluralPl(days, { one: 'dniu', few: 'dniach', other: 'dniach' })} przerwy, ` +
+      'pierwszy tydzień wyłącznie spokojnie, potem plan wraca w granicach P-3. ' +
+      'Nie nadrabiamy opuszczonych kilometrów.',
+    injuryReturn:
+      'Przerwa z powodu kontuzji: silnik nie proponuje objętości. Kiedy i ile znowu biegać, ustalasz ze ' +
+      'specjalistą (R-6, R-7); potem zapisz powrót i uruchom adapt ponownie.',
     postRaceUltra:
       'Ultra: dłuższa cisza niż po maratonie, powrót wg samopoczucia — brak danych, ' +
       'żeby podać konkretny protokół.',

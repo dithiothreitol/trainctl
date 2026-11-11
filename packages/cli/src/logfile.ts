@@ -1,6 +1,7 @@
 /** Dziennik wykonania: log.jsonl — jedna linia JSON na wpis (append-only). */
 import { appendFileSync, closeSync, existsSync, openSync, readFileSync, readSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { BREAK_REASONS, type BreakReason } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 import { parseDecimal } from './format.ts'
 
@@ -20,6 +21,8 @@ export interface LogEntry {
    */
   rpe?: number
   note?: string
+  /** Przyczyna opuszczenia (B11): przerwa zapisana `log --to … --reason …`. */
+  reason?: BreakReason
   loggedAt: string
 }
 
@@ -136,6 +139,11 @@ function normalize(raw: Record<string, unknown>, dropped: string[] = []): LogEnt
     }
   }
   if (entry['status'] === 'skipped' && entry['km'] === 0) delete entry['km']
+  // przyczyna przerwy spoza listy (B11) nie trafia do diagnozy adapt
+  if ('reason' in entry && !(BREAK_REASONS as readonly unknown[]).includes(entry['reason'])) {
+    dropped.push(`${String(entry['date'] ?? '?')} reason`)
+    delete entry['reason']
+  }
   return entry as unknown as LogEntry | StrengthLogEntry
 }
 

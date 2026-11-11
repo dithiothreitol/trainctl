@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AthleteProfile, RaceGoal } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
-import { earliestFeasibleRaceDate, longGoalKm, planMacrocycle, recommendedPeakKm, taperWeeksFor } from './macrocycle.ts'
+import { applyReturnBlock, earliestFeasibleRaceDate, longGoalKm, planMacrocycle, recommendedPeakKm, taperWeeksFor } from './macrocycle.ts'
 
 const athlete: AthleteProfile = {
   recentWeeklyKm: 50,
@@ -369,5 +369,36 @@ describe('B8: powrót po przerwie (R-11) i data, od której próg jest osiągaln
     // plan z tą datą dochodzi do rekomendowanego szczytu
     const plan = planMacrocycle({ today, goal: { ...half, date }, athlete: { ...runner, peakWeeklyKm: 50 } })
     expect(plan.peakKmPlanned).toBeGreaterThanOrEqual(recommendedPeakKm(half))
+  })
+})
+
+describe('B11: blok powrotu po przerwie w trakcie planu', () => {
+  const half: RaceGoal = { name: 'HM', date: '2027-03-28', distanceKm: 21.0975, priority: 'A' }
+  const plan = planMacrocycle({ today: '2026-10-22', goal: half, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] } })
+  const since = '2026-12-16'
+  const at = plan.weeks.findIndex((w) => w.weekStart === '2026-12-14')
+
+  it('po chorobie: tygodnie przed powrotem bez zmian, od powrotu 55% objętości sprzed przerwy, pierwszy tydzień spokojnie (R-5)', () => {
+    const weeks = applyReturnBlock(plan.weeks, { since, previousWeeklyKm: 50, illness: true })
+    expect(weeks.slice(0, at)).toEqual(plan.weeks.slice(0, at))
+    expect(weeks[at]!.targetKm).toBe(Math.min(plan.weeks[at]!.targetKm, Math.round(0.55 * 50)))
+    expect(weeks[at]!.easyOnly).toBe(true)
+    expect(weeks[at]!.qualitySessions).toBe(0)
+    expect(weeks[at]!.ruleRefs).toContain('R-5')
+    expect(weeks[at + 1]!.easyOnly).toBeUndefined()
+    // wzrost w tempie P-3, aż krzywa dogoni plan; taper i start z planu, gdy krzywa jest wyżej
+    for (let i = at + 1; i < weeks.length; i++) expect(weeks[i]!.targetKm).toBeLessThanOrEqual(plan.weeks[i]!.targetKm)
+    expect(weeks.at(-1)).toEqual(plan.weeks.at(-1))
+  })
+
+  it('po innej przerwie: pierwszy blok z odciążeniem spokojnie, bez sprawdzianu (R-11)', () => {
+    const weeks = applyReturnBlock(plan.weeks, { since, previousWeeklyKm: 50, illness: false })
+    const deload = weeks.findIndex((w, i) => i >= at && w.deload)
+    for (const w of weeks.slice(at, deload + 1)) {
+      expect(w.easyOnly).toBe(true)
+      expect(w.testPlanned).toBeUndefined()
+      expect(w.ruleRefs).toContain('R-11')
+    }
+    expect(weeks[deload + 1]!.easyOnly).toBeUndefined()
   })
 })

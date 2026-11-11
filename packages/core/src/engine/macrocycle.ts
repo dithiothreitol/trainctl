@@ -6,6 +6,7 @@
  */
 import type {
   AthleteProfile,
+  ReturnBlock,
   IntensityModel,
   MacroPhase,
   MacrocyclePlan,
@@ -247,6 +248,43 @@ export function earliestFeasibleRaceDate(athlete: AthleteProfile, goal: RaceGoal
   const loading = Math.max(1, Math.ceil(Math.log(recommended / Math.max(1, start)) / Math.log(RAMP_PER_LOAD_WEEK)) + 1)
   const weeks = loading + Math.floor(loading / (DELOAD_EVERY - 1)) + taperWeeksFor(goal).weeks
   return addDays(mondayOf(today), 7 * (weeks - 1) + 6)
+}
+
+/** R-5, R-11 (inż.): powrót w trakcie planu startuje z ~55% objętości sprzed przerwy (środek 50–60%). */
+const RETURN_RESTART_SHARE = 0.55
+
+/**
+ * B11: blok powrotu po przerwie w trakcie planu. Od tygodnia powrotu cel tygodnia to
+ * mniejsza z wartości z planu i krzywej powrotu: ~55% objętości sprzed przerwy (R-5
+ * po chorobie, R-11 po innej), wzrost w tempie P-3 na tydzień ładowania, odciążenie
+ * planu zostaje (×0,7 krzywej, P-2). Po chorobie pierwszy tydzień wyłącznie spokojnie
+ * (R-5: zero Z3 przez 5–7 dni), po innej przerwie pierwszy blok z odciążeniem (R-11).
+ * Gdy krzywa dogoni plan, plan idzie dalej swoim kształtem. Sprawdzian w bloku powrotu
+ * wypada (kalibracja zaraz po przerwie mierzy przerwę, nie formę).
+ */
+export function applyReturnBlock(weeks: WeekSkeleton[], ret: ReturnBlock): WeekSkeleton[] {
+  const from = mondayOf(ret.since)
+  const start = weeks.findIndex((w) => w.weekStart >= from)
+  if (start === -1) return weeks
+  const firstDeload = weeks.findIndex((w, i) => i >= start && w.deload)
+  const easyEnd = ret.illness ? start + 1 : firstDeload === -1 ? weeks.length : firstDeload + 1
+  const rule = ret.illness ? 'R-5' : 'R-11'
+  let loading = 0
+  return weeks.map((w, i) => {
+    if (i < start) return w
+    const curve = RETURN_RESTART_SHARE * ret.previousWeeklyKm * Math.pow(RAMP_PER_LOAD_WEEK, loading)
+    if (!w.deload && ['base', 'build', 'peak'].includes(w.phase)) loading++
+    const capped = Math.round(w.deload ? curve * DELOAD_FACTOR : curve)
+    const easy = i < easyEnd && !w.raceDate
+    if (capped >= w.targetKm && !easy) return w
+    const { testPlanned: _test, ...rest } = w
+    return {
+      ...(easy ? rest : w),
+      targetKm: Math.min(w.targetKm, capped),
+      ...(easy ? { qualitySessions: 0, easyOnly: true } : {}),
+      ruleRefs: [...new Set([...w.ruleRefs, rule, 'P-3'])],
+    }
+  })
 }
 
 /** Tygodnie po starcie celu A — makrocykl nie kończy się w dniu zawodów. */

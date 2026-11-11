@@ -152,6 +152,8 @@ export function createTrainctlServer(
       inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(),
         date: isoDate().optional(),
         status: z.enum(['done', 'skipped', 'modified']).optional().describe(t.logStatus),
+        to: isoDate().optional().describe(t.logTo),
+        reason: z.enum(['illness', 'injury', 'travel', 'other']).optional().describe(t.logReason),
         meters: z.string().optional().describe(sportMessages().meters),
         actualSport: z.enum(['run','bike','swim']).optional().describe(sportMessages().actualSport),
         sets: z.string().optional().describe(sportMessages().sets),

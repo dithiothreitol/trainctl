@@ -56,6 +56,8 @@ export const cliEn = {
     optDateOther: 'a date other than today',
     optDateWeek: 'any date inside the week you care about',
     optStatus: 'done|skipped|modified',
+    optBreakTo: 'last day of a break: every day from --date gets a skipped entry',
+    optReason: 'why skipped: illness | injury | travel | other',
     optKm: 'kilometres covered',
     optTime: 'time as MM:SS or HH:MM:SS',
     optRpe: 'session effort as a whole number 1–10 (CR-10)',
@@ -272,6 +274,14 @@ export const cliEn = {
   log: {
     outsidePlan: (date: string) => `Date ${date} is outside the plan range.`,
     unknownStatus: (status: string) => `Unknown status "${status}" — use done|skipped|modified.`,
+    /** B11: przerwa w dzienniku. */
+    unknownReason: (reason: string, allowed: string) => `Unknown reason "${reason}" — use ${allowed}.`,
+    breakSkippedOnly: 'A reason and a date range (--to) go with skipped sessions only (--status skipped).',
+    breakOrder: (from: string, to: string) => `The break ends before it starts: ${from} to ${to}.`,
+    breakTooLong: (days: number) => `A break of more than ${days} days is a new plan rather than a break — record it in shorter parts or start a new plan.`,
+    breakRecorded: (from: string, to: string, days: number, reason?: string) =>
+      `Logged a break ${from} to ${to}: ${days} ${days === 1 ? 'day' : 'days'} skipped${reason ? `, reason: ${reason}` : ''}. After the break, adapt proposes how to come back.`,
+    reasonWord: { illness: 'illness', injury: 'injury', travel: 'travel', other: 'other' } as Record<'illness' | 'injury' | 'travel' | 'other', string>,
     badRpe: (rpe: string) =>
       `RPE "${rpe}" is off the scale — use a whole number 1–10 (10 = maximal effort).`,
     saved: (date: string, status: string) => `Logged ${date}: ${status}.`,
@@ -299,6 +309,8 @@ export const cliEn = {
       rpeHint: 'Enter skips',
       note: 'Note',
       noteHint: 'how it went, conditions — Enter skips',
+      reason: 'Why skipped',
+      reasonHint: 'illness / injury / travel / other, Enter skips',
       badStatus: 'Use done, skipped or modified (d / s / m).',
       logged: 'logged',
     },
@@ -1064,6 +1076,10 @@ export const cliEn = {
     'F-18': 'the first two weeks of a strength block learn the movement at ~75% 1RM before the heavy weeks — an engineering choice, no source',
     'R-1': 'after a marathon, 48 h without running, then light running — 40 min easy at 48/96/144 h (Martínez-Navarro 2021)',
     'R-2': 'running again 48 h after a marathon does not slow recovery (Martínez-Navarro 2021)',
+    'R-5': 'after illness, a conservative restart: volume ×0.5–0.6 and no hard running for 5–7 days, then the usual progression after a break — an extrapolation without a direct source',
+    'R-6': 'symptoms that need a doctor are shown with their source: chest pain, fainting, shortness of breath, palpitations (Ruuskanen 2023)',
+    'R-7': 'the engine gives no medical advice: coming back after illness or injury is a decision for you and your medical team (Ruuskanen 2023)',
+    'R-11': 'return after two weeks or more without running: restart at ~50–60% of the earlier volume, first block easy, growth within P-3 — detraining data from Mujika & Padilla 2000, the parameters are engineering choices',
     'R-8': 'after a race of half marathon or longer, two transition weeks: ~50% of the pre-race volume easy only, then ~100% with one accent (coaching corpus, n=3; Martínez-Navarro 2021)',
     'R-9': 'strength returns in the second week after the race, one lighter session — an engineering choice, no source',
     'R-10': 'after a shorter goal race, one transition week at ~70% — an engineering choice; no data behind it',
@@ -1122,6 +1138,8 @@ export const cliEn = {
     weekDate: 'any date inside the week you care about',
     log: 'Record a completed session in the journal (log.jsonl).',
     logStatus: 'defaults to done',
+    logTo: 'last day of a break (with status skipped): every day from date to this one is logged as skipped.',
+    logReason: 'why the session or break was skipped: illness leads adapt to the R-5 return, injury to no volume proposal.',
     logKm: 'kilometres covered',
     logTime: 'time as MM:SS or HH:MM:SS',
     logRpe:

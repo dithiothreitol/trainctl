@@ -197,7 +197,13 @@ Reguły
 trainctl log                    # w terminalu: wybierz trening, odpowiedz na kilka pytań
 trainctl log --km 8 --time 41:20 --rpe 4 --note "dobre czucie"
 trainctl log --date wczoraj --status skipped --note "praca"
+trainctl log --date -10 --to wczoraj --status skipped --reason illness   # przerwa
 ```
+
+Po zapisanej przerwie `trainctl adapt --prepare` proponuje powrót: około połowy
+dawnej objętości, pierwszy tydzień spokojnie po chorobie (R-5) albo pierwszy
+blok spokojnie po innej przerwie (R-11), potem plan wraca do swojego kształtu.
+Kontuzja nie dostaje propozycji objętości; tę decyzję podejmujesz ze specjalistą.
 
 Daty przyjmują `RRRR-MM-DD`, `dziś`/`jutro`/`wczoraj` (także po angielsku),
 `+N`/`-N` i dni tygodnia (`czw`, `thu`). `log`, `review`, `adapt` i `pull`

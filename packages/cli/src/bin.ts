@@ -287,6 +287,8 @@ withExamples(
       .description(ui().cmd.log)
       .option('--date <iso>', ui().cmd.optDate, back)
       .option('--status <s>', ui().cmd.optStatus, 'done')
+      .option('--to <iso>', ui().cmd.optBreakTo, ahead)
+      .option('--reason <r>', ui().cmd.optReason)
       .option('--km <n>', ui().cmd.optKm)
       .option('--time <t>', ui().cmd.optTime)
       .option('--test-time <t>', ui().improve.testTime)
@@ -299,7 +301,7 @@ withExamples(
 ).action(async (opts, command: Command) => {
   // Bez żadnej flagi w terminalu: pytania zamiast cichego „dziś: done".
   // Poza terminalem (skrypt, agent) zachowanie bez zmian.
-  const flags = ['date', 'km', 'time', 'testTime', 'rpe', 'note', 'commit', 'strength', 'minutes', 'session', 'sport', 'actualSport', 'sets', 'meters', 'activity'].some((k) => opts[k] !== undefined) ||
+  const flags = ['date', 'to', 'reason', 'km', 'time', 'testTime', 'rpe', 'note', 'commit', 'strength', 'minutes', 'session', 'sport', 'actualSport', 'sets', 'meters', 'activity'].some((k) => opts[k] !== undefined) ||
     command.getOptionValueSource('status') !== 'default'
   if (!flags && tty && isSportsWorkspace(cwd)) return print(await runSportsPicker(cwd,'log',localToday(),theme))
   if (!flags && tty && !isSportsWorkspace(cwd)) return printInteractive(await runLogPrompt(cwd, localToday(), theme))

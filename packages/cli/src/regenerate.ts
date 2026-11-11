@@ -101,10 +101,14 @@ export function rebuildPlan(
   // `strength.days`. Propozycja przepisuje je z zapisanego planu, który ma właśnie
   // to, więc regeneracja tuż po `adapt --apply` odtwarza zatwierdzone dni.
   // Bez budżetu czasu tygodnie przed hakiem są tym samym planem (bez drugiego przebiegu).
-  const unscaled = loadState && config.time ? computePlan(config, macroStart, today) : undefined
+  // B11: zatwierdzony powrót po przerwie obowiązuje w tym samym cyklu
+  const returnState = mode === 'same-cycle' ? existing.returnState : undefined
+  const returnFrom = returnState ? { since: returnState.since, previousWeeklyKm: returnState.previousWeeklyKm, illness: returnState.illness } : undefined
+  const unscaled = loadState && config.time ? computePlan(config, macroStart, today, returnFrom ? { returnFrom } : {}) : undefined
   // ostrzeżenia budżetu liczymy niżej, na planie złożonym z dni chronionych
   const fresh = computePlan(config, macroStart, today, loadState
     ? {
+        ...(returnFrom ? { returnFrom } : {}),
         budgetWarnings: false,
         budgetFrom: mondayOf(loadState.effectiveFrom),
         beforeTimeBudget: (plan) => {
@@ -114,7 +118,7 @@ export function rebuildPlan(
           })
         },
       }
-    : { budgetWarnings: false })
+    : { budgetWarnings: false, ...(returnFrom ? { returnFrom, budgetFrom: mondayOf(returnState!.decidedOn) } : {}) })
 
   const minutesOf = (day: PlannedDay) =>
     (day.workout ? estimateWorkoutMinutes(day.workout, existing.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
@@ -216,6 +220,8 @@ export function rebuildPlan(
   plan.feasibilityWarnings = [...fresh.feasibilityWarnings, ...budgetWarnings(plan, config, now)]
   if (loadState) plan.loadState = loadState
   else delete plan.loadState
+  if (returnState) plan.returnState = returnState
+  else delete plan.returnState
   if (Object.keys(timeBudgets).length) plan.timeBudgets = timeBudgets
   if (existing.preparationMinutes !== undefined) plan.preparationMinutes = existing.preparationMinutes
 
@@ -234,6 +240,7 @@ export function rebuildPlan(
     plan.locale === existing.locale &&
     plan.engineVersion === existing.engineVersion &&
     JSON.stringify(plan.loadState ?? null) === JSON.stringify(existing.loadState ?? null) &&
+    JSON.stringify(plan.returnState ?? null) === JSON.stringify(existing.returnState ?? null) &&
     // notatki siły tygodni to też treść planu (PLAN.md) — plan, który je zgubił, się naprawia
     JSON.stringify(weeks.map((w) => w.strengthNotes ?? null)) === JSON.stringify(existing.weeks.map((w) => w.strengthNotes ?? null))
   if (!upToDate) {

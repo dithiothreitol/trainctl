@@ -194,7 +194,13 @@ Rules
 trainctl log                    # in a terminal: pick the session, answer a few questions
 trainctl log --km 8 --time 41:20 --rpe 4 --note "felt good"
 trainctl log --date yesterday --status skipped --note "work"
+trainctl log --date -10 --to yesterday --status skipped --reason illness   # a break
 ```
+
+After a recorded break, `trainctl adapt --prepare` proposes how to come back:
+about half the earlier volume, the first week easy after illness (R-5) or the
+first block easy after any other break (R-11), then the plan grows back. An
+injury gets no volume proposal; that decision belongs to you and a specialist.
 
 Dates accept `YYYY-MM-DD`, `today`/`tomorrow`/`yesterday`, `+N`/`-N` and weekday
 names (`thu`). `log`, `review`, `adapt` and `pull` look back; everything else

@@ -5,7 +5,7 @@
  */
 import { emitKeypressEvents } from 'node:readline'
 import { createInterface } from 'node:readline/promises'
-import { addDays, formatNumber, getLocale, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
+import { addDays, BREAK_REASONS, formatNumber, getLocale, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
 import { cmdLog, cmdShift, cmdWeek, kindLabel } from './commands.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, shownKm, workoutKm } from './format.ts'
@@ -123,6 +123,11 @@ const parseTimeText = (text: string): string => {
   parseTime(text.trim())
   return text.trim()
 }
+export const parseReasonText = (text: string): string => {
+  const value = text.trim().toLowerCase()
+  if (!(BREAK_REASONS as readonly string[]).includes(value)) throw new Error(ui().log.unknownReason(value, BREAK_REASONS.join(', ')))
+  return value
+}
 export const parseRpeText = (text: string): string => {
   const value = parseDecimal(text)
   if (!LOG_LIMITS.rpe(value)) throw new Error(ui().log.badRpe(text))
@@ -170,6 +175,9 @@ export async function runLogPrompt(cwd: string, today: string, theme = new Theme
         opts.testTime = await ask(rl, theme, q.testTime, parseTimeText, { hint: q.timeHint, optional: true })
       }
       opts.rpe = await ask(rl, theme, q.rpe, parseRpeText, { hint: q.rpeHint, optional: true })
+    } else {
+      // B11: przyczyna opuszczenia — po chorobie adapt proponuje powrót według R-5
+      opts.reason = await ask(rl, theme, q.reason, parseReasonText, { hint: q.reasonHint, optional: true })
     }
     opts.note = await ask(rl, theme, q.note, (text) => text.trim(), { hint: q.noteHint, optional: true })
   } finally {

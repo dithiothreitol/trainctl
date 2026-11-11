@@ -63,6 +63,15 @@ change between minor versions — a regenerated plan can differ.
 
 ### Added
 
+- A break during the plan: `trainctl log --date … --to … --status skipped
+  --reason illness|injury|travel|other` records every day of the break, also in
+  advance, and the MCP `trainctl_log` tool and the log prompt take the same
+  fields. After the break `adapt` proposes a return block you can approve:
+  about 55% of the earlier volume, the first week easy after illness (R-5) or
+  the first block easy after any other break (R-11), growth within P-3 until
+  the plan catches up. An injury gets no volume proposal (R-6, R-7). An approved
+  return survives `trainctl plan` like an approved baseline (ADR-033).
+- `trainctl rules` explains R-5, R-6, R-7 and R-11.
 - `athlete.returning: { since, previousWeeklyKm }` for a return after two
   weeks or more without running (R-11): the plan restarts at 50–60% of the
   earlier volume, keeps the first block easy with no time trial, and grows back

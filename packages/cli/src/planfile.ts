@@ -10,6 +10,7 @@ import {
   generateMicrocycle,
   shortenWorkout,
   weekTotals,
+  applyReturnBlock,
   earliestFeasibleRaceDate,
   getLocale,
   longRunThreshold,
@@ -23,6 +24,7 @@ import {
   type PlannedDay,
   type RaceGoal,
   type RacePrediction,
+  type ReturnBlock,
 } from 'trainctl-core'
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
@@ -55,6 +57,11 @@ export interface StoredPlan {
   loadState?: { baselineWeeklyKm: number; effectiveFrom: string; profileWeeklyKm?: number }
   /** Pierwszy tydzień bieżącego cyklu, gdy wcześniejsze tygodnie to historia poprzedniego. */
   cycleStart?: string
+  /**
+   * Zatwierdzony powrót po przerwie w trakcie planu (B11, `adapt --apply`): regeneracja
+   * stosuje go tak samo jak propozycja, dopóki trwa ten sam cykl.
+   */
+  returnState?: ReturnBlock & { decidedOn: string }
   schemaVersion?: number
   engineVersion?: string
   calibration?: Calibration
@@ -106,6 +113,8 @@ export interface ComputePlanOptions {
    * zapisze — po złożeniu z dni chronionych (regeneracja, propozycja).
    */
   budgetWarnings?: boolean
+  /** B11: blok powrotu po przerwie — szkielety od tygodnia powrotu przed generacją tygodni. */
+  returnFrom?: ReturnBlock
 }
 
 /** Tydzień sprzed granicy budżetu — gotowy, budżet go nie rusza. */
@@ -141,7 +150,8 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   const zones = paceZones(vdot)
   const macro = planMacrocycle({ today, goal, athlete })
   let previousFrequency: number | undefined
-  const weeks = macro.weeks.map((skeleton) => {
+  const skeletons = opts.returnFrom ? applyReturnBlock(macro.weeks, opts.returnFrom) : macro.weeks
+  const weeks = skeletons.map((skeleton) => {
     if (skeleton.keepFrequency && previousFrequency !== undefined) skeleton.sessionCount = previousFrequency
     const week = generateMicrocycle({ skeleton, athlete, zones, goal, testDistanceKm: testDistanceKm(goal) })
     if (!skeleton.keepFrequency) previousFrequency = week.days.filter(d => d.workout).length
@@ -178,6 +188,8 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
     if (opts.budgetWarnings !== false) plan.feasibilityWarnings.push(...budgetWarnings(plan, config, today))
   }
+  // B11: po bloku powrotu szczyt planu to to, co rozpisano — od niego werdykt
+  if (opts.returnFrom) plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
   // B8: werdykt wykonalności — szczyt i najdłuższe wybieganie wobec progów dystansu
   // (P-7/P-8, J-2; ten sam próg co lint `longBelowGoal`) i trzy wyjścia, jednym blokiem
   // zamiast dwóch ostrzeżeń. Liczony na planie po budżecie czasu.
@@ -185,11 +197,14 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   const longest = Math.max(0, ...cycleWeeksOf(plan).filter((w) => ['base', 'build', 'peak'].includes(w.skeleton.phase))
     .flatMap((w) => w.days).filter((d) => d.workout?.kind === 'long').map((d) => d.workout!.distanceKm))
   const longShort = threshold !== undefined && longest > 0 && !(threshold.inclusive ? longest >= threshold.km : longest > threshold.km)
-  const peakShort = goal.kind !== 'base' && macro.peakKmPlanned < macro.peakKmRecommended
+  const peakShort = goal.kind !== 'base' && (opts.returnFrom ? plan.peakKmPlanned : macro.peakKmPlanned) < macro.peakKmRecommended
   if (peakShort || longShort) {
     const peakText = messages().macro.peakBelowRecommended(macro.peakKmPlanned, macro.peakKmRecommended, goal.distanceKm)
     plan.feasibilityWarnings = plan.feasibilityWarnings.filter((w) => w !== peakText)
-    const reachableFrom = earliestFeasibleRaceDate(athlete, goal, today)
+    // po bloku powrotu data liczy się od powrotu, z objętości sprzed przerwy (B11.5)
+    const reachableFrom = opts.returnFrom
+      ? earliestFeasibleRaceDate({ ...athlete, returning: { since: opts.returnFrom.since, previousWeeklyKm: opts.returnFrom.previousWeeklyKm } }, goal, opts.returnFrom.since)
+      : earliestFeasibleRaceDate(athlete, goal, today)
     plan.feasibilityWarnings.push(ui().planMd.verdict({
       distanceKm: goal.distanceKm,
       peakKm: plan.peakKmPlanned,

@@ -9,6 +9,7 @@ import { isAbsolute, join } from 'node:path'
 import {
   addDays,
   analyzeExecution,
+  BREAK_REASONS,
   diffDays,
   getLocale,
   inferProfile,
@@ -24,6 +25,7 @@ import {
   weekTotals,
   COACH_STYLE,
   INFER_WINDOW_WEEKS,
+  type BreakReason,
   type ExecutionRecord,
   type ActivitySource,
   type InferenceOutcome,
@@ -661,7 +663,14 @@ type LogOptions = {
   testTime?: string | undefined
   rpe?: string | undefined
   note?: string | undefined
+  /** B11: koniec przerwy — każdy dzień od `date` do `to` dostaje wpis `skipped`. */
+  to?: string | undefined
+  /** B11: przyczyna przerwy — illness | injury | travel | other. */
+  reason?: string | undefined
 }
+
+/** E-3 (inż.): przerwa zapisywana jednym poleceniem najwyżej 60 dni — dłuższa to nowy plan, nie przerwa. */
+const BREAK_MAX_DAYS = 60
 
 export function cmdLog(cwd: string, opts: LogOptions & { commit?: CommitOption } = {}): CmdResult {
   if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'log', opts)
@@ -681,6 +690,11 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     if (!['done', 'skipped', 'modified'].includes(status)) {
       return fail(new Error(ui().log.unknownStatus(String(opts.status))))
     }
+    // B11: przerwa — przyczyna i zakres dni dotyczą tylko opuszczonych sesji
+    const reason = opts.reason
+    if (reason !== undefined && !(BREAK_REASONS as readonly string[]).includes(reason)) throw new Error(ui().log.unknownReason(reason, BREAK_REASONS.join(', ')))
+    if ((reason !== undefined || opts.to !== undefined) && status !== 'skipped') throw new Error(ui().log.breakSkippedOnly)
+    if (opts.to !== undefined) return logBreak(cwd, plan, date, opts.to, reason as BreakReason | undefined, opts)
     // CR-10 bez zera: wpis dotyczy odbytej sesji, a 0 znaczy „brak wysiłku" —
     // dolna granica 1 to wybór inżynierski, sama skala z P-6 (Foster).
     const rpe = opts.rpe === undefined ? undefined : parseDecimal(String(opts.rpe))
@@ -710,6 +724,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
       ...(testTimeSec !== undefined ? { testTimeSec } : {}),
       ...(rpe !== undefined ? { rpe } : {}),
       ...(opts.note ? { note: opts.note } : {}),
+      ...(reason !== undefined ? { reason: reason as BreakReason } : {}),
       loggedAt: new Date().toISOString(),
     }
     appendLog(cwd, entry)
@@ -723,6 +738,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
       : ui().week.rest
     const recorded = [
       logStatusText(entry.status),
+      ...(entry.reason ? [ui().log.reasonWord[entry.reason]] : []),
       // echo zapisu: dokładnie to, co zapisano (podpowiedź kreatora ma 4 miejsca)
       ...(entry.km !== undefined ? [kmLabel(entry.km, 4)] : []),
       ...(entry.timeSec !== undefined ? [fmtTime(entry.timeSec)] : []),
@@ -749,6 +765,29 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
  * Dziennik siły (E4): osobny wpis obok biegu. Bez kilometrów, tempa i RPE —
  * siła to inny tor, a dziennik ma powiedzieć tylko, czy sesja się odbyła.
  */
+/**
+ * B11: przerwa jako zakres dni — każdy dzień dostaje wpis `skipped` z przyczyną.
+ * Zapis z góry (wyjazd) działa tak samo; dni z wpisem regeneracja chroni (ADR-033),
+ * a `adapt` po przerwie czyta przyczynę (choroba: R-5, kontuzja: bez propozycji).
+ */
+function logBreak(cwd: string, plan: StoredPlan, from: string, toInput: string, reason: BreakReason | undefined, opts: LogOptions): CmdResult {
+  const to = toInput.trim()
+  parseIso(to)
+  if (to < from) throw new Error(ui().log.breakOrder(from, to))
+  const days = diffDays(from, to) + 1
+  if (days > BREAK_MAX_DAYS) throw new Error(ui().log.breakTooLong(BREAK_MAX_DAYS))
+  if ([opts.km, opts.time, opts.testTime, opts.rpe].some((v) => v !== undefined)) throw new Error(ui().improve.skippedMetrics)
+  const dates = Array.from({ length: days }, (_, i) => addDays(from, i))
+  const outside = dates.find((d) => !findDay(plan, d))
+  if (outside) throw new Error(ui().log.outsidePlan(outside))
+  const loggedAt = new Date().toISOString()
+  const entries: LogEntry[] = dates.map((date) => ({
+    date, status: 'skipped', ...(reason ? { reason } : {}), ...(opts.note ? { note: opts.note } : {}), loggedAt,
+  }))
+  for (const entry of entries) appendLog(cwd, entry)
+  return okDoc([b.success(ui().log.breakRecorded(from, to, days, reason ? ui().log.reasonWord[reason] : undefined))], { entry: entries[0], entries })
+}
+
 function logStrength(cwd: string, plan: StoredPlan, date: string, opts: LogOptions): CmdResult {
   const t = ui().log
   if (opts.strength !== 'done' && opts.strength !== 'skipped') throw new Error(t.strengthStatus(String(opts.strength)))
@@ -1054,10 +1093,13 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
         }
       })
 
+    // B11: przyczyna przerwy — najświeższy wpis `skipped` z przyczyną w oknie diagnozy
+    const breakReason = logs.filter((l) => l.reason && l.date <= today && diffDays(l.date, today) <= 21).sort((a, z) => a.date.localeCompare(z.date)).at(-1)?.reason
     const proposal = analyzeExecution({
       today,
       execution,
       currentWeeklyKm,
+      ...(breakReason ? { breakReason } : {}),
       ...(newResults.length ? { newResults } : {}),
       calibrationChanged: plan.calibration !== undefined && !sameResults(config.athlete.results, plan.calibration.results),
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: tuneUpByDate.get(lastRaceDay.date) ?? plan.goal.distanceKm } } : {}),

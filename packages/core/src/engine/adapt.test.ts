@@ -75,6 +75,24 @@ describe('przerwa w treningu', () => {
     // po przerwie nie doradzamy jednocześnie redukcji objętości z innego tytułu
     expect(p.actions.some((a) => a.type === 'reduce-volume')).toBe(false)
   })
+
+  const layoff = () => history(21, 1).map((e) => (e.date > '2026-08-16' ? omitActual(e) : e))
+  it('B11: przerwa bez przyczyny → blok powrotu R-11 do przyjęcia, z objętością sprzed przerwy', () => {
+    const restart = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60 }).actions.find((a) => a.type === 'conservative-restart')!
+    expect(restart.ruleRefs).toEqual(['R-11', 'P-3'])
+    expect(restart.returnBlock).toEqual({ previousWeeklyKm: 60, illness: false })
+  })
+  it('B11: choroba → powrót według R-5, pierwszy tydzień spokojnie', () => {
+    const restart = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakReason: 'illness' }).actions.find((a) => a.type === 'conservative-restart')!
+    expect(restart.ruleRefs).toEqual(['R-5', 'P-3'])
+    expect(restart.returnBlock).toEqual({ previousWeeklyKm: 60, illness: true })
+    expect(restart.detail).toContain('pierwszy tydzień wyłącznie spokojnie')
+  })
+  it('B11: kontuzja → bez propozycji objętości, powrót ustala specjalista (R-6, R-7)', () => {
+    const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakReason: 'injury' })
+    expect(p.actions.some((a) => a.type === 'conservative-restart' || a.suggestedWeeklyKm !== undefined)).toBe(false)
+    expect(p.warnings.join(' ')).toMatch(/specjalist.*R-6, R-7/)
+  })
 })
 
 describe('protokół po starcie', () => {

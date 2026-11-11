@@ -8,7 +8,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
-import { cmdPlan, cmdRules, cmdWhy } from './commands.ts'
+import { cmdAdapt, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
+import { readLog } from './logfile.ts'
 import { loadPlan } from './planfile.ts'
 import { inferredConfigYaml } from './config.ts'
 import { parse } from 'yaml'
@@ -143,5 +144,67 @@ describe('B8: profil z historii proponuje powrót po przerwie', () => {
     })
     expect((parse(yaml) as { athlete: { returning: unknown } }).athlete.returning).toEqual({ since: '2026-08-05', previousWeeklyKm: 42 })
     expect(yaml).toContain('R-11')
+  })
+})
+
+describe('B11: przerwa w trakcie planu', () => {
+  beforeEach(() => setLocale('en'))
+  const setup = () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+  }
+  /** Sesje przed przerwą wykonane (pełne dane w oknie adapt), przerwa do dziś włącznie. */
+  const breakUntilToday = (reason: string) => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-12'
+    for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-10-23' && x.date <= '2026-10-28')) {
+      expect(cmdLog(dir, { date: d.date, status: 'done' }).code).toBe(0)
+    }
+    expect(cmdLog(dir, { date: '2026-10-29', to: '2026-11-12', status: 'skipped', reason }).code).toBe(0)
+  }
+
+  it('log --to --reason: każdy dzień przerwy dostaje wpis skipped z przyczyną', () => {
+    setup()
+    const r = cmdLog(dir, { date: '2026-10-26', to: '2026-10-30', status: 'skipped', reason: 'illness' })
+    expect(r.code, r.output).toBe(0)
+    expect(r.output).toContain('2026-10-26 to 2026-10-30: 5 days skipped, reason: illness')
+    const entries = readLog(dir).filter((e) => e.date >= '2026-10-26' && e.date <= '2026-10-30')
+    expect(entries).toHaveLength(5)
+    for (const e of entries) expect(e).toMatchObject({ status: 'skipped', reason: 'illness' })
+  })
+
+  it('log: przyczyna i zakres tylko przy opuszczeniu; zła przyczyna, odwrócony i za długi zakres', () => {
+    setup()
+    expect(cmdLog(dir, { date: '2026-10-26', reason: 'illness' }).output).toContain('skipped sessions only')
+    expect(cmdLog(dir, { date: '2026-10-26', status: 'skipped', reason: 'flu' }).output).toContain('Unknown reason "flu"')
+    expect(cmdLog(dir, { date: '2026-10-30', to: '2026-10-26', status: 'skipped' }).output).toContain('ends before it starts')
+    expect(cmdLog(dir, { date: '2026-10-26', to: '2027-01-26', status: 'skipped' }).output).toContain('more than 60 days')
+    expect(readLog(dir)).toHaveLength(0)
+  })
+
+  it('adapt po chorobie: blok powrotu do przyjęcia, plan po --apply odtwarza go regeneracja', () => {
+    breakUntilToday('illness')
+    const prepared = cmdAdapt(dir, { prepare: true })
+    expect(prepared.code, prepared.output).toBe(0)
+    const id = (prepared.data as { prepared: { id: string } }).prepared.id
+    expect(cmdAdapt(dir, { apply: id }).code).toBe(0)
+    const plan = loadPlan(dir)
+    expect(plan.returnState).toMatchObject({ since: '2026-11-13', illness: true })
+    // tydzień powrotu: wyłącznie spokojnie (R-5), dni przed powrotem bez zmian
+    const week = plan.weeks.find((w) => w.weekStart === '2026-11-09')!
+    expect(week.skeleton.easyOnly).toBe(true)
+    expect(week.days.filter((d) => d.date >= '2026-11-13').some((d) => d.workout && d.workout.kind !== 'easy' && d.workout.kind !== 'long')).toBe(false)
+    // regeneracja z tym samym profilem: plan aktualny, decyzja zostaje
+    const again = cmdPlan(dir)
+    expect(again.code).toBe(0)
+    expect(again.data).toMatchObject({ regeneration: { upToDate: true } })
+    expect(loadPlan(dir).returnState).toEqual(plan.returnState)
+  })
+
+  it('adapt po kontuzji: bez propozycji objętości (R-6, R-7)', () => {
+    breakUntilToday('injury')
+    const r = cmdAdapt(dir, {})
+    expect(r.output).toContain('R-6, R-7')
+    expect((r.data as { proposal: { actions: { type: string }[] } }).proposal.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
   })
 })

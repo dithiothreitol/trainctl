@@ -12,7 +12,7 @@
  *    to odwrotność tego, co wynika z P-1/P-3),
  *  - nie udzielamy porad medycznych (R-7).
  */
-import type { RaceResult, WorkoutKind } from '../domain/types.ts'
+import type { BreakReason, RaceResult, WorkoutKind } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
 import { diffDays } from '../util/dates.ts'
 import { distanceClass } from '../domain/goal-class.ts'
@@ -38,6 +38,8 @@ export interface AdaptationAction {
   detail: string
   suggestedWeeklyKm?: number
   ruleRefs: string[]
+  /** B11: restart do przyjęcia jako blok powrotu — objętość sprzed przerwy i czy to choroba. */
+  returnBlock?: { previousWeeklyKm: number; illness: boolean }
 }
 
 export interface AdaptationProposal {
@@ -67,6 +69,8 @@ export interface AdaptationInput {
    * jeszcze w `athlete.results` — pętla kalibracji jest niedomknięta (W-11).
    */
   uncalibratedTests?: { date: string; distanceKm: number; timeSec?: number }[]
+  /** Przyczyna przerwy zapisana w dzienniku (B11). */
+  breakReason?: BreakReason
 }
 
 const WINDOW_DAYS = 21
@@ -106,15 +110,23 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const observedDays = window.length ? Math.min(WINDOW_DAYS, diffDays(window[0]!.date, input.today) + 1) : 0
   const layoff = lastRun ? diffDays(lastRun, input.today) : observedDays
   if (dataStatus === 'complete' && layoff >= LAYOFF_DAYS) {
-    const restartKm = Math.round(input.currentWeeklyKm * 0.55)
     diagnosis.push(m.adapt.layoffDiagnosis(layoff))
-    actions.push({
-      type: 'conservative-restart',
-      detail: m.adapt.restartAfterLayoff(restartKm, layoff),
-      suggestedWeeklyKm: restartKm,
-      ruleRefs: ['R-5', 'P-3'],
-    })
-    warnings.push(m.adapt.restartExtrapolated)
+    if (input.breakReason === 'injury') {
+      // R-6, R-7: po kontuzji silnik nie proponuje objętości — powrót ustala specjalista
+      warnings.push(m.adapt.injuryReturn)
+    } else {
+      // B11: restart do przyjęcia jako blok powrotu — po chorobie R-5, po innej przerwie R-11
+      const illness = input.breakReason === 'illness'
+      const restartKm = Math.round(input.currentWeeklyKm * 0.55)
+      actions.push({
+        type: 'conservative-restart',
+        detail: illness ? m.adapt.restartAfterIllness(restartKm, layoff) : m.adapt.restartAfterLayoff(restartKm, layoff),
+        suggestedWeeklyKm: restartKm,
+        ruleRefs: illness ? ['R-5', 'P-3'] : ['R-11', 'P-3'],
+        returnBlock: { previousWeeklyKm: input.currentWeeklyKm, illness },
+      })
+      warnings.push(m.adapt.restartExtrapolated)
+    }
   }
 
   // 2) Świeży start — protokół powrotu (R-1/R-2/R-3)

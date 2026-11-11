@@ -224,6 +224,13 @@ export const coreEn = {
     restartExtrapolated:
       'The post-layoff restart protocol is an extrapolation with no direct source (R-5) — ' +
       'treat it as a starting point, not a rule.',
+    restartAfterIllness: (weeklyKm: number, days: number) =>
+      `Return after illness: volume ×0.5–0.6 (≈${weeklyKm} km/week) after ${days} days off, ` +
+      'the first week easy only, then the plan grows back within P-3. ' +
+      'We do not make up the missed kilometres.',
+    injuryReturn:
+      'The break was an injury: the engine proposes no volume. When and how much to run again is a decision ' +
+      'for you and a specialist (R-6, R-7); after that, record the return and run adapt again.',
     postRaceUltra:
       'Ultra: a longer silence than after a marathon, return by feel — there is no data ' +
       'to give you a specific protocol.',
