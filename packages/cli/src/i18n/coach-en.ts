@@ -1,6 +1,8 @@
 import { numberIn } from './numbers.ts'
 
 const n = numberIn('en')
+/** Dawka jednostki dokładnie (0,25 km przebieżek, 10,25 km przed skróceniem): do 2 miejsc. */
+const n2 = numberIn('en', 2)
 
 export const coachEn = {
   shorten: 'fit a session into your available time; save a proposal for approval',
@@ -28,14 +30,14 @@ export const coachEn = {
   deload: 'This is a reduced-volume week in the stored plan.',
   taper: 'The stored taper reduces volume while aiming to retain intensity and session frequency.',
   dose: 'The actual prescription',
-  segment: (description: string, km: number, pace: string) => `${description} · ${n(km)} km${pace ? ` · ${pace}/km` : ''}`,
+  segment: (description: string, km: number, pace: string) => `${description} · ${n2(km)} km${pace ? ` · ${pace}/km` : ''}`,
   previous: (date: string, kind: string, days: number) => `Previous demanding session: ${date}, ${kind}, ${days} calendar days earlier.`,
   next: (date: string, kind: string, days: number) => `Next demanding session: ${date}, ${kind}, ${days} calendar days later.`,
   tightSpacing: 'Demanding sessions are on adjacent dates. Review the spacing; exact hours are not stored.',
   noNeighbors: 'No other demanding session appears in the stored plan around this date.',
   restPurpose: 'There is no run on this date; the calendar leaves room between training sessions.',
   changedManually: 'This day differs from its generated version. The explanation describes its current role; it cannot reconstruct the reason for a manual edit.',
-  adjusted: (kind: string, km: number, minutes: number) => `Approved time adjustment from ${kind}, ${n(km)} km; original time budget: ${minutes} min.`,
+  adjusted: (kind: string, km: number, minutes: number) => `Approved time adjustment from ${kind}, ${n2(km)} km; original time budget: ${minutes} min.`,
   execution: (status: string) => `Recorded execution: ${status}.`,
   status: { done: 'completed', missed: 'explicitly skipped', unknown: 'unconfirmed', rest: 'rest', unplanned: 'unplanned run', planned: 'planned' },
   reviewPrepare: 'include a concrete plan proposal for approval; keep the current plan unchanged',

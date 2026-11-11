@@ -116,6 +116,7 @@ export const cliPl: CliMessages = {
   common: {
     dayCount: dni,
     logLine: (line: number) => `wiersz ${line}`,
+    logBroken: (file: string, lines: string) => `${file}: nie da się odczytać (${lines}). Popraw plik przed zmianą planu, żeby zalogowane dni zostały chronione.`,
     nextStep: (command: string) => `następny krok: ${command}`,
     saved: (what: string) => `Zapisano ${what}`,
     outsidePlan: (date: string, from: string, to: string) =>

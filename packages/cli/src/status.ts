@@ -123,7 +123,8 @@ function statusImpl(cwd: string): StatusResult {
     [LOG_FILE, last ? t.logValue(logs.length, last.date, logStatusText(last.status)) : t.empty],
   ]))
   if (env.unprotected) blocks.push(b.warn(ui().envFile.unprotected(ENV_FILE, '.gitignore')))
-  if (journal.dropped.length) blocks.push(b.warn(t.logDropped(LOG_FILE, journal.dropped.join(', '))))
+  const ignored = [...journal.broken, ...journal.dropped]
+  if (ignored.length) blocks.push(b.warn(t.logDropped(LOG_FILE, ignored.join(', '))))
   if (unconfirmed.length) blocks.push(b.info(t.unconfirmed(unconfirmed.join(', '))))
 
   // propozycje

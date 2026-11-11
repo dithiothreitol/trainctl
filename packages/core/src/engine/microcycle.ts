@@ -31,7 +31,7 @@ export function fmtPace(secPerKm: number): string {
  * E-3 (inż.): sufit pojedynczego biegu spokojnego. Korpus nie ma reguły — to
  * granica, przy której reszta kilometrów przestaje być „spokojną uzupełniającą".
  */
-export const EASY_RUN_CAP_KM = 18
+const EASY_RUN_CAP_KM = 18
 /** E-3 (inż.): część główna akcentu ≈ 22% tygodnia przed odjęciem rozgrzewki i schłodzenia. */
 const QUALITY_MAIN_SHARE = 0.22
 /** E-3 (inż.): kilometry poza Z1 najwyżej 25% tygodnia — margines pod I-5 (≥75% Z1). */

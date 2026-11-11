@@ -165,9 +165,9 @@ def main():
                     band = '13-16' if off >= 13 else '9-12' if off >= 9 else '5-8' if off >= 5 else '1-4'
                     dose[band].append(hard_km(w))
                     for s in w.get('segments', []):
-                        dist = segment_km(s)
-                        if s.get('type') in ('steady', 'progression') and dist >= 5:
-                            steady_blocks[band].append(dist)
+                        block_km = segment_km(s)
+                        if s.get('type') in ('steady', 'progression') and block_km >= 5:
+                            steady_blocks[band].append(block_km)
     b = {
         'races': len(peak_offsets),
         'peakWeekBeforeRace': dict(sorted(Counter(peak_offsets).items())),

@@ -69,7 +69,7 @@ export function latestByDate<T extends { date: string }>(entries: T[]): Map<stri
   return new Map(entries.map((e) => [e.date, e]))
 }
 
-function readAll(cwd: string, dropped: string[] = []): (LogEntry | StrengthLogEntry)[] {
+function readAll(cwd: string, dropped: string[] = [], broken: string[] = []): (LogEntry | StrengthLogEntry)[] {
   const path = join(cwd, LOG_FILE)
   if (!existsSync(path)) return []
   // Ręczna edycja bywa niedokończona: wiersz, który nie jest obiektem JSON, pomijamy
@@ -77,7 +77,7 @@ function readAll(cwd: string, dropped: string[] = []): (LogEntry | StrengthLogEn
   return readFileSync(path, 'utf-8').split('\n').flatMap((line, index) => {
     if (!line.trim()) return []
     const parsed = parseLine(line)
-    if (!parsed) { dropped.push(ui().common.logLine(index + 1)); return [] }
+    if (!parsed) { broken.push(ui().common.logLine(index + 1)); return [] }
     return [normalize(parsed, dropped)]
   })
 }
@@ -142,14 +142,15 @@ function normalize(raw: Record<string, unknown>, dropped: string[] = []): LogEnt
 const isStrength = (e: LogEntry | StrengthLogEntry): e is StrengthLogEntry => (e as StrengthLogEntry).activity === 'strength'
 
 /**
- * Cały dziennik jednym odczytem: wpisy biegowe i siłowe osobno oraz wartości
- * pominięte przy odczycie (poza granicami LOG_LIMITS albo nie liczby) jako
- * „data pole" — widoki ich nie pokazują, `status` mówi o nich wprost.
+ * Cały dziennik jednym odczytem: wpisy biegowe i siłowe osobno, wartości pominięte
+ * przy odczycie (poza granicami LOG_LIMITS albo nie liczby, „data pole") i wiersze,
+ * których nie da się odczytać („wiersz N"). Widoki je pomijają, `status` je wymienia,
+ * a zmiana planu (recordedDates) czeka, aż plik zostanie poprawiony.
  */
-export function readJournal(cwd: string): { runs: LogEntry[]; strength: StrengthLogEntry[]; dropped: string[] } {
-  const dropped: string[] = []
-  const all = readAll(cwd, dropped)
-  return { runs: all.filter((e): e is LogEntry => !isStrength(e)), strength: all.filter(isStrength), dropped }
+export function readJournal(cwd: string): { runs: LogEntry[]; strength: StrengthLogEntry[]; dropped: string[]; broken: string[] } {
+  const dropped: string[] = [], broken: string[] = []
+  const all = readAll(cwd, dropped, broken)
+  return { runs: all.filter((e): e is LogEntry => !isStrength(e)), strength: all.filter(isStrength), dropped, broken }
 }
 
 /** Wpisy biegowe — to, z czego liczy się wykonanie planu. */

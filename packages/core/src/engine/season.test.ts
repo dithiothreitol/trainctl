@@ -211,3 +211,21 @@ describe('dziewiętnasta runda: bieżący cykl bez cycleStart', () => {
     expect(seasonShapeIssues({ goal: half, weeks }).map((i) => i.code)).toContain('longBelowGoal')
   })
 })
+
+describe('dwudziesta pierwsza runda: cykl bez tygodni ładowania', () => {
+  it('cykl z samym taperem i startem: bez longBelowGoal', () => {
+    const weeks = [week('2027-01-04', { tue: easy(8), sat: easy(6) }, 'taper'), week('2027-01-11', { tue: easy(5) }, 'race')]
+    expect(seasonShapeIssues({ goal: half, weeks }).map((i) => i.code)).not.toContain('longBelowGoal')
+  })
+  it('nowy cykl zaczęty taperem po bloku przejściowym: linty nie sięgają do poprzedniego cyklu', () => {
+    const deload = week('2026-12-07', { tue: easy(15), sat: long(13) })
+    deload.skeleton.deload = true
+    const weeks = [
+      deload,
+      week('2026-12-14', { tue: easy(6), sat: long(8) }, 'transition'),
+      week('2026-12-21', { tue: easy(8), sat: easy(6) }, 'taper'),
+      week('2026-12-28', { tue: easy(5) }, 'race'),
+    ]
+    expect(seasonShapeIssues({ goal: half, weeks }).map((i) => i.code)).not.toContain('longNotLongest')
+  })
+})

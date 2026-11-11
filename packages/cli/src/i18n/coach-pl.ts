@@ -2,6 +2,8 @@ import { numberIn } from './numbers.ts'
 import type { coachEn } from './coach-en.ts'
 
 const n = numberIn('pl')
+/** Dawka jednostki dokładnie (0,25 km przebieżek, 10,25 km przed skróceniem): do 2 miejsc. */
+const n2 = numberIn('pl', 2)
 export const coachPl: typeof coachEn = {
   shorten: 'dopasuj trening do dostępnego czasu; zapisz propozycję do zatwierdzenia',
   shortenMcp: 'Użyj, gdy biegacz ma mało czasu, np. dziś tylko 40 minut. Wywołaj z minutes i opcjonalnym date, aby zapisać propozycję bez zmiany planu. Pokaż przed/po, podział czasu, utracony cel i ostrzeżenia. Po zatwierdzeniu wywołaj trainctl_adapt z apply równym zapisanemu ID. Nie regeneruj ani nie synchronizuj między podglądem a zatwierdzeniem.',
@@ -28,14 +30,14 @@ export const coachPl: typeof coachEn = {
   deload: 'W zapisanym planie ten tydzień ma obniżoną objętość.',
   taper: 'Zapisany taper zmniejsza objętość przy założeniu utrzymania intensywności i częstotliwości sesji.',
   dose: 'Konkretna dawka treningu',
-  segment: (description: string, km: number, pace: string) => `${description} · ${n(km)} km${pace ? ` · ${pace}/km` : ''}`,
+  segment: (description: string, km: number, pace: string) => `${description} · ${n2(km)} km${pace ? ` · ${pace}/km` : ''}`,
   previous: (date: string, kind: string, days: number) => `Poprzednia wymagająca jednostka: ${date}, ${kind}, ${days} dni kalendarzowych wcześniej.`,
   next: (date: string, kind: string, days: number) => `Następna wymagająca jednostka: ${date}, ${kind}, ${days} dni kalendarzowych później.`,
   tightSpacing: 'Wymagające jednostki przypadają dzień po dniu. Sprawdź odstęp; dokładne godziny nie są zapisane.',
   noNeighbors: 'W otoczeniu tej daty nie ma innych wymagających jednostek w zapisanym planie.',
   restPurpose: 'Tego dnia nie ma biegu; kalendarz pozostawia odstęp pomiędzy jednostkami treningowymi.',
   changedManually: 'Ten dzień różni się od wersji wygenerowanej. Wyjaśnienie opisuje jego obecną rolę; nie odtwarza powodu ręcznej edycji.',
-  adjusted: (kind: string, km: number, minutes: number) => `Zatwierdzona zmiana czasu: pierwotnie ${kind}, ${n(km)} km; pierwotny budżet czasu: ${minutes} min.`,
+  adjusted: (kind: string, km: number, minutes: number) => `Zatwierdzona zmiana czasu: pierwotnie ${kind}, ${n2(km)} km; pierwotny budżet czasu: ${minutes} min.`,
   execution: (status: string) => `Zapis wykonania: ${status}.`,
   status: { done: 'wykonany', missed: 'jawnie opuszczony', unknown: 'niepotwierdzony', rest: 'odpoczynek', unplanned: 'bieg poza planem', planned: 'zaplanowany' },
   reviewPrepare: 'dołącz konkretną propozycję zmian do zatwierdzenia; zachowaj obecny plan',

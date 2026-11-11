@@ -1,6 +1,5 @@
 export * from './domain/types.ts'
 export * from './domain/goal-class.ts'
-export * from './util/stats.ts'
 export * from './i18n/index.ts'
 export * from './util/dates.ts'
 export * from './zones/daniels.ts'

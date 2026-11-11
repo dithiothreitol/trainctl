@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path'
 import { addDays, estimateWorkoutMinutes, mondayOf, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
-import { logFor, readLog, LOG_FILE } from './logfile.ts'
+import { logFor, readJournal, readLog, LOG_FILE } from './logfile.ts'
 import { budgetWarnings, computePlan, cycleWeeksOf, dayFingerprint, loadPlan, planEnd, scaleToBaseline, settleMixedWeek, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
@@ -58,7 +58,11 @@ function saveProposal(cwd: string, body: Omit<PlanProposal, 'id'>): PlanProposal
 
 /** Daty z zapisem wykonania (dziennik albo bieg z synchronizacji) — nienaruszalne dla zmian planu. */
 export function recordedDates(cwd: string): Set<string> {
-  const dates = new Set(readLog(cwd).map(entry => entry.date))
+  const journal = readJournal(cwd)
+  // Uszkodzony wiersz mógł być wpisem dnia, który regeneracja i propozycje muszą chronić:
+  // zmiana planu czeka, aż plik zostanie poprawiony (widoki tylko pomijają wiersz).
+  if (journal.broken.length) throw new Error(ui().common.logBroken(LOG_FILE, journal.broken.join(', ')))
+  const dates = new Set(journal.runs.map(entry => entry.date))
   for (const date of runningKmByDate(readSnapshot(cwd)?.activities ?? []).keys()) dates.add(date)
   return dates
 }

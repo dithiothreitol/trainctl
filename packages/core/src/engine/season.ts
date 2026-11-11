@@ -124,13 +124,14 @@ export function longRunThreshold(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): {
 const LOADING_PHASES = new Set<MacroPhase>(['base', 'build', 'peak'])
 
 /**
- * Początek bieżącego cyklu w planie bez `cycleStart`: pierwszy tydzień ładowania po
- * ostatnim bloku przejściowym. Plan z jednym cyklem — undefined (cały plan).
+ * Początek bieżącego cyklu w planie bez `cycleStart`: pierwszy tydzień po ostatnim
+ * bloku przejściowym. Plan z jednym cyklem — undefined (cały plan).
  */
 function currentCycleStart(weeks: Microcycle[]): string | undefined {
   let start: string | undefined
   for (let i = 1; i < weeks.length; i++) {
-    if (weeks[i - 1]!.skeleton.phase === 'transition' && LOADING_PHASES.has(weeks[i]!.skeleton.phase)) start = weeks[i]!.weekStart
+    // nowy cykl zaczyna pierwszy tydzień po bloku przejściowym — także taper albo start
+    if (weeks[i - 1]!.skeleton.phase === 'transition' && weeks[i]!.skeleton.phase !== 'transition') start = weeks[i]!.weekStart
   }
   return start
 }
@@ -224,9 +225,11 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
   // J-2/P-7/P-8: najdłuższy bieg planu przed taperem a próg dla dystansu
   const threshold = longRunThreshold(plan.goal)
   if (threshold !== undefined) {
-    const longest = Math.max(0, ...rows.filter((r) => LOADING_PHASES.has(r.phase)).map((r) => r.longKm))
+    // cykl bez tygodni ładowania (start za tydzień): długiego nie ma czym zbudować — bez lintu
+    const loading = rows.filter((r) => LOADING_PHASES.has(r.phase))
+    const longest = Math.max(0, ...loading.map((r) => r.longKm))
     const meets = threshold.inclusive ? longest >= threshold.km : longest > threshold.km
-    if (!meets) issues.push({ code: 'longBelowGoal', date: '', ruleRefs: threshold.ruleRefs, values: [longest, threshold.km] })
+    if (loading.length && !meets) issues.push({ code: 'longBelowGoal', date: '', ruleRefs: threshold.ruleRefs, values: [longest, threshold.km] })
   }
   return issues
 }

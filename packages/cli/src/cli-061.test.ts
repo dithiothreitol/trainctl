@@ -19,6 +19,8 @@ import { appendLog, latestByDate, lineSeparator, LOG_LIMITS, readLog, readStreng
 import { helpItem } from './ui/help.ts'
 import { improveEn } from './i18n/improve-en.ts'
 import { improvePl } from './i18n/improve-pl.ts'
+import { coachEn } from './i18n/coach-en.ts'
+import { coachPl } from './i18n/coach-pl.ts'
 import { shortenDetail } from './proposals.ts'
 import { renderAnsi, wrap, wrapText } from './ui/blocks.ts'
 import { parseDistanceInput } from './ui/wizard.ts'
@@ -169,7 +171,7 @@ describe('poprawki po przeglądzie etapu 1', () => {
       const src = readFileSync(join(import.meta.dirname, f), 'utf-8')
       // każda wartość przed „ km" przechodzi przez n(), kmLabel() albo formatNumber();
       // wyjątki: sam kmLabel i historia zmian w plan.yaml (dane, nie widok)
-      const raw = src.split('\n').filter((line) => /\$\{(?!n\(|kmLabel\(|formatNumber\()[^}]*\} km/.test(line))
+      const raw = src.split('\n').filter((line) => /\$\{(?!n2?\(|kmLabel\(|formatNumber\()[^}]*\} km/.test(line))
         .filter((line) => !line.includes('String(km)} km') && !line.includes('${from} → ${to} km'))
       expect(raw, f).toEqual([])
       expect(src, f).not.toContain('String(w.totalKm)')
@@ -743,5 +745,27 @@ describe('dwudziesta runda: wybór, uszkodzone wiersze dziennika, przecinek', ()
     expect(parseDecimal('1,500', false)).toBeNaN()
     expect(parseDecimal('1.5', false)).toBe(1.5)
     expect(parseDecimal('1,5')).toBe(1.5)
+  })
+})
+
+describe('dwudziesta pierwsza runda: ochrona dni przy uszkodzonym dzienniku, dokładna dawka', () => {
+  it('uszkodzony wiersz log.jsonl: widoki działają, zmiana planu czeka na poprawkę pliku', () => {
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    cmdLog(dir, { date: '2026-10-27', status: 'done', km: '8' })
+    const before = readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')
+    appendFileSync(join(dir, 'log.jsonl'), '{"date": "2026-10-28", "status": "done",\n')
+    expect(cmdToday(dir).code).toBe(0)
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('recentWeeklyKm: 45', 'recentWeeklyKm: 50'), 'utf-8')
+    const plan = cmdPlan(dir)
+    expect(plan.code).not.toBe(0)
+    expect(plan.output).toContain('cannot read line 2')
+    expect(readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')).toBe(before)
+  })
+
+  it('dawka w why z dokładnością do 0,01 km', () => {
+    expect(coachEn.segment('strides', 1.25, '')).toContain('1.25 km')
+    expect(coachPl.segment('przebieżki', 1.25, '')).toContain('1,25 km')
+    expect(coachEn.adjusted('easy', 10.25, 40)).toContain('10.25 km')
   })
 })

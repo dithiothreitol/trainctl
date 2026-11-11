@@ -106,6 +106,7 @@ export const cliEn = {
     dayCount,
     /** Wiersz log.jsonl, którego nie da się odczytać. */
     logLine: (line: number) => `line ${line}`,
+    logBroken: (file: string, lines: string) => `${file}: cannot read ${lines}. Fix the file before changing the plan, so logged days stay protected.`,
     nextStep: (command: string) => `next step: ${command}`,
     saved: (what: string) => `Saved ${what}`,
     outsidePlan: (date: string, from: string, to: string) =>
