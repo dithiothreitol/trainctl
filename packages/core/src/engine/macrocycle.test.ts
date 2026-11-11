@@ -398,6 +398,15 @@ describe('B8: powrót po przerwie (R-11) i data, od której próg jest osiągaln
     expect(planMacrocycle({ today, goal: half, athlete: past }).weeks[0]!.easyOnly).toBeUndefined()
   })
 
+  it('krótki plan bez odciążenia przed taperem: spokojna połowa tygodni ładowania, akcenty wracają przed taperem', () => {
+    // start za 6 tygodni: 4 tygodnie ładowania bez odciążenia i taper
+    const short = planMacrocycle({ today, goal: { ...half, date: '2026-11-29' }, athlete: back })
+    const loading = short.weeks.filter((w) => ['base', 'build', 'peak'].includes(w.phase))
+    expect(loading.some((w) => w.deload)).toBe(false)
+    expect(loading.filter((w) => w.easyOnly)).toHaveLength(Math.ceil(loading.length / 2))
+    expect(loading.at(-1)!.qualitySessions).toBeGreaterThan(0)
+  })
+
   it('powrót z datą w przyszłości jeszcze się nie zaczął', () => {
     const future: AthleteProfile = { ...runner, recentWeeklyKm: 40, returning: { since: '2026-11-20', previousWeeklyKm: 50 } }
     expect(volumeBase(future, today)).toEqual({ start: 40, level: 40, returning: false })
@@ -487,6 +496,19 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
     const weeks = applyReturnBlock(plan.weeks, { since: plan.weeks[deloadAt]!.weekStart, previousWeeklyKm: 50, illness: false })
     for (const w of weeks.slice(deloadAt, next + 1)) expect(w.easyOnly, w.weekStart).toBe(true)
     expect(weeks[next + 1]!.easyOnly).toBeUndefined()
+  })
+
+  it('po innej przerwie w ostatnim bloku (bez odciążenia przed taperem): spokojna połowa tygodni ładowania', () => {
+    // 7 tygodni ładowania (LLLD LLL) i taper: ostatni blok ma trzy tygodnie
+    const seven = planMacrocycle({ today: '2026-10-22', goal: { ...half, date: '2026-12-20' }, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] } })
+    const lastDeload = seven.weeks.map((w) => w.deload).lastIndexOf(true)
+    const taperAt = seven.weeks.findIndex((w) => w.phase === 'taper')
+    const n = taperAt - (lastDeload + 1)
+    expect(n).toBeGreaterThan(1)
+    const weeks = applyReturnBlock(seven.weeks, { since: seven.weeks[lastDeload + 1]!.weekStart, previousWeeklyKm: 50, illness: false })
+    const block = weeks.slice(lastDeload + 1, taperAt)
+    expect(block.filter((w) => w.easyOnly)).toHaveLength(Math.ceil(n / 2))
+    expect(block.at(-1)!.easyOnly).toBeUndefined()
   })
 
   it('tor długiego w bloku powrotu maleje razem z tygodniem — dwa dni biegowe nie robią z tygodnia jednego długiego', () => {

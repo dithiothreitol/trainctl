@@ -292,6 +292,19 @@ describe('--commit', () => {
     expect(r.output).toMatch(/Committed [0-9a-f]+: log\.jsonl/)
     expect(gitOut(['log', '-1', '--format=%s']).trim()).toBe('easy run, legs fine')
   })
+  it('przerwa z --commit: komunikat z zakresem dni; bez nowych wpisów nic nie commituje (B11)', () => {
+    cmdPlan(dir, { date: '2026-08-08' })
+    execFileSync('git', ['init', '-q'], { cwd: dir })
+    const r = cmdLog(dir, { date: '2026-08-10', to: '2026-08-14', status: 'skipped', reason: 'Illness', commit: true })
+    expect(r.code, r.output).toBe(0)
+    expect(gitOut(['log', '-1', '--format=%s']).trim()).toBe('trainctl log: 2026-08-10…2026-08-14 skipped')
+    // dni z zapisanym biegiem zostają, więc ta sama przerwa nie ma już czego zapisać
+    for (const date of ['2026-08-17', '2026-08-18']) expect(cmdLog(dir, { date, status: 'done' }).code).toBe(0)
+    const kept = cmdLog(dir, { date: '2026-08-17', to: '2026-08-18', status: 'skipped', commit: true })
+    expect(kept.code, kept.output).toBe(0)
+    expect((kept.data as { commit?: unknown }).commit).toBeUndefined()
+    expect(gitOut(['log', '-1', '--format=%s']).trim()).toBe('trainctl log: 2026-08-10…2026-08-14 skipped')
+  })
   it('init --commit commituje tylko to, co zapisał — nie cudze zmiany w AGENTS.md', () => {
     rmSync(join(dir, 'trainctl.yaml'))
     execFileSync('git', ['init', '-q'], { cwd: dir })

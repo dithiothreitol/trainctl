@@ -12,6 +12,7 @@ import { applyProposal, prepareProposal } from './proposals.ts'
 import { cmdAdapt, cmdCheck, cmdLog, cmdPlan, cmdRules, cmdWhy } from './commands.ts'
 import { latestByDate, readLog } from './logfile.ts'
 import { writeSnapshot } from './sync.ts'
+import { buildExecution } from './execution.ts'
 import { blockLevelOf, computePlan, cycleWeeksOf, loadPlan, mergeWeekNotes, settleMixedWeek, writePlan } from './planfile.ts'
 import { inferredConfigYaml, loadConfig } from './config.ts'
 import { parse } from 'yaml'
@@ -233,6 +234,27 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(week.skeleton.targetKm).toBeLessThanOrEqual(Math.round(0.55 * 45))
     expect(week.skeleton.easyOnly).toBe(true)
     expect(r.output).toContain('return after a break')
+  })
+
+  it('plan: powrót z profilu po 6 tygodniach nadal obowiązuje — bez skoku przyszłych tygodni (P-3)', () => {
+    setup()
+    const original = loadPlan(dir)
+    process.env['TRAINCTL_TODAY'] = '2027-01-05'
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 45', 'recentWeeklyKm: 45\n  returning: { since: "2026-11-16", previousWeeklyKm: 45 }'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    const after = loadPlan(dir).weeks.find((w) => w.weekStart === '2027-01-11')!
+    expect(after.skeleton.targetKm).toBeLessThan(original.weeks.find((w) => w.weekStart === '2027-01-11')!.skeleton.targetKm)
+  })
+
+  it('przerwa jako zakres: dzień odpoczynku z wpisem „skipped” to nadal odpoczynek, nie opuszczona sesja', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-01'
+    expect(cmdLog(dir, { date: '2026-10-26', to: '2026-11-01', status: 'skipped', reason: 'travel' }).code).toBe(0)
+    const plan = loadPlan(dir)
+    const days = plan.weeks.find((w) => w.weekStart === '2026-10-26')!.days
+    const execution = buildExecution(plan, [], readLog(dir), '2026-11-01').filter((e) => e.date >= '2026-10-26')
+    for (const d of days) expect(execution.find((e) => e.date === d.date)?.status, d.date).toBe(d.workout ? 'missed' : 'rest')
+    expect(days.some((d) => !d.workout)).toBe(true)
   })
 
   it('log: przyczyna i zakres tylko przy opuszczeniu; zła przyczyna, odwrócony i za długi zakres', () => {

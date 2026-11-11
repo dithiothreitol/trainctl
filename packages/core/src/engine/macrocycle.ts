@@ -144,10 +144,13 @@ function returnActive(athlete: AthleteProfile, since: string, today: string): bo
 /**
  * B8 + B11: powrót z profilu, który zaczął się po starcie planu (pole dopisane w trakcie
  * planu), działa jak blok powrotu od `since` (R-11). Na starcie planu liczy go volumeBase.
+ * Bez okna RETURN_WINDOW_DAYS: blok obowiązuje w całym cyklu tak jak zatwierdzony powrót
+ * (`returnState`) — krzywa i tak dogania plan, a regeneracja po 6 tygodniach nie może
+ * podnieść przyszłych tygodni skokiem (P-3). Kończy go objętość ponad tę sprzed przerwy.
  */
 export function profileReturnBlock(athlete: AthleteProfile, planStart: string, today: string): ReturnBlock | undefined {
   const ret = athlete.returning
-  if (!ret || ret.since <= planStart || !returnActive(athlete, ret.since, today)) return undefined
+  if (!ret || ret.since <= planStart || ret.since > today || athlete.recentWeeklyKm > ret.previousWeeklyKm) return undefined
   return { since: ret.since, previousWeeklyKm: ret.previousWeeklyKm, illness: false }
 }
 
@@ -313,9 +316,12 @@ export function applyReturnBlock(weeks: WeekSkeleton[], ret: ReturnBlock): WeekS
   if (start === -1) return weeks
   const firstDeload = weeks.findIndex((w, i) => i > start && w.deload)
   const afterIllness = weeks.findIndex((w) => w.weekStart > addDays(ret.since, 6))
+  // R-11 bez odciążenia przed taperem: spokojna połowa pozostałych tygodni ładowania, żeby
+  // akcenty wróciły przed taperem (T-1), a nie dopiero w nim (inż., jak w planMacrocycle)
+  const loadingAhead = weeks.filter((w, i) => i >= start && !w.deload && ['base', 'build', 'peak'].includes(w.phase)).length
   const easyEnd = ret.illness
     ? (afterIllness === -1 ? weeks.length : afterIllness)
-    : firstDeload === -1 ? weeks.length : firstDeload + 1
+    : firstDeload === -1 ? start + Math.ceil(loadingAhead / 2) : firstDeload + 1
   const rule = ret.illness ? 'R-5' : 'R-11'
   let loading = 0
   // ostatni tydzień ładowania: krzywa i cel planu — od nich taper, start i blok po starcie
@@ -466,9 +472,11 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
 
   const weeks: WeekSkeleton[] = []
   const volume = volumeSchedule(loadWeeks, start, peakPlanned, baseOnly, baseOnly ? undefined : longGoalKm(goal))
-  // R-11: po przerwie pierwszy blok wyłącznie spokojnie — z odciążeniem, które go zamyka
+  // R-11: po przerwie pierwszy blok wyłącznie spokojnie — z odciążeniem, które go zamyka.
+  // Plan bez odciążenia przed taperem (krótki): spokojna połowa tygodni ładowania, żeby
+  // akcenty wróciły przed taperem, który trzyma intensywność (T-1), a nie dopiero w nim (inż.)
   const firstDeload = volume.weeks.findIndex((w) => w.deload)
-  const easyBlockEnd = returning ? (firstDeload === -1 ? loadWeeks : firstDeload + 1) : 0
+  const easyBlockEnd = returning ? (firstDeload === -1 ? Math.ceil(loadWeeks / 2) : firstDeload + 1) : 0
   // rytm kalibracji: liczony od ostatniego wyniku, resetowany startem kontrolnym (W-12)
   const lastResult = lastResultBefore(athlete, firstWeek)
   const resultDates = athlete.results.map((r) => r.date)

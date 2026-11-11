@@ -680,7 +680,11 @@ export function cmdLog(cwd: string, opts: LogOptions & { commit?: CommitOption }
   if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   const result = logImpl(cwd, opts)
   const entry = result.data?.['entry'] as LogEntry | undefined
-  return withCommit(result, cwd, opts.commit, [LOG_FILE], ui().commit.log(entry?.date ?? '', entry?.status ?? ''))
+  // B11: przerwa jako zakres — w komunikacie cały zakres; bez nowych wpisów nie ma czego zapisać
+  const entries = result.data?.['entries'] as LogEntry[] | undefined
+  if (entries && entries.length === 0) return result
+  const date = entries && entries.length > 1 ? `${entries[0]!.date}…${entries.at(-1)!.date}` : entry?.date ?? ''
+  return withCommit(result, cwd, opts.commit, [LOG_FILE], ui().commit.log(date, entry?.status ?? ''))
 }
 
 function logImpl(cwd: string, opts: LogOptions): CmdResult {
@@ -693,8 +697,9 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     if (!['done', 'skipped', 'modified'].includes(status)) {
       return fail(new Error(ui().log.unknownStatus(String(opts.status))))
     }
-    // B11: przerwa — przyczyna i zakres dni dotyczą tylko opuszczonych sesji
-    const reason = opts.reason
+    // B11: przerwa — przyczyna i zakres dni dotyczą tylko opuszczonych sesji; wielkość liter
+    // bez znaczenia, jak w kreatorze dziennika
+    const reason = opts.reason?.trim().toLowerCase()
     if (reason !== undefined && !(BREAK_REASONS as readonly string[]).includes(reason)) throw new Error(ui().log.unknownReason(reason, BREAK_REASONS.join(', ')))
     if ((reason !== undefined || opts.to !== undefined) && status !== 'skipped') throw new Error(ui().log.breakSkippedOnly)
     if (opts.to !== undefined) return logBreak(cwd, plan, date, opts.to, reason as BreakReason | undefined, opts)

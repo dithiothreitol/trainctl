@@ -90,8 +90,9 @@ change between minor versions — a regenerated plan can differ.
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in
   advance; days with a recorded run (logged or synced) stay as they are, a day
-  logged again replaces its earlier reason, and a weekday name in `--to` counts
-  from `--date`
+  logged again replaces its earlier reason, rest days in the range stay rest
+  days, the reason is case-insensitive, `--commit` names the whole range, and a
+  weekday name in `--to` counts from `--date`
   (`--date mon --to fri` is one week). The MCP
   `trainctl_log` tool and the log prompt take the same fields. After the break
   `adapt` proposes a return block you can approve:
@@ -117,7 +118,9 @@ change between minor versions — a regenerated plan can differ.
   within P-3. Once `recentWeeklyKm` is above the earlier volume, the return no
   longer applies; a `since` date in the future does not apply yet. Added during
   a plan, the field starts a return block from `since` on the next
-  `trainctl plan`. `init` asks for it, and `init --from-intervals` proposes it when
+  `trainctl plan` and keeps it for the rest of the cycle. A plan with no deload
+  before the taper keeps the first half of its loading weeks easy, so accents
+  come back before the taper. `init` asks for it, and `init --from-intervals` proposes it when
   the history ends with two weeks off.
 - `trainctl rules E-3` lists the engine's fixed values that have no source
   (easy-run cap, accent share, phase split, recoveries, race-week sessions),

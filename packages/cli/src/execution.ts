@@ -36,7 +36,8 @@ export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], l
       ...(day?.workout ? { kind: day.workout.kind } : {}),
       ...(actualKm !== undefined ? { actualKm } : {}),
       source: log ? 'journal' : runs.has(date) ? 'sync' : 'none',
-      status: skipped ? 'missed' : done ? (day?.workout ? 'done' : 'unplanned') : day?.workout ? 'unknown' : 'rest',
+      // dzień odpoczynku z wpisem „skipped” (przerwa jako zakres dni, B11) to nadal odpoczynek
+      status: skipped ? (day?.workout ? 'missed' : 'rest') : done ? (day?.workout ? 'done' : 'unplanned') : day?.workout ? 'unknown' : 'rest',
     }
   })
 }
