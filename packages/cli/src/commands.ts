@@ -860,7 +860,7 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
           : recalibration.source === 'goal-target' ? ui().improve.recalibrateGoal(fmtTime(config!.goal.targetTimeSec!)) : ui().improve.recalibrateNone))
       }
     } else blocks.push(b.info(ui().improve.calibrationMissing))
-    const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...(day.strength?.ruleRefs ?? [])])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
+    const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...explanation.ruleRefs, ...(day.strength?.ruleRefs ?? [])])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
     // Jedna lista reguł: ID, treść i pochodzenie razem. Wcześniej te same ID stały
     // w dwóch sekcjach — raz z klasyfikacją, raz z treścią — a cel jednostki dwa razy.
     if (evidence.length) {
@@ -1785,7 +1785,8 @@ export function cmdRules(opts: { id?: string | undefined } = {}): CmdResult {
         b.hint(ui().why.sourcesHint(ruleSourceUrl('MS-1'), 'MS-1…MS-6')),
       ], { rules: ids.map((id) => ({ id, explanation: ruleExplain(id), origin: ruleEvidence(id), source: ruleSourceUrl(id) })), source: url })
     }
-    const id = opts.id.trim().toUpperCase()
+    // prefiks wielkimi literami, przyrostek z FOUNDATIONS małą: `s-9B` → `S-9b`
+    const id = opts.id.trim().replace(/^([a-z]+-\d+)([a-z]?)$/i, (_, head: string, tail: string) => head.toUpperCase() + tail.toLowerCase())
     const explanation = ruleExplain(id)
     if (!explanation) throw new Error(t.unknown(opts.id, ids.join(', ')))
     const origin = ruleEvidence(id)

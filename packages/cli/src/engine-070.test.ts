@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
-import { cmdPlan, cmdWhy } from './commands.ts'
+import { cmdPlan, cmdRules, cmdWhy } from './commands.ts'
 import { loadPlan } from './planfile.ts'
 
 const config = (weeklyKm: number, days: string) => `athlete:
@@ -71,6 +71,28 @@ describe.each(['pl', 'en'] as const)('B1, B2 w komendach · %s', (lang) => {
     expect(output).toContain(lang === 'pl' ? `Najdłuższe wybieganie planu ma ${longest} km, a dystans wymaga ponad 21 km` : `The longest run in this plan is ${longest} km; the distance needs more than 21 km`)
     // P1: próg spełniony — bez ostrzeżenia
     expect(planFor(45, 'tue, wed, thu, sat, sun').output).not.toMatch(/Najdłuższe wybieganie planu|The longest run in this plan/)
+  })
+
+  it('B6: akcent dzień po długim cytuje S-9b, długie dzień po sprawdzianie — T-11', () => {
+    const { plan } = planFor(45, 'tue, wed, thu, sat, sun')
+    const days = plan.weeks.flatMap((w) => w.days)
+    const before = (date: string) => days[days.findIndex((d) => d.date === date) - 1]
+    const accent = days.find((d) => d.workout && ['quality_intervals', 'quality_continuous'].includes(d.workout.kind) && before(d.date)?.workout?.kind === 'long')!
+    const long = days.find((d) => d.workout?.kind === 'long' && ['test', 'race'].includes(before(d.date)?.workout?.kind ?? ''))!
+    const afterLong = cmdWhy(dir, { date: accent.date })
+    expect(afterLong.output).toContain(lang === 'pl' ? 'Akcent wypada dzień po długim' : 'This accent comes the day after the long run')
+    expect((afterLong.data as { evidence: { id: string }[] }).evidence.map((e) => e.id)).toContain('S-9b')
+    const afterTest = cmdWhy(dir, { date: long.date })
+    expect(afterTest.output).toContain(lang === 'pl' ? 'Długie wypada dzień po starcie albo sprawdzianie' : 'This long run comes the day after a race or time trial')
+    expect((afterTest.data as { evidence: { id: string }[] }).evidence.map((e) => e.id)).toContain('T-11')
+  })
+
+  it('rules: reguły z pomiarów etapu 1 i silnika etapu 2 mają objaśnienie i pochodzenie', () => {
+    for (const id of ['S-9b', 'S-10', 'S-11', 'S-12', 'P-12', 'J-4', 'J-6', 'J-8', 'J-9', 'J-10', 'J-1', 'J-2', 'J-5', 'N-19']) {
+      const r = cmdRules({ id })
+      expect(r.code, id).toBe(0)
+      expect(r.output, id).not.toMatch(/unknown rule|nieznana reguła/i)
+    }
   })
 
   it('plan: szczyt ograniczony przez dni ma ostrzeżenie z liczbami (S-10, E-3)', () => {

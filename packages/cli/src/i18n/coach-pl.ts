@@ -28,6 +28,8 @@ export const coachPl: typeof coachEn = {
   goal: (name: string, distance: number, date: string, days: number) => `Cel: ${name}, ${n(distance)} km, ${date}; od tej jednostki pozostaje ${days} dni.`,
   weekContext: (phase: string, actual: number, target: number, share: number) => `Faza: ${phase}. Tydzień: ${n(actual)} km przy celu ${n(target)} km; ${share}% spokojnego biegania.`,
   deload: 'W zapisanym planie ten tydzień ma obniżoną objętość.',
+  afterLong: 'Akcent wypada dzień po długim: w korpusie trenerskim ten układ jest tak częsty jak odwrotny (52 wobec 53 weekendów, S-9b).',
+  longAfterRace: 'Długie wypada dzień po starcie albo sprawdzianie, spokojnie: wzorzec z korpusu, sobota start i niedziela długie (T-11).',
   weekNote: {
     hillsDropped: 'Dzień podbiegów jest w tym tygodniu biegiem spokojnym: ten dzień był potrzebny na resztę kilometrów (S-11, E-3).',
     accentAsStrides: 'Akcent zamieniony na bieg spokojny z przebieżkami: z rozgrzewką i schłodzeniem miałby ponad 35% tak małego tygodnia (J-6, E-3).',

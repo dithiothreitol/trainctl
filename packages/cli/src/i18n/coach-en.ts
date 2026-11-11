@@ -29,6 +29,9 @@ export const coachEn = {
   weekContext: (phase: string, actual: number, target: number, share: number) => `Phase: ${phase}. Week: ${n(actual)} km against a ${n(target)} km target; ${share}% easy running.`,
   deload: 'This is a reduced-volume week in the stored plan.',
   taper: 'The stored taper reduces volume while aiming to retain intensity and session frequency.',
+  /** B6: kolejność weekendu — układ zostaje, `why` mówi, skąd się wziął. */
+  afterLong: 'This accent comes the day after the long run: in the coaching corpus that order is as common as the reverse (52 vs 53 weekends, S-9b).',
+  longAfterRace: 'This long run comes the day after a race or time trial, easy: the corpus pattern of a Saturday race and a Sunday long run (T-11).',
   /** Decyzje generatora o układzie tygodnia (WeekNote): dystanse już sformatowane. */
   weekNote: {
     hillsDropped: 'The hills day is an easy run this week: the rest of the weekly distance needed the day (S-11, E-3).',

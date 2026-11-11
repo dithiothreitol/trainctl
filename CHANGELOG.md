@@ -50,6 +50,12 @@ change between minor versions — a regenerated plan can differ.
 - Interval segments record their recovery as walk or jog and the longer walk
   halfway through a set, so later views can print them without parsing text.
   Polish descriptions read `4×1 km` and `przerwy 2-minutowe`.
+- `why` explains the weekend order the plan keeps: an accent the day after the
+  long run is as common in the coaching corpus as the reverse (S-9b), and the
+  long run stays the day after a race or time trial (T-11).
+- `trainctl rules` explains the rules the engine now cites: S-9b–S-12, P-12,
+  J-1, J-2, J-4–J-6, J-8–J-10 and N-19. A rule ID with a letter suffix (`S-9b`)
+  is found whatever its case.
 
 ### Added
 

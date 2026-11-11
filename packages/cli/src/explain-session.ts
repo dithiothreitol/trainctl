@@ -1,4 +1,4 @@
-import { diffDays, estimateWorkoutMinutes, fmtPace, messages, plannedWeekKm, type ExecutionRecord, type Microcycle, type PlannedDay } from 'trainctl-core'
+import { addDays, diffDays, estimateWorkoutMinutes, fmtPace, messages, plannedWeekKm, type ExecutionRecord, type Microcycle, type PlannedDay } from 'trainctl-core'
 import { dayFingerprint, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { kindPurpose } from './rules-explain.ts'
@@ -26,6 +26,17 @@ export function explainSession(plan: StoredPlan, week: Microcycle, day: PlannedD
   for (const note of notes) {
     context.push(note.code === 'volumeShort' ? t.weekNote.volumeShort(kmLabel(note.plannedKm), kmLabel(note.targetKm)) : t.weekNote[note.code])
   }
+  // B6: kolejność weekendu zostaje (S-9b, T-11) — mówimy, skąd się wzięła
+  const dayBefore = plan.weeks.flatMap((w) => w.days).find((d) => d.date === addDays(day.date, -1))
+  const ruleRefs: string[] = []
+  if (day.workout && ['quality_intervals', 'quality_continuous'].includes(day.workout.kind) && dayBefore?.workout?.kind === 'long') {
+    context.push(t.afterLong)
+    ruleRefs.push('S-9b')
+  }
+  if (day.workout?.kind === 'long' && dayBefore?.workout && ['race', 'test'].includes(dayBefore.workout.kind)) {
+    context.push(t.longAfterRace)
+    ruleRefs.push('T-11')
+  }
   if (placement.previous) context.push(t.previous(placement.previous.date, kindLabel(placement.previous.kind), placement.previous.gapDays))
   if (placement.next) context.push(t.next(placement.next.date, kindLabel(placement.next.kind), placement.next.gapDays))
   if (!previous && !next) context.push(t.noNeighbors)
@@ -48,6 +59,6 @@ export function explainSession(plan: StoredPlan, week: Microcycle, day: PlannedD
   }))
   const dose = prescription.map(s => t.segment(s.description, s.distanceKm, s.pace ? `${fmtPace(s.pace.loSecPerKm)}–${fmtPace(s.pace.hiSecPerKm)}` : ''))
   return { purpose: day.workout ? kindPurpose(day.workout.kind) : day.strength ? ui().why.strengthPurpose : t.restPurpose,
-    context, placement, prescription, dose, execution: status, notes,
+    context, placement, prescription, dose, execution: status, notes, ruleRefs,
     estimatedMinutes: Number.isFinite(estimate) ? estimate : null, budgetMinutes: budget ?? null }
 }
