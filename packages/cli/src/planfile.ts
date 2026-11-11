@@ -569,11 +569,13 @@ export function workoutText(day: PlannedDay): string {
 }
 
 /**
- * Kilometry w historii zmian („8.5 → 6 km", „8.5 km") po polsku z przecinkiem.
- * Tylko liczby przed „km" albo „→" — wersje i identyfikatory zostają bez zmian.
+ * Liczby dziesiętne w historii zmian po polsku z przecinkiem („8.5 → 6 km" →
+ * „8,5 → 6 km", „VDOT 45.2 → 46.1." → „45,2 → 46,1."). Liczba przyklejona do
+ * litery albo do kolejnej części z kropką (wersja „v0.7", „0.7.1", identyfikator)
+ * zostaje bez zmian.
  */
 const localizeDecimals = (text: string): string =>
-  getLocale() === 'pl' ? text.replace(/(?<![\w.])(\d+)\.(\d+)(?=\s*(?:km\b|→))/g, '$1,$2') : text
+  getLocale() === 'pl' ? text.replace(/(?<![\w.])(\d+)\.(\d+)(?!\w|\.\d)/g, '$1,$2') : text
 
 export function renderMarkdown(plan: StoredPlan): string {
   const m = ui().planMd

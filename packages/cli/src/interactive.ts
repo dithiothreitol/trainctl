@@ -8,8 +8,8 @@ import { createInterface } from 'node:readline/promises'
 import { addDays, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
 import { cmdLog, cmdShift, cmdWeek, kindLabel } from './commands.ts'
 import { ui } from './i18n/index.ts'
-import { kmLabel, logStatusText, shownKm } from './format.ts'
-import { parseTime, readLog } from './logfile.ts'
+import { kmLabel, logStatusText, parseDecimal, shownKm } from './format.ts'
+import { LOG_LIMITS, parseTime, readLog } from './logfile.ts'
 import { findDay, loadPlan, workoutText, type StoredPlan } from './planfile.ts'
 import { renderAnsi } from './ui/blocks.ts'
 import { clampIndex, keyAction, type KeyEvent } from './ui/keys.ts'
@@ -114,8 +114,8 @@ export function parseLogStatus(text: string): 'done' | 'skipped' | 'modified' {
 }
 
 const parseKmText = (text: string): string => {
-  const value = Number(text.trim().replace(',', '.'))
-  if (!Number.isFinite(value) || value < 0) throw new Error(ui().improve.badDistance)
+  const value = parseDecimal(text)
+  if (!LOG_LIMITS.km(value)) throw new Error(ui().improve.badDistance)
   return String(value)
 }
 const parseTimeText = (text: string): string => {

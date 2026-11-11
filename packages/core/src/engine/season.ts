@@ -113,7 +113,6 @@ export const SESSION_SHARE_MAX = 0.35
  * maraton — co najmniej 25 km (P-8 karze „najdłuższy <25 km").
  */
 export function longRunThreshold(goal: Pick<RaceGoal, 'kind' | 'distanceKm'>): { km: number; inclusive: boolean; ruleRefs: string[] } | undefined {
-  if (goal.kind === 'base') return undefined
   // klasa dystansu z tej samej funkcji co taper i szczyt objętości
   const kind = goalClass(goal)
   if (kind === 'marathon') return { km: 25, inclusive: true, ruleRefs: ['P-8', 'J-1'] }

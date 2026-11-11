@@ -14,22 +14,22 @@ export interface Calibration {
 /** Z-10: cel szosowy (bez `terrain` albo `road`) — tylko wtedy trail ustępuje szosie. */
 export const isRoadGoal = (goal: { terrain?: string | undefined }): boolean => goal.terrain !== 'trail' && goal.terrain !== 'ultra'
 
+/** Ten sam wynik niezależnie od opisu (nazwa, wykluczenie): data, dystans i czas. */
+export const sameResult = (a: RaceResult, b: RaceResult): boolean =>
+  a.date === b.date && a.distanceKm === b.distanceKm && a.timeSec === b.timeSec
+
 /**
- * Opis wyniku w `why`: decyzja (użyty do stref) pochodzi z dnia kalibracji, a stan
- * wyniku — z dziś, policzony tą samą funkcją co przy generowaniu planu. Dzięki temu
- * etykieta nie przeczy wiekowi, a reguły okna 540 dni i Z-10 żyją w jednym miejscu.
+ * Co zrobiłby dziś `trainctl plan` z kalibracją stref. Regeneracja kalibruje z datą
+ * dnia regeneracji, więc liczymy dokładnie to samo: `inspectCalibration` na wynikach
+ * z dzisiejszego trainctl.yaml. `changed` — strefy przyszłych dni powstałyby z innego
+ * wyniku albo bez wyniku. Opisy zapisanych wyników w `why` zostają decyzjami z dnia
+ * kalibracji; ta jedna odpowiedź mówi, co się od tego czasu zmieniło.
  */
-export function calibrationLabel(stored: Calibration['candidates'][number], today: Calibration['candidates'][number] | undefined, replacementToday: boolean, fromConfig = true):
-  Calibration['candidates'][number]['reason'] | 'selectedStale' | 'selectedStaleReplaced' | 'nowBest' | 'newer' | 'removed' {
-  // wyniku nie ma już w trainctl.yaml — plan po regeneracji go nie zobaczy
-  if (!today && fromConfig) return 'removed'
-  const now = today?.reason ?? stored.reason
-  // użyty do stref, dziś za stary: inny wynik już by go zastąpił albo trzeba dopisać świeży
-  if (stored.reason === 'selected') return now === 'stale' ? (replacementToday ? 'selectedStaleReplaced' : 'selectedStale') : 'selected'
-  if (now === 'stale' || now === 'terrain' || now === 'excluded') return now
-  if (stored.reason === 'future' && (now === 'selected' || now === 'lower-vdot')) return 'newer'
-  if (now === 'selected') return 'nowBest'
-  return stored.reason
+export function recalibrationToday(stored: Calibration, results: RaceResult[], today: string, roadGoal: boolean): { selected: RaceResult | null; changed: boolean } {
+  const selected = inspectCalibration(results, today, roadGoal).selected ?? null
+  const before = stored.selected
+  const changed = selected === null ? before !== undefined : before === undefined || !sameResult(selected, before)
+  return { selected, changed }
 }
 
 export function inspectCalibration(results: RaceResult[], today: string, roadGoal = true): Calibration {

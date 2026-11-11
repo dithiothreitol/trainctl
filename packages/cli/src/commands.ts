@@ -35,9 +35,9 @@ import {
 import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
 import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
-import { kmLabel, logStatusText, shownKm } from './format.ts'
+import { kmLabel, logStatusText, parseDecimal, shownKm } from './format.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
-import { appendLog, logFor, parseTime, readLog, readStrengthLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
+import { appendLog, logFor, LOG_LIMITS, parseTime, readLog, readStrengthLog, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
   computePlan,
   cycleWeeksOf,
@@ -76,7 +76,7 @@ import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 import { buildExecution, isRunningActivity } from './execution.ts'
-import { calibrationLabel, inspectCalibration, isRoadGoal, resultKey } from './calibration.ts'
+import { isRoadGoal, recalibrationToday, resultKey } from './calibration.ts'
 import { applyProposal, prepareProposal, prepareShortening, raceDayKm, recordedDates, type PlanProposal } from './proposals.ts'
 import { explainSession } from './explain-session.ts'
 export { buildExecution } from './execution.ts'
@@ -575,7 +575,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
       blocks.push(
         b.success(
           ui().today.logged(logStatusText(entry.status)) +
-            (entry.km !== undefined ? `, ${kmLabel(entry.km)}` : '') +
+            (entry.km !== undefined ? `, ${kmLabel(entry.km, 3)}` : '') +
             (entry.rpe !== undefined ? `, RPE ${entry.rpe}` : '') +
             (entry.note ? ` — ${entry.note}` : ''),
         ),
@@ -611,7 +611,8 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     const rows: string[][] = []
     const accents: (ColorName | undefined)[] = []
     // dziennik czytany raz; ostatni wpis daty wygrywa, jak w logFor
-    const lastByDate = new Map(readLog(cwd).map((e) => [e.date, e]))
+    const logs = readLog(cwd)
+    const lastByDate = new Map(logs.map((e) => [e.date, e]))
     for (const day of week.days) {
       const entry = lastByDate.get(day.date)
       // status słowem, nie symbolem: to samo wyjście czyta agent przez MCP
@@ -639,7 +640,7 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     if (sk.keepIntensity) {
       blocks.push(b.info(ui().week.taperNote))
     }
-    return okDoc(blocks, { week, execution: buildExecution(plan, readSnapshot(cwd)?.activities ?? [], readLog(cwd), date).filter((e) => week.days.some((d) => d.date === e.date)) })
+    return okDoc(blocks, { week, execution: buildExecution(plan, readSnapshot(cwd)?.activities ?? [], logs, date).filter((e) => week.days.some((d) => d.date === e.date)) })
   } catch (e) {
     return fail(e)
   }
@@ -680,19 +681,21 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     // CR-10 bez zera: wpis dotyczy odbytej sesji, a 0 znaczy „brak wysiłku" —
     // dolna granica 1 to wybór inżynierski, sama skala z P-6 (Foster).
     const rpe = opts.rpe === undefined ? undefined : Number(opts.rpe)
-    if (rpe !== undefined && (!Number.isInteger(rpe) || rpe < 1 || rpe > 10)) {
+    if (rpe !== undefined && !LOG_LIMITS.rpe(rpe)) {
       return fail(new Error(ui().log.badRpe(String(opts.rpe))))
     }
-    if (opts.km !== undefined && (!opts.km.trim() || !Number.isFinite(Number(opts.km)) || Number(opts.km) < 0)) throw new Error(ui().improve.badDistance)
+    // przecinek jak w polskim wyjściu („8,5"); ta sama reguła co kreator i odczyt log.jsonl
+    const km = opts.km === undefined ? undefined : parseDecimal(String(opts.km))
+    if (km !== undefined && !LOG_LIMITS.km(km)) throw new Error(ui().improve.badDistance)
     const testTimeSec = opts.testTime === undefined ? undefined : parseTime(opts.testTime)
     if (testTimeSec !== undefined && (status === 'skipped' || !['test', 'race'].includes(findDay(plan, date)?.day.workout?.kind ?? ''))) throw new Error(ui().improve.testTimeOnly)
-    if (status === 'skipped' && ((Number(opts.km) || 0) > 0 || opts.time !== undefined)) throw new Error(ui().improve.skippedMetrics)
+    if (status === 'skipped' && ((km ?? 0) > 0 || opts.time !== undefined)) throw new Error(ui().improve.skippedMetrics)
     if (testTimeSec !== undefined && opts.time && testTimeSec > parseTime(opts.time)) throw new Error(ui().improve.testTimeOnly)
     const entry: LogEntry = {
       date,
       status,
       // opuszczona sesja nie ma dystansu (0 km to brak informacji, nie wynik)
-      ...(opts.km && status !== 'skipped' ? { km: Number(opts.km) } : {}),
+      ...(km !== undefined && status !== 'skipped' ? { km } : {}),
       ...(opts.time ? { timeSec: parseTime(opts.time) } : {}),
       ...(testTimeSec !== undefined ? { testTimeSec } : {}),
       ...(rpe !== undefined ? { rpe } : {}),
@@ -710,7 +713,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
       : ui().week.rest
     const recorded = [
       logStatusText(entry.status),
-      ...(entry.km !== undefined ? [kmLabel(entry.km)] : []),
+      ...(entry.km !== undefined ? [kmLabel(entry.km, 3)] : []),
       ...(entry.timeSec !== undefined ? [fmtTime(entry.timeSec)] : []),
       ...(entry.testTimeSec !== undefined ? [ui().log.testTime(fmtTime(entry.testTimeSec))] : []),
       ...(entry.rpe !== undefined ? [`RPE ${entry.rpe}`] : []),
@@ -740,7 +743,7 @@ function logStrength(cwd: string, plan: StoredPlan, date: string, opts: LogOptio
   if (opts.strength !== 'done' && opts.strength !== 'skipped') throw new Error(t.strengthStatus(String(opts.strength)))
   if ([opts.km, opts.time, opts.testTime, opts.rpe].some((v) => v !== undefined)) throw new Error(t.strengthOnly)
   const minutes = opts.minutes === undefined ? undefined : Number(opts.minutes)
-  if (minutes !== undefined && (!Number.isInteger(minutes) || minutes < 1 || minutes > 300)) throw new Error(t.strengthMinutes)
+  if (minutes !== undefined && !LOG_LIMITS.minutes(minutes)) throw new Error(t.strengthMinutes)
   const entry: StrengthLogEntry = {
     date,
     activity: 'strength',
@@ -826,24 +829,22 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     }
     if (!day.workout && !day.strength) blocks.push(b.text(ui().why.restDay))
     blocks.push(b.section(ui().improve.calibration))
-    // Stan wyników na dziś — to samo, co tekst; `calibration` zostaje zapisem z dnia kalibracji.
-    // Jedno źródło dla wszystkich etykiet: to, co wybrałby `trainctl plan` z dzisiejszego
-    // trainctl.yaml (bez czytelnego profilu: wyniki zapisane w planie). Dopasowanie po kluczu.
+    // Opisy wyników to decyzje z dnia kalibracji (zapis w planie), wiek liczony od dziś.
+    // Co zrobiłby dziś `trainctl plan`, mówi jedna podpowiedź liczona tak jak przy
+    // regeneracji, z dzisiejszego trainctl.yaml; bez czytelnego profilu jej nie ma.
     const now = localToday()
     const config = (() => { try { return loadConfig(cwd) } catch { return undefined } })()
-    const calibrationToday = plan.calibration ? (() => {
-      const source = config ? config.athlete.results : plan.calibration.results
-      const current = inspectCalibration(source, now, isRoadGoal(config?.goal ?? plan.goal)).candidates
-      const byKey = new Map(current.map((x) => [resultKey(x.result), x]))
-      const storedSelected = plan.calibration.candidates.find((c) => c.reason === 'selected')
-      const replacement = current.some((x) => x.reason === 'selected' && (!storedSelected || resultKey(x.result) !== resultKey(storedSelected.result)))
-      return plan.calibration.candidates.map((c) => ({ date: c.result.date, label: calibrationLabel(c, byKey.get(resultKey(c.result)), replacement, !!config), ageDays: diffDays(c.result.date, now) }))
-    })() : null
-    if (plan.calibration && calibrationToday) {
-      blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c, i) => {
-        const { ageDays: age, label: reason } = calibrationToday[i]!
-        return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
+    const recalibration = plan.calibration && config
+      ? recalibrationToday(plan.calibration, config.athlete.results, now, isRoadGoal(config.goal)) : null
+    if (plan.calibration) {
+      blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c) => {
+        const age = diffDays(c.result.date, now)
+        return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[c.reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
       })))
+      if (recalibration?.changed) {
+        const next = recalibration.selected
+        blocks.push(b.info(next ? ui().improve.recalibrateTo(next.date, kmLabel(next.distanceKm)) : ui().improve.recalibrateNone))
+      }
     } else blocks.push(b.info(ui().improve.calibrationMissing))
     const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...(day.strength?.ruleRefs ?? [])])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
     // Jedna lista reguł: ID, treść i pochodzenie razem. Wcześniej te same ID stały
@@ -852,7 +853,7 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
       blocks.push(b.section(ui().why.rules), b.bullets(evidence.map((e) => ui().why.ruleLine(e.id, ruleExplain(e.id), ui().improve[e.origin]))))
     }
     blocks.push(b.blank(), b.hint(ui().why.sourcesHint(foundationsUrl(), day.workout || !day.strength ? '§10' : '§10.8')))
-    return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, calibrationToday, evidence })
+    return okDoc(blocks, { day, explanation, calibration: plan.calibration ?? null, recalibration, evidence })
   } catch (e) {
     return fail(e)
   }
@@ -1547,9 +1548,7 @@ export async function cmdReview(
           [ui().review.volume, ui().review.volumeAhead(Math.round(upcoming.reduce((s, d) => s + (d.workout?.distanceKm ?? 0), 0) * 10) / 10, week.totalKm, upcoming.length)],
           ...(plan.goal.kind === 'base'
             ? ([[ui().review.baseEnd, plan.goal.date]] as [string, string][])
-            : daysToRace(plan, today) >= 0
-              ? ([[ui().review.toRace, ui().status.daysToRace(daysToRace(plan, today))]] as [string, string][])
-              : ([[ui().review.sinceRace, ui().status.daysToRace(-daysToRace(plan, today))]] as [string, string][])),
+            : raceCountdown(daysToRace(plan, today))),
         ]),
       )
       const race = upcoming.find((d) => d.workout?.kind === 'race')
@@ -1943,6 +1942,11 @@ function strengthRow(plan: StoredPlan, entries: StrengthLogEntry[], from: string
   const done = [...latest.values()].filter((e) => e.status === 'done').length
   const skipped = [...latest.values()].filter((e) => e.status === 'skipped').length
   return [[ui().review.strength, ui().review.strengthValue(done, planned, skipped)]]
+}
+
+/** Wiersz przeglądu: „Do startu: N dni" przed startem, „Od startu: N dni" po nim. */
+function raceCountdown(toRace: number): [string, string][] {
+  return toRace >= 0 ? [[ui().review.toRace, ui().status.daysToRace(toRace)]] : [[ui().review.sinceRace, ui().status.daysToRace(-toRace)]]
 }
 
 /** „N dni do startu", „N dni po starcie" albo koniec planu bazowego (P-11). */

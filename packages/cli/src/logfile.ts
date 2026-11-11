@@ -2,6 +2,7 @@
 import { appendFileSync, closeSync, existsSync, openSync, readFileSync, readSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { ui } from './i18n/index.ts'
+import { parseDecimal } from './format.ts'
 
 export const LOG_FILE = 'log.jsonl'
 
@@ -68,17 +69,20 @@ function fromText(key: string, text: string): number {
   if (key.endsWith('Sec') && text.includes(':')) {
     try { return parseTime(text.trim()) } catch { return NaN }
   }
-  // tylko zwykły zapis dziesiętny — bez „0x10" i „1e3", które Number() też przyjmuje
-  return /^\d+(?:[.,]\d+)?$/.test(text.trim()) ? Number(text.trim().replace(',', '.')) : NaN
+  return parseDecimal(text)
 }
 
-/** Te same granice co walidacja `trainctl log`: RPE całkowite 1–10, reszta nieujemna. */
-const VALID: Record<string, (v: number) => boolean> = {
-  km: (v) => v >= 0,
-  timeSec: (v) => v > 0,
-  testTimeSec: (v) => v > 0,
-  rpe: (v) => Number.isInteger(v) && v >= 1 && v <= 10,
-  minutes: (v) => Number.isInteger(v) && v >= 1 && v <= 300,
+/**
+ * Granice wartości dziennika — jedne dla `trainctl log` (walidacja wejścia) i dla
+ * odczytu ręcznie edytowanego log.jsonl. RPE całkowite 1–10 (CR-10 bez zera, P-6),
+ * minuty siły całkowite 1–300, dystans nieujemny, czasy dodatnie.
+ */
+export const LOG_LIMITS = {
+  km: (v: number): boolean => Number.isFinite(v) && v >= 0,
+  timeSec: (v: number): boolean => Number.isFinite(v) && v > 0,
+  testTimeSec: (v: number): boolean => Number.isFinite(v) && v > 0,
+  rpe: (v: number): boolean => Number.isInteger(v) && v >= 1 && v <= 10,
+  minutes: (v: number): boolean => Number.isInteger(v) && v >= 1 && v <= 300,
 }
 
 /**
@@ -90,10 +94,10 @@ const VALID: Record<string, (v: number) => boolean> = {
  */
 function normalize(raw: Record<string, unknown>): LogEntry | StrengthLogEntry {
   const entry = { ...raw }
-  for (const key of ['km', 'timeSec', 'testTimeSec', 'rpe', 'minutes']) {
+  for (const key of ['km', 'timeSec', 'testTimeSec', 'rpe', 'minutes'] as const) {
     if (!(key in entry)) continue
     const value = typeof entry[key] === 'string' && (entry[key] as string).trim() ? fromText(key, entry[key] as string) : entry[key]
-    if (typeof value === 'number' && Number.isFinite(value) && VALID[key]!(value)) entry[key] = value
+    if (typeof value === 'number' && LOG_LIMITS[key](value)) entry[key] = value
     else delete entry[key]
   }
   if (entry['status'] === 'skipped' && entry['km'] === 0) delete entry['km']

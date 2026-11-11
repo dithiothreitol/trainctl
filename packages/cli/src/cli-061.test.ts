@@ -12,10 +12,10 @@ import { setLocale } from 'trainctl-core'
 import { cmdDesk, cmdLog, cmdPlan, cmdReview, cmdRules, cmdStatus, cmdToday, cmdWeek, cmdWhy } from './commands.ts'
 import { ruleEvidence } from './rules-explain.ts'
 import { logChoices } from './interactive.ts'
-import { calibrationLabel } from './calibration.ts'
-import { shownKm } from './format.ts'
+import { recalibrationToday } from './calibration.ts'
+import { parseDecimal, shownKm } from './format.ts'
 import { loadPlan, writePlan } from './planfile.ts'
-import { appendLog, readLog, readStrengthLog } from './logfile.ts'
+import { appendLog, LOG_LIMITS, readLog, readStrengthLog } from './logfile.ts'
 import { helpItem } from './ui/help.ts'
 import { improveEn } from './i18n/improve-en.ts'
 import { improvePl } from './i18n/improve-pl.ts'
@@ -148,18 +148,6 @@ describe('poprawki po przeglądzie etapu 1', () => {
     expect(cmdToday(dir).output).not.toContain('0 km')
   })
 
-  it('why: wynik z przyszłości w dniu kalibracji, dziś już przeszły, nie jest „z przyszłości"', () => {
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
-      '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-10-25", distanceKm: 5, timeSec: 1200 }'), 'utf-8')
-    cmdPlan(dir, { fresh: true })
-    setLocale('en')
-    process.env['TRAINCTL_TODAY'] = '2026-10-29'
-    const out = cmdWhy(dir, { date: '2026-10-27' }).output
-    expect(out).toContain('Newer than the calibration')
-    expect(out).not.toContain('Future result')
-    expect(out).not.toMatch(/-\d+ days/)
-  })
-
   it('komórka tabeli z długą ścieżką trzyma szerokość kolumny', () => {
     const theme = new Theme({ color: false, unicode: true, width: 40 })
     const out = renderAnsi([{ t: 'table', head: ['a', 'b'], rows: [['x', 'https://github.com/dithiothreitol/trainctl/blob/v0.6.0/docs/science/FOUNDATIONS.md']] }], theme)
@@ -209,16 +197,6 @@ describe('poprawki po drugiej rundzie przeglądu etapu 1', () => {
     const saved = cmdLog(dir, { date: '2026-10-28', strength: 'done' }).output
     expect(saved).toContain('wykonana')
     expect(cmdToday(dir).output).toContain('Siła zalogowana: wykonana')
-  })
-
-  it('why: wynik użyty do stref, dziś starszy niż 540 dni, mówi to wprost', () => {
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('"2026-09-27"', '"2025-06-09"'), 'utf-8')
-    cmdPlan(dir, { fresh: true })
-    setLocale('en')
-    process.env['TRAINCTL_TODAY'] = '2026-12-21'
-    const out = cmdWhy(dir, { date: '2026-12-22' }).output
-    expect(out).toContain('now older than 540 days')
-    expect(out).not.toMatch(/Used for zones · \d+ days/)
   })
 
   it('nieznany status w log.jsonl pokazany bez zmian, nie „undefined"', () => {
@@ -300,16 +278,6 @@ describe('poprawki po czwartej rundzie przeglądu etapu 1', () => {
     setLocale('pl')
     expect(shortenDetail('2026-10-27', 10.25, 8, 40, 'shortened')).toBe('2026-10-27: 10.25 → 8 km; 40 min; shortened')
   })
-
-  it('why: wynik z trailu, dziś starszy niż 540 dni, jest przeterminowany', () => {
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
-      '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }\n    - { date: "2025-05-10", distanceKm: 21.1, timeSec: 7200, terrain: trail }'), 'utf-8')
-    cmdPlan(dir, { fresh: true })
-    setLocale('en')
-    process.env['TRAINCTL_TODAY'] = '2026-11-30'
-    const out = cmdWhy(dir, { date: '2026-12-01' }).output
-    expect(out).toMatch(/2025-05-10 · 21\.1 km · VDOT [\d.]+ · Older than 540 days/)
-  })
 })
 
 describe('poprawki po piątej rundzie przeglądu etapu 1', () => {
@@ -320,17 +288,6 @@ describe('poprawki po piątej rundzie przeglądu etapu 1', () => {
     const out = cmdDesk(dir, { date: '2027-03-28' }).output
     expect(out).toContain('21,1 km')
     expect(out).not.toMatch(/· 0 km/)
-  })
-
-  it('why: trail po kalibracji przy wyniku szosowym nie jest „nowszy, uwzględniony"', () => {
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
-      '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-10-25", distanceKm: 21.1, timeSec: 7200, terrain: trail }'), 'utf-8')
-    cmdPlan(dir, { fresh: true })
-    setLocale('en')
-    process.env['TRAINCTL_TODAY'] = '2026-10-29'
-    const out = cmdWhy(dir, { date: '2026-10-27' }).output
-    expect(out).toMatch(/2026-10-25 · 21\.1 km · VDOT [\d.]+ · Trail result/)
-    expect(out).not.toContain('Newer than the calibration')
   })
 
   it('ostrzeżenie o celu tygodnia formatuje kilometry', () => {
@@ -356,32 +313,6 @@ describe('poprawki po piątej rundzie przeglądu etapu 1', () => {
   })
 })
 
-describe('poprawki po szóstej rundzie przeglądu etapu 1', () => {
-  const withResults = (results: string, goalExtra = '') => {
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }', results)
-      .replace('  priority: A\n', `  priority: A\n${goalExtra}`), 'utf-8')
-    cmdPlan(dir, { fresh: true })
-    setLocale('en')
-    process.env['TRAINCTL_TODAY'] = '2026-10-29'
-    return cmdWhy(dir, { date: '2026-10-27' }).output
-  }
-
-  it('cel trailowy: wynik z trailu użyty do stref nie jest opisany jako odrzucony', () => {
-    const out = withResults('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2700 }\n    - { date: "2026-09-20", distanceKm: 21.1, timeSec: 5400, terrain: trail }', '  terrain: trail\n')
-    expect(out).toMatch(/2026-09-20 · 21\.1 km · VDOT [\d.]+ · Used for zones/)
-  })
-
-  it('wynik szosowy przeterminowany: trail, który ustawił strefy, zostaje „użyty"', () => {
-    const out = withResults('    - { date: "2025-01-10", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-09-20", distanceKm: 21.1, timeSec: 6000, terrain: trail }')
-    expect(out).toMatch(/2026-09-20 · 21\.1 km · VDOT [\d.]+ · Used for zones/)
-    expect(out).not.toContain('Trail result')
-  })
-
-  it('log.jsonl: czas „58:30" wpisany ręcznie zostaje odczytany', () => {
-    appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'done', timeSec: '58:30', loggedAt: 'x' }) + '\n')
-    expect(readLog(dir)[0]).toMatchObject({ timeSec: 3510 })
-  })
-})
 
 describe('poprawki po siódmej rundzie przeglądu etapu 1', () => {
   it('log.jsonl: dystans z przecinkiem odczytany jako liczba', () => {
@@ -395,34 +326,9 @@ describe('poprawki po siódmej rundzie przeglądu etapu 1', () => {
     const raw = readFileSync(join(dir, 'log.jsonl'), 'utf-8')
     expect(raw).not.toContain('"km"')
   })
-
-  it('calibrationLabel: wynik, który dziś ustawiłby strefy, i przeterminowany z następcą', () => {
-    const result = { date: '2026-01-01', distanceKm: 10, timeSec: 2580 }
-    const c = (reason: 'selected' | 'lower-vdot' | 'stale') => ({ result, ageDays: 0, vdot: 47, reason })
-    expect(calibrationLabel(c('lower-vdot'), c('selected'), true)).toBe('nowBest')
-    expect(calibrationLabel(c('selected'), c('stale'), true)).toBe('selectedStaleReplaced')
-    expect(calibrationLabel(c('selected'), c('stale'), false)).toBe('selectedStale')
-  })
 })
 
 describe('poprawki po ósmej rundzie przeglądu etapu 1', () => {
-  it('why: dane MCP mają stan wyników na dziś zgodny z tekstem', () => {
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('"2026-09-27"', '"2025-06-09"'), 'utf-8')
-    cmdPlan(dir, { fresh: true })
-    process.env['TRAINCTL_TODAY'] = '2026-12-21'
-    const why = cmdWhy(dir, { date: '2026-12-22' })
-    expect(why.data).toMatchObject({ calibrationToday: [{ date: '2025-06-09', label: 'selectedStale' }] })
-  })
-
-  it('why: świeży wynik dopisany do trainctl.yaml bez regeneracji — „plan przejdzie na nowszy"', () => {
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('"2026-09-27"', '"2025-06-09"'), 'utf-8')
-    cmdPlan(dir, { fresh: true })
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
-      '    - { date: "2025-06-09", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-12-01", distanceKm: 10, timeSec: 2600 }'), 'utf-8')
-    setLocale('en')
-    process.env['TRAINCTL_TODAY'] = '2026-12-21'
-    expect(cmdWhy(dir, { date: '2026-12-22' }).output).toContain('trainctl plan will switch to a newer result')
-  })
 
   it('wpis dziennika bez statusu nie pokazuje „undefined"', () => {
     setLocale('en')
@@ -438,35 +344,6 @@ describe('poprawki po ósmej rundzie przeglądu etapu 1', () => {
 })
 
 describe('poprawki po dziewiątej rundzie przeglądu etapu 1', () => {
-  const stalePlan = () => {
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
-      '    - { date: "2025-06-09", distanceKm: 10, timeSec: 2500 }\n    - { date: "2026-01-10", distanceKm: 10, timeSec: 2700 }'), 'utf-8')
-    cmdPlan(dir, { fresh: true })
-    setLocale('en')
-    process.env['TRAINCTL_TODAY'] = '2026-12-21'
-  }
-
-  it('why nie obiecuje następcy, którego trainctl.yaml już nie ma', () => {
-    stalePlan()
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(/  results:\n.*\n/, '  results: []\n'), 'utf-8')
-    const why = cmdWhy(dir, { date: '2026-12-22' })
-    expect(why.output).not.toContain('will switch to a newer result')
-    // wyniki usunięte z profilu: plan po regeneracji ich nie zobaczy
-    expect(why.data).toMatchObject({ calibrationToday: expect.arrayContaining([expect.objectContaining({ date: '2025-06-09', label: 'removed' }), expect.objectContaining({ date: '2026-01-10', label: 'removed' })]) })
-  })
-
-  it('why dopasowuje stan wyniku po kluczu, nie po pozycji', () => {
-    stalePlan()
-    const plan = loadPlan(dir)
-    plan.calibration!.results.reverse()
-    writePlan(dir, plan)
-    const why = cmdWhy(dir, { date: '2026-12-22' })
-    expect(why.data).toMatchObject({ calibrationToday: expect.arrayContaining([
-      expect.objectContaining({ date: '2025-06-09', label: 'selectedStaleReplaced' }),
-      expect.objectContaining({ date: '2026-01-10', label: 'nowBest' }),
-    ]) })
-  })
-
   it('dopisanie do log.jsonl bez końcowej nowej linii nie skleja wpisów', () => {
     writeFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-26', status: 'done', loggedAt: 'x' }), 'utf-8')
     appendLog(dir, { date: '2026-10-27', status: 'done', loggedAt: 'y' })
@@ -503,21 +380,6 @@ describe('poprawki po dziewiątej rundzie przeglądu etapu 1', () => {
 })
 
 describe('poprawki po dziesiątej rundzie przeglądu etapu 1', () => {
-  it('why: jedno źródło etykiet — wynik usunięty z profilu nie „ustawiłby stref"', () => {
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
-      '    - { date: "2025-06-09", distanceKm: 10, timeSec: 2500 }\n    - { date: "2026-01-10", distanceKm: 10, timeSec: 2700 }'), 'utf-8')
-    cmdPlan(dir, { fresh: true })
-    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
-      '    - { date: "2025-06-09", distanceKm: 10, timeSec: 2500 }'), 'utf-8')
-    setLocale('en')
-    process.env['TRAINCTL_TODAY'] = '2026-12-21'
-    const why = cmdWhy(dir, { date: '2026-12-22' })
-    expect(why.data).toMatchObject({ calibrationToday: expect.arrayContaining([
-      expect.objectContaining({ date: '2025-06-09', label: 'selectedStale' }),
-      expect.objectContaining({ date: '2026-01-10', label: 'removed' }),
-    ]) })
-    expect(why.output).not.toContain('Would set the zones today')
-  })
 
   it('log.jsonl: minuty siły w granicach `log --strength` (całkowite 1–300)', () => {
     appendFileSync(join(dir, 'log.jsonl'), [
@@ -526,5 +388,147 @@ describe('poprawki po dziesiątej rundzie przeglądu etapu 1', () => {
       JSON.stringify({ date: '2026-10-29', activity: 'strength', status: 'done', minutes: '45', loggedAt: 'x' }),
     ].join('\n') + '\n')
     expect(readStrengthLog(dir).map((e) => e.minutes)).toEqual([undefined, undefined, 45])
+  })
+})
+
+describe('why: kalibracja stref — decyzje z dnia kalibracji i podpowiedź na dziś', () => {
+  const RESULT = '    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }'
+  /** Plan wygenerowany 2026-10-22 z podanymi wynikami (i opcjonalnie innym celem). */
+  const planWith = (results: string, goalExtra = '') => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(RESULT, results).replace('  priority: A\n', `  priority: A\n${goalExtra}`), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    setLocale('en')
+  }
+  const profile = (results: string) => writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(RESULT, results), 'utf-8')
+  const whyOn = (today: string, date: string) => {
+    process.env['TRAINCTL_TODAY'] = today
+    return cmdWhy(dir, { date })
+  }
+
+  it('opis wyniku to decyzja z dnia kalibracji, wiek liczony od dziś, bez ujemnego wieku', () => {
+    planWith(`${RESULT}\n    - { date: "2026-10-25", distanceKm: 5, timeSec: 1200 }`)
+    const why = whyOn('2026-10-29', '2026-10-27')
+    expect(why.output).toMatch(/2026-10-25 · 5 km · VDOT [\d.]+ · After the calibration date · 4 days old/)
+    expect(why.output).toMatch(/2026-09-27 · 10 km · VDOT [\d.]+ · Used for zones · 32 days old/)
+    expect(why.output).not.toMatch(/-\d+ days/)
+    // lepszy wynik po dniu kalibracji: dziś plan skalibrowałby strefy z niego
+    expect(why.output).toContain('would calibrate the zones from the 2026-10-25 result (5 km)')
+    expect(why.data).toMatchObject({ recalibration: { changed: true, selected: { date: '2026-10-25' } } })
+  })
+
+  it('wynik użyty do stref, dziś starszy niż 540 dni, bez następcy: podpowiedź o świeżym wyniku', () => {
+    planWith('    - { date: "2025-06-09", distanceKm: 10, timeSec: 2580 }')
+    const why = whyOn('2026-12-21', '2026-12-22')
+    expect(why.output).toMatch(/2025-06-09 · 10 km · VDOT [\d.]+ · Used for zones · 560 days old/)
+    expect(why.output).toContain('No result meets the policy today')
+    expect(why.data).toMatchObject({ recalibration: { changed: true, selected: null } })
+  })
+
+  it('świeży wynik dopisany do trainctl.yaml bez regeneracji: podpowiedź z jego datą', () => {
+    planWith('    - { date: "2025-06-09", distanceKm: 10, timeSec: 2580 }')
+    profile('    - { date: "2025-06-09", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-12-01", distanceKm: 10, timeSec: 2600 }')
+    const why = whyOn('2026-12-21', '2026-12-22')
+    expect(why.output).toContain('would calibrate the zones from the 2026-12-01 result')
+    expect(why.output).not.toContain('No result meets the policy today')
+  })
+
+  it('wynik wykluczony w trainctl.yaml: decyzja zostaje, podpowiedź mówi o zmianie', () => {
+    planWith(RESULT)
+    profile('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580, excluded: true, exclusionReason: "injury" }')
+    const why = whyOn('2026-10-29', '2026-10-27')
+    expect(why.output).toMatch(/2026-09-27 · 10 km · VDOT [\d.]+ · Used for zones/)
+    expect(why.output).toContain('No result meets the policy today')
+  })
+
+  it('nowa nazwa wyniku w trainctl.yaml to ten sam wynik: bez podpowiedzi', () => {
+    planWith(RESULT)
+    profile('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580, name: "Parkrun" }')
+    expect(whyOn('2026-10-29', '2026-10-27').data).toMatchObject({ recalibration: { changed: false } })
+  })
+
+  it('trail przy wyniku szosowym (Z-10): wybór się nie zmienia, bez podpowiedzi', () => {
+    planWith(`${RESULT}\n    - { date: "2026-10-25", distanceKm: 21.1, timeSec: 7200, terrain: trail }`)
+    const why = whyOn('2026-10-29', '2026-10-27')
+    expect(why.output).toMatch(/2026-10-25 · 21\.1 km · VDOT [\d.]+ · After the calibration date/)
+    expect(why.output).not.toContain('would calibrate')
+    expect(why.data).toMatchObject({ recalibration: { changed: false } })
+  })
+
+  it('cel trailowy: wynik z trailu, który ustawił strefy, jest „użyty"', () => {
+    planWith('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2700 }\n    - { date: "2026-09-20", distanceKm: 21.1, timeSec: 5400, terrain: trail }', '  terrain: trail\n')
+    const why = whyOn('2026-10-29', '2026-10-27')
+    expect(why.output).toMatch(/2026-09-20 · 21\.1 km · VDOT [\d.]+ · Used for zones/)
+    expect(why.output).not.toContain('would calibrate')
+  })
+
+  it('przeterminowany wynik szosowy: trail, który ustawił strefy, jest „użyty", szosa „starsza niż 540 dni"', () => {
+    planWith('    - { date: "2025-01-10", distanceKm: 10, timeSec: 2580 }\n    - { date: "2026-09-20", distanceKm: 21.1, timeSec: 6000, terrain: trail }')
+    const why = whyOn('2026-10-29', '2026-10-27')
+    expect(why.output).toMatch(/2026-09-20 · 21\.1 km · VDOT [\d.]+ · Used for zones/)
+    expect(why.output).toMatch(/2025-01-10 · 10 km · VDOT [\d.]+ · Older than 540 days on the calibration date/)
+    expect(why.output).not.toContain('Trail result')
+  })
+
+  it('bez czytelnego trainctl.yaml why działa, bez podpowiedzi', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), 'athlete: [', 'utf-8')
+    const why = whyOn('2026-10-29', '2026-10-27')
+    expect(why.code).toBe(0)
+    expect(why.data).toMatchObject({ recalibration: null })
+  })
+
+  it('recalibrationToday: ten sam wynik, inny wynik, brak wyniku', () => {
+    const a = { date: '2026-09-27', distanceKm: 10, timeSec: 2580 }
+    const b = { date: '2026-10-25', distanceKm: 5, timeSec: 1200 }
+    const stored = { evaluatedAt: '2026-10-22', policy: 'best-vdot-540-days' as const, results: [a], selected: a, candidates: [] }
+    expect(recalibrationToday(stored, [a], '2026-10-29', true)).toEqual({ selected: a, changed: false })
+    expect(recalibrationToday(stored, [a, b], '2026-10-29', true)).toMatchObject({ selected: b, changed: true })
+    expect(recalibrationToday(stored, [{ ...a, excluded: true }], '2026-10-29', true)).toEqual({ selected: null, changed: true })
+    const { selected: _, ...withoutResult } = stored
+    expect(recalibrationToday(withoutResult, [], '2026-10-29', true)).toEqual({ selected: null, changed: false })
+  })
+})
+
+describe('liczby wpisywane przez człowieka', () => {
+  it('log --km przyjmuje przecinek, jak polskie wyjście', () => {
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    expect(cmdLog(dir, { date: '2026-10-27', status: 'done', km: '8,5' }).code).toBe(0)
+    expect(readLog(dir).at(-1)).toMatchObject({ km: 8.5 })
+  })
+
+  it('parseDecimal: zwykły zapis dziesiętny, nic więcej', () => {
+    expect(parseDecimal('8,5')).toBe(8.5)
+    expect(parseDecimal(' 8.25 ')).toBe(8.25)
+    for (const bad of ['0x10', '1e3', '-5', '', 'osiem']) expect(parseDecimal(bad)).toBeNaN()
+  })
+
+  it('zapis w log i today pokazują dystans tak, jak go wpisano', () => {
+    setLocale('pl')
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    expect(cmdLog(dir, { date: '2026-10-27', status: 'done', km: '8.25' }).output).toContain('8,25 km')
+    expect(cmdToday(dir).output).toContain('8,25 km')
+  })
+
+  it('granice dziennika jedne dla log i odczytu log.jsonl', () => {
+    expect(LOG_LIMITS.rpe(10)).toBe(true)
+    expect(LOG_LIMITS.rpe(11)).toBe(false)
+    expect(LOG_LIMITS.minutes(300)).toBe(true)
+    expect(LOG_LIMITS.minutes(301)).toBe(false)
+    process.env['TRAINCTL_TODAY'] = '2026-10-27'
+    expect(cmdLog(dir, { date: '2026-10-27', strength: 'done', minutes: 301 }).code).not.toBe(0)
+    expect(cmdLog(dir, { date: '2026-10-27', status: 'done', km: '-5' }).code).not.toBe(0)
+  })
+
+  it('log.jsonl: czas „58:30" wpisany ręcznie zostaje odczytany', () => {
+    appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'done', timeSec: '58:30', loggedAt: 'x' }) + '\n')
+    expect(readLog(dir)[0]).toMatchObject({ timeSec: 3510 })
+  })
+
+  it('historia zmian w PLAN.md: wersje i identyfikatory bez przecinka, liczby z przecinkiem', () => {
+    setLocale('pl')
+    const plan = loadPlan(dir)
+    plan.changes.push({ at: '2026-10-27', action: 'adapt', detail: 'VDOT 45.2 → 46.1. silnik v0.7, wersja 0.7.1' })
+    writePlan(dir, plan)
+    const md = readFileSync(join(dir, 'plan', 'PLAN.md'), 'utf-8')
+    expect(md).toContain('VDOT 45,2 → 46,1. silnik v0.7, wersja 0.7.1')
   })
 })
