@@ -235,7 +235,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
     days: w.days.map((d) => ({
       weekday: core.weekdayShort[d.weekday],
       date: d.date.slice(5).replace('-', '.'),
-      km: (d.workout?.raceDistanceKm ?? d.workout?.distanceKm) ? kmLabel(shownKm(d.workout!)) : '',
+      km: d.workout && shownKm(d.workout) ? kmLabel(shownKm(d.workout)) : '',
       rest: !d.workout,
       text:
         (d.workout ? workoutText(d) : p.rest) +

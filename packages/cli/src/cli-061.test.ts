@@ -14,8 +14,8 @@ import { ruleEvidence } from './rules-explain.ts'
 import { logChoices } from './interactive.ts'
 import { calibrationLabel } from './calibration.ts'
 import { shownKm } from './format.ts'
-import { loadPlan } from './planfile.ts'
-import { readLog } from './logfile.ts'
+import { loadPlan, writePlan } from './planfile.ts'
+import { appendLog, readLog } from './logfile.ts'
 import { helpItem } from './ui/help.ts'
 import { improveEn } from './i18n/improve-en.ts'
 import { improvePl } from './i18n/improve-pl.ts'
@@ -434,5 +434,69 @@ describe('poprawki po ósmej rundzie przeglądu etapu 1', () => {
   it('shownKm: start pokazuje dystans startu', () => {
     expect(shownKm({ distanceKm: 0, raceDistanceKm: 21.0975 })).toBe(21.0975)
     expect(shownKm({ distanceKm: 8 })).toBe(8)
+  })
+})
+
+describe('poprawki po dziewiątej rundzie przeglądu etapu 1', () => {
+  const stalePlan = () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('    - { date: "2026-09-27", distanceKm: 10, timeSec: 2580 }',
+      '    - { date: "2025-06-09", distanceKm: 10, timeSec: 2500 }\n    - { date: "2026-01-10", distanceKm: 10, timeSec: 2700 }'), 'utf-8')
+    cmdPlan(dir, { fresh: true })
+    setLocale('en')
+    process.env['TRAINCTL_TODAY'] = '2026-12-21'
+  }
+
+  it('why nie obiecuje następcy, którego trainctl.yaml już nie ma', () => {
+    stalePlan()
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(/  results:\n.*\n/, '  results: []\n'), 'utf-8')
+    const why = cmdWhy(dir, { date: '2026-12-22' })
+    expect(why.output).not.toContain('will switch to a newer result')
+    expect(why.data).toMatchObject({ calibrationToday: expect.arrayContaining([expect.objectContaining({ date: '2025-06-09', label: 'selectedStale' })]) })
+  })
+
+  it('why dopasowuje stan wyniku po kluczu, nie po pozycji', () => {
+    stalePlan()
+    const plan = loadPlan(dir)
+    plan.calibration!.results.reverse()
+    writePlan(dir, plan)
+    const why = cmdWhy(dir, { date: '2026-12-22' })
+    expect(why.data).toMatchObject({ calibrationToday: expect.arrayContaining([
+      expect.objectContaining({ date: '2025-06-09', label: 'selectedStaleReplaced' }),
+      expect.objectContaining({ date: '2026-01-10', label: 'nowBest' }),
+    ]) })
+  })
+
+  it('dopisanie do log.jsonl bez końcowej nowej linii nie skleja wpisów', () => {
+    writeFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-26', status: 'done', loggedAt: 'x' }), 'utf-8')
+    appendLog(dir, { date: '2026-10-27', status: 'done', loggedAt: 'y' })
+    expect(readLog(dir).map((e) => e.date)).toEqual(['2026-10-26', '2026-10-27'])
+  })
+
+  it('log.jsonl: wartości, których CLI nie przyjmuje, pominięte przy odczycie', () => {
+    appendFileSync(join(dir, 'log.jsonl'), [
+      JSON.stringify({ date: '2026-10-27', status: 'done', rpe: 15, km: -5, loggedAt: 'x' }),
+      JSON.stringify({ date: '2026-10-28', status: 'done', rpe: 7.5, km: '0x10', timeSec: '1e3', loggedAt: 'x' }),
+    ].join('\n') + '\n')
+    for (const e of readLog(dir)) {
+      expect(e).not.toHaveProperty('rpe')
+      expect(e).not.toHaveProperty('km')
+      expect(e).not.toHaveProperty('timeSec')
+    }
+  })
+
+  it('E-3 wymienia wszystkie oznaczone stałe', () => {
+    setLocale('en')
+    const out = cmdRules({ id: 'E-3' }).output
+    for (const value of ['+40%', '+15%', '5–8 km', '3 km', '35%']) expect(out).toContain(value)
+  })
+
+  it('PLAN.md pokazuje liczby z historii zmian w formacie języka', () => {
+    setLocale('pl')
+    const plan = loadPlan(dir)
+    plan.changes.push({ at: '2026-10-27', action: 'shorten', detail: '2026-10-27: 8.5 → 6 km; 40 min; shortened' })
+    writePlan(dir, plan)
+    const md = readFileSync(join(dir, 'plan', 'PLAN.md'), 'utf-8')
+    expect(md).toContain('2026-10-27: 8,5 → 6 km')
+    expect(loadPlan(dir).changes.at(-1)!.detail).toContain('8.5 → 6 km')
   })
 })

@@ -1044,7 +1044,7 @@ export const cliPl: CliMessages = {
     'R-9': 'siła wraca w drugim tygodniu po starcie, jedną lżejszą sesją — wybór inżynierski, bez źródła',
     'R-10': 'po krótszym starcie docelowym jeden tydzień przejściowy ~70% — wybór inżynierski; brak danych',
     'P-11': 'plan bez startu rośnie do udokumentowanego szczytu (albo +15%) i tam się wypłaszcza, odciążenie co czwarty tydzień — wybór inżynierski',
-    'E-3': 'stałe silnika bez źródła: bieg spokojny ≤18 km, część główna akcentu ~22% tygodnia, mocne km ≤25%, podział faz 40/20%, przerwy 2–3 min, sesje tygodnia startowego — wybory inżynierskie do potwierdzenia pomiarem albo przeglądem trenerskim',
+    'E-3': 'stałe silnika bez źródła: sufit +40% bez peakWeeklyKm, szczyt planu ze startem +15%, podział faz 40/20%, część główna akcentu ~22% tygodnia i co najmniej 3 km, bieg spokojny 5–18 km, 5–8 km spokojnie przed podbiegami, mocne km ≤25%, przerwy 2–3 min, sesje tygodnia startowego, jedna jednostka ≤35% tygodnia (lint kształtu) — wybory inżynierskie do potwierdzenia pomiarem albo przeglądem trenerskim',
     'E-2': 'budżet czasu z trainctl.yaml ogranicza objętość tygodnia i skraca jednostki według zasad E-1 — wybór inżynierski, bez źródła',
     'Z-10': 'wynik z trailu nie kalibruje stref szosowych, dopóki jest wynik szosowy — wybór inżynierski; tabele VDOT pochodzą z szosy i bieżni',
     'S-5': 'ciężka siła nie później niż 24 h przed sesją jakościową — deficyt siły trwa do 48 h (de Carvalho e Silva 2022)',

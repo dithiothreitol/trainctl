@@ -36,7 +36,10 @@ export interface StrengthLogEntry {
 }
 
 export function appendLog(cwd: string, entry: LogEntry | StrengthLogEntry): void {
-  appendFileSync(join(cwd, LOG_FILE), JSON.stringify(entry) + '\n', 'utf-8')
+  const path = join(cwd, LOG_FILE)
+  // ręczna edycja bez końcowego znaku nowej linii skleiłaby nowy wpis z ostatnim
+  const tail = existsSync(path) ? readFileSync(path, 'utf-8').slice(-1) : '\n'
+  appendFileSync(path, (tail && tail !== '\n' ? '\n' : '') + JSON.stringify(entry) + '\n', 'utf-8')
 }
 
 function readAll(cwd: string): (LogEntry | StrengthLogEntry)[] {
@@ -53,7 +56,17 @@ function fromText(key: string, text: string): number {
   if (key.endsWith('Sec') && text.includes(':')) {
     try { return parseTime(text.trim()) } catch { return NaN }
   }
-  return Number(text.trim().replace(',', '.'))
+  // tylko zwykły zapis dziesiętny — bez „0x10" i „1e3", które Number() też przyjmuje
+  return /^\d+(?:[.,]\d+)?$/.test(text.trim()) ? Number(text.trim().replace(',', '.')) : NaN
+}
+
+/** Te same granice co walidacja `trainctl log`: RPE całkowite 1–10, reszta nieujemna. */
+const VALID: Record<string, (v: number) => boolean> = {
+  km: (v) => v >= 0,
+  timeSec: (v) => v > 0,
+  testTimeSec: (v) => v > 0,
+  rpe: (v) => Number.isInteger(v) && v >= 1 && v <= 10,
+  minutes: (v) => v > 0,
 }
 
 /**
@@ -68,7 +81,7 @@ function normalize(raw: Record<string, unknown>): LogEntry | StrengthLogEntry {
   for (const key of ['km', 'timeSec', 'testTimeSec', 'rpe', 'minutes']) {
     if (!(key in entry)) continue
     const value = typeof entry[key] === 'string' && (entry[key] as string).trim() ? fromText(key, entry[key] as string) : entry[key]
-    if (typeof value === 'number' && Number.isFinite(value)) entry[key] = value
+    if (typeof value === 'number' && Number.isFinite(value) && VALID[key]!(value)) entry[key] = value
     else delete entry[key]
   }
   if (entry['status'] === 'skipped' && entry['km'] === 0) delete entry['km']

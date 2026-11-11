@@ -828,15 +828,16 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     let calibrationToday: { date: string; label: ReturnType<typeof calibrationLabel>; ageDays: number }[] | null = null
     if (plan.calibration) {
       const now = localToday()
-      const current = inspectCalibration(plan.calibration.results, now, isRoadGoal(plan.goal)).candidates
-      // następca dla przeterminowanego wyniku może już być w trainctl.yaml, choć plan go nie zna
-      const configured = (() => { try { return loadConfig(cwd).athlete.results } catch { return [] } })()
-      const replacement = inspectCalibration(configured.length ? configured : plan.calibration.results, now, isRoadGoal(plan.goal)).candidates.some((x) => x.reason === 'selected')
-      const today = plan.calibration.candidates.map((c, i) => ({ date: c.result.date, label: calibrationLabel(c, current[i], replacement), ageDays: diffDays(c.result.date, now) }))
+      // stan każdego zapisanego wyniku na dziś, dopasowany po kluczu wyniku, nie po pozycji
+      const current = new Map(inspectCalibration(plan.calibration.results, now, isRoadGoal(plan.goal)).candidates.map((x) => [resultKey(x.result), x]))
+      // następca przeterminowanego wyniku: to, co wybrałby `trainctl plan` z dzisiejszego
+      // trainctl.yaml; bez czytelnego profilu nic nie obiecujemy
+      const config = (() => { try { return loadConfig(cwd) } catch { return undefined } })()
+      const replacement = config ? inspectCalibration(config.athlete.results, now, isRoadGoal(config.goal)).candidates.some((x) => x.reason === 'selected') : false
+      const today = plan.calibration.candidates.map((c) => ({ date: c.result.date, label: calibrationLabel(c, current.get(resultKey(c.result)), replacement), ageDays: diffDays(c.result.date, now) }))
       calibrationToday = today
       blocks.push(b.text(ui().improve.calibrationPolicy), b.text(ui().improve.calibratedOn(plan.calibration.evaluatedAt), 'muted'), b.bullets(plan.calibration.candidates.map((c, i) => {
-        const age = today[i]!.ageDays
-        const reason = today[i]!.label
+        const { ageDays: age, label: reason } = today[i]!
         return [c.result.date, c.result.name ?? kmLabel(c.result.distanceKm), 'VDOT ' + formatNumber(getLocale(), c.vdot), ui().improve[reason], ...(age >= 0 ? [ui().improve.age(age)] : []), c.result.exclusionReason ?? ''].filter(Boolean).join(' · ')
       })))
     } else blocks.push(b.info(ui().improve.calibrationMissing))
