@@ -34,7 +34,7 @@ export const coachEn = {
   longAfterRace: 'This long run comes the day after a race or time trial, easy: the corpus pattern of a Saturday race and a Sunday long run (T-11).',
   /** Decyzje generatora o układzie tygodnia (WeekNote): dystanse już sformatowane. */
   weekNote: {
-    hillsDropped: 'The hills day is an easy run this week: the rest of the weekly distance needed the day (S-11, E-3).',
+    hillsDropped: 'The hills day is an easy run this week: the week cannot hold it within its limits — the remaining distance, the hard-kilometre ceiling of 25% or one session\'s share (S-11, E-3).',
     accentAsStrides: 'This accent is an easy run with strides: with warm-up and cool-down it would carry more than 35% of a week this small (J-6, E-3).',
     volumeShort: (planned: string, target: string) => `This week has ${planned} instead of ${target}: the available days cannot hold the rest under the easy-run ceiling (S-10).`,
   },

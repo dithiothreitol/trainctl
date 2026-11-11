@@ -44,7 +44,8 @@ change between minor versions — a regenerated plan can differ.
   the week; a raised one does not lift the plan above its peak unless the
   baseline itself is higher, and the taper after a block at the peak keeps its
   proportions. `adapt` counts a raise from the block level, so a raise during a
-  deload no longer cuts the plan.
+  deload no longer cuts the plan, and it does not offer a raise while the time
+  budget or the days trim the current week.
 - The long run has its own track: it grows by at most 2 km a loading week to
   22 km for a half marathon, 30 km for a marathon and 32 km for an ultra in the
   last block before the taper (J-1, J-2, J-10, N-19), and shortens in deloads.

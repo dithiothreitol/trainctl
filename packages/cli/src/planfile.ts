@@ -186,7 +186,7 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   // wyłącznie budżet — krzywa powrotu nie trafia do ostrzeżenia E-2
   const withReturn = (weeks: WeekSkeleton[]) => (returnFrom ? applyReturnBlock(weeks, returnFrom) : weeks)
   const skeletons = withReturn(macro.weeks)
-  const freeReturned = withReturn(free.weeks)
+  const freeReturned = capped ? withReturn(free.weeks) : skeletons
   if (capped) {
     // zamiar bez budżetu tydzień po tygodniu — z niego „bez budżetu" w ostrzeżeniu E-2
     const freeTarget = new Map(freeReturned.map((w) => [w.weekStart, w.targetKm]))

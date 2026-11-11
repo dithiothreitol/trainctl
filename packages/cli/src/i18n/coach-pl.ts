@@ -31,7 +31,7 @@ export const coachPl: typeof coachEn = {
   afterLong: 'Akcent wypada dzień po długim: w korpusie trenerskim ten układ jest tak częsty jak odwrotny (52 wobec 53 weekendów, S-9b).',
   longAfterRace: 'Długie wypada dzień po starcie albo sprawdzianie, spokojnie: wzorzec z korpusu, sobota start i niedziela długie (T-11).',
   weekNote: {
-    hillsDropped: 'Dzień podbiegów jest w tym tygodniu biegiem spokojnym: ten dzień był potrzebny na resztę kilometrów (S-11, E-3).',
+    hillsDropped: 'Dzień podbiegów jest w tym tygodniu biegiem spokojnym: tydzień nie mieści go w swoich granicach — reszta kilometrów, sufit mocnych kilometrów 25% albo udział jednej jednostki (S-11, E-3).',
     accentAsStrides: 'Akcent zamieniony na bieg spokojny z przebieżkami: z rozgrzewką i schłodzeniem miałby ponad 35% tak małego tygodnia (J-6, E-3).',
     volumeShort: (planned: string, target: string) => `Tydzień ma ${planned} zamiast ${target}: dostępne dni nie mieszczą reszty pod sufitem biegu spokojnego (S-10).`,
   },

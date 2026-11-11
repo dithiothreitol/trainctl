@@ -380,6 +380,20 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(again.output).not.toContain('2026-11-01 falls in the easy block')
   })
 
+  it('adapt przy tygodniu przyciętym budżetem dnia: nadwyżka nie podnosi bazy — ogranicza czas (E-2)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun') + 'time:\n  weekdayMinutes: 45\n', 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    process.env['TRAINCTL_TODAY'] = '2026-11-19'
+    const current = loadPlan(dir).weeks.find((w) => w.weekStart === '2026-11-16')!
+    // przypadek ma sens tylko wtedy, gdy budżet faktycznie przycina bieżący tydzień
+    expect(plannedWeekKm(current.skeleton)).toBeLessThan(current.skeleton.targetKm - 0.5)
+    for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-10-30' && x.date <= '2026-11-19')) {
+      expect(cmdLog(dir, { date: d.date, status: 'done', km: String(Math.round(d.workout!.distanceKm * 13) / 10) }).code).toBe(0)
+    }
+    const actions = (cmdAdapt(dir, {}).data as { proposal: { actions: { type: string }[] } }).proposal.actions.map((a) => a.type)
+    expect(actions).not.toContain('raise-baseline')
+  })
+
   it('adapt w tygodniu odciążenia: podniesienie bazy liczy się od poziomu bloku, nie od odciążenia (B3)', () => {
     setup()
     process.env['TRAINCTL_TODAY'] = '2026-11-12'

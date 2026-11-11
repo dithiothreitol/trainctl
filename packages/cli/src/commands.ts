@@ -1135,6 +1135,8 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       ...(breakLog.length ? { breakLog } : {}),
       ...(preBreakWeeklyKm !== undefined ? { preBreakWeeklyKm } : {}),
       ...(returnInProgress ? { returnInProgress } : {}),
+      // B7, B1: tydzień przycięty budżetem czasu albo pojemnością dni — nadwyżka mówi o czasie
+      ...(currentWeek && plannedWeekKm(currentWeek.skeleton) < currentWeek.skeleton.targetKm - 0.5 ? { volumeLimited: true } : {}),
       ...(newResults.length ? { newResults } : {}),
       calibrationChanged: plan.calibration !== undefined && !sameResults(config.athlete.results, plan.calibration.results),
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: tuneUpByDate.get(lastRaceDay.date) ?? plan.goal.distanceKm } } : {}),

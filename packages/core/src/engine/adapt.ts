@@ -76,10 +76,10 @@ export interface AdaptationInput {
    */
   uncalibratedTests?: { date: string; distanceKm: number; timeSec?: number }[]
   /**
-   * Przyczyna przerwy podana wprost (B11) — liczy się jak jeszcze jeden wpis `breakLog`,
-   * więc nie omija reguły „kontuzja pierwsza” (R-6, R-7).
+   * B7, B1: bieżący tydzień przycięty budżetem czasu albo pojemnością dni (objętość
+   * rozpisana poniżej celu). Nadwyżka mówi wtedy o czasie, a nie o bazie — bez podniesienia.
    */
-  breakReason?: BreakReason
+  volumeLimited?: boolean
   /**
    * B11: trwa przyjęty blok powrotu. Podniesienie bazy liczyłoby się wtedy od tygodni
    * obniżonych przez krzywą powrotu i zastąpiło ją na stałe — krzywa sama rośnie (P-3).
@@ -140,8 +140,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const breakEntries = (input.breakLog ?? [])
     .filter((l) => l.date <= input.today && (lastRunEver === undefined || l.date > lastRunEver))
     .sort((a, z) => a.date.localeCompare(z.date))
-  // przyczyna podana wprost to jeszcze jeden wpis — nie omija reguły „kontuzja pierwsza”
-  const reasons = [...breakEntries.map((l) => l.reason), ...(input.breakReason ? [input.breakReason] : [])]
+  const reasons = breakEntries.map((l) => l.reason)
   const breakReason = (['injury', 'illness'] as const).find((r) => reasons.includes(r)) ?? reasons.at(-1)
   const layoffFound = dataStatus === 'complete' && layoff >= LAYOFF_DAYS
   if (layoffFound) {
@@ -226,7 +225,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
         suggestedWeeklyKm: realistic,
         ruleRefs: ['P-1', 'P-3'],
       })
-    } else if (compliance > 1.2 && missedSessions === 0 && !actions.some(a => a.type === 'post-race-recovery') && !input.returnInProgress) {
+    } else if (compliance > 1.2 && missedSessions === 0 && !actions.some(a => a.type === 'post-race-recovery') && !input.returnInProgress && !input.volumeLimited) {
       const raised = Math.round(input.currentWeeklyKm * 1.1)
       diagnosis.push(m.adapt.complianceHigh(Math.round(compliance * 100)))
       actions.push({

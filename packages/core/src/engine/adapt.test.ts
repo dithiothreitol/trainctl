@@ -83,7 +83,7 @@ describe('przerwa w treningu', () => {
     expect(restart.returnBlock).toEqual({ previousWeeklyKm: 60, illness: false })
   })
   it('B11: choroba → powrót według R-5, pierwszy tydzień spokojnie', () => {
-    const restart = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakReason: 'illness' }).actions.find((a) => a.type === 'conservative-restart')!
+    const restart = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-20', reason: 'illness' }] }).actions.find((a) => a.type === 'conservative-restart')!
     expect(restart.ruleRefs).toEqual(['R-5', 'P-3'])
     expect(restart.returnBlock).toEqual({ previousWeeklyKm: 60, illness: true })
     expect(restart.detail).toContain('co najmniej 7 dni wyłącznie spokojnie')
@@ -93,13 +93,13 @@ describe('przerwa w treningu', () => {
     expect(restart.detail).toContain('pierwszy blok do najbliższego odciążenia wyłącznie spokojnie (R-11)')
     expect(restart.detail).not.toContain('5–7 dni')
   })
-  it('B11: przyczyna podana wprost nie omija reguły „kontuzja pierwsza” (R-6, R-7)', () => {
-    const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakReason: 'illness', breakLog: [{ date: '2026-08-20', reason: 'injury' }] })
+  it('B11: choroba i kontuzja w tej samej przerwie — decyduje kontuzja (R-6, R-7)', () => {
+    const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-20', reason: 'injury' }, { date: '2026-08-24', reason: 'illness' }] })
     expect(p.layoff?.reason).toBe('injury')
     expect(p.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
   })
   it('B11: kontuzja → bez propozycji objętości, powrót ustala specjalista (R-6, R-7)', () => {
-    const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakReason: 'injury' })
+    const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-20', reason: 'injury' }] })
     expect(p.actions.some((a) => a.type === 'conservative-restart' || a.suggestedWeeklyKm !== undefined)).toBe(false)
     expect(p.warnings.join(' ')).toMatch(/specjalist.*R-6, R-7/)
   })
