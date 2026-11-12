@@ -17,6 +17,7 @@ import { messages } from '../i18n/index.ts'
 import { addDays, diffDays } from '../util/dates.ts'
 import { distanceClass } from '../domain/goal-class.ts'
 import { RETURN_RESTART_SHARE } from './macrocycle.ts'
+import type { EasyPaceExecution, IntervalsExecution } from './laps.ts'
 
 export interface ExecutionRecord {
   date: string
@@ -26,6 +27,10 @@ export interface ExecutionRecord {
   /** Missing evidence is unknown; only an explicit skipped entry is missed. */
   status: 'done' | 'missed' | 'unplanned' | 'rest' | 'unknown'
   source?: 'sync' | 'journal' | 'none'
+  /** D2: odcinki akcentu wobec planu, z okrążeń zsynchronizowanego biegu. Fakty do `review`, adaptacja ich nie czyta. */
+  intervals?: IntervalsExecution
+  /** D3: średnie tempo biegu spokojnego albo długiego wobec zakresu strefy spokojnej. */
+  easyPace?: EasyPaceExecution
 }
 
 export interface AdaptationAction {

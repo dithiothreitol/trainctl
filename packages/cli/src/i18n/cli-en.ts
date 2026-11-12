@@ -737,6 +737,15 @@ export const cliEn = {
     todoReschedule:
       'if sessions keep falling out because of work — move them (trainctl reschedule) instead of losing them',
     todoNextRace: (date: string, what: string) => `next tune-up race: ${date} (${what})`,
+    /** D2, D3: the session against its targets — facts, not a verdict (ADR-027). */
+    targets: 'Against the targets',
+    reps: (date: string, plan: string, matched: number, planned: number, inRange: string | undefined, paces: string, extra: number) =>
+      `${date} · ${plan}: ${matched} of ${planned} ${pluralEn(planned, { one: 'rep', other: 'reps' })}${inRange ? `, ${inRange}` : ''} (${paces})${extra ? `, ${extra} more than planned` : ''}`,
+    repsInRange: (count: number, range: string) => `${count} within ${range}`,
+    repsNoLaps: (date: string, plan: string) => `${date} · ${plan}: no laps in the data`,
+    repsNoMatch: (date: string, plan: string) => `${date} · ${plan}: no laps matching the plan`,
+    easyPace: (date: string, kind: string, pace: string, range: string, verdict: 'within' | 'faster' | 'slower') =>
+      `${date} · ${kind} ${pace}: ${verdict === 'within' ? 'within' : verdict === 'faster' ? 'faster than' : 'slower than'} ${range}`,
   },
 
   wizard: {

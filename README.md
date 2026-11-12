@@ -247,8 +247,13 @@ before committing.
 
 **Once a week, take stock.** `trainctl review` is the Monday ritual in one call:
 what you did, what it means, what is ahead (it pulls from intervals.icu first if
-a key is configured). `trainctl adapt` compares execution with the plan and
-*proposes* corrections; it never rewrites the plan behind your back.
+a key is configured). With laps from the watch it sets each interval session
+against its targets: how many reps match the plan, their paces and how many fell
+within the target range; auto laps every kilometre are named as "no laps
+matching the plan" instead of being guessed. Easy and long runs get their
+average pace against the easy range. Heart rate is not judged. `trainctl adapt`
+compares execution with the plan and *proposes* corrections; it never rewrites
+the plan behind your back.
 
 ## Commands
 

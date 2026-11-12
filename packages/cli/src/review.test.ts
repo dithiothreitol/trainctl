@@ -3,11 +3,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { SyncProvider, SyncedActivity } from 'trainctl-core'
+import type { ActivityLap, ExecutionRecord, SyncProvider, SyncedActivity } from 'trainctl-core'
 import { cmdInit, cmdLog, cmdPlan, cmdReview } from './commands.ts'
 import { AGENTS_FILE } from './agents-md.ts'
 import { SECRET_FILE } from './sync.ts'
-import { setLocale } from 'trainctl-core'
+import { setLocale, setUnits } from 'trainctl-core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
 // po polsku. Kompletność i jakość tłumaczeń pilnują testy i18n.
@@ -170,6 +170,98 @@ describe('trainctl review — treść merytoryczna', () => {
     const r = await cmdReview(empty, { date: TODAY }, factory)
     expect(r.code).toBe(1)
     rmSync(empty, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
+  })
+})
+
+describe('trainctl review — wykonanie wobec celu (D2, D3)', () => {
+  // Plan z beforeEach: 11.08 akcent 4×1000 m @4:11–4:23/km, 12.08 spokojne (4:49–5:47/km),
+  // 15.08 długie (zakres dnia 5:47–6:17/km). Okrążenia wymyślone.
+  const lap = (km: number, secPerKm: number, extra: Partial<ActivityLap> = {}): ActivityLap =>
+    ({ distanceKm: km, movingTimeSec: Math.round(km * secPerKm), ...extra })
+  const accent = (paces: number[]): ActivityLap[] => [
+    lap(2, 320, { intensity: 'warmup' }),
+    ...paces.flatMap((p, i) => [lap(1, p, { intensity: 'work' }), ...(i < paces.length - 1 ? [lap(0.2, 600, { intensity: 'rest' })] : [])]),
+    lap(1.5, 330, { intensity: 'cooldown' }),
+  ]
+  const run = (date: string, km: number, extra: Partial<SyncedActivity> = {}): SyncedActivity =>
+    ({ externalId: `run-${date}`, date, type: 'Run', distanceKm: km, ...extra })
+  const review = async (runs: SyncedActivity[]) => {
+    withKey()
+    const r = await cmdReview(dir, { date: TODAY }, () => ({
+      ...provider,
+      listActivities: async (oldest: string, newest: string) => runs.filter((a) => a.date >= oldest && a.date <= newest),
+    }))
+    return { ...r, record: (date: string) => (r.data!.execution as ExecutionRecord[]).find((e) => e.date === date)! }
+  }
+
+  it('komplet odcinków: liczba, tempa i liczba w zakresie celu', async () => {
+    const r = await review([run('2026-08-11', 8, { laps: accent([255, 258, 262, 270]) })])
+    expect(r.output).toContain('Wobec celu:')
+    expect(r.output).toContain('4 z 4 odcinków, 3 w zakresie 4:11–4:23/km (4:15, 4:18, 4:22, 4:30/km)')
+    expect(r.record('2026-08-11').intervals).toMatchObject({ planned: 4, inRange: 3, extra: 0 })
+  })
+
+  it('dwa biegi jednego dnia: okrążenia po kolei według startu', async () => {
+    const half = (paces: number[]) => paces.flatMap((p) => [lap(1, p, { intensity: 'work' as const }), lap(0.2, 600, { intensity: 'rest' as const })])
+    const r = await review([
+      run('2026-08-11', 4, { externalId: 'b', startTime: '2026-08-11T07:40:00', laps: half([262, 270]) }),
+      run('2026-08-11', 4, { externalId: 'a', startTime: '2026-08-11T07:00:00', laps: half([255, 258]) }),
+    ])
+    expect(r.output).toContain('4 z 4 odcinków, 3 w zakresie 4:11–4:23/km (4:15, 4:18, 4:22, 4:30/km)')
+  })
+
+  it('część odcinków: trzy z czterech', async () => {
+    const r = await review([run('2026-08-11', 7, { laps: accent([255, 258, 262]) })])
+    expect(r.output).toContain('3 z 4 odcinków, 3 w zakresie 4:11–4:23/km')
+  })
+
+  it('okrążenia automatyczne co kilometr: brak okrążeń pasujących do planu, bez zgadywania', async () => {
+    const auto = [320, 315, 255, 300, 258, 310, 262, 330].map((p) => lap(1, p, { trigger: 'distance' as const }))
+    const r = await review([run('2026-08-11', 8, { laps: auto })])
+    expect(r.output).toContain('brak okrążeń pasujących do planu')
+    expect(r.record('2026-08-11').intervals).toMatchObject({ planned: 4, matched: [], reason: 'no-match' })
+  })
+
+  it('bieg bez okrążeń: brak nazwany wprost', async () => {
+    const r = await review([run('2026-08-11', 8)])
+    expect(r.output).toContain('brak okrążeń w danych')
+  })
+
+  it('tempo biegu spokojnego i długiego wobec zakresu; bez oceny po tętnie', async () => {
+    const r = await review([
+      run('2026-08-12', 6.5, { movingTimeSec: Math.round(6.5 * 280), avgHr: 171 }),
+      run('2026-08-15', 20, { movingTimeSec: 20 * 360, avgHr: 150 }),
+    ])
+    expect(r.output).toContain('2026-08-12 · spokojne 4:40/km: szybciej niż 4:49–5:47/km')
+    expect(r.output).toContain('2026-08-15 · długie 6:00/km: w zakresie 4:49–6:17/km')
+    expect(r.record('2026-08-12').easyPace).toEqual({ paceSecPerKm: 280, range: { loSecPerKm: 289, hiSecPerKm: 347 }, vsRange: 'faster' })
+    // tętno biegu jest w danych (avgHr), ale sekcja go nie ocenia (Z-3, Z-6)
+    const section = r.output.split('Wobec celu:')[1]!.split(/\r?\n\r?\n/)[0]!
+    expect(section).not.toMatch(/tętn|171|150/i)
+  })
+
+  it('w milach: tempo na milę, dane w km bez zmian', async () => {
+    const previous = setUnits('imperial')
+    try {
+      const r = await review([run('2026-08-12', 6.5, { movingTimeSec: Math.round(6.5 * 280) })])
+      expect(r.output).toContain('spokojne 7:31/mi: szybciej niż 7:45–9:18/mi')
+      expect(r.record('2026-08-12').easyPace!.paceSecPerKm).toBe(280)
+    } finally {
+      setUnits(previous)
+    }
+  })
+
+  it('sam wpis dziennika bez biegu z zegarka: sekcji nie ma', async () => {
+    await cmdLog(dir, { date: '2026-08-11', status: 'done', km: '8' })
+    const r = await cmdReview(dir, { date: TODAY })
+    expect(r.output).not.toContain('Wobec celu')
+    expect((r.data!.execution as ExecutionRecord[]).find((e) => e.date === '2026-08-11')).not.toHaveProperty('intervals')
+  })
+
+  it('plan się nie zmienia', async () => {
+    const before = readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')
+    await review([run('2026-08-11', 8, { laps: accent([240, 240, 240, 240]) })])
+    expect(readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')).toBe(before)
   })
 })
 

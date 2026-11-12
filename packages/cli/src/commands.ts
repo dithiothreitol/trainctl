@@ -91,6 +91,7 @@ import { runExport, EXPORT_DIR, type ExportWhat } from './export.ts'
 import { b, renderPlain, type Block } from './ui/blocks.ts'
 import type { ColorName } from './ui/theme.ts'
 import { buildExecution, isRunningActivity, runningKmByDate } from './execution.ts'
+import { targetLines } from './review-targets.ts'
 import { recalibrationToday, resultKey, sameResults } from './calibration.ts'
 import { applyProposal, prepareProposal, prepareShortening, raceDayKm, recordedDates, type PlanProposal } from './proposals.ts'
 import { explainSession } from './explain-session.ts'
@@ -1676,6 +1677,10 @@ export async function cmdReview(
       execution.filter(e => e.kind || e.status === 'unplanned').map(e => [e.date, kmLabel(e.plannedKm), e.actualKm === undefined ? ui().compare.unknown : kmLabel(e.actualKm), ui().coach.status[e.status]])))
     const unknown = execution.filter(e => e.status === 'unknown').map(e => e.date)
     if (unknown.length) blocks.push(b.warn(ui().coach.reviewUnknown(unknown.join(', '))))
+    // D2, D3: odcinki akcentu i tempo biegu spokojnego wobec celu — fakty, bez oceny
+    const workouts = new Map(plan.weeks.flatMap((w) => w.days).flatMap((d) => (d.workout ? [[d.date, d.workout] as const] : [])))
+    const targets = targetLines(execution, workouts, asciiOutput())
+    if (targets.length) blocks.push(b.section(ui().review.targets), b.bullets(targets))
 
     // 2b) ślad subiektywny — dziennik cytowany dosłownie, po jednym wpisie na
     // datę (późniejszy nadpisuje wcześniejszy, jak w logFor). Żadnej agregacji

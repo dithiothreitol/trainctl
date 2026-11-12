@@ -182,6 +182,16 @@ change between minor versions — a regenerated plan can differ.
   and keeps the activities. `init --from-intervals` does not fetch laps. Laps
   already in `sync.json` stay when a later pull does not bring them. GPX has no
   laps.
+- `review` sets the sessions of the week against their targets ("Against the
+  targets"). For an interval session it matches the work laps to the planned
+  repetitions by order and length: how many of the planned reps were found,
+  their paces and how many fell within the target range, plus reps beyond the
+  plan. Auto laps every kilometre do not fit the structure and read "no laps
+  matching the plan"; a run without laps reads "no laps in the data". Easy and
+  long runs get their average pace against the easy range (the long run's
+  slower range included). A 3 s/km margin covers measurement error. Heart rate
+  is not judged (Z-3, Z-6), the plan does not change, and the facts are in
+  `execution[].intervals` and `execution[].easyPace` of `--json` and MCP.
 
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in

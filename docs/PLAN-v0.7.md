@@ -901,6 +901,24 @@ w commicie punktu.
   pobrania, gdy nowe ich nie niesie (limit 429). `sports pull` nie prosi huba
   o okrążenia; plan v2 dostanie porównanie odcinków z jednym modelem danych
   w etapie 4.
+- **D2.** Dopasowanie obejmuje segmenty `intervals` z liczbą i długością odcinka:
+  akcent interwałowy, drabinkę i rozruch. Podbiegi nie mają celu tempa (wysiłek
+  reguluje nachylenie), a akcent ciągły nie ma powtórzeń, więc zostają poza D2.
+  Okrążenia z rolą (trening strukturalny z zegarka, WORK i RECOVERY z huba) dają
+  odcinki wprost. Okrążenia bez roli muszą być szybsze niż strefa spokojna
+  i przedzielone przerwą. Okrążenia automatyczne rozpoznaje sposób zamknięcia,
+  a bez niego jednakowa długość. Dopasowanie zachowuje kolejność planu, więc
+  opuszczony odcinek nie przesuwa reszty. Tempo odcinka liczy się z dystansu
+  okrążenia. Tolerancje (10% albo 30 m długości, 3 s/km tempa) są inżynierskie.
+  Fakty powstają tylko przy biegu z synchronizacji: sam wpis dziennika nie mówi,
+  jak bieg wyglądał. Brak okrążeń ma dwie nazwy: „brak okrążeń w danych”
+  i „brak okrążeń pasujących do planu”. Macierz scenariuszy jest w
+  `core/src/engine/laps.test.ts`. Do D4 zdania stoją w sekcji „Wobec celu” pod
+  tabelą faktów.
+- **D3.** Zakres to strefa spokojna poszerzona o zakres zapisany w dniu: bieg
+  długi ma go wolniejszego niż strefa (`buildLong`) i w tempie planu nie jest
+  „wolniej niż zakres”. Dwa biegi jednego dnia dają średnią z łącznego czasu
+  i dystansu.
 
 ---
 

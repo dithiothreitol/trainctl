@@ -731,6 +731,14 @@ export const cliPl: CliMessages = {
     todoReschedule:
       'jeśli sesje wypadają przez pracę — przestaw je (trainctl reschedule), zamiast tracić',
     todoNextRace: (date: string, what: string) => `najbliższy start kontrolny: ${date} (${what})`,
+    targets: 'Wobec celu',
+    reps: (date: string, plan: string, matched: number, planned: number, inRange: string | undefined, paces: string, extra: number) =>
+      `${date} · ${plan}: ${matched} z ${planned} ${planned === 1 ? 'odcinka' : 'odcinków'}${inRange ? `, ${inRange}` : ''} (${paces})${extra ? `, ${extra} ponad plan` : ''}`,
+    repsInRange: (count: number, range: string) => `${count} w zakresie ${range}`,
+    repsNoLaps: (date: string, plan: string) => `${date} · ${plan}: brak okrążeń w danych`,
+    repsNoMatch: (date: string, plan: string) => `${date} · ${plan}: brak okrążeń pasujących do planu`,
+    easyPace: (date: string, kind: string, pace: string, range: string, verdict: 'within' | 'faster' | 'slower') =>
+      `${date} · ${kind} ${pace}: ${verdict === 'within' ? 'w zakresie' : verdict === 'faster' ? 'szybciej niż' : 'wolniej niż'} ${range}`,
   },
 
   wizard: {

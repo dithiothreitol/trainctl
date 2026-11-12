@@ -1,4 +1,4 @@
-import type { ExecutionRecord, SyncedActivity } from 'trainctl-core'
+import { easyBand, easyPace, matchReps, paceZones, plannedReps, type ExecutionRecord, type PaceRange, type PlannedWorkout, type SyncedActivity } from 'trainctl-core'
 import type { StoredPlan } from './planfile.ts'
 import type { LogEntry } from './logfile.ts'
 import { localDateOf } from './clock.ts'
@@ -17,9 +17,31 @@ export function runningKmByDate(activities: SyncedActivity[]): Map<string, numbe
   return runs
 }
 
+/**
+ * D2, D3: fakty o wykonaniu jednostki z biegów zsynchronizowanych tego dnia — odcinki
+ * akcentu z okrążeń i średnie tempo biegu spokojnego. Bez biegu z zegarka nic nie dopisujemy:
+ * sam wpis dziennika nie mówi, jak bieg wyglądał.
+ */
+function executionFacts(workout: PlannedWorkout, runs: SyncedActivity[], easyZone: PaceRange): Pick<ExecutionRecord, 'intervals' | 'easyPace'> {
+  if (!runs.length) return {}
+  const reps = plannedReps(workout)
+  if (reps.length) return { intervals: matchReps(reps, runs.flatMap((r) => r.laps ?? []), easyZone) }
+  if (workout.kind !== 'easy' && workout.kind !== 'long') return {}
+  const timed = runs.filter((r) => (r.distanceKm ?? 0) > 0 && (r.movingTimeSec ?? 0) > 0)
+  const km = timed.reduce((s, r) => s + r.distanceKm!, 0)
+  if (!(km > 0)) return {}
+  const sec = timed.reduce((s, r) => s + r.movingTimeSec!, 0)
+  return { easyPace: easyPace(sec / km, easyBand(workout, easyZone)) }
+}
+
 /** Jedna interpretacja wykonania dla pull, review i adaptacji. Wygrywa ostatni wpis dziennika. */
 export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], logs: LogEntry[], today: string): ExecutionRecord[] {
   const runs = runningKmByDate(activities)
+  // biegi dnia w kolejności startu — okrążenia dwóch biegów tego samego dnia idą po kolei
+  const runsOn = new Map<string, SyncedActivity[]>()
+  for (const a of activities) if (isRunningActivity(a)) runsOn.set(a.date, [...(runsOn.get(a.date) ?? []), a])
+  for (const list of runsOn.values()) list.sort((a, z) => (a.startTime ?? '').localeCompare(z.startTime ?? ''))
+  const easyZone = paceZones(plan.vdot).easy
   const journal = new Map(logs.map((entry) => [entry.date, entry]))
   // dni z wpisem innym niż „skipped” — późniejsze „skipped” jest tam korektą biegacza
   const reported = new Set(logs.filter((entry) => entry.status !== 'skipped').map((entry) => entry.date))
@@ -43,6 +65,7 @@ export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], l
     return {
       date, plannedKm,
       ...(day?.workout ? { kind: day.workout.kind } : {}),
+      ...(done && day?.workout ? executionFacts(day.workout, runsOn.get(date) ?? [], easyZone) : {}),
       ...(actualKm !== undefined ? { actualKm } : {}),
       source: log ? 'journal' : runs.has(date) ? 'sync' : 'none',
       // dzień odpoczynku z wpisem „skipped” (przerwa jako zakres dni, B11) to nadal odpoczynek

@@ -250,9 +250,12 @@ przeczytać przed commitem.
 
 **Raz w tygodniu podsumowanie.** `trainctl review` to poniedziałkowy rytuał
 w jednym wywołaniu: co było, co to znaczy, co przed nami (najpierw pobierze dane
-z intervals.icu, jeśli klucz jest ustawiony). `trainctl adapt` porównuje
-wykonanie z planem i **proponuje** korekty — nigdy nie przepisuje planu za
-Twoimi plecami.
+z intervals.icu, jeśli klucz jest ustawiony). Z okrążeń z zegarka zestawia akcent
+z celem: ile odcinków pasuje do planu, w jakim tempie i ile mieści się w zakresie.
+Okrążenia automatyczne co kilometr nazywa „brakiem okrążeń pasujących do planu”
+zamiast zgadywać. Biegi spokojne i długie dostają średnie tempo wobec zakresu
+strefy spokojnej. Tętna nie ocenia. `trainctl adapt` porównuje wykonanie z planem
+i **proponuje** korekty — nigdy nie przepisuje planu za Twoimi plecami.
 
 ## Komendy
 
