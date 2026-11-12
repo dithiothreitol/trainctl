@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AthleteProfile, RaceGoal } from '../domain/types.ts'
+import type { AthleteProfile, RaceGoal, Weekday } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
 import { applyReturnBlock, earliestFeasibleRaceDate, longGoalKm, planMacrocycle, recommendedPeakKm, taperWeeksFor, volumeBase } from './macrocycle.ts'
 import { generateMicrocycle } from './microcycle.ts'
@@ -551,6 +551,16 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
     // taper lżejszy niż ten tydzień (T-4) i nie cięższy niż w tym samym planie bez startu
     expect(tuned[taperAt]!.targetKm).toBeLessThan(tuned[ref]!.targetKm)
     expect(tuned[taperAt]!.targetKm).toBeLessThanOrEqual(plain[taperAt]!.targetKm)
+  })
+
+  it('powrót z profilu: spokojny blok liczy się od `since`, nie od startu planu (R-11)', () => {
+    const athlete = (since: string) => ({ recentWeeklyKm: 30, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'] as Weekday[], results: [], returning: { since, previousWeeklyKm: 50 } })
+    // powrót 5 tygodni przed startem planu: blok po przerwie już za biegaczem
+    const late = planMacrocycle({ today: '2026-10-22', goal: half, athlete: athlete('2026-09-17') })
+    expect(late.weeks.some((w) => w.easyOnly)).toBe(false)
+    // powrót 2 tygodnie przed startem: spokojne tylko tygodnie do końca bloku od powrotu
+    const recent = planMacrocycle({ today: '2026-10-22', goal: half, athlete: athlete('2026-10-08') })
+    expect(recent.weeks.filter((w) => w.easyOnly).map((w) => w.weekStart)).toEqual(['2026-10-19', '2026-10-26'])
   })
 
   it('start kontrolny B w bloku powrotu: tydzień lżejszy od krzywej o mini-taper (T-9)', () => {

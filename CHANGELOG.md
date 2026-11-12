@@ -39,8 +39,9 @@ change between minor versions — a regenerated plan can differ.
   distributed, so accents are no longer trimmed for distance that easy runs
   carry.
 - `why` explains these layout decisions: a hills day turned into an easy run,
-  an accent turned into strides, a week shorter than its target (with the
-  week's current total, after kept days or a time budget). The
+  an accent turned into strides, a week shorter than its target (how much the
+  days cannot hold under the easy-run ceiling, shown while the week is still
+  short). The
   explanation follows the session when `shift` or `reschedule` moves it, also
   when the week has an identical session on another day.
 - Weekly volume grows across the loading blocks so that the peak falls in the
@@ -158,8 +159,9 @@ change between minor versions — a regenerated plan can differ.
 - `athlete.returning: { since, previousWeeklyKm }` for a return after two
   weeks or more without running (R-11): the plan restarts at 50–60% of the
   earlier volume (more when you have been back for some weeks, at most P-3
-  growth a week), keeps the first block easy with no time trial, and grows back
-  within P-3. Once `recentWeeklyKm` is above the earlier volume, the return no
+  growth a week), keeps the first block after `since` easy with no time trial
+  (a return that began weeks before the plan has less of it left, or none), and
+  grows back within P-3; an approved baseline does not scale the return weeks. Once `recentWeeklyKm` is above the earlier volume, the return no
   longer applies; a `since` date in the future does not apply yet. Added during
   a plan, the field starts a return block from `since` on the next
   `trainctl plan` and keeps it for the rest of the cycle, also after an

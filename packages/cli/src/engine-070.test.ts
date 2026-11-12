@@ -16,7 +16,7 @@ import { localDateOf } from './clock.ts'
 import { latestByDate, readLog } from './logfile.ts'
 import { writeSnapshot } from './sync.ts'
 import { buildExecution } from './execution.ts'
-import { blockLevelOf, computePlan, cycleWeeksOf, followNotes, loadPlan, mergeWeekNotes, settleMixedWeek, shiftWorkout, writePlan } from './planfile.ts'
+import { blockLevelOf, computePlan, cycleWeeksOf, followNotes, loadPlan, mergeWeekNotes, scaleToBaseline, settleMixedWeek, shiftWorkout, writePlan } from './planfile.ts'
 import { inferredConfigYaml, loadConfig } from './config.ts'
 import { parse, stringify } from 'yaml'
 
@@ -352,6 +352,18 @@ describe('B11: przerwa w trakcie planu', () => {
     // regeneracja liczy plan od startu, ale dziś spokojny blok jest już za biegaczem
     const later = computePlan(cfg, '2026-10-22', addDays(lastEasy.weekStart, 7))
     expect(later.feasibilityWarnings.join(' ')).not.toContain('return after a break')
+  })
+
+  it('zatwierdzona baza nie skaluje tygodni bloku powrotu z profilu — redukcje się nie składają (B11)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 45', 'recentWeeklyKm: 45\n  returning: { since: "2027-01-18", previousWeeklyKm: 50 }'), 'utf-8')
+    const cfg = loadConfig(dir)
+    const plan = computePlan(cfg, '2026-10-22', '2027-01-19')
+    const level = blockLevelOf(plan.weeks, '2026-11-16')!
+    // baza obniżona o 20% zatwierdzona w listopadzie, powrót z profilu dopisany w styczniu
+    const scaled = scaleToBaseline(plan.weeks, { baselineKm: Math.round(0.8 * level), decidedOn: '2026-11-16', config: cfg, goal: cfg.goal, vdot: plan.vdot, reference: plan.weeks })
+    const returnWeeks = plan.weeks.filter((w) => w.weekStart >= '2027-01-18' && w.skeleton.ruleRefs.includes('R-11'))
+    expect(returnWeeks.length).toBeGreaterThan(0)
+    for (const w of returnWeeks) expect(scaled.find((s) => s.weekStart === w.weekStart)!.skeleton.targetKm, w.weekStart).toBe(w.skeleton.targetKm)
   })
 
   it('plan: powrót z profilu po nowszej przerwie wygrywa ze starszym zatwierdzonym (B11)', () => {
@@ -898,19 +910,19 @@ describe('B1: tydzień mieszany (regeneracja, propozycja)', () => {
     expect(week.notes).toEqual([{ code: 'hillsDropped', date: free.date }])
   })
 
-  it('why: krótszy tydzień podaje sumę tygodnia, jaki jest teraz, a tydzień z celem nie jest krótszy', () => {
+  it('why: krótszy tydzień mówi o tym, czego dni nie zmieściły (S-10), a nie o sumie po budżecie; tydzień z celem nie jest krótszy', () => {
     const { plan } = planFor(45, 'tue, wed, thu, sat, sun')
     const week = plan.weeks.find((w) => w.weekStart > '2026-10-26' && !w.skeleton.raceDate)!
     const day = week.days.find((d) => d.workout)!
     const total = Math.round(week.totalKm * 10) / 10
-    // uwaga z nowego układu, a dni tygodnia (zachowane i nowe) mają dziś inną sumę
-    week.notes = [{ code: 'volumeShort', targetKm: total + 4, plannedKm: total - 3 }]
+    // generator: dni mieszczą o 1 km mniej niż cel; potem budżet albo reschedule zabrał więcej
+    week.notes = [{ code: 'volumeShort', targetKm: total + 4, plannedKm: total + 3 }]
     writePlan(dir, plan)
     const out = cmdWhy(dir, { date: day.date }).output
-    expect(out).toContain(`This week has ${kmLabel(total)} instead of ${kmLabel(total + 4)}`)
+    expect(out).toContain(`The available days cannot hold ${kmLabel(1)} of this week's ${kmLabel(total + 4)}`)
     week.notes = [{ code: 'volumeShort', targetKm: total, plannedKm: total - 3 }]
     writePlan(dir, plan)
-    expect(cmdWhy(dir, { date: day.date }).output).not.toContain('This week has')
+    expect(cmdWhy(dir, { date: day.date }).output).not.toContain('The available days cannot hold')
   })
 
   it('budżet przy celu bazowym: bez zdania o progu dystansu, którego plan nie ma (E-2, P-11)', () => {

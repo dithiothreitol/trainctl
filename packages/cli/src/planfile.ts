@@ -422,6 +422,10 @@ export function scaleToBaseline(weeks: Microcycle[], opts: {
     // w planie bez bazy (kopia: computePlan zmienia tygodnie w miejscu, a to mogą
     // być tygodnie zapisanego planu)
     if (week.weekStart < from) return structuredClone(referenceWeeks.get(week.weekStart) ?? week)
+    // tydzień bloku powrotu (R-5, R-11) prowadzi krzywa powrotu — baza go nie skaluje, inaczej
+    // redukcje by się składały albo podniesienie wyniosło start ponad pasmo R-11 (jedna decyzja
+    // o objętości naraz; powrót z profilu dopisany po zatwierdzonej bazie)
+    if (week.skeleton.ruleRefs.some((r) => r === 'R-5' || r === 'R-11')) return structuredClone(week)
     const skeleton = structuredClone(week.skeleton)
     delete skeleton.timeCappedKm
     delete skeleton.uncappedKm

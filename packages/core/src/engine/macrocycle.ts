@@ -489,7 +489,13 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
   // Plan bez odciążenia przed taperem (krótki): spokojna połowa tygodni ładowania, żeby
   // akcenty wróciły przed taperem, który trzyma intensywność (T-1), a nie dopiero w nim (inż.)
   const firstDeload = volume.weeks.findIndex((w) => w.deload)
-  const easyBlockEnd = returning ? (firstDeload === -1 ? Math.ceil(loadWeeks / 2) : firstDeload + 1) : 0
+  // R-11: pierwszy blok po przerwie liczy się od `since`, nie od startu planu — biegacz, który
+  // wrócił kilka tygodni przed planem, ma już część bloku za sobą (start z volumeBase też
+  // rośnie z każdym tygodniem od powrotu). Blok to DELOAD_EVERY tygodni od tygodnia powrotu.
+  const returnBlockEnd = returning
+    ? Math.max(0, Math.ceil(diffDays(firstWeek, addDays(mondayOf(athlete.returning!.since), 7 * DELOAD_EVERY)) / 7))
+    : 0
+  const easyBlockEnd = returning ? Math.min(firstDeload === -1 ? Math.ceil(loadWeeks / 2) : firstDeload + 1, returnBlockEnd) : 0
   // rytm kalibracji: liczony od ostatniego wyniku, resetowany startem kontrolnym (W-12)
   const lastResult = lastResultBefore(athlete, firstWeek)
   const resultDates = athlete.results.map((r) => r.date)
