@@ -50,6 +50,7 @@ export function validateSportsConfig(raw: unknown): SportsConfig {
   const predicted = g.sport === 'run' && c.athlete.sports.run?.running !== undefined
   if (g.kind === 'race' && (!g.sport || !c.athlete.sports[g.sport] || !finite(g.distanceM, 1, 2_000_000) || (!(predicted && g.estimatedMinutes === undefined) && !finite(g.estimatedMinutes, 1, 3000)))) bad('goal.sport/distanceM/estimatedMinutes')
   if (g.targetTimeSec !== undefined && (g.kind !== 'race' || g.sport !== 'run' || !finite(g.targetTimeSec, 60, 172800))) bad('goal.targetTimeSec')
+  if (g.terrain !== undefined && (g.kind !== 'race' || g.sport !== 'run' || !['road', 'trail', 'ultra'].includes(g.terrain))) bad('goal.terrain')
   if (g.kind === 'multisport') {
     if (!Array.isArray(g.legs) || g.legs.length < 2 || g.legs.length > 10) bad('goal.legs')
     const ids = new Set<string>()

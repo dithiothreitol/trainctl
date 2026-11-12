@@ -161,7 +161,8 @@ export function sportsConfigFromRunning(c: TrainctlConfig, o: { weeklyMinutes: n
   const g = c.goal
   const goal: SportsConfig['goal'] = g.kind === 'base' ? { kind: 'base', date: g.date, name: g.name }
     : { kind: 'race', date: g.date, name: g.name, sport: 'run', distanceM: g.distanceKm * 1000,
-      ...(o.estimatedMinutes ? { estimatedMinutes: o.estimatedMinutes } : {}), ...(g.targetTimeSec ? { targetTimeSec: g.targetTimeSec } : {}) }
+      ...(o.estimatedMinutes ? { estimatedMinutes: o.estimatedMinutes } : {}), ...(g.targetTimeSec ? { targetTimeSec: g.targetTimeSec } : {}),
+      ...(g.terrain ? { terrain: g.terrain } : {}) }
   return validateSportsConfig({ schemaVersion: 2, ...(o.language ? { language: o.language } : {}),
     ...(c.units ? { units: c.units } : {}), ...(c.notation ? { notation: c.notation } : {}),
     athlete: { sports: { run: {

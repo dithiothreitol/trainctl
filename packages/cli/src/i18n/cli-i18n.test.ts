@@ -14,7 +14,8 @@ import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 import { setLocale, withLocale, type Locale } from 'trainctl-core'
 import { cmdDiff, cmdPlan } from '../commands.ts'
-import { configTemplate, inferredConfigYaml } from '../config.ts'
+import { configTemplate, inferredConfigYaml, inferredSportsYaml, sportsConfigTemplate } from '../config.ts'
+import { validateSportsConfig } from 'trainctl-core'
 import { cliEn, type CliMessages } from './cli-en.ts'
 import { cliPl } from './cli-pl.ts'
 import { ui } from './index.ts'
@@ -253,6 +254,33 @@ describe('szablon trainctl.yaml', () => {
       const parsed = withLocale(locale, () => parse(inferredConfigYaml(profile as any))) as any
       expect(parsed.athlete.daysAvailable, locale).toEqual(['tue', 'thu', 'sat'])
       expect(parsed.goal.priority, locale).toBe('A')
+    }
+  })
+})
+
+describe('szablony profilu v2 z `init` (E3)', () => {
+  it('oba języki parsują się do tego samego, poprawnego profilu v2', () => {
+    const parsed = (locale: Locale) => withLocale(locale, () => parse(sportsConfigTemplate())) as any
+    const en = parsed('en'), pl = parsed('pl')
+    expect(() => validateSportsConfig(en)).not.toThrow()
+    expect(() => validateSportsConfig(pl)).not.toThrow()
+    expect(en.language).toBeUndefined()
+    expect(pl.language).toBe('pl')
+    const withoutNames = (c: any) => ({ ...c, language: undefined, goal: { ...c.goal, name: undefined },
+      athlete: { sports: { run: { ...c.athlete.sports.run, results: c.athlete.sports.run.results.map((r: any) => ({ ...r, name: undefined })) } } } })
+    expect(withoutNames(pl)).toEqual(withoutNames(en))
+  })
+
+  it('profil v2 z historii parsuje się w obu językach z tymi samymi wartościami', () => {
+    const profile = {
+      window: { oldest: '2026-04-13', newest: '2026-08-02' }, recentWeeklyKm: 48, peakWeeklyKm: 61, recentBasis: 'mediana',
+      daysAvailable: ['tue', 'thu', 'sat'], longRunDay: 'sat', weeklyKm: [], raceCandidates: [], caveats: [],
+    }
+    for (const locale of ['en', 'pl'] as Locale[]) {
+      const parsed = withLocale(locale, () => parse(inferredSportsYaml(profile as any))) as any
+      expect(parsed.athlete.sports.run.daysAvailable, locale).toEqual(['tue', 'thu', 'sat'])
+      expect(parsed.athlete.sports.run.running, locale).toMatchObject({ recentWeeklyKm: 48, peakWeeklyKm: 61, longRunDay: 'sat' })
+      expect(parsed.goal, locale).toMatchObject({ kind: 'race', sport: 'run', distanceM: 0 })
     }
   })
 })

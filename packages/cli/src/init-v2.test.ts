@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { parse, stringify } from 'yaml'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale, type SportsConfig, type TrainingSession } from 'trainctl-core'
-import { cmdDiff, cmdInit, cmdMigrate, cmdPlan, cmdWhy } from './commands.ts'
+import { cmdAdapt, cmdDiff, cmdInit, cmdMigrate, cmdPlan, cmdWhy } from './commands.ts'
 import { computePlan } from './planfile.ts'
 import type { TrainctlConfig } from './config.ts'
 import { runningView } from './running-view.ts'
@@ -213,5 +213,52 @@ goal:
     expect(view.goal.targetTimeSec).toBeUndefined()
     expect(view.athlete.hrMax).toBeUndefined()
     expect(view.athlete.sex).toBe('female')
+  })
+})
+
+describe('runda 2 przeglądu etapu 4', () => {
+  it('teren celu przechodzi z migracją; adapt na widoku nie widzi zmiany celu', () => {
+    expect(cmdInit(dir, `athlete:
+  recentWeeklyKm: 35
+  daysAvailable: [tue, thu, sat, sun]
+  results:
+    - { date: "2026-06-01", distanceKm: 10, timeSec: 2900 }
+goal:
+  name: Bieg górski
+  date: "2026-11-29"
+  distanceKm: 21.0975
+  terrain: trail
+`).code).toBe(0)
+    expect(cmdPlan(dir).code).toBe(0)
+    const id = (cmdMigrate(dir).data!['proposal'] as { id: string }).id
+    expect(cmdMigrate(dir, { apply: id }).code).toBe(0)
+    expect(config().goal.terrain).toBe('trail')
+    expect(runningView(dir)!.config.goal.terrain).toBe('trail')
+    const adapt = cmdAdapt(dir, { prepare: true })
+    expect(adapt.output).not.toContain('Cel startowy zmienił się')
+  })
+
+  it('blok running bez wyniku i bez czasu docelowego zostaje planem v2 z minut', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), stringify({ schemaVersion: 2, athlete: { sports: { run: { weeklyMinutes: 120, sessionsPerWeek: 3, running: { recentWeeklyKm: 30 } } } },
+      goal: { kind: 'base', name: 'Baza', date: '2026-09-27' } }))
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(loadSportsPlan(dir).legacy).toBeUndefined()
+  })
+
+  it('profil v2 przechodzi walidację planu biegowego: HRmax poza zakresem to błąd, start bez priorytetu to B', () => {
+    expect(cmdInit(dir).code).toBe(0)
+    const c = config()
+    c.athlete.sports.run!.running!.hrMax = { bpm: 500, measured: true }
+    writeFileSync(join(dir, 'trainctl.yaml'), stringify(c))
+    const bad = cmdPlan(dir)
+    expect(bad.code).toBe(1)
+    expect(bad.output).toContain('hrMax')
+    delete c.athlete.sports.run!.running!.hrMax
+    c.athlete.sports.run!.running!.tuneUpRaces = [{ date: '2026-10-04', distanceKm: 10 } as never]
+    writeFileSync(join(dir, 'trainctl.yaml'), stringify(c))
+    expect(cmdPlan(dir).code).toBe(0)
+    const flags = (loadSportsPlan(dir).legacy!.generatorPlan as { weeks: { skeleton: { flags: string[] } }[] }).weeks.flatMap((w) => w.skeleton.flags)
+    expect(flags.some((f) => f.includes('B: 2026-10-04'))).toBe(true)
   })
 })

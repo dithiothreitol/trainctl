@@ -35,7 +35,9 @@ change between minor versions — a regenerated plan can differ.
   `running` block uses the full running engine; with running alone the time
   budget comes only from `time`, as in the running plan. The profile now holds
   every running-plan field (sex, HRmax, return after a break, strength, target
-  time), and `migrate` carries them over. Running-plan profiles keep working
+  time, goal terrain), and `migrate` carries them over; a field removed from
+  the profile stays removed. A `running` block without a result or a target
+  time keeps the minute-based plan. Running-plan profiles keep working
   (PLAN-v0.7 E3). A season from the B0 matrix has the same days, sessions and
   kilometres in both schemas.
 - `plan` in a session-plan workspace refreshes the running engine's feasibility

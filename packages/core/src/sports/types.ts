@@ -44,6 +44,8 @@ export interface SportGoal {
   estimatedMinutes?: number
   /** Czas docelowy startu biegowego: porównanie z predykcją, strefy bez wyniku (planu biegowego). */
   targetTimeSec?: number
+  /** Teren startu biegowego: wynik z innego terenu nie ustala stref (Z-10, planu biegowego). */
+  terrain?: 'road' | 'trail' | 'ultra'
   legs?: { id: string; sport: EnduranceSport; distanceM: number; estimatedMinutes?: number }[]
   /** Ordered transitions between legs (e.g. T1, T2), in seconds. */
   transitionsSec?: number[]

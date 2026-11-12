@@ -1,7 +1,7 @@
 /** Adapter: the established running engine remains authoritative after migration. */
 import { attachRunningCoaching, estimateWorkoutMinutes, predictTimeSec, runningSteps, type AthleteProfile, type PlannedWorkout, type SportsConfig, type SportsPlan, type TrainingSession, type Weekday } from 'trainctl-core'
 import { computePlan, dayFingerprint, workoutText, type StoredPlan } from './planfile.ts'
-import type { TrainctlConfig } from './config.ts'
+import { validateConfig, type TrainctlConfig } from './config.ts'
 import { rebuildPlan } from './regenerate.ts'
 import { shownKm } from './format.ts'
 
@@ -71,7 +71,9 @@ export function runningConfig(config: SportsConfig, legacy?: TrainctlConfig): Tr
   const g = config.goal
   if (g.kind === 'race' && g.sport === 'run') {
     const targetTimeSec = g.targetTimeSec ?? base?.goal.targetTimeSec
-    running.goal = { ...(base?.goal ?? { priority: 'A' as const }), kind: 'race', date: g.date, name: g.name, distanceKm: g.distanceM! / 1000, ...(targetTimeSec ? { targetTimeSec } : {}) }
+    const terrain = g.terrain ?? base?.goal.terrain
+    running.goal = { ...(base?.goal ?? { priority: 'A' as const }), kind: 'race', date: g.date, name: g.name, distanceKm: g.distanceM! / 1000,
+      ...(targetTimeSec ? { targetTimeSec } : {}), ...(terrain ? { terrain } : {}) }
   } else running.goal = { kind: 'base', date: g.date, name: g.name, distanceKm: 0, priority: 'A' }
   if (strength) running.strength = strength
   if (config.desk) running.desk = config.desk
@@ -87,7 +89,7 @@ export function runningConfig(config: SportsConfig, legacy?: TrainctlConfig): Tr
 
 export function regenerateRunning(existing: SportsPlan, config: SportsConfig, today: string, fixed: Set<string>, cycleId = existing.cycleId): { sessions: TrainingSession[]; generatorPlan: StoredPlan } | undefined {
   if (!existing.legacy || !config.athlete.sports.run) return undefined
-  const running = runningConfig(config, legacyProfile(existing))
+  const running = validateConfig(runningConfig(config, legacyProfile(existing)))
   const old = (existing.legacy.generatorPlan ?? existing.legacy.plan) as StoredPlan
   const retired = new Set(existing.retiredSessionIds ?? [])
   const recorded = new Set([...existing.sessions, ...existing.archive].filter(s => fixed.has(s.id) || existing.archive.some(a => a.id === s.id && !retired.has(a.id))).map(s => {
@@ -102,10 +104,11 @@ export function regenerateRunning(existing: SportsPlan, config: SportsConfig, to
 /** Profil v2 z blokiem `running` dostaje pełny silnik biegowy (E3). */
 export function initialRunning(config: SportsConfig, from: string, cycleId: string): { sessions: TrainingSession[]; legacy: NonNullable<SportsPlan['legacy']> } | undefined {
   const p = config.athlete.sports.run
-  // E3: blok `running` to silnik biegowy, jak profil planu biegowego — strefy z wyniku albo
-  // z czasu docelowego; bez obu plan biegowy odmawia z tym samym komunikatem
-  if (!p?.running) return undefined
-  const running = runningConfig(config)
+  // E3: blok `running` z wynikiem albo z czasem docelowym startu biegowego to silnik biegowy,
+  // jak profil planu biegowego; bez obu (np. cel multisport) zostaje plan v2 z minut
+  if (!p?.running || (!p.results?.length && !(config.goal.sport === 'run' && config.goal.targetTimeSec))) return undefined
+  // walidacja i normalizacja profilu biegowego (zakresy HRmax i powrotu, priorytet startu B)
+  const running = validateConfig(runningConfig(config))
   const plan=computePlan(running,from,from)
   return {sessions:runningSessions(plan,cycleId),legacy:{plan,config:running,cycleId,generatorPlan:plan,profileInV2:true}}
 }

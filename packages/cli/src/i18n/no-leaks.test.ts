@@ -34,7 +34,7 @@ import {
 } from '../commands.ts'
 import { sportsTemplate } from '../sports-store.ts'
 import { agentsTemplate } from '../agents-md.ts'
-import { configTemplate } from '../config.ts'
+import { configTemplate, sportsConfigTemplate } from '../config.ts'
 import { cliEn } from './cli-en.ts'
 
 // Cały plik pracuje po angielsku — to jest właśnie badany scenariusz.
@@ -165,6 +165,8 @@ describe('pliki dla człowieka nie przeciekają polskim', () => {
 
   it('trainctl.yaml z szablonu', () => {
     expectEnglish('trainctl.yaml', configTemplate())
+    // E3: szablon profilu v2, który zapisuje `init`
+    expectEnglish('trainctl.yaml (v2)', sportsConfigTemplate())
   })
 
   it('AGENTS.md — instrukcja, którą czyta agent w katalogu treningowym', () => {
