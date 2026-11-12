@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { runningEffort, setLocale, trainingIntent, type PlannedSegment, type PlannedWorkout, type SportsPlan } from 'trainctl-core'
 import { cmdAdapt, cmdInit, cmdLog, cmdMigrate, cmdPlan, cmdReview, cmdToday, cmdWhy } from './commands.ts'
 import { loadSportsPlan } from './sports-store.ts'
+import { pushableSession } from './sports-sync.ts'
 
 const seg = (type: PlannedSegment['type'], over: Partial<PlannedSegment> = {}): PlannedSegment => ({ type, description: '', distanceKm: 3, ...over })
 const workout = (kind: PlannedWorkout['kind'], segments: PlannedSegment[]): PlannedWorkout => ({ kind, segments, ruleRefs: [], distanceKm: 8 })
@@ -75,13 +76,29 @@ describe('C5: bieg w planie v2 po migracji', () => {
     const plan = migrated()
     const runs = plan.sessions.filter((s) => s.sport === 'run' && s.legacyWorkout)
     expect(runs.length).toBeGreaterThan(0)
-    for (const s of runs) expect(s.steps[0]!.effort).toEqual(runningEffort(s.legacyWorkout!))
+    // E1: kroki ze struktury biegu; zakres RPE niosą kroki pracy, nie rozgrzewka i schłodzenie
+    for (const s of runs) {
+      const work = s.steps.filter((step) => step.role === 'work' && step.effort)
+      expect(work.length, s.id).toBeGreaterThan(0)
+      for (const step of work) expect(step.effort).toEqual(runningEffort(s.legacyWorkout!))
+      expect(s.steps.filter((step) => step.role === 'warmup' || step.role === 'cooldown').every((step) => !step.effort)).toBe(true)
+    }
     const quality = runs.find((s) => s.legacyWorkout!.kind === 'quality_intervals') ?? runs[0]!
-    const effort = quality.steps[0]!.effort!
+    const effort = quality.steps.find((step) => step.role === 'work')!.effort!
     const card = cmdToday(dir, { session: quality.id })
     expect(card.output).toContain(`Najmocniejszy etap (plan): RPE ${effort.min}–${effort.max}/10`)
     expect(card.output).not.toContain('Nie określono zakresu RPE')
     expect(cmdWhy(dir, { session: quality.id }).output).toContain(`RPE ${effort.min}–${effort.max}/10`)
+  })
+
+  it('E1: wysyłka do intervals.icu z kroków biegu, ze środkiem zakresu tempa jak plan biegowy', () => {
+    const plan = migrated()
+    const quality = plan.sessions.find((s) => s.legacyWorkout?.kind === 'quality_intervals')!
+    const reps = quality.legacyWorkout!.segments.find((s) => s.type === 'intervals')!
+    const mid = Math.round((reps.pace!.loSecPerKm + reps.pace!.hiSecPerKm) / 2)
+    const text = pushableSession(plan, quality).description
+    expect(text).toContain(`${reps.reps}x`)
+    expect(text).toContain(`- Odcinek ${reps.repM}mtr ${Math.floor(mid / 60)}:${String(mid % 60).padStart(2, '0')}/km Pace`)
   })
 
   it('adapt, review i ocena intencji zamiany nie czytają wskazówki RPE biegu', async () => {

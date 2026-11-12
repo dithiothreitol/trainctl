@@ -1,6 +1,6 @@
 import { Decoder, Stream } from '@garmin/fitsdk'
 import { describe, expect, it } from 'vitest'
-import { buildSportSession, sessionTotals, type PlannedWorkout, type SessionStep, type TrainingSession } from 'trainctl-core'
+import { buildSportSession, runningSteps, sessionTotals, type PlannedWorkout, type SessionStep, type TrainingSession } from 'trainctl-core'
 import { encodeSessionFit, encodeWorkoutFit } from './fit.ts'
 
 const session = (sport: TrainingSession['sport'], steps: SessionStep[], poolLengthM?: number): TrainingSession => ({
@@ -88,16 +88,21 @@ describe('FIT interoperability with the official Garmin SDK', () => {
     expect(messages.workoutStepMesgs![0]!.durationDistance).toBeUndefined()
   })
 
-  it('preserves the legacy running prescription after migration', () => {
+  it('preserves the legacy running prescription after migration (E1: z kroków, bez legacyWorkout)', () => {
     const legacy: PlannedWorkout = { kind: 'quality_intervals', distanceKm: 5, ruleRefs: [], segments: [
       { type: 'warmup', distanceKm: 1, description: '' },
-      { type: 'intervals', reps: 3, repM: 1000, recoverySec: 120, pace: { loSecPerKm: 300, hiSecPerKm: 300 }, description: '' },
+      { type: 'intervals', reps: 3, repM: 1000, recoverySec: 120, pace: { loSecPerKm: 295, hiSecPerKm: 305 }, description: '' },
       { type: 'cooldown', distanceKm: 1, description: '' },
     ] }
-    const migrated = { ...session('run', [{ role: 'work', durationSec: 1800, target: { kind: 'open' } }]), legacyWorkout: legacy }
-    const before = decode(encodeWorkoutFit(legacy, 'Legacy')), after = decode(encodeSessionFit(migrated, 'Legacy'))
-    expect(after).toEqual(before)
-    expect(after.workoutStepMesgs![3]).toMatchObject({ durationStep: 1, repeatSteps: 3 })
+    // kroki jak po migracji; `legacyWorkout` zostaje w danych, ale eksport go nie czyta
+    const migrated = { ...session('run', runningSteps(legacy, 1800)), legacyWorkout: legacy }
+    const before = decode(encodeWorkoutFit(legacy, 'Legacy')).workoutStepMesgs!
+    const after = decode(encodeSessionFit(migrated, 'Legacy')).workoutStepMesgs!
+    const dose = (s: (typeof before)[number]) => ({ durationType: s.durationType, durationDistance: s.durationDistance, durationTime: s.durationTime, durationStep: s.durationStep, repeatSteps: s.repeatSteps, intensity: s.intensity })
+    expect(after.map(dose)).toEqual(before.map(dose))
+    // ten sam zakres tempa odcinka na zegarku
+    expect(after[1]).toMatchObject({ customTargetSpeedLow: before[1]!.customTargetSpeedLow, customTargetSpeedHigh: before[1]!.customTargetSpeedHigh })
+    expect(after[3]).toMatchObject({ durationStep: 1, repeatSteps: 3 })
   })
 
   it.each([2, 3])('writes a %i km alternating run with one pair as plain steps, without a one-pass loop', km => {

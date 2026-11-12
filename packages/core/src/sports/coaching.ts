@@ -43,14 +43,16 @@ export function effortGuide(min: number, max: number, swim = false): EffortGuide
 export function targetText(target: StepTarget): string {
   if (target.kind === 'power') return `${target.watts} W${target.ftpPercent !== undefined ? ` (${target.ftpPercent}% FTP)` : ''}`
   if (target.kind === 'pace') {
-    const seconds=Math.round(target.seconds)
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}/${target.perM === 1000 ? 'km' : '100 m'}`
+    const clock = (value: number) => { const seconds = Math.round(value); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` }
+    // E1: zakres tempa biegu z planu biegowego (szybsza–wolniejsza granica)
+    const range = target.slowSeconds !== undefined && Math.round(target.slowSeconds) !== Math.round(target.seconds) ? `${clock(target.seconds)}–${clock(target.slowSeconds)}` : clock(target.seconds)
+    return `${range}/${target.perM === 1000 ? 'km' : '100 m'}`
   }
   return coach().byFeel
 }
 export const effortText = (e: EffortGuide): string => `RPE ${e.min}–${e.max}/10 · ${e.cue}`
 export function sessionStepLines(s: TrainingSession, detail = true): string[] {
-  if (s.legacyWorkout) return s.legacyWorkout.segments.map(x => x.description)
+  // E1: karta czyta kroki także biegu z planu biegowego (kroki z segmentów, `runningSteps`)
   const t = sportMessages()
   return s.steps.map((x, i) => {
     const dose = x.distanceM ? `${x.distanceM} m` : `${Number((x.durationSec / 60).toFixed(2))} min`

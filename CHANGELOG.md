@@ -8,6 +8,13 @@ change between minor versions — a regenerated plan can differ.
 
 ### Changed
 
+- Running sessions in the multisport schema carry their structure as steps:
+  warm-up, repetitions with the pace range and recovery, the mid-series walk,
+  strides, hills with the jog down, progression thirds and alternating
+  kilometres. Session cards, the FIT file and the intervals.icu workout read
+  these steps instead of the stored running workout, which stays for the
+  running engine (PLAN-v0.7 E1).
+
 - The running engine lays out weeks differently, so the first `trainctl plan`
   after updating rewrites future days of an existing plan. Past, logged,
   pinned and hand-edited days stay (ADR-033).

@@ -28,4 +28,5 @@ export * from './sports/engine.ts'
 
 export * from './sports/modules.ts'
 export * from './sports/coaching.ts'
+export * from './sports/running-steps.ts'
 export * from './sports/activities.ts'

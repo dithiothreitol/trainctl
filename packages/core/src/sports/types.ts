@@ -61,7 +61,8 @@ export interface SportsConfig {
   desk?: { workStart: string; workEnd: string; lunchMinutes?: number; prefer?: 'morning' | 'lunch' | 'evening' }
 }
 export type StepTarget =
-  | { kind: 'pace'; seconds: number; perM: 100 | 1000 }
+  /** E1: `slowSeconds` — wolniejsza granica, gdy cel jest zakresem (bieg z planu biegowego). */
+  | { kind: 'pace'; seconds: number; perM: 100 | 1000; slowSeconds?: number }
   | { kind: 'power'; watts: number; ftpPercent?: number }
   | { kind: 'open' }
 /** Subjective 1–10 effort, not a measured physiological zone. */
@@ -97,7 +98,7 @@ export interface SessionStep {
   instruction?: string
   effort?: EffortGuide
   /** Recovery after EACH repeat, including the last; counted in restSec. */
-  recovery?: { target: StepTarget; effort?: EffortGuide; instruction: string }
+  recovery?: { target: StepTarget; effort?: EffortGuide; instruction: string; /** E1: przerwa na dystansie (zbieg, wolny kilometr); `restSec` to jej szacunek. */ distanceM?: number }
   stroke?: 'freestyle' | 'backstroke' | 'breaststroke' | 'butterfly' | 'drill'
 }
 export interface TrainingSession {

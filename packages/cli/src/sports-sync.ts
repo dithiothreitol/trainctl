@@ -1,5 +1,4 @@
-import { activityKey, addDays, parseIso, targetText, sportMessages as msg, type PushableWorkout, type SportsPlan, type TrainingSession } from 'trainctl-core'
-import { toWorkoutSyntax } from 'trainctl-sync-intervalsicu'
+import { activityKey, addDays, parseIso, targetText, sportMessages as msg, type PushableWorkout, type SportsPlan, type StepTarget, type TrainingSession } from 'trainctl-core'
 import { FileActivitySource } from 'trainctl-sync-files'
 import { resolve } from 'node:path'
 import { readSyncFiles } from './config.ts'
@@ -13,17 +12,19 @@ export const sessionExternalId = (p: SportsPlan, s: TrainingSession): string => 
 export function pushableSession(p: SportsPlan, s: TrainingSession): PushableWorkout {
   if (s.steps.some(x => x.sendoffSec !== undefined)) throw new Error(`${msg().exportUnsupported} ${s.id}`)
   const lines: string[] = [sessionText(s), '']
-  if (s.legacyWorkout) lines.push(toWorkoutSyntax(s.legacyWorkout.segments))
-  else for (const step of s.steps) {
+  // E1: bieg z planu biegowego też z kroków; zakres tempa jako środek, jak składnia planu biegowego
+  const paceText = (target: Extract<StepTarget, { kind: 'pace' }>) =>
+    `${targetText({ kind: 'pace', perM: target.perM, seconds: target.slowSeconds !== undefined ? (target.seconds + target.slowSeconds) / 2 : target.seconds }).replace('100 m','100m')} Pace`
+  for (const step of s.steps) {
     const target = step.target
-    const pace = target.kind === 'pace' ? `${targetText(target).replace('100 m','100m')} Pace` : ''
+    const pace = target.kind === 'pace' ? paceText(target) : ''
     const dose = step.distanceM ? `${step.distanceM}mtr` : `${step.durationSec}s`
     if ((step.repeat ?? 1) > 1) lines.push('', `${step.repeat}x`)
-    lines.push(`- ${step.stroke ?? step.role} ${dose}${target.kind === 'power' ? ` ${target.watts}w` : pace ? ` ${pace}` : ''}`)
+    lines.push(`- ${step.stroke ?? (s.sport === 'run' && step.name ? step.name : step.role)} ${dose}${target.kind === 'power' ? ` ${target.watts}w` : pace ? ` ${pace}` : ''}`)
     if (step.restSec) {
       const recovery=step.recovery?.target
-      const recoveryTarget=recovery?.kind==='power'?` ${recovery.watts}w`:recovery?.kind==='pace'?` ${targetText(recovery).replace('100 m','100m')} Pace`:''
-      lines.push(`- Rest ${step.restSec}s${recoveryTarget}`)
+      const recoveryTarget=recovery?.kind==='power'?` ${recovery.watts}w`:recovery?.kind==='pace'?` ${paceText(recovery)}`:''
+      lines.push(`- Rest ${step.recovery?.distanceM ? `${step.recovery.distanceM}mtr` : `${step.restSec}s`}${recoveryTarget}`)
     }
     lines.push('')
   }

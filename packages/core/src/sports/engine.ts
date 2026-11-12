@@ -162,7 +162,7 @@ export function validateSportsPlan(raw: unknown): string[] {
         if (!finite(step.durationSec, 0.001, 604800) || (step.distanceM !== undefined && !finite(step.distanceM, 0.001, 2e6)) || (step.repeat !== undefined && (!Number.isInteger(step.repeat) || !finite(step.repeat, 1, 1000))) || (step.restSec !== undefined && !finite(step.restSec, 0, 86400)) || (step.sendoffSec !== undefined && (!finite(step.sendoffSec, step.durationSec, 86400) || step.restSec !== undefined))) throw new Error('step')
         if (!['warmup','work','rest','cooldown','drill'].includes(step.role)) throw new Error('role')
         if (!step.target || !['open', 'pace', 'power'].includes(step.target.kind)) throw new Error('target')
-        if (step.target.kind === 'pace' && (!finite(step.target.seconds, 1, 3600) || ![100, 1000].includes(step.target.perM))) throw new Error('pace')
+        if (step.target.kind === 'pace' && (!finite(step.target.seconds, 1, 3600) || ![100, 1000].includes(step.target.perM) || (step.target.slowSeconds !== undefined && !finite(step.target.slowSeconds, step.target.seconds, 3600)))) throw new Error('pace')
         if (step.target.kind === 'power' && (s.sport !== 'bike' || !finite(step.target.watts, 1, 3000))) throw new Error('power')
         for (const text of [step.name,step.instruction]) if (text !== undefined && (typeof text !== 'string' || !text.trim() || text.length>2000)) throw new Error('instruction')
         for (const effort of [step.effort,step.recovery?.effort]) if (effort && (!finite(effort.min,1,10) || !finite(effort.max,effort.min,10) || typeof effort.cue!=='string' || !effort.cue.trim() || effort.cue.length>1000)) throw new Error('effort')
@@ -171,6 +171,7 @@ export function validateSportsPlan(raw: unknown): string[] {
           if (!step.restSec || typeof r.instruction!=='string' || !r.instruction.trim() || r.instruction.length>2000 || !target || !['open','pace','power'].includes(target.kind)) throw new Error('recovery')
           if (target.kind==='power' && (s.sport!=='bike' || !finite(target.watts,1,3000))) throw new Error('recovery power')
           if (target.kind==='pace' && (!finite(target.seconds,1,3600) || ![100,1000].includes(target.perM))) throw new Error('recovery pace')
+          if (r.distanceM !== undefined && !finite(r.distanceM, 0.001, 2e6)) throw new Error('recovery distance')
         }
         if (s.sport === 'swim' && s.purpose !== 'race' && step.distanceM !== undefined && s.poolLengthM && Math.abs(step.distanceM / s.poolLengthM - Math.round(step.distanceM / s.poolLengthM)) > 1e-6) throw new Error('pool')
       }

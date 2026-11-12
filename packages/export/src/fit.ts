@@ -311,24 +311,28 @@ const STEP_NAME_SIZE = 24
  * https://developer.garmin.com/fit/file-types/workout
  */
 export function toSessionFitSteps(session: TrainingSession): FitStep[] {
-  if (session.legacyWorkout) return toFitSteps(session.legacyWorkout)
+  // E1: bieg z planu biegowego też idzie z kroków (`runningSteps`), bez `legacyWorkout`
   if (session.sport === 'strength' || session.steps.some(s => s.sendoffSec !== undefined)) throw new Error(sportMessages().exportUnsupported)
   const result: FitStep[] = []
+  const speed = (seconds: number, perM: number) => Math.round(perM / seconds * 1000)
   for (const step of session.steps) {
     const start = result.length, target = step.target
-    const pace = target.kind === 'pace' ? Math.round(target.perM / target.seconds * 1000) : 0
+    const pace = target.kind === 'pace' ? speed(target.seconds, target.perM) : 0
+    // zakres tempa: wolniejsza granica to niższa prędkość
+    const slowPace = target.kind === 'pace' && target.slowSeconds !== undefined ? speed(target.slowSeconds, target.perM) : pace
     const stroke = step.stroke ? { freestyle: 0, backstroke: 1, breaststroke: 2, butterfly: 3, drill: 4 }[step.stroke] : undefined
     const swimming = session.sport === 'swim' && stroke !== undefined
-    result.push({ name: `${step.effort ? `RPE ${step.effort.min}-${step.effort.max} ` : ''}${step.role}${target.kind === 'pace' ? ` ${target.seconds}s/${target.perM}m` : ''}`, durationType: step.distanceM ? 1 : 0,
+    result.push({ name: step.name ?? `${step.effort ? `RPE ${step.effort.min}-${step.effort.max} ` : ''}${step.role}${target.kind === 'pace' ? ` ${target.seconds}s/${target.perM}m` : ''}`, durationType: step.distanceM ? 1 : 0,
       notes: [target.kind==='pace' ? `${target.seconds}s/${target.perM}m` : '', step.effort ? effortText(step.effort) : '', step.instruction ?? '', start===0 ? session.coaching?.objective ?? '' : ''].filter(Boolean).join(' '),
       durationValue: Math.round(step.distanceM ? step.distanceM * 100 : step.durationSec * 1000), targetType: swimming ? 11 : target.kind === 'power' ? 4 : target.kind === 'pace' ? 0 : 2,
-      targetValue: swimming ? stroke! : 0, low: swimming ? 0 : target.kind === 'power' ? target.watts + 1000 : pace,
+      targetValue: swimming ? stroke! : 0, low: swimming ? 0 : target.kind === 'power' ? target.watts + 1000 : slowPace,
       high: swimming ? 0 : target.kind === 'power' ? target.watts + 1000 : pace,
       intensity: step.role === 'rest' ? 1 : step.role === 'warmup' ? 2 : step.role === 'cooldown' ? 3 : 0 })
     if (step.restSec) {
       const r=step.recovery, target=r?.target, speed=target?.kind==='pace'?Math.round(target.perM/target.seconds*1000):0
       const value=target?.kind==='power'?target.watts+1000:speed
-      result.push({ name: r?.effort ? `Rest RPE ${r.effort.min}-${r.effort.max}` : 'Rest', durationType: 0, durationValue: Math.round(step.restSec * 1000), targetType: target?.kind==='power'?4:target?.kind==='pace'?0:2, targetValue: 0, low:value, high:value, intensity:1, notes:r?[r.effort?effortText(r.effort):'',r.instruction].filter(Boolean).join(' '):'' })
+      // E1: przerwa na dystansie (zbieg po podbiegu, wolny kilometr biegu zmiennego)
+      result.push({ name: r?.instruction && session.sport === 'run' ? r.instruction : r?.effort ? `Rest RPE ${r.effort.min}-${r.effort.max}` : 'Rest', durationType: r?.distanceM ? 1 : 0, durationValue: Math.round(r?.distanceM ? r.distanceM * 100 : step.restSec * 1000), targetType: target?.kind==='power'?4:target?.kind==='pace'?0:2, targetValue: 0, low:value, high:value, intensity:1, notes:r?[r.effort?effortText(r.effort):'',r.instruction].filter(Boolean).join(' '):'' })
     }
     if ((step.repeat ?? 1) > 1) result.push({ name: 'Repeat', durationType: 6, durationValue: start, targetType: 2, targetValue: step.repeat!, low: 0, high: 0, intensity: 0 })
   }
