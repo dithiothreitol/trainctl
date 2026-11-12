@@ -553,6 +553,17 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
     expect(tuned[taperAt]!.targetKm).toBeLessThanOrEqual(plain[taperAt]!.targetKm)
   })
 
+  it('start kontrolny B w bloku powrotu: tydzień lżejszy od krzywej o mini-taper (T-9)', () => {
+    const base = planMacrocycle({ today: '2026-10-22', goal: half, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] } })
+    const taperAt = base.weeks.findIndex((w) => w.phase === 'taper')
+    const raceWeek = base.weeks[taperAt - 1]!
+    const withTuneUp = planMacrocycle({ today: '2026-10-22', goal: half, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [], tuneUpRaces: [{ date: addDays(raceWeek.weekStart, 6), distanceKm: 10, priority: 'B' }] } })
+    const weeks = applyReturnBlock(withTuneUp.weeks, { since: withTuneUp.weeks[taperAt - 4]!.weekStart, previousWeeklyKm: 30, illness: false })
+    const loadingBefore = weeks.map((w, i) => (i < taperAt - 1 && !w.deload && ['base', 'build', 'peak'].includes(w.phase) ? i : -1)).filter((i) => i >= 0)
+    // tydzień startu lżejszy od poprzedniego tygodnia ładowania krzywej, nie równy krzywej
+    expect(weeks[taperAt - 1]!.targetKm).toBeLessThan(weeks[loadingBefore.at(-1)!]!.targetKm)
+  })
+
   it('choroba w drugim tygodniu po starcie: tydzień spokojny (R-5), ale długie wybieganie zostaje (R-8)', () => {
     const t2 = plan.weeks.findIndex((w, i) => w.phase === 'transition' && plan.weeks[i - 1]?.phase === 'transition')
     expect(t2).toBeGreaterThan(0)

@@ -341,7 +341,8 @@ export function applyReturnBlock(weeks: WeekSkeleton[], ret: ReturnBlock): WeekS
     let cap = w.deload ? level(Math.max(0, loading - 1)) * DELOAD_FACTOR : curve
     if (!w.deload && ['base', 'build', 'peak'].includes(w.phase)) {
       // tydzień startu kontrolnego ma cel obniżony mini-taperem (T-9) — nie jest poziomem,
-      // od którego liczy się taper
+      // od którego liczy się taper, a na krzywej powrotu jest lżejszy o ten sam ułamek
+      if (w.tuneUp?.priority === 'B') cap = curve * TUNE_UP_B_FACTOR
       if (!w.tuneUp) last = { curve, planKm: w.targetKm }
       loading++
     } else if (!w.deload && last && last.planKm > 0) {

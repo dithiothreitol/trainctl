@@ -1134,8 +1134,10 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     // objętość z tamtej decyzji
     const ret = plan.returnState
     const preBreakWeeklyKm = (!lastRun || !loadingWeek) && ret ? ret.previousWeeklyKm : loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
-    // B11: bieżący tydzień w przyjętym bloku powrotu (obniżony przez krzywą R-5/R-11)
-    const returnInProgress = ret !== undefined && currentWeek !== undefined && currentWeek.weekStart >= mondayOf(ret.since) &&
+    // B11: bieżący tydzień w bloku powrotu (obniżony przez krzywą albo spokojny, R-5/R-11) —
+    // przyjętym przez `adapt --apply` albo z profilu (`athlete.returning` na starcie planu
+    // albo dopisane w trakcie): krzywa rośnie sama, podniesienie bazy by ją przesunęło
+    const returnInProgress = currentWeek !== undefined && (ret === undefined || currentWeek.weekStart >= mondayOf(ret.since)) &&
       currentWeek.skeleton.ruleRefs.some((r) => r === 'R-5' || r === 'R-11')
     const proposal = analyzeExecution({
       today,

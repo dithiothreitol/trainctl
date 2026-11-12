@@ -24,6 +24,7 @@ import {
   predictRace,
   qualitySessionsFor,
   testDistanceKm,
+  volumeBase,
   type Microcycle,
   type PlannedDay,
   type RaceGoal,
@@ -260,6 +261,14 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   // dopóki blok trwa: tydzień bieżący albo późniejszy jest jeszcze na krzywej albo spokojny.
   // Potem ostrzeżenie opisywałoby blok, którego w planie przed biegaczem już nie ma.
   const returnAhead = skeletons.some((w) => w.weekStart >= mondayOf(calibrationDate) && w.ruleRefs.includes('R-11'))
+  // Ten sam warunek dla powrotu ze startu planu (volumeBase): regeneracja liczy plan od
+  // startu, więc makrocykl powtarza ostrzeżenie przez cały cykl — znika, gdy spokojny blok
+  // jest już za biegaczem
+  const startReturn = volumeBase(athlete, today)
+  if (startReturn.returning && !returnAhead) {
+    const text = messages().macro.returnBlock(startReturn.start, athlete.returning!.previousWeeklyKm)
+    plan.feasibilityWarnings = plan.feasibilityWarnings.filter((w) => w !== text)
+  }
   if (profileReturn && returnAhead) plan.feasibilityWarnings.push(messages().macro.returnBlock(Math.round(RETURN_RESTART_SHARE * profileReturn.previousWeeklyKm), profileReturn.previousWeeklyKm))
   // R-5, R-11: start kontrolny w spokojnym bloku powrotu zostaje, bo to kalendarz biegacza
   // (ADR-011), ale plan mówi, że reguła powrotu go nie przewiduje

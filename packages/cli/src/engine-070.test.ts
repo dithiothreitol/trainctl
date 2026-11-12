@@ -343,6 +343,17 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(r.output).toContain('return after a break')
   })
 
+  it('plan zaczęty w trakcie powrotu: ostrzeżenie o powrocie tylko dopóki spokojny blok jest przed biegaczem (R-11)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(25, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 25', 'recentWeeklyKm: 25\n  returning: { since: "2026-10-19", previousWeeklyKm: 50 }'), 'utf-8')
+    const cfg = loadConfig(dir)
+    const during = computePlan(cfg, '2026-10-22', '2026-10-22')
+    expect(during.feasibilityWarnings.join(' ')).toContain('return after a break')
+    const lastEasy = during.weeks.filter((w) => w.skeleton.ruleRefs.includes('R-11')).at(-1)!
+    // regeneracja liczy plan od startu, ale dziś spokojny blok jest już za biegaczem
+    const later = computePlan(cfg, '2026-10-22', addDays(lastEasy.weekStart, 7))
+    expect(later.feasibilityWarnings.join(' ')).not.toContain('return after a break')
+  })
+
   it('plan: ostrzeżenie o powrocie z profilu tylko dopóki blok powrotu trwa (R-11)', () => {
     writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 45', 'recentWeeklyKm: 45\n  returning: { since: "2026-11-16", previousWeeklyKm: 45 }'), 'utf-8')
     const cfg = loadConfig(dir)
@@ -580,6 +591,24 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(loadPlan(dir).loadState?.baselineWeeklyKm).toBe(30)
     const ret = prepareProposal(dir, '2026-11-12', restartAnalysis(true))
     expect(ret.replacesBaselineKm).toBe(30)
+  })
+
+  it('adapt w trakcie powrotu z profilu (dopisanego w trakcie planu): nadwyżka nie podnosi bazy (R-11, P-3)', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-17'
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 45', 'recentWeeklyKm: 45\n  returning: { since: "2026-11-16", previousWeeklyKm: 50 }'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    expect(loadPlan(dir).returnState).toBeUndefined()
+    // trzy tygodnie powrotu z nadwyżką 30% wobec obniżonego planu
+    process.env['TRAINCTL_TODAY'] = '2026-12-02'
+    for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-11-12' && x.date <= '2026-12-02')) {
+      expect(cmdLog(dir, { date: d.date, status: 'done', km: String(Math.round(d.workout!.distanceKm * 13) / 10) }).code).toBe(0)
+    }
+    const current = loadPlan(dir).weeks.find((w) => w.weekStart === '2026-11-30')!
+    // przypadek ma sens tylko wtedy, gdy bieżący tydzień jest jeszcze w bloku powrotu
+    expect(current.skeleton.ruleRefs).toContain('R-11')
+    const actions = (cmdAdapt(dir, {}).data as { proposal: { actions: { type: string }[] } }).proposal.actions.map((a) => a.type)
+    expect(actions).not.toContain('raise-baseline')
   })
 
   it('adapt w trakcie przyjętego powrotu: nadwyżka nie podnosi bazy — krzywa powrotu rośnie sama (P-3)', () => {

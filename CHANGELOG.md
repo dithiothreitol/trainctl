@@ -135,10 +135,12 @@ change between minor versions — a regenerated plan can differ.
   proposes no volume change and `adapt --prepare` prepares no plan
   change at all, not even a recalibration (R-6, R-7). An approved return survives
   `trainctl plan` like an approved baseline (ADR-033) and replaces it; the
-  proposal says so when it replaces one. During an approved return `adapt`
-  does not raise the baseline: the return curve grows on its own. A tune-up race in the
+  proposal says so when it replaces one. During a return, approved or from
+  `athlete.returning`, `adapt` does not raise the baseline: the return curve
+  grows on its own. A tune-up race in the
   easy part of a return stays in the plan, and `plan` says the return rule
-  does not expect it. After the A race only the first week is without a long
+  does not expect it; a B race week stays lighter than the curve by the
+  mini-taper (T-9). After the A race only the first week is without a long
   run and strength (R-8, R-9); a return block in the weeks after it keeps both.
 - `trainctl rules` explains R-5, R-6, R-7 and R-11.
 - `athlete.returning: { since, previousWeeklyKm }` for a return after two
@@ -148,8 +150,9 @@ change between minor versions — a regenerated plan can differ.
   within P-3. Once `recentWeeklyKm` is above the earlier volume, the return no
   longer applies; a `since` date in the future does not apply yet. Added during
   a plan, the field starts a return block from `since` on the next
-  `trainctl plan` and keeps it for the rest of the cycle; `plan` mentions the
-  return while the block is still ahead. A plan with no deload
+  `trainctl plan` and keeps it for the rest of the cycle. `plan` mentions the
+  return, at the start of the plan or added later, while its block is still
+  ahead. A plan with no deload
   before the taper keeps the first half of its loading weeks easy, so accents
   come back before the taper. `init` asks for it, and `init --from-intervals` proposes it when
   the history ends with two weeks off (in the wizard Enter accepts the proposal
