@@ -27,6 +27,10 @@ This directory is a training plan as code. You have the `trainctl_*` MCP tools
 - **Review and propose changes** → `trainctl_review(prepare=true)`. Show execution gaps and the saved changes. Approve with `trainctl_adapt(apply=ID)`; do not regenerate or sync between preview and approval.
 - **Start of the week** → `trainctl_review`. One call instead of pull + adapt +
   week. Relay the result in plain language and propose at most two things to do.
+  The “Against the targets” lines are facts from laps and pace, not verdicts: auto
+  laps read “no laps matching the plan”, heart rate is never judged, and a
+  calibration hint means proposing a fresh result (a tune-up race or a time
+  trial) — zones change only through `athlete.results`.
 - **Something looks off** (a proposal will not apply, data seems missing, the
   plan reads oddly) → `trainctl_status` first: config, engine version, key,
   last pull, proposals with their validity, uncommitted files.

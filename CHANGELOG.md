@@ -178,6 +178,9 @@ change between minor versions — a regenerated plan can differ.
   kilometres; the wizard asks for the unit first. `plan` refreshes `PLAN.md`
   when only its view changed, for example after switching units. Diagnostic
   messages in `adapt`, `review` and the race pack still use kilometres.
+- The plugin's session start tells the agent how old the execution data is: the
+  last pull date from `sync.json` (as in `trainctl status`) and its age in days,
+  or that there is no `sync.json` yet. Nothing is fetched in the background.
 - `notation: club` in `trainctl.yaml` writes sessions with the codes of Polish
   club plans: OWB1 for easy and long runs, BNP for a progression, BZ for the
   alternating run, WT for reps (RT up to 300 m, BC3 from 2 km), SB for hills and

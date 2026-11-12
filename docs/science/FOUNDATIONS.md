@@ -1994,6 +1994,22 @@ przed dawką w kolumnie rozpiski.
 [3] J. Karasek, „Plan treningowy na wynik 1:50”, Magazyn Bieganie (legenda: BS, P, BNP), https://www.magazynbieganie.pl/wp-content/uploads/2025/01/1-50.pdf
 [4] „Skróty używane w planach treningowych”, blog MarcinBiega, 2014-07-30, https://marcinbiega.blogspot.com/2014/07/skroty-uzywane-w-planach-treningowych_30.html
 
+### 10.17 Ocena wykonania wobec celu (PLAN-v0.7 D2–D5, wybór inżynierski)
+
+**E-5** — stałe `engine/laps.ts`, którymi `review` opisuje wykonanie. To opis, nie
+ocena: wynik nie zmienia planu, stref ani objętości (ADR-011, ADR-027), a tętna nie
+używa (Z-3, Z-6). Żadne badanie nie podaje tych progów; dobrano je do błędu pomiaru
+zegarka i do kształtu jednostek silnika.
+
+| Stała | Wartość | Uzasadnienie |
+|---|---|---|
+| okrążenie pasuje do odcinka | długość różni się o najwyżej 10% albo 30 m | GPS i ręczny przycisk dają kilka procent; 10% oddziela jeszcze 1000 m od 800 m i 1200 m |
+| okrążenia automatyczne | znany sposób zamknięcia: wszystkie po dystansie; bez niego co najmniej 3 pełne okrążenia, z czego 75% w granicach 2% od mediany | autolap zamyka okrążenia co stały dystans; ręczne okrążenia akcentu mają różne długości |
+| odcinek bez roli w pliku | szybszy niż szybsza granica strefy spokojnej i przedzielony przerwą | rozgrzewka i trucht nie są odcinkami; dwa sąsiednie okrążenia bez przerwy to nie struktura planu |
+| tolerancja tempa | 3 s/km na granicach zakresu | błąd dystansu ~1% to ±2–3 s/km przy tempach 4–5 min/km |
+| zakres biegu spokojnego i długiego | strefa spokojna poszerzona o zakres zapisany w dniu | długie ma zakres wolniejszy niż strefa (`buildLong`) |
+| podpowiedź kalibracji | dwa ostatnie akcenty z dopasowanymi odcinkami, w każdym co najmniej 2/3 odcinków szybciej niż zakres; akcenty z 21 dni po ostatnim wyniku; start kontrolny w ciągu 28 dni (W-12) ma pierwszeństwo przed sprawdzianem (W-13) | jeden szybki akcent to dzień, dwa z rzędu to sygnał, że strefy mogą być za wolne |
+
 ## 11. DO WERYFIKACJI
 
 Rzeczy, których **nie** potwierdzono z pierwszej ręki. Nic z tej listy nie powinno

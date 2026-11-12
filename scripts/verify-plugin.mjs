@@ -104,6 +104,8 @@ try {
   await call(client,'week',{session:'missing'},true)
   await call(client,'desk',{date:source.date})
   await call(client,'status');await call(client,'check');await call(client,'diff')
+  // C2: siatka sezonu, tydzień w wierszu (tylko do odczytu)
+  assert((await call(client,'season')).weeks.length>0)
   await call(client,'rule',{id:'MS-2'})
   await call(client,'rule',{id:'MS-6'})
   await call(client,'rule',{id:'NOT-A-RULE'},true)

@@ -1210,6 +1210,8 @@ export const cliPl: CliMessages = {
     'R-10': 'po krótszym starcie docelowym jeden tydzień przejściowy ~70% — wybór inżynierski; brak danych',
     'P-11': 'plan bez startu rośnie do udokumentowanego szczytu (albo +15%) i tam się wypłaszcza, odciążenie co czwarty tydzień — wybór inżynierski',
     'E-3': 'stałe silnika bez źródła: sufit +40% bez peakWeeklyKm, szczyt planu ze startem +15%, podział faz 40/20%, część główna akcentu ~22% tygodnia i co najmniej 3 km, bieg spokojny 3–18 km, co najmniej 4 odcinki kilometrowe, mniejsza rama akcentu w małym tygodniu (3 odcinki, potem rozgrzewka 2 km, potem przebieżki), sufit udziału długiego między zmierzonymi pasmami objętości, 5–8 km spokojnie przed podbiegami, mocne km ≤25%, przerwy 2–3 min, sesje tygodnia startowego, jedna jednostka ≤35% tygodnia z długim — wybory inżynierskie do potwierdzenia pomiarem albo przeglądem trenerskim',
+    'E-4': 'kody notacji klubowej (notation: club, tylko po polsku): OWB1 bieg spokojny i długi, BC2 równe tempo, BC3 odcinki od 2 km, WT odcinki pomiędzy, RT odcinki do 300 m i przebieżki, BNP narastanie, BZ bieg zmienny, SB podbiegi; znaczenia z polskich słowników biegowych (Bieganie.pl 2024, Sportano 2024), przypisanie do segmentów silnika to wybór inżynierski',
+    'E-5': 'ocena wykonania wobec celu: okrążenie pasuje do odcinka w granicach 10% albo 30 m, okrążenia automatyczne nie pasują do niczego, okrążenie bez roli liczy się tylko szybsze niż strefa spokojna i przedzielone przerwą, margines tempa 3 s/km, podpowiedź kalibracji po dwóch akcentach z co najmniej dwiema trzecimi odcinków szybciej niż cel — wybory inżynierskie, sam opis: plan się nie zmienia',
     'E-2': 'budżet czasu z trainctl.yaml ogranicza objętość tygodnia i skraca jednostki według zasad E-1 — wybór inżynierski, bez źródła',
     'Z-10': 'wynik z trailu nie kalibruje stref szosowych, dopóki jest wynik szosowy — wybór inżynierski; tabele VDOT pochodzą z szosy i bieżni',
     'S-5': 'ciężka siła nie później niż 24 h przed sesją jakościową — deficyt siły trwa do 48 h (de Carvalho e Silva 2022)',
@@ -1399,6 +1401,10 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
 - **Przejrzyj tydzień i zaproponuj zmiany** → \`trainctl_review(prepare=true)\`. Pokaż luki w wykonaniu i zapisane zmiany. Zatwierdzenie przez \`trainctl_adapt(apply=ID)\`; nie regeneruj ani nie synchronizuj pomiędzy podglądem a zatwierdzeniem.
 - **Początek tygodnia** → \`trainctl_review\`. Jedno wywołanie zamiast pull + adapt +
   week. Zrelacjonuj wynik po ludzku i zaproponuj co najwyżej dwie rzeczy do zrobienia.
+  Zdania „Wobec celu” to fakty z okrążeń i tempa, nie oceny: okrążenia automatyczne
+  dają „brak okrążeń pasujących do planu”, tętna nie oceniamy, a podpowiedź
+  kalibracji to propozycja świeżego wyniku (start kontrolny albo sprawdzian) —
+  strefy zmienia dopiero wpis w \`athlete.results\`.
 - **Coś się nie zgadza** (propozycja nie chce się zastosować, brakuje danych,
   plan wygląda dziwnie) → najpierw \`trainctl_status\`: profil, wersja silnika,
   klucz, ostatni pull, propozycje z ważnością, niezacommitowane pliki.

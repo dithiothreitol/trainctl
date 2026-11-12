@@ -307,8 +307,11 @@ datą symulowaną.
 
 ```yaml
 language: pl                # język interfejsu i planu: en | pl (domyślnie: en)
+# units: imperial           # mile i tempo na milę w widokach; pliki zostają w km (domyślnie: metric)
+# notation: club            # kody klubowe (OWB1, WT, BNP…) w wyjściu polskim (domyślnie: neutral)
 athlete:
-  sex: unspecified          # male | female | unspecified
+  sex: unspecified          # male | female | unspecified (potrzebne do pułapu tętna)
+  # hrMax: { bpm: 190, measured: true }  # pułap tętna biegów spokojnych i długich; celem zostaje tempo
   recentWeeklyKm: 45        # średnia z ostatnich ~4 tygodni
   peakWeeklyKm: 65          # najwyższa utrzymana objętość (opcjonalne)
   # returning: { since: "2026-10-01", previousWeeklyKm: 45 }  # po 2+ tygodniach bez biegania: start od połowy (R-11)
@@ -555,7 +558,13 @@ trainctl export --what workout --date 2026-08-04
 trainctl export --what calendar   # .ics → Google Calendar, Outlook, telefon
 trainctl export --what print      # rozpiska A4 z kratką na odhaczanie
 trainctl export --what race       # pakiet startowy: splity, opaska tempa, tabela cieplna
+trainctl export --what mobile --date 2026-08-04   # jeden dzień jako strona HTML offline
 ```
+
+**Na telefonie.** Nie ma hostingu ani zdalnego MCP. Telefon dostaje plan
+z kalendarza intervals.icu (po `trainctl push`), z aplikacji zegarka i z `export
+--what mobile`: jednej strony offline na jeden dzień z jednostką, jej strukturą
+i celem. Po zmianie planu wyeksportuj ją ponownie.
 
 Koder FIT jest napisany tutaj, a nie dociągnięty jako zależność; pliki są
 sprawdzane bajt po bajcie w testach, a format potwierdzono, wgrywając je do

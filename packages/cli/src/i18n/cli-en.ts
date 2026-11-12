@@ -1231,6 +1231,8 @@ export const cliEn = {
     'R-10': 'after a shorter goal race, one transition week at ~70% — an engineering choice; no data behind it',
     'P-11': 'a plan without a race grows to your documented peak (or +15%) and levels off there, deload every fourth week — an engineering choice',
     'E-3': 'fixed engine values without a source: peak cap +40% without peakWeeklyKm, race-plan peak +15%, phase split 40/20%, accent main set ~22% of the week and at least 3 km, easy run 3–18 km, at least 4 one-kilometre repetitions, a smaller accent frame (3 repetitions, then a 2 km warm-up, then strides) in small weeks, the long-run share ceiling between measured volume bands, 5–8 km easy before hills, hard km ≤25%, recoveries 2–3 min, race-week sessions, one session ≤35% of a week with a long run — engineering choices to confirm by measurement or coach review',
+    'E-4': 'club notation codes (notation: club, Polish output only): OWB1 for easy and long runs, BC2 steady, BC3 reps from 2 km, WT reps in between, RT reps up to 300 m and strides, BNP progression, BZ alternating, SB hills; the meanings come from Polish running glossaries (Bieganie.pl 2024, Sportano 2024), the assignment to engine segments is an engineering choice',
+    'E-5': 'review against the targets: a lap matches a repetition within 10% or 30 m, auto laps match nothing, a lap without a role counts only when faster than the easy range and separated by a recovery, a pace margin of 3 s/km, a calibration hint after two accents with at least two thirds of the reps faster than the target — engineering choices, a description only: the plan does not change',
     'E-2': 'the time budget from trainctl.yaml caps weekly volume and shortens sessions with the same rules as E-1 — an engineering choice, no source',
     'Z-10': 'a trail result does not calibrate road zones while a road result exists — an engineering choice; VDOT tables come from road and track',
   },
@@ -1418,6 +1420,10 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
 - **Review and propose changes** → \`trainctl_review(prepare=true)\`. Show execution gaps and the saved changes. Approve with \`trainctl_adapt(apply=ID)\`; do not regenerate or sync between preview and approval.
 - **Start of the week** → \`trainctl_review\`. One call instead of pull + adapt +
   week. Relay the result in plain language and propose at most two things to do.
+  The “Against the targets” lines are facts from laps and pace, not verdicts: auto
+  laps read “no laps matching the plan”, heart rate is never judged, and a
+  calibration hint means proposing a fresh result (a tune-up race or a time
+  trial) — zones change only through \`athlete.results\`.
 - **Something looks off** (a proposal will not apply, data seems missing, the
   plan reads oddly) → \`trainctl_status\` first: config, engine version, key,
   last pull, proposals with their validity, uncommitted files.

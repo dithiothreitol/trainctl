@@ -51,14 +51,14 @@ export interface EasyPaceExecution {
 }
 
 /**
- * E-3 (inż.): okrążenie pasuje do odcinka, gdy długość różni się o najwyżej 10%
+ * E-5 (inż.): okrążenie pasuje do odcinka, gdy długość różni się o najwyżej 10%
  * albo 30 m. GPS i ręczne naciśnięcie przycisku dają kilka procent; 10% oddziela
  * jeszcze odcinek 1000 m od 800 m i 1200 m.
  */
 const REP_DISTANCE_SHARE = 0.1
 const REP_DISTANCE_MIN_M = 30
 /**
- * E-3 (inż.): okrążenia automatyczne bez znanego sposobu zamknięcia (hub) — co najmniej
+ * E-5 (inż.): okrążenia automatyczne bez znanego sposobu zamknięcia (hub) — co najmniej
  * trzy pełne okrążenia, z których 75% ma długość w granicach 2% od mediany (ostatnie,
  * zwykle niepełne, pomijamy).
  */
@@ -66,7 +66,7 @@ const AUTOLAP_MIN_LAPS = 3
 const AUTOLAP_SHARE = 0.75
 const AUTOLAP_SPREAD = 0.02
 /**
- * E-3 (inż.): tolerancja tempa na granicach zakresu. Błąd dystansu ~1% to ±2–3 s/km
+ * E-5 (inż.): tolerancja tempa na granicach zakresu. Błąd dystansu ~1% to ±2–3 s/km
  * przy tempach 4–5 min/km, więc różnica do 3 s/km nie wychodzi poza zakres.
  */
 export const PACE_TOLERANCE_SEC = 3
@@ -191,7 +191,7 @@ export function easyBand(workout: PlannedWorkout, easyZone: PaceRange): PaceRang
 }
 
 /**
- * D5, E-3 (inż.): „stale szybciej od celu" — dwa ostatnie akcenty z dopasowanymi
+ * D5, E-5 (inż.): „stale szybciej od celu" — dwa ostatnie akcenty z dopasowanymi
  * odcinkami, w każdym co najmniej dwie trzecie odcinków z celem szybciej niż zakres.
  * Jeden szybki akcent to dzień, dwa z rzędu to sygnał, że strefy mogą być za wolne.
  */

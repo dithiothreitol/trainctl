@@ -47,9 +47,16 @@ than producing a calibration-only timestamp change. Return/recovery protocols
 still require individual review: their blocked preparation is reported, not
 silently replaced with a volume patch.
 
-Review data includes `period`, `execution`, `preparation.status` and `prepared`
-(ID, changed dates and protected dates). Review without `--prepare` retains its
-report-only behavior. Neither review mode applies a proposal. The same lifecycle
+Review data includes `period`, `execution`, `calibration`, `preparation.status`
+and `prepared` (ID, changed dates and protected dates). Each `execution` record
+can also carry the day's average pace from synced runs (`paceSecPerKm`), an
+interval session set against its planned repetitions (`intervals`: matched laps
+with their pace and verdict, how many fell within the target, reps beyond the
+plan, or `reason: no-laps | no-match`) and an easy or long run's pace against the
+easy range (`easyPace`). `calibration` names the two accents whose reps ran faster
+than the target and the proposed source of a fresh result. These are descriptions
+(FOUNDATIONS E-5): they never change the plan, the zones or the volume, and heart
+rate is not judged. Review without `--prepare` retains its report-only behavior. Neither review mode applies a proposal. The same lifecycle
 and expiration checks below cover both weekly and single-session proposals.
 
 MCP: `trainctl_shorten({minutes: 40})`, `trainctl_why({})`,

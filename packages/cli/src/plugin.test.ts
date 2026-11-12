@@ -15,7 +15,7 @@ import { PLAN_YAML } from './planfile.ts'
 // @ts-expect-error — skrypty hooków to czysty JS bez deklaracji typów
 import { feedback, trainingDirOf, TRAINCTL_VERSION } from '../../../plugin/scripts/check-plan.mjs'
 // @ts-expect-error — jw.
-import { LIMIT, sessionContext } from '../../../plugin/scripts/session-start.mjs'
+import { LIMIT, localToday, sessionContext } from '../../../plugin/scripts/session-start.mjs'
 
 setLocale('en')
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..')
@@ -121,6 +121,28 @@ describe('hooki', () => {
     writeFileSync(join(dir, 'AGENTS.md'), 'x'.repeat(20_000), 'utf-8')
     expect((sessionContext(dir) as string).length).toBeLessThan(10_000)
     expect(LIMIT).toBeLessThan(10_000)
+  })
+
+  it('SessionStart (F3): wiek sync.json przed personą, bez pobierania; brak i uszkodzenie nazwane wprost', () => {
+    cmdInit(dir)
+    expect(sessionContext(dir, '2026-11-12')).toContain('Execution data: no sync.json yet')
+    writeFileSync(join(dir, 'sync.json'), JSON.stringify({ pulledAt: '2026-11-05', activities: [], wellness: [] }), 'utf-8')
+    const text = sessionContext(dir, '2026-11-12') as string
+    expect(text).toContain('sync.json last pulled 2026-11-05 (7 days ago). Nothing is fetched in the background')
+    // linia świeżości stoi przed AGENTS.md, więc przycięcie persony jej nie zabiera
+    expect(text.indexOf('last pulled')).toBeLessThan(text.indexOf(readFileSync(join(dir, 'AGENTS.md'), 'utf-8').slice(0, 40)))
+    expect(sessionContext(dir, '2026-11-06')).toContain('(1 day ago)')
+    expect(sessionContext(dir, '2026-11-05')).toContain('(today)')
+    writeFileSync(join(dir, 'sync.json'), '{ to nie jest JSON', 'utf-8')
+    expect(sessionContext(dir, '2026-11-12')).toContain('sync.json is unreadable')
+    writeFileSync(join(dir, 'sync.json'), JSON.stringify({ activities: [] }), 'utf-8')
+    expect(sessionContext(dir, '2026-11-12')).toContain('sync.json has no pull date')
+  })
+
+  it('SessionStart (F3): data symulowana TRAINCTL_TODAY jak w CLI', () => {
+    expect(localToday({ TRAINCTL_TODAY: '2026-10-29' })).toBe('2026-10-29')
+    expect(localToday({ TRAINCTL_TODAY: 'jutro' }, new Date(2026, 10, 12, 23, 30))).toBe('2026-11-12')
+    expect(localToday({}, new Date(2026, 0, 2, 0, 5))).toBe('2026-01-02')
   })
 
   it('PostToolUse end-to-end na lokalnej binarce: połamany plan → kod 2 z opisem', () => {

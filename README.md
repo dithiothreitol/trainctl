@@ -304,8 +304,11 @@ date.
 
 ```yaml
 # language: pl              # interface and plan language: en | pl (default: en)
+# units: imperial           # miles and pace per mile in views; files stay in km (default: metric)
+# notation: club            # Polish club codes (OWB1, WT, BNP…) in Polish output (default: neutral)
 athlete:
-  sex: unspecified          # male | female | unspecified
+  sex: unspecified          # male | female | unspecified (the heart-rate ceiling needs it)
+  # hrMax: { bpm: 190, measured: true }  # adds a heart-rate ceiling to easy and long runs; pace stays the target
   recentWeeklyKm: 45        # average of the last ~4 weeks
   peakWeeklyKm: 65          # highest volume you have held (optional)
   # returning: { since: "2026-10-01", previousWeeklyKm: 45 }  # after 2+ weeks off: restart at about half (R-11)
@@ -546,7 +549,13 @@ trainctl export --what workout --date 2026-08-04
 trainctl export --what calendar   # .ics → Google Calendar, Outlook, phone
 trainctl export --what print      # A4 sheet with a tick box per session
 trainctl export --what race       # race pack: splits, paper pace band, heat table
+trainctl export --what mobile --date 2026-08-04   # one day as an offline HTML page
 ```
+
+**On the phone.** There is no hosting and no remote MCP. The phone gets the plan
+from the intervals.icu calendar (after `trainctl push`), from the watch's own app,
+and from `export --what mobile`: a single offline page for one day with the
+session, its structure and its purpose. Export it again after the plan changes.
 
 The FIT encoder is written here rather than pulled in as a dependency; the files
 are checked byte by byte in tests and were confirmed by uploading them to an
