@@ -560,7 +560,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
       }
       // start JEST akcentem tygodnia — nie dokładamy do niego drugiego (T-12)
       ruleRefs.push('T-10', 'T-11', 'T-12')
-      flags.push(`start kontrolny ${tuneUp.priority}: ${tuneUp.date}`)
+      flags.push(messages().macro.tuneUpFlag(tuneUp.priority, tuneUp.date))
       weeksSinceCalibration = 0
     } else {
       weeksSinceCalibration++

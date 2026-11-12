@@ -13,14 +13,14 @@ import { asciiOutput, dayHeading, hoursMinutes, markKind, metricData, rowsTable,
 import { ui } from './i18n/index.ts'
 import { clockToday } from './clock.ts'
 import { packageVersion } from './version.ts'
-import { CONFIG_FILE } from './config.ts'
+import { CONFIG_FILE, inProfileView } from './config.ts'
 import { lineSeparator, LOG_FILE, LOG_KM_MAX, LOG_LIMITS, parseTime } from './logfile.ts'
 import { kmLabel, logStatusText, parseDecimal } from './format.ts'
 import { PLAN_MD, PLAN_YAML, type StoredPlan } from './planfile.ts'
 import { runningPlanSummary } from './running-summary.ts'
 import { commitFiles } from './git.ts'
 import { readSnapshot, SYNC_FILE } from './sync.ts'
-import { applySportsProposal, fingerprint, loadSportsConfig, loadSportsPlan, migrationCandidate, prepareSportsProposal, readOptional, readSessionLogs, sessionStepsText, sessionText, sportsProposalStatus, writeSportsPlan, writeTransaction } from './sports-store.ts'
+import { applySportsProposal, fingerprint, loadSportsConfig, loadSportsPlan, migrationCandidate, prepareSportsProposal, readOptional, readSessionLogs, sessionStepsText, sessionText, sportsMarkdown, sportsProposalStatus, writeSportsPlan, writeTransaction } from './sports-store.ts'
 import { initialRunning, regenerateRunning, sportsProfilePaths } from './sports-running.ts'
 import { recoverSportsTransaction } from './sports-transaction.ts'
 import { exportSportsPlan } from './sports-export.ts'
@@ -266,7 +266,9 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
       if ((o.actualSport !== undefined && !ENDURANCE_SPORTS.includes(actualSport as EnduranceSport)) || (spontaneous && (s.sport === 'strength' || status === 'skipped'))) throw new Error(t.invalid)
       if (!['done', 'skipped', 'modified'].includes(status) || (o.km !== undefined && o.meters !== undefined) || (o.minutes !== undefined && o.time !== undefined)) throw new Error(t.invalid)
       const durationSec = typeof o.time === 'string' ? parseTime(o.time) : o.minutes !== undefined ? number(o.minutes, 0, 3000) * 60 : undefined
-      const distanceM = o.meters !== undefined ? number(o.meters, 0, actualSport === 'run' ? LOG_KM_MAX * 1000 : 2e6) : o.km !== undefined ? (o.metricKm ? number(o.km, 0, actualSport === 'run' ? LOG_KM_MAX : 2000, true) : kmFrom(number(o.km, 0, distanceIn(actualSport === 'run' ? LOG_KM_MAX : 2000), true))) * 1000 : undefined
+      // granica jak w dzienniku biegów (LOG_KM_MAX), rower i pływanie szerzej (2000 km, inż.)
+      const maxKm = actualSport === 'run' ? LOG_KM_MAX : 2000
+      const distanceM = o.meters !== undefined ? number(o.meters, 0, maxKm * 1000) : o.km !== undefined ? (o.metricKm ? number(o.km, 0, maxKm, true) : kmFrom(number(o.km, 0, distanceIn(maxKm), true))) * 1000 : undefined
       const testTimeSec = o.testTime === undefined ? undefined : parseTime(o.testTime)
       if (testTimeSec !== undefined && (s.sport !== 'run' || spontaneous || status === 'skipped' || !(s.purpose === 'race' || s.legacyWorkout?.kind === 'test') || (durationSec !== undefined && testTimeSec > durationSec))) throw new Error(t.invalid)
       const rpe = o.rpe === undefined ? undefined : number(o.rpe, 1, 10)
@@ -378,15 +380,22 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
       if (o.plan) {
         const other = parse(readFileSync(resolve(cwd,o.plan),'utf8')) as SportsPlan
         const issues = validateSportsPlan(other); if(issues.length)throw new Error(issues.join('\n'))
-        const before = new Map(plan.sessions.map(s=>[s.id,s])), after = new Map(other.sessions.map(s=>[s.id,s]))
-        const differences = [...new Set([...before.keys(),...after.keys()])].filter(id=>fingerprint(before.get(id)??null)!==fingerprint(after.get(id)??null)).map(id=>({id,before:before.get(id)??null,after:after.get(id)??null}))
-        return sportsResult([b.table(['ID',t.before,t.after],differences.map(d=>[d.id,d.before?sessionText(d.before):'—',d.after?sessionText(d.after):'—']))],{changed:!!differences.length||fingerprint(plan.goal)!==fingerprint(other.goal),differences,goals:{before:plan.goal,after:other.goal},totals:{before:sportsTotals(plan.sessions),after:sportsTotals(other.sessions)}})
+        const differences = sessionDifferences(plan.sessions, other.sessions)
+        return sportsResult([sessionDifferencesTable(differences)],{changed:!!differences.length||fingerprint(plan.goal)!==fingerprint(other.goal),differences,goals:{before:plan.goal,after:other.goal},totals:{before:sportsTotals(plan.sessions),after:sportsTotals(other.sessions)}})
       }
       return generate(cwd, config, o, true)
     }
     throw new Error(`${t.unsupported} ${action}`)
   } catch (e) { return sportsFailure(e) }
 }
+
+/** Sesje, które różnią się między dwoma planami (po ID): dla `diff --plan` i podglądu `diff`. */
+function sessionDifferences(before: TrainingSession[], after: TrainingSession[]): { id: string; before: TrainingSession | null; after: TrainingSession | null }[] {
+  const a = new Map(before.map(s => [s.id, s])), z = new Map(after.map(s => [s.id, s]))
+  return [...new Set([...a.keys(), ...z.keys()])].filter(id => fingerprint(a.get(id) ?? null) !== fingerprint(z.get(id) ?? null)).map(id => ({ id, before: a.get(id) ?? null, after: z.get(id) ?? null }))
+}
+const sessionDifferencesTable = (differences: ReturnType<typeof sessionDifferences>): Block =>
+  b.table(['ID', msg().before, msg().after], differences.map(d => [d.id, d.before ? sessionText(d.before) : '—', d.after ? sessionText(d.after) : '—']))
 
 function generate(cwd: string, config: SportsConfig, o: SportsOptions, preview = false): SportsResult {
   const t = msg(), date = o.date ?? clockToday(), existing = readOptional(cwd, PLAN_YAML) ? loadSportsPlan(cwd) : undefined
@@ -459,13 +468,21 @@ function generate(cwd: string, config: SportsConfig, o: SportsOptions, preview =
   for (const s of next.sessions) if (!retained.has(s.id)) next.generatedSessions[s.id] = fingerprint(s)
   checked(next, config)
   const changed = !existing || fingerprint({ sessions: existing.sessions, goal: existing.goal, groups: existing.groups }) !== fingerprint({ sessions: next.sessions, goal: next.goal, groups: next.groups })
-  if (preview) return sportsResult([b.info(changed ? t.written : t.unchanged)], { changed, plan: next })
+  if (preview) {
+    // podgląd regeneracji niczego nie zapisuje: zmienione sesje i podpowiedź `plan`
+    const differences = sessionDifferences(existing?.sessions ?? [], next.sessions)
+    return sportsResult(changed ? [b.title(ui().diff.title), sessionDifferencesTable(differences), b.hint(ui().diff.applyHint)] : [b.success(ui().diff.upToDate)], { changed, plan: next, differences })
+  }
   if (changed) writeSportsPlan(cwd, next)
+  // PLAN.md w jednostce i zapisie z profilu także bez zmiany sesji (C9, C10), jak plan biegowy
+  const markdown = !changed && existing ? inProfileView(cwd, () => sportsMarkdown(existing)) : undefined
+  const markdownRefreshed = markdown !== undefined && readOptional(cwd, PLAN_MD) !== markdown
+  if (markdownRefreshed) writeTransaction(cwd, { [PLAN_MD]: markdown })
   const shown = changed || !existing ? next : existing
   return commitResult(cwd, o, sportsResult([
     ...planOverview(shown, effectiveConfig, date),
     // „Zapisano" z nazwami plików, jak w planie biegowym (sam „Zapisano:" wisiał bez dopełnienia)
-    b.blank(), b.success(changed ? ui().common.saved(`${PLAN_YAML} + ${PLAN_MD}`) : t.unchanged), ...next.warnings.map(w => b.warn(w)),
+    b.blank(), b.success(changed ? ui().common.saved(`${PLAN_YAML} + ${PLAN_MD}`) : markdownRefreshed ? ui().common.saved(PLAN_MD) : t.unchanged), ...next.warnings.map(w => b.warn(w)),
     b.hint('trainctl today · trainctl week · trainctl season'),
   ], { plan: shown, changed, applied: changed, season: metricData(() => sessionsSeasonRows(shown.sessions)) }), [PLAN_YAML, PLAN_MD], 'plan')
 }

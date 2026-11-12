@@ -250,7 +250,11 @@ export function notationLegend(unit: string, opts: { locale?: Locale; style?: No
 }
 
 /** Wiersz struktury jednostki w widoku dnia (C2): część, dawka, cel, przerwa. */
-export interface StructureRow { part: string; dose: string; target: string; recovery: string }
+export interface StructureRow {
+  part: string; dose: string; target: string; recovery: string
+  /** Bieg spokojny jednostki (bez przebieżek): tu widok dopisuje pułap tętna (C8). */
+  easy?: true
+}
 
 const row = (part: string, dose: string, target = '', recovery = ''): StructureRow => ({ part, dose, target, recovery })
 
@@ -273,7 +277,7 @@ export function workoutStructure(workout: PlannedWorkout, opts: NotationOptions 
         return [row(t.part.cooldown, dist, s.pace ? band(s.pace) : t.jog)]
       case 'easy':
         return [
-          row(t.part.easy, dist, band(s.pace)),
+          { ...row(t.part.easy, dist, band(s.pace)), easy: true },
           ...(s.strides ? [row(t.part.strides, `${s.strides.count}${g.times}${s.strides.meters} m`)] : []),
         ]
       case 'steady':

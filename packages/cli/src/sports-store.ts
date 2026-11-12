@@ -12,7 +12,7 @@ import { ui } from './i18n/index.ts'
 import { rowsTable, seasonTable, sessionRows, sessionsSeasonRows, tableMarkdown } from './ui/rows.ts'
 import { CONFIG_FILE, inProfileView, loadConfig, validateConfig, type TrainctlConfig } from './config.ts'
 import { PLAN_YAML, PLAN_MD, loadPlan, workoutText } from './planfile.ts'
-import { LOG_FILE } from './logfile.ts'
+import { LOG_FILE, readJournal } from './logfile.ts'
 import { SYNC_FILE } from './sync.ts'
 import { clockToday } from './clock.ts'
 import { runningDurationMinutes, runningSessions } from './sports-running.ts'
@@ -180,11 +180,16 @@ export function migrationCandidate(cwd: string): { plan: SportsPlan; config: Spo
     preparationMinutes: old.preparationMinutes ?? 15, language: rawConfig.language, ...(goal.kind === 'race' ? { estimatedMinutes: goal.estimatedMinutes } : {}) })
   // cel planu = cel profilu v2 (z czasem docelowym): inaczej pierwszy `plan` uznałby go za nowy cel
   plan.goal = structuredClone(config.goal)
-  const logs = (readOptional(cwd, LOG_FILE) ?? '').split('\n').filter(l => l.trim()).map(l => {
-    const oldLog = JSON.parse(l)
-    const sport = oldLog.activity === 'strength' ? 'strength' : 'run'
+  // dziennik tą samą normalizacją co komendy (liczby zapisane tekstem, wartości spoza granic);
+  // uszkodzony wiersz zatrzymuje migrację, jak każdą zmianę planu (readLogForChanges)
+  const journal = readJournal(cwd)
+  if (journal.broken.length) throw new Error(ui().common.logBroken(LOG_FILE, journal.broken.join(', ')))
+  const logs = [...journal.runs, ...journal.strength].map((entry) => {
+    const oldLog = entry as unknown as Record<string, unknown> & { date: string }
+    const sport = oldLog['activity'] === 'strength' ? 'strength' : 'run'
     const sessionId = `${cycleId}-${oldLog.date}-${sport}`
-    return { ...oldLog, schemaVersion: 2, sessionId, sport, ...(oldLog.timeSec !== undefined ? { durationSec: oldLog.timeSec } : oldLog.minutes !== undefined ? { durationSec: oldLog.minutes * 60 } : {}), ...(oldLog.km !== undefined ? { distanceM: oldLog.km * 1000 } : {}) }
+    const km = oldLog['km'] as number | undefined, timeSec = oldLog['timeSec'] as number | undefined, minutes = oldLog['minutes'] as number | undefined
+    return { ...oldLog, schemaVersion: 2, sessionId, sport, ...(timeSec !== undefined ? { durationSec: timeSec } : minutes !== undefined ? { durationSec: minutes * 60 } : {}), ...(km !== undefined ? { distanceM: Math.round(km * 1e4) / 10 } : {}) }
   })
   return { plan, config, log: logs.map(l => JSON.stringify(l)).join('\n') + (logs.length ? '\n' : '') }
 }

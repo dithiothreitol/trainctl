@@ -7,7 +7,10 @@ import { recoverSportsTransaction, writeTransaction } from './sports-transaction
 
 let dir: string
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'trainctl-transaction-')) })
-afterEach(() => rmSync(dir, { recursive: true, force: true }))
+afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3 }))
+// osobny proces Node z importem TypeScript: pod obciążeniem pełnego `pnpm check` trwa dłużej
+// niż domyślne 5 s (rejestr §14, etap 3) — limit to wybór inżynierski
+const CHILD_PROCESS_TIMEOUT = 30_000
 function crash(): void {
   writeFileSync(join(dir, 'first.txt'), 'before')
   // A real separate process exits BETWEEN target renames. No JS finally runs.
@@ -32,13 +35,13 @@ it.each(['resume', 'rollback'] as const)('recovers a killed process with %s and 
   expect(existsSync(join(dir, 'plan/.transaction.json'))).toBe(false)
   writeTransaction(dir, { 'first.txt': 'next' })
   expect(readFileSync(join(dir, 'first.txt'), 'utf8')).toBe('next')
-})
+}, CHILD_PROCESS_TIMEOUT)
 it('refuses recovery after a manual edit, preserving all evidence', () => {
   crash(); writeFileSync(join(dir, 'first.txt'), 'manual')
   expect(() => recoverSportsTransaction(dir)).toThrow(/edited|zmieniono/)
   expect(readFileSync(join(dir, 'first.txt'), 'utf8')).toBe('manual')
   expect(existsSync(join(dir, 'plan/.transaction.json'))).toBe(true)
-})
+}, CHILD_PROCESS_TIMEOUT)
 it('rejects paths outside the workspace before any mutation', () => {
   expect(() => writeTransaction(dir, { 'good.txt': 'yes', '../escape.txt': 'no' })).toThrow(/path/)
   expect(existsSync(join(dir, 'good.txt'))).toBe(false)

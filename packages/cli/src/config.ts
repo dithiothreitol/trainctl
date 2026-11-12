@@ -56,42 +56,38 @@ export interface TrainctlConfig {
   notation?: NotationStyle
 }
 
-/**
- * Język z pliku konfiguracyjnego, czytany BEZ pełnej walidacji profilu:
- * `trainctl init` i komunikaty błędów muszą znać język, zanim ktokolwiek sprawdzi,
- * czy `athlete.recentWeeklyKm` jest liczbą.
- */
-/** C9: jednostka widoku z trainctl.yaml, czytana jak język — bez pełnej walidacji profilu. */
-export function readConfigUnits(cwd: string): Units | undefined {
+/** C9, C10: jednostka i zapis notacji z trainctl.yaml jednym odczytem, bez pełnej walidacji profilu. */
+function readViewFields(cwd: string): { units?: Units; notation?: NotationStyle } {
   const path = join(cwd, CONFIG_FILE)
-  if (!existsSync(path)) return undefined
+  if (!existsSync(path)) return {}
   try {
-    const raw = parse(readFileSync(path, 'utf-8')) as { units?: unknown } | null
-    return isUnits(raw?.units) ? raw.units : undefined
+    const raw = parse(readFileSync(path, 'utf-8')) as { units?: unknown; notation?: unknown } | null
+    return { ...(isUnits(raw?.units) ? { units: raw.units } : {}), ...(isNotationStyle(raw?.notation) ? { notation: raw.notation } : {}) }
   } catch {
-    return undefined
+    return {}
   }
 }
+
+/** C9: jednostka widoku z trainctl.yaml, czytana jak język — bez pełnej walidacji profilu. */
+export const readConfigUnits = (cwd: string): Units | undefined => readViewFields(cwd).units
+
+/** C10: zapis notacji z trainctl.yaml, czytany jak jednostka — bez pełnej walidacji profilu. */
+export const readConfigNotation = (cwd: string): NotationStyle | undefined => readViewFields(cwd).notation
 
 /**
  * C9, C10: plik widoku (PLAN.md) w jednostce i zapisie z profilu, nie z flagi jednego
  * wywołania — `trainctl --units imperial plan` na podgląd nie przestawia trwałego pliku.
  */
-export const inProfileView = <T>(cwd: string, fn: () => T): T =>
-  withUnits(readConfigUnits(cwd) ?? 'metric', () => withNotation(readConfigNotation(cwd) ?? 'neutral', fn))
-
-/** C10: zapis notacji z trainctl.yaml, czytany jak jednostka — bez pełnej walidacji profilu. */
-export function readConfigNotation(cwd: string): NotationStyle | undefined {
-  const path = join(cwd, CONFIG_FILE)
-  if (!existsSync(path)) return undefined
-  try {
-    const raw = parse(readFileSync(path, 'utf-8')) as { notation?: unknown } | null
-    return isNotationStyle(raw?.notation) ? raw.notation : undefined
-  } catch {
-    return undefined
-  }
+export function inProfileView<T>(cwd: string, fn: () => T): T {
+  const view = readViewFields(cwd)
+  return withUnits(view.units ?? 'metric', () => withNotation(view.notation ?? 'neutral', fn))
 }
 
+/**
+ * Język z pliku konfiguracyjnego, czytany BEZ pełnej walidacji profilu:
+ * `trainctl init` i komunikaty błędów muszą znać język, zanim ktokolwiek sprawdzi,
+ * czy `athlete.recentWeeklyKm` jest liczbą.
+ */
 export function readConfigLanguage(cwd: string): string | undefined {
   const path = join(cwd, CONFIG_FILE)
   if (!existsSync(path)) return undefined

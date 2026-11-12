@@ -340,6 +340,7 @@ export const corePl: CoreMessages = {
       `szczyt planu ${planned} km/tydz. poniżej rekomendacji ${recommended} km/tydz. ` +
       `dla ${n(distanceKm)} km (P-7/P-8) — cel czasowy obarczony ryzykiem`,
     timeTrialForCalibration: 'sprawdzian: brak startów w kalendarzu — kalibracja stref',
+    tuneUpFlag: (priority: string, date: string) => `start kontrolny ${priority}: ${date}`,
   },
 
   adapt: {

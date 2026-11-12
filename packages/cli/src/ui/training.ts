@@ -57,9 +57,9 @@ export const rpeScaleLegend = (): string => card().rpeScale
 export const hasEffortScale = (s: TrainingSession): boolean => s.steps.some(step => step.effort)
 
 /**
- * Presentation only: RPE comes from the step stored in the plan (a running session
- * from the running plan carries the MS-6 hint by segment type, C5); the view never
- * infers it from pace, watts or the session's purpose.
+ * Tylko prezentacja: RPE pochodzi z kroku zapisanego w planie (bieg z planu biegowego
+ * niesie wskazówkę MS-6 według typu segmentu, C5); widok nigdy nie wyprowadza go z tempa,
+ * mocy ani celu sesji.
  * `scale: false`: objaśnienie skali drukuje widok raz dla wszystkich kart.
  */
 export function trainingCard(s: TrainingSession, detail = false, label?: string, scale = detail): Block {

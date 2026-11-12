@@ -55,7 +55,7 @@ import {
 import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
 import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
-import { kmLabel, logStatusText, parseDecimal, perWeekLabel, shownKm, workoutKm } from './format.ts'
+import { KM_SHOWN_TOLERANCE, kmLabel, logStatusText, parseDecimal, perWeekLabel, shownKm, workoutKm } from './format.ts'
 import { inferredSportsYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, latestByDate, LOG_LIMITS, parseBreakReason, parseTime, readJournal, readLog, readLogForChanges, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
@@ -524,7 +524,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
     // C8: pułap tętna przy biegu spokojnym i długim — w celu części spokojnej i jednym zdaniem pod strukturą
     const ceiling = day.workout && plan.hrCeiling && HR_CEILING_KINDS.has(day.workout.kind) ? plan.hrCeiling : undefined
     const structureOf = () => day.workout ? workoutStructure(day.workout, { ascii: asciiOutput() }).map((part) =>
-      ceiling && part.part === messages().notation.part.easy ? { ...part, target: [part.target, hrCeilingText(ceiling.bpm, asciiOutput())].filter(Boolean).join(', ') } : part) : []
+      ceiling && part.easy ? { ...part, target: [part.target, hrCeilingText(ceiling.bpm, asciiOutput())].filter(Boolean).join(', ') } : part) : []
     const structure = structureOf()
     if (day.workout) {
       const w = day.workout
@@ -2057,7 +2057,7 @@ const segmentShape = (workout: PlannedWorkout): string =>
     .join('|')
 
 const kmDiffers = (a: number | undefined, b: number | undefined): boolean =>
-  Math.abs((a ?? 0) - (b ?? 0)) > 0.05
+  Math.abs((a ?? 0) - (b ?? 0)) > KM_SHOWN_TOLERANCE
 
 /**
  * Różnice tydzień po tygodniu, dzień po dniu — po danych planu (rodzaj, objętość,

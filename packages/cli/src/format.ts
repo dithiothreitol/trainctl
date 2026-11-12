@@ -2,6 +2,9 @@
 import { distanceIn, distanceUnit, formatNumber, getLocale } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 
+/** Różnica kilometrów, której widok nie pokazuje (zaokrąglenie do 0,1 km; inż.). */
+export const KM_SHOWN_TOLERANCE = 0.05
+
 /**
  * Dystans skrótem „km" w formacie języka: „21,1 km" po polsku, „21.1 km" po
  * angielsku — do tabel i wierszy. Forma słowna („8 kilometrów") to osobny

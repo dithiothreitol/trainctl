@@ -9,7 +9,7 @@ import {
   type ExecutionRecord, type Microcycle, type PlannedWorkout, type StructureRow, type TrainingSession, type Weekday,
 } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
-import { kmLabel, logStatusText, shownKm } from '../format.ts'
+import { KM_SHOWN_TOLERANCE, kmLabel, logStatusText, shownKm } from '../format.ts'
 import type { LogEntry, StrengthLogEntry } from '../logfile.ts'
 import { b, type Block, type RowMark } from './blocks.ts'
 import type { ColorName } from './theme.ts'
@@ -131,7 +131,7 @@ export function sessionRows(sessions: TrainingSession[], opts: {
   const t = ui().rows
   return [...sessions].sort((a, z) => a.date.localeCompare(z.date) || (a.start ?? '').localeCompare(z.start ?? '')).map((s) => {
     const status = opts.status?.get(s.id)
-    const weekday = (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[new Date(`${s.date}T12:00:00Z`).getUTCDay()]!
+    const weekday = weekdayOf(s.date)
     return {
       date: s.date, weekday, sport: s.sport,
       // siła ma sport „siła" w kolumnie sportu; typ byłby powtórzeniem
@@ -240,7 +240,7 @@ export function structureTable(parts: StructureRow[], accent?: ColorName): Block
 export function weekKm(week: Microcycle): { km: number; target: boolean } {
   if (week.days.some((d) => d.workout?.kind === 'race')) return { km: week.totalKm, target: false }
   const planned = plannedWeekKm(week.skeleton)
-  return { km: planned, target: Math.abs(week.totalKm - planned) > 0.05 }
+  return { km: planned, target: Math.abs(week.totalKm - planned) > KM_SHOWN_TOLERANCE }
 }
 
 /** Tydzień siatki sezonu (C2) — te same dane w tabeli i w `structuredContent`. */

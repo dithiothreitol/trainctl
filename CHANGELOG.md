@@ -356,6 +356,13 @@ change between minor versions — a regenerated plan can differ.
 - A session plan created from a running profile was written with YAML aliases,
   and a long plan then failed to load ("Excessive alias count"). Plans are now
   written without aliases, and such files load again.
+- `diff` in a session-plan workspace lists the sessions a regeneration would
+  change instead of printing "Written:" without writing anything, and `plan`
+  rewrites PLAN.md when only `units` or `notation` changed in the profile.
+- `migrate` reads `log.jsonl` the way the commands do (numbers written as text,
+  values out of range) and stops on an unreadable line instead of failing on it.
+- The week flag of a tune-up race in `plan.yaml` and in MCP data follows the
+  plan language instead of always being Polish.
 - `review`: the day-by-day execution table is headed Plan / Actual / Status
   instead of reusing the before/after labels of plan changes; the days-to-race
   line no longer repeats its label.

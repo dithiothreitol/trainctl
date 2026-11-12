@@ -356,6 +356,7 @@ export const coreEn = {
       `plan peaks at ${planned} km/week, below the ${recommended} km/week recommended for ` +
       `${n(distanceKm)} km (P-7/P-8) — the time goal carries risk`,
     timeTrialForCalibration: 'time trial: no races on the calendar — zone calibration',
+    tuneUpFlag: (priority: string, date: string) => `tune-up race ${priority}: ${date}`,
   },
 
   adapt: {
