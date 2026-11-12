@@ -3,7 +3,7 @@
  * Same teksty siedzą w katalogu tłumaczeń; tutaj zostaje wyłącznie dostęp
  * po ID reguły i po rodzaju jednostki.
  */
-import { coachText, sportMessages, type WorkoutKind } from 'trainctl-core'
+import { sportMessages, type WorkoutKind } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 import { packageVersion } from './version.ts'
 
@@ -22,7 +22,7 @@ export const ruleSourceUrl = (id: string): string => id.startsWith('MS-')
 
 /** Objaśnienie reguły po jej ID (np. `I-7`); undefined, gdy reguły nie opisano. */
 export const ruleExplain = (id: string): string | undefined =>
-  id === 'MS-6' ? coachText('Jednostka ma cel, uzasadnienie, rozgrzewkę, część główną, odpoczynek i schłodzenie. Biblioteka dobiera ograniczoną dawkę do dyscypliny, fazy, doświadczenia i celu. Bez aktualnej kalibracji stosuje RPE 1–10. Dokładne parametry są wyborami inżynierskimi, bez walidacji trenerskiej całej biblioteki.', 'Each session includes an objective, rationale, warm-up, main set, recovery and cool-down. Bounded recipes depend on sport, phase, experience and goal. Without current calibration, use RPE 1–10. Exact parameters are engineering choices; the complete library has not been coach-validated.') : id === 'MS-1' ? sportMessages().engineering : id === 'MS-2' ? sportMessages().substitution : id === 'MS-4' ? sportMessages().progression : id === 'MS-5' ? sportMessages().intentPolicy : id === 'MS-3' ? sportMessages().adaptation : id === 'E-1' ? ui().coach.heuristic : (ui().rules as Record<string, string>)[id]
+  id === 'MS-6' ? sportMessages().recipePolicy : id === 'MS-1' ? sportMessages().engineering : id === 'MS-2' ? sportMessages().substitution : id === 'MS-4' ? sportMessages().progression : id === 'MS-5' ? sportMessages().intentPolicy : id === 'MS-3' ? sportMessages().adaptation : id === 'E-1' ? ui().coach.heuristic : (ui().rules as Record<string, string>)[id]
 
 /** Po co jest ta jednostka — jedno zdanie o celu fizjologicznym. */
 export const kindPurpose = (kind: WorkoutKind): string => ui().kindPurpose[kind]

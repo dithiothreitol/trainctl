@@ -1,13 +1,43 @@
-import { getLocale } from '../i18n/index.ts'
+import type { PlannedSegment, PlannedWorkout } from '../domain/types.ts'
+import { messages } from '../i18n/index.ts'
 import { sportMessages } from './messages.ts'
 import type { EffortGuide, SessionContext, Sport, StepTarget, TrainingSession } from './types.ts'
 
-export const coachText = (pl: string, en: string): string => getLocale() === 'pl' ? pl : en
+/**
+ * PLAN-v0.7 C5: planowany zakres RPE według typu segmentu biegowego — MS-6, wybór
+ * inżynierski (bez walidacji trenerskiej), ta sama skala co przepisy roweru i pływania.
+ * Opis zamiaru dla biegacza: nie kalibruje stref (Z-4) i nie ocenia wykonania (ADR-027).
+ */
+const RUN_SEGMENT_RPE: Record<PlannedSegment['type'], [number, number]> = {
+  warmup: [2, 3],
+  cooldown: [1, 2],
+  easy: [3, 4],
+  steady: [5, 6],
+  hills: [5, 6],
+  progression: [5, 7],
+  alternating: [6, 7],
+  intervals: [7, 8],
+  race: [8, 9],
+}
+/** MS-6 (inż.): sprawdzian na czas to wysiłek maksymalny, wyżej niż start z zapasem na trasę. */
+const TIME_TRIAL_RPE: [number, number] = [9, 10]
+
+/** Najmocniejszy segment jednostki biegowej wyznacza jej planowany zakres RPE. */
+export function runningEffort(workout: PlannedWorkout): EffortGuide {
+  const ranges = workout.segments.map((s) => (s.type === 'race' && workout.kind === 'test' ? TIME_TRIAL_RPE : RUN_SEGMENT_RPE[s.type]))
+  const [min, max] = ranges.reduce((hardest, r) => (r[1] > hardest[1] ? r : hardest), [1, 2] as [number, number])
+  return effortGuide(min, max)
+}
+
+/** Teksty coachingu z katalogu (C6): `messages().coaching`, bez par pl/en w kodzie. */
+const coach = () => messages().coaching
+
 export function effortGuide(min: number, max: number, swim = false): EffortGuide {
-  const cue = max <= 3 ? coachText('Bardzo lekko; spokojny, swobodny oddech.', 'Very easy; relaxed, unhurried breathing.')
-    : max <= 4 ? coachText(swim ? 'Swobodny wydech do wody; technika bez napięcia.' : 'Swobodna rozmowa pełnymi zdaniami.', swim ? 'Relaxed exhalation into the water; unforced technique.' : 'Comfortable conversation in full sentences.')
-    : max <= 6 ? coachText(swim ? 'Równy rytm; bez pogarszania chwytu wody.' : 'Wyraźny wysiłek; możliwe krótkie zdania.', swim ? 'Steady rhythm; maintain the catch.' : 'Purposeful effort; short sentences possible.')
-    : coachText(swim ? 'Mocno, ale z kontrolą ruchu i oddechu; bez wstrzymywania oddechu.' : 'Mocno, ale bez sprintu; pozostaw zapas na ostatni odcinek.', swim ? 'Hard but controlled stroke and breathing; no breath holding.' : 'Hard, not a sprint; keep enough in reserve for the last repetition.')
+  const c = coach().cue
+  const cue = max <= 3 ? c.veryEasy
+    : max <= 4 ? (swim ? c.easySwim : c.easy)
+    : max <= 6 ? (swim ? c.moderateSwim : c.moderate)
+    : (swim ? c.hardSwim : c.hard)
   return { min, max, cue }
 }
 export function targetText(target: StepTarget): string {
@@ -16,7 +46,7 @@ export function targetText(target: StepTarget): string {
     const seconds=Math.round(target.seconds)
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}/${target.perM === 1000 ? 'km' : '100 m'}`
   }
-  return coachText('według odczucia', 'by feel')
+  return coach().byFeel
 }
 export const effortText = (e: EffortGuide): string => `RPE ${e.min}–${e.max}/10 · ${e.cue}`
 export function sessionStepLines(s: TrainingSession, detail = true): string[] {
@@ -30,38 +60,35 @@ export function sessionStepLines(s: TrainingSession, detail = true): string[] {
 }
 export function coachingLines(s: TrainingSession, detail = true): string[] {
   if (!s.coaching) return []
-  const c = s.coaching
-  return [`${coachText('Cel', 'Objective')}: ${c.objective}`, ...(detail ? [
-    `${coachText('Dlaczego', 'Why')}: ${c.rationale}`,
-    ...c.successCriteria.map(x => `${coachText('Wykonanie', 'Success')}: ${x}`),
-    ...c.adjustments.map(x => `${coachText('Dostosowanie', 'Adjustment')}: ${x}`),
+  const c = s.coaching, l = coach().label
+  return [`${l.objective}: ${c.objective}`, ...(detail ? [
+    `${l.why}: ${c.rationale}`,
+    ...c.successCriteria.map(x => `${l.success}: ${x}`),
+    ...c.adjustments.map(x => `${l.adjustment}: ${x}`),
   ] : [])]
 }
 export function contextRationale(context: SessionContext, sport: Sport): string {
-  const phase = context.phase ?? 'base', t = sportMessages()
+  const phase = context.phase ?? 'base', t = sportMessages(), l = coach().label, x = coach().context
   const goal = context.goal
-  const distance = goal?.sport === sport ? goal.distanceM : goal?.legs?.filter(x => x.sport === sport).reduce((n,x) => n + x.distanceM,0)
+  const distance = goal?.sport === sport ? goal.distanceM : goal?.legs?.filter(g => g.sport === sport).reduce((n,g) => n + g.distanceM,0)
   return [
-    context.phase ? `${coachText('Faza', 'Phase')}: ${t.phases[phase]}.` : coachText('Jednostka samodzielna, bez wskazanej fazy planu.', 'Standalone session without a specified plan phase.'),
-    context.weekIndex !== undefined ? `${coachText('Tydzień cyklu', 'Cycle week')}: ${context.weekIndex + 1}.` : '',
-    goal ? `${coachText('Cel planu', 'Plan goal')}: ${goal.name}${distance ? ` (${distance} m)` : ''}.` : '',
-    phase === 'deload' || phase === 'recovery' ? coachText('Zmniejszona dawka pozwala odpocząć między blokami obciążenia.', 'Reduced work allows recovery between loading blocks.')
-      : phase === 'taper' ? coachText('Krótki bodziec podtrzymuje rytm przy mniejszej objętości przed startem.', 'A short stimulus maintains rhythm with less volume before the event.')
-      : coachText('Dawkę ograniczają poziom doświadczenia i dostępny czas; progresja nie wymaga zwiększania intensywności.', 'Experience and available time limit the dose; progression does not require increasing intensity.'),
-    context.brick ? coachText('Zakładka: ćwicz spokojne przejście z roweru do biegu i kontrolę tempa po zmianie dyscypliny.', 'Brick: practise a calm bike-to-run transition and controlled pacing after the change of sport.') : '',
+    context.phase ? `${l.phase}: ${t.phases[phase]}.` : x.standalone,
+    context.weekIndex !== undefined ? `${l.cycleWeek}: ${context.weekIndex + 1}.` : '',
+    goal ? `${l.planGoal}: ${goal.name}${distance ? ` (${distance} m)` : ''}.` : '',
+    phase === 'deload' || phase === 'recovery' ? x.reduced : phase === 'taper' ? x.taper : x.dose,
+    context.brick ? x.brick : '',
   ].filter(Boolean).join(' ')
 }
 export function attachRunningCoaching(s: TrainingSession, context: SessionContext = {}): TrainingSession {
   if (!s.legacyWorkout) return s
-  const kind = s.legacyWorkout.kind
-  const objective = kind === 'test' ? coachText('Zmierz aktualną dyspozycję biegową, zachowując protokół sprawdzianu.', 'Measure current running fitness while preserving the test protocol.')
-    : s.purpose === 'race' ? coachText('Zrealizuj cel startowy i kontroluj początkowe tempo.', 'Execute the race goal with a controlled opening pace.')
-    : s.purpose === 'long' ? coachText('Rozwijaj wytrzymałość długotrwałą i utrzymanie techniki przy narastającym zmęczeniu.', 'Develop durability and maintain form as fatigue builds.')
-    : s.legacyWorkout.segments.some(x => x.type === 'hills') ? coachText('Ćwicz rytm i siłę biegową na podbiegu, kontrolując technikę.', 'Practise uphill rhythm and running strength with controlled form.')
-    : s.legacyWorkout.segments.some(x=>x.type==='progression') ? coachText('Rozwijaj kontrolę tempa narastającego bez gwałtownego przyspieszania.', 'Develop control of progressive pacing without sudden acceleration.')
-    : s.purpose === 'intervals' ? coachText('Rozwijaj zdolność utrzymania tempa wskazanego w odcinkach; zachowaj zaplanowane przerwy.', 'Develop the ability to sustain the prescribed segment pace; keep the planned recoveries.')
-    : coachText('Buduj wytrzymałość tlenową przy swobodnym oddechu.', 'Build aerobic endurance with comfortable breathing.')
+  const kind = s.legacyWorkout.kind, r = coach().running
+  const objective = kind === 'test' ? r.test
+    : s.purpose === 'race' ? r.race
+    : s.purpose === 'long' ? r.long
+    : s.legacyWorkout.segments.some(x => x.type === 'hills') ? r.hills
+    : s.legacyWorkout.segments.some(x=>x.type==='progression') ? r.progression
+    : s.purpose === 'intervals' ? r.intervals
+    : r.easy
   return { ...s, ...(context.phase?{phase:context.phase}:{}), coaching: { version:1, recipeId:`run-legacy-${kind}`, title:sportMessages().purpose[s.purpose], objective,
-    rationale: contextRationale(context, 'run'), successCriteria:[coachText('Utrzymaj zakresy tempa i równą technikę do końca; zapisz czas oraz RPE po treningu.', 'Keep the prescribed pace ranges and consistent form through the finish; log duration and RPE afterwards.')],
-    adjustments:[coachText('Przy utracie techniki zwolnij; skracaj jednostkę narzędziem planu, zachowując rozgrzewkę i schłodzenie.', 'Slow down if form deteriorates; use the plan tool to shorten the session while preserving warm-up and cool-down.')] } }
+    rationale: contextRationale(context, 'run'), successCriteria:[r.success], adjustments:[r.adjustment] } }
 }

@@ -2,22 +2,23 @@
 import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
-import { getLocale } from 'trainctl-core'
+import { ui } from './i18n/index.ts'
 
 const JOURNAL = 'plan/.transaction.json'
 const LOCK = 'plan/.transaction.lock'
 interface Entry { path: string; before: string | null; after: string }
 interface Journal { version: 1; id: string; entries: Entry[]; digest: string }
 const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex')
-const message = (pl: string, en: string) => getLocale() === 'pl' ? pl : en
+/** Komunikaty z katalogu (C6): `ui().transaction`. */
+const t = () => ui().transaction
 const read = (path: string): string | null => existsSync(path) ? readFileSync(path, 'utf8') : null
 function safePath(cwd: string, path: string): string {
   const base = realpathSync(cwd), full = resolve(base, path), rel = relative(base, full)
-  if (!rel || rel.startsWith('..') || isAbsolute(rel) || path === JOURNAL || path === LOCK) throw new Error('Invalid transaction path')
+  if (!rel || rel.startsWith('..') || isAbsolute(rel) || path === JOURNAL || path === LOCK) throw new Error(t().invalidPath)
   let ancestor = full
   while (!existsSync(ancestor)) ancestor = dirname(ancestor)
   const actual = relative(base, realpathSync(ancestor))
-  if (actual.startsWith('..') || isAbsolute(actual)) throw new Error('Transaction path leaves workspace')
+  if (actual.startsWith('..') || isAbsolute(actual)) throw new Error(t().outsidePath)
   return full
 }
 function durable(path: string, content: string): void {
@@ -39,7 +40,7 @@ function locked<T>(cwd: string, run: () => T): T {
     const owner = JSON.parse(readFileSync(path, 'utf8')) as { pid: number }
     let alive = true
     try { process.kill(owner.pid, 0) } catch (e) { if ((e as NodeJS.ErrnoException).code === 'ESRCH') alive = false }
-    if (alive) throw new Error(message('Inny proces zapisuje plan.', 'Another process is writing the plan.'))
+    if (alive) throw new Error(t().locked)
     rmSync(path)
   }
   durable(path, JSON.stringify({ pid: process.pid }))
@@ -50,11 +51,11 @@ function recoverLocked(cwd: string, mode: 'resume' | 'rollback'): boolean {
   if (!raw) return false
   const journal = JSON.parse(raw) as Journal
   const { digest, ...body } = journal
-  if (journal.version !== 1 || !/^[a-f0-9-]{36}$/.test(journal.id) || digest !== hash(body)) throw new Error('Invalid transaction journal')
+  if (journal.version !== 1 || !/^[a-f0-9-]{36}$/.test(journal.id) || digest !== hash(body)) throw new Error(t().invalidJournal)
   // Validate EVERY entry before changing any: manual edits must never be lost.
   for (const entry of journal.entries) {
     const current = read(safePath(cwd, entry.path))
-    if (current !== entry.before && current !== entry.after) throw new Error(message(`Odzyskiwanie zatrzymane: zmieniono ${entry.path}.`, `Recovery stopped: ${entry.path} was edited.`))
+    if (current !== entry.before && current !== entry.after) throw new Error(t().recoveryStopped(entry.path))
   }
   for (const entry of journal.entries) {
     const full = safePath(cwd, entry.path), value = mode === 'resume' ? entry.after : entry.before

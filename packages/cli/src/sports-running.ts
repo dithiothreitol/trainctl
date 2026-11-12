@@ -1,5 +1,5 @@
 /** Adapter: the established running engine remains authoritative after migration. */
-import { attachRunningCoaching, estimateWorkoutMinutes, predictTimeSec, type PlannedWorkout, type SportsConfig, type SportsPlan, type TrainingSession } from 'trainctl-core'
+import { attachRunningCoaching, estimateWorkoutMinutes, predictTimeSec, runningEffort, type PlannedWorkout, type SportsConfig, type SportsPlan, type TrainingSession } from 'trainctl-core'
 import { computePlan, dayFingerprint, workoutText, type StoredPlan } from './planfile.ts'
 import type { TrainctlConfig } from './config.ts'
 import { rebuildPlan } from './regenerate.ts'
@@ -23,7 +23,8 @@ export function runningSessions(plan: StoredPlan, cycleId: string): TrainingSess
     return [attachRunningCoaching({ id: `${cycleId}-${d.date}-${sport}`, date: d.date, sport,
       purpose: sport === 'strength' ? 'strength' : workout!.kind === 'race' ? 'race' : workout!.kind === 'long' ? 'long' : workout!.kind.includes('quality') || workout!.kind === 'test' ? 'intervals' : 'easy',
       durationSec: seconds, preparationSec: sport === 'run' ? (plan.preparationMinutes ?? 15) * 60 : 0,
-      steps: [{ role: 'work', durationSec: seconds, target: { kind: 'open' } }],
+      // C5: bieg niesie planowany zakres RPE (MS-6, inż.) tą samą drogą co rower i pływanie
+      steps: [{ role: 'work', durationSec: seconds, target: { kind: 'open' }, ...(sport === 'run' ? { effort: runningEffort(workout!) } : {}) }],
       ruleRefs: sport === 'run' ? workout!.ruleRefs : strength!.ruleRefs,
       ...(sport === 'run' && !Number.isFinite(estimateWorkoutMinutes(workout!,0)) ? {durationSource:'running-prediction'} : {}),
       ...(approved ? { approved: true } : {}), ...(d.pinned ? { pinned: true } : {}),

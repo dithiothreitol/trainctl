@@ -125,6 +125,121 @@ export const coreEn = {
   },
 
   /**
+   * PLAN-v0.7 C6: coaching sesji planu v2 — przepisy (MS-6, „inż.”), kroki,
+   * uzasadnienia i wskazówki wysiłku. Opis zamiaru, nie strefa ani ocena wykonania.
+   * Tekst trafia do `plan.yaml` w języku z chwili generowania.
+   */
+  coaching: {
+    /** Wskazówka RPE słowami: od bardzo lekko do mocno, osobno dla pływania. */
+    cue: {
+      veryEasy: 'Very easy; relaxed, unhurried breathing.',
+      easy: 'Comfortable conversation in full sentences.',
+      easySwim: 'Relaxed exhalation into the water; unforced technique.',
+      moderate: 'Purposeful effort; short sentences possible.',
+      moderateSwim: 'Steady rhythm; maintain the catch.',
+      hard: 'Hard, not a sprint; keep enough in reserve for the last repetition.',
+      hardSwim: 'Hard but controlled stroke and breathing; no breath holding.',
+    },
+    byFeel: 'by feel',
+    label: {
+      objective: 'Objective', why: 'Why', success: 'Success', adjustment: 'Adjustment',
+      phase: 'Phase', cycleWeek: 'Cycle week', planGoal: 'Plan goal', experience: 'Experience',
+    },
+    context: {
+      standalone: 'Standalone session without a specified plan phase.',
+      reduced: 'Reduced work allows recovery between loading blocks.',
+      taper: 'A short stimulus maintains rhythm with less volume before the event.',
+      dose: 'Experience and available time limit the dose; progression does not require increasing intensity.',
+      brick: 'Brick: practise a calm bike-to-run transition and controlled pacing after the change of sport.',
+    },
+    /** Cel biegu z planu biegowego w planie v2, według rodzaju jednostki. */
+    running: {
+      test: 'Measure current running fitness while preserving the test protocol.',
+      race: 'Execute the race goal with a controlled opening pace.',
+      long: 'Develop durability and maintain form as fatigue builds.',
+      hills: 'Practise uphill rhythm and running strength with controlled form.',
+      progression: 'Develop control of progressive pacing without sudden acceleration.',
+      intervals: 'Develop the ability to sustain the prescribed segment pace; keep the planned recoveries.',
+      easy: 'Build aerobic endurance with comfortable breathing.',
+      success: 'Keep the prescribed pace ranges and consistent form through the finish; log duration and RPE afterwards.',
+      adjustment: 'Slow down if form deteriorates; use the plan tool to shorten the session while preserving warm-up and cool-down.',
+    },
+    level: { trained: 'trained', regular: 'regular', new: 'new or unspecified' },
+    /** Uzasadnienie wyboru przepisu (MS-6). */
+    reason: {
+      race: 'The race remains a separate event; its distance and duration come from the goal, not the weekly training template.',
+      hard: 'The shorter event distance and declared training experience allow a short, bounded set of harder repetitions.',
+      sustained: 'A longer event or regular experience favours controlled subthreshold work over very hard repetitions.',
+      technique: 'The drill isolates a skill; the following main set transfers it to normal movement.',
+      openers: 'Before the event there are few repetitions; additional time stays easy.',
+      tempo: 'Base or a lighter week favours moderate power and full recoveries.',
+      swimCss: 'Repeated lengths with rests practise even pacing without requiring one long continuous effort.',
+      swimTimed: 'Without current CSS, time and RPE guide the harder repetitions; rests allow breathing and technique to recover.',
+      runRepeats: 'Short repetitions with recoveries practise an even, harder effort. Pace comes from a current running result; otherwise RPE guides the effort.',
+      easy: 'Easy intensity develops consistency and technique without adding another hard session.',
+    },
+    /** Przepisy MS-6: nazwa i cel sesji. */
+    recipe: {
+      race: { title: 'Race', objective: 'Execute the event goal using a separate pacing plan and course conditions.' },
+      brickBike: { title: 'Bike before transition', objective: 'Hold an even effort and finish with reserves for the run.' },
+      brickRun: { title: 'Run off the bike', objective: 'Practise running after cycling; start gently and settle into your stride.' },
+      bikeOpeners: { title: 'Short openers', objective: 'Maintain the rhythm of harder riding with a small work dose.' },
+      bikeTempo: { title: 'Controlled tempo', objective: 'Develop sustained, even moderate effort.' },
+      bikeAerobicPower: { title: 'Aerobic power: short repetitions', objective: 'Develop repeatable hard efforts without sprinting.' },
+      bikeThreshold: { title: 'Threshold repetitions', objective: 'Practise even power near FTP without fading across repetitions.' },
+      bikeSustained: { title: 'Sustained subthreshold repetitions', objective: 'Develop sustained, strong but controlled riding.' },
+      swimOpeners: { title: 'Short pre-race repetitions', objective: 'Maintain pace awareness and freshness with few repetitions.' },
+      swimControlledSpeed: { title: 'Controlled speed', objective: 'Keep an effective catch and rhythm during short, hard repetitions.' },
+      swimCssRepeats: { title: 'Even repetitions near CSS', objective: 'Practise repeatable pace and technique across repetitions.' },
+      swimTimedRepeats: { title: 'Timed repetitions by feel' },
+      technique: {
+        title: 'Technique and relaxed rhythm',
+        objectiveSwim: 'Improve alignment, exhalation and relaxed arm recovery, then transfer the skill to freestyle.',
+        objective: 'Practise smooth, even movement without increasing effort.',
+      },
+      runRepeats: { title: 'Controlled running repetitions', objective: 'Practise even-paced repetitions with controlled running form.' },
+      endurance: { title: 'Easy endurance', objective: 'Extend comfortable effort while maintaining stable technique.' },
+      aerobic: { title: 'Easy aerobic training', objective: 'Build aerobic endurance without accumulating heavy fatigue.' },
+    },
+    /** Instrukcje kroków. */
+    step: {
+      recoverySwim: 'Rest at the wall after every repetition, including the last.',
+      recovery: 'Move very easily after every repetition, including the last.',
+      warmup: 'Start very gently; gradually settle rhythm and breathing.',
+      cooldown: 'Gradually reduce effort and relax your movement.',
+      drillBreathing: 'Easy freestyle: look down, exhale into the water and turn for a natural breath. Do not lengthen breath holds.',
+      drillRecovery: 'Relaxed freestyle recovery: skim the fingertips above the surface. Do not force the shoulder; then return to normal freestyle.',
+      drillName: 'Technique drill',
+      transfer: 'Transfer the practised skill to easy freestyle.',
+      swimRepeats: 'Keep rhythm and stroke quality consistent from the first repetition to the last.',
+      swimSpare: 'Swim easily; maintain relaxed alignment.',
+      swimFinish: 'Swim easily and finish at the wall.',
+      lastRep: 'Make the last repetition as controlled as the first; do not exceed the target.',
+      drill: 'Keep a smooth rhythm; relax the shoulders without adding force.',
+      brick: 'Control breathing and rhythm through the sport transition; do not accelerate into fatigue.',
+      even: 'Keep an even effort and relaxed technique.',
+    },
+    /** Dostosowania zapisane przy sesji. */
+    adjust: {
+      replacedQuality: 'Quality work replaced by an easy session because of experience or recovery.',
+      swimNoSet: 'Too little time for a complete quality set; easy swimming selected.',
+      swimTimed: 'Without usable CSS or room for complete lengths: timed repetitions by RPE, without guessing distance. Finish at the wall.',
+      noSet: 'Too little time for a complete set with warm-up and recoveries; easy training selected.',
+      noDrill: 'The budget does not fit a drill and follow-up main set; complete an easy session.',
+      rpeOnly: 'Intensity is guided by RPE 1–10; a missing current measurement is not replaced by another sport’s result.',
+      slowDown: 'If effort or form falls outside the guidance, slow down or shorten the set. Do not make up missed repetitions.',
+    },
+    /** Kryteria wykonania. */
+    success: {
+      race: 'Execute the separate race plan; record your result and observations from the event.',
+      technique: 'Transfer the drill cue to the main set: keep relaxed breathing and smooth movement.',
+      intervals: 'Keep the prescribed effort and full recoveries; compare pace or power in the first and last repetitions.',
+      easy: 'Keep comfortable breathing and stable form; finish with reserves.',
+      log: 'Log duration, perceived effort (RPE) and any reduction in repetitions.',
+    },
+  },
+
+  /**
    * Nazwy kroków treningu w pliku FIT — czyta je zegarek w biegu.
    * Limit 23 znaków (STEP_NAME_SIZE): krótko i jednoznacznie.
    */

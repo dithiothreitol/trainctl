@@ -151,6 +151,29 @@ Brak CSS lub zbyt mały budżet na pełne długości daje kroki czasowe z RPE.
 Zakończenie odcinka następuje przy ścianie; estymacja czasu nie przewiduje
 dokładnie czasu pojedynczej długości zawodnika.
 
+### Bieg z planu biegowego
+
+Bieg w planie v2 zachowuje segmenty silnika biegowego i ich tempa. Od wersji
+z PLAN-v0.7 (C5) krok biegu niesie też planowany zakres RPE według
+najmocniejszego segmentu jednostki. To parametry inżynierskie tej samej skali co
+rower i pływanie:
+
+| Segment | RPE |
+| --- | --- |
+| schłodzenie | 1–2 |
+| rozgrzewka | 2–3 |
+| spokojnie, długie | 3–4 |
+| tempo równe, podbiegi | 5–6 |
+| narastanie | 5–7 |
+| bieg zmienny | 6–7 |
+| odcinki | 7–8 |
+| start | 8–9 |
+| sprawdzian na czas | 9–10 |
+
+Zakres opisuje zamiar dla biegacza. Nie kalibruje stref (Z-4), nie wchodzi do
+oceny wykonania w `adapt` i `review` (ADR-027) ani do oceny intencji zamiany
+(MS-5), która dla biegu nadal czyta segmenty z tempem.
+
 ### Granice, zamiany i skracanie
 
 - Początkujący i faza regeneracji nie otrzymują mocnej jednostki.

@@ -134,6 +134,15 @@ change between minor versions — a regenerated plan can differ.
 - `plan` in a multisport workspace shows the goal, the horizon, the weekly
   time per sport and the season grid, and says which files it saved instead
   of a bare "Written:".
+- A running session in a multisport plan carries a planned RPE range from its
+  hardest segment (easy 3–4, intervals 7–8, a time trial 9–10; MS-6, an
+  engineering choice), so its card no longer says "No RPE range prescribed".
+  It describes intent only: `adapt`, `review` and the replacement intent do not
+  read it. The next `plan` rewrites future running sessions once to add it.
+- Session coaching texts, card headings and transaction errors moved from code
+  into the language catalogs, so the catalog checks and the English leak test
+  now cover multisport output; the transaction errors are no longer English in a
+  Polish session.
 
 ### Added
 

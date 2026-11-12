@@ -13,7 +13,8 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { setLocale } from 'trainctl-core'
+import { parse, stringify } from 'yaml'
+import { setLocale, type SportsConfig } from 'trainctl-core'
 import {
   cmdAdapt,
   cmdCheck,
@@ -24,11 +25,14 @@ import {
   cmdLog,
   cmdPlan,
   cmdReschedule,
+  cmdSeason,
   cmdShift,
+  cmdStatus,
   cmdToday,
   cmdWeek,
   cmdWhy,
 } from '../commands.ts'
+import { sportsTemplate } from '../sports-store.ts'
 import { agentsTemplate } from '../agents-md.ts'
 import { configTemplate } from '../config.ts'
 import { cliEn } from './cli-en.ts'
@@ -175,6 +179,47 @@ describe('pliki dla człowieka nie przeciekają polskim', () => {
     for (const file of readdirSync(out).filter((f) => /\.(html|ics)$/.test(f))) {
       expectEnglish(`export/${file}`, readFileSync(join(out, file), 'utf-8'))
       expectEnglish(`nazwa pliku ${file}`, file)
+    }
+  })
+})
+
+describe('C6: plan v2 po angielsku nie przecieka polskim', () => {
+  let multi: string
+  beforeAll(() => {
+    multi = mkdtempSync(join(tmpdir(), 'trainctl-leak-v2-'))
+    const config = parse(sportsTemplate('run,bike,swim', '2026-11-02')) as SportsConfig
+    config.language = 'en'
+    for (const p of Object.values(config.athlete.sports)) {
+      p.weeklyMinutes = 180
+      p.sessionsPerWeek = 3
+      p.experience = 'regular'
+      p.calibration = { date: '2026-11-01', source: 'test' }
+    }
+    config.athlete.sports.bike!.ftpWatts = 220
+    config.athlete.sports.swim!.cssSecPer100m = 120
+    cmdInit(multi, stringify(config))
+    cmdPlan(multi, { date: '2026-11-02' })
+  })
+  afterAll(() => rmSync(multi, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }))
+
+  const cases: [string, () => { output: string }][] = [
+    ['plan', () => cmdPlan(multi, { date: '2026-11-02' })],
+    ['today', () => cmdToday(multi, { date: '2026-11-04' })],
+    ['today --full', () => cmdToday(multi, { date: '2026-11-04', full: true })],
+    ['week', () => cmdWeek(multi, { date: '2026-11-04' })],
+    ['week --full', () => cmdWeek(multi, { date: '2026-11-04', full: true })],
+    ['why', () => cmdWhy(multi, { date: '2026-11-04' })],
+    ['season', () => cmdSeason(multi, { date: '2026-11-04' })],
+    ['status', () => cmdStatus(multi)],
+  ]
+  for (const [name, run] of cases) {
+    it(name, () => expectEnglish(`trainctl ${name} (v2)`, run().output))
+  }
+  it('plan/PLAN.md i eksport HTML', () => {
+    expectEnglish('PLAN.md (v2)', readFileSync(join(multi, 'plan', 'PLAN.md'), 'utf-8'))
+    cmdExport(multi, { what: 'html' } as never)
+    for (const file of readdirSync(join(multi, 'export')).filter((f) => f.endsWith('.html'))) {
+      expectEnglish(`export/${file} (v2)`, readFileSync(join(multi, 'export', file), 'utf-8'))
     }
   })
 })

@@ -865,6 +865,14 @@ w commicie punktu.
   tygodnia cel i kroki każdej sesji, bo plik jest zapisem coachingu
   (`sports.test.ts`). Wydruk ma kolumny typu i czasu, a strona mobilna kroki ze
   struktury dnia zamiast opisów segmentów.
+- **C5.** Zakres RPE biegu to zakres najmocniejszego segmentu jednostki (tabela
+  w `docs/science/MULTISPORT.md`, MS-6). Ocena intencji zamiany (MS-5) dla biegu
+  z planu biegowego nie czyta tej wartości, tak jak `adapt` i `review`.
+- **C6.** Teksty coachingu z `core/sports` trafiły do katalogu core
+  (`coaching`), bo przepisy (`recipes.ts`) i kroki (`workouts.ts`) korzystały
+  z tej samej pary pl/en co `coaching.ts`. Wyjaśnienie MS-6 jest w katalogu
+  sportowym obok MS-1–MS-5, bo katalog reguł CLI przyjmuje tylko ID z
+  FOUNDATIONS. Selektor katalogu sportowego wybiera język z mapy.
 
 ---
 

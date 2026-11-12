@@ -23,6 +23,26 @@ export const cliEn = {
     trainingTime: 'Training time', occupiedTime: 'Including preparation and transitions',
     sessions: 'Sessions', details: 'Details',
     views: { today: 'Day', week: 'Week', status: 'Overview', why: 'Session explained', desk: 'Desk day' },
+    /** Karta sesji planu v2 (`ui/training.ts`, C6). */
+    card: {
+      stepTarget: 'Step target', stroke: 'Stroke', sendoff: 'Send-off every', recoveryAfter: 'Recovery after repeat',
+      recoveryAfterStep: (index: number) => `Recovery after ${index}`,
+      columns: { step: 'Step', dose: 'Dose', target: 'Target / effort' },
+      strokes: { freestyle: 'freestyle', backstroke: 'backstroke', breaststroke: 'breaststroke', butterfly: 'butterfly', drill: 'drill' },
+      objective: 'Objective', intensity: 'Intensity', hardest: 'Hardest step (planned)',
+      noRpe: 'No RPE range prescribed. Follow the targets in the workout steps.',
+      structure: 'Workout structure', step: (index: number) => `Step ${index}`,
+      why: 'Why this workout', guidance: 'Execution guidance', adjustments: 'Adjustments',
+      rpeScale: '1–2 very easy · 3–4 easy · 5–6 moderate · 7–8 hard · 9–10 very hard. Brackets [ ] mark the planned range.',
+    },
+  },
+  /** Zapis planu v2 jako transakcja wielu plików (`sports-transaction.ts`, C6). */
+  transaction: {
+    locked: 'Another process is writing the plan.',
+    recoveryStopped: (path: string) => `Recovery stopped: ${path} was edited.`,
+    invalidPath: 'Invalid transaction path',
+    outsidePath: 'Transaction path leaves the training directory',
+    invalidJournal: 'Invalid transaction journal',
   },
   cmd: {
     banner: 'plan as code, coach as your agent’s tool',

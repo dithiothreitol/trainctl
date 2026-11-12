@@ -50,7 +50,9 @@ describe('structured training descriptions', () => {
     const s=bike();s.steps.forEach(step=>{delete step.effort})
     expect(renderPlain([trainingCard(s,true)])).toContain('Nie określono zakresu RPE')
     expect(renderPlain([trainingCard(s,true)])).not.toContain('Najmocniejszy etap')
-    const legacy=bike(); legacy.legacyWorkout={kind:'easy',distanceKm:8,segments:[{type:'easy',distanceKm:8,description:'8 km @ 5:30–6:00/km'}]} as NonNullable<TrainingSession['legacyWorkout']>
+    // bieg z planu sprzed C5: krok bez zapisanego wysiłku — widok nie wyprowadza RPE z segmentów
+    const legacy=bike(); legacy.steps=[{role:'work',durationSec:3000,target:{kind:'open'}}]
+    legacy.legacyWorkout={kind:'easy',distanceKm:8,segments:[{type:'easy',distanceKm:8,description:'8 km @ 5:30–6:00/km'}]} as NonNullable<TrainingSession['legacyWorkout']>
     const output=renderPlain([trainingCard(legacy,true)])
     expect(output).toContain('8 km @ 5:30–6:00/km');expect(output).not.toContain('275 W');expect(output).not.toContain('Najmocniejszy etap')
   })

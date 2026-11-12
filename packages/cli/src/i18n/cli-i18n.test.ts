@@ -7,7 +7,7 @@
  * złapie: czy polski nie jest kalką, czy diakrytyki przeżyły, czy przetłumaczone
  * KOMENTARZE nie zepsuły składni YAML i czy nazwy narzędzi przetrwały tłumaczenie.
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -286,6 +286,28 @@ describe('ui() podąża za językiem', () => {
     } finally {
       setLocale(previous)
     }
+  })
+})
+
+describe('C6: teksty tylko w katalogach', () => {
+  // Para „pl, en" wpisana w kod omija strażników katalogów (komplet kluczy, przecieki).
+  const ROOT = join(import.meta.dirname, '..', '..', '..')
+  // tylko src/ każdej paczki — bez node_modules
+  const sources = readdirSync(ROOT).flatMap((pkg) => {
+    try {
+      return readdirSync(join(ROOT, pkg, 'src'), { recursive: true, encoding: 'utf-8' }).map((f) => join(pkg, 'src', f))
+    } catch {
+      return []
+    }
+  }).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && !/[\\/]i18n[\\/]/.test(f))
+
+  it('kod poza i18n/ nie wybiera tekstu porównaniem języka ani parą pl/en', () => {
+    expect(sources.length).toBeGreaterThan(50)
+    const offenders = sources.filter((f) => {
+      const src = readFileSync(join(ROOT, f), 'utf-8')
+      return /getLocale\(\)\s*===?/.test(src) || /\bcoachText\b/.test(src) || /\(\s*pl\s*:\s*string\s*,\s*en\s*:\s*string\s*\)/.test(src)
+    })
+    expect(offenders).toEqual([])
   })
 })
 
