@@ -8,6 +8,29 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+// Profil planu biegowego (v1) do scenariusza migracji: `init` zakłada profil v2 od PLAN-v0.7 E3.
+// Te same wartości co dawny szablon `init --template`.
+const RUNNING_PROFILE = `athlete:
+  sex: unspecified
+  recentWeeklyKm: 45
+  peakWeeklyKm: 65
+  daysAvailable: [tue, wed, thu, sat, sun]
+  longRunDay: sat
+  results:
+    - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "example 10 km" }
+  tuneUpRaces: []
+goal:
+  name: "Half marathon"
+  date: "2026-11-29"
+  distanceKm: 21.0975
+  priority: A
+desk:
+  workStart: "09:00"
+  workEnd: "17:00"
+  lunchMinutes: 45
+  prefer: evening
+`
+
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..')
 const supplied=resolve(process.argv[2] ?? join(root,'plugin'))
 const output=resolve(process.argv[3] ?? mkdtempSync(join(root,'artifacts/plugin-check-')))
@@ -157,7 +180,7 @@ try {
 
   // Osobny proces weryfikuje rzeczywistą migrację v1 → v2 i język angielski.
   const legacy=join(isolated,'legacy');mkdirSync(legacy)
-  cli(['init','--template'],0,true,legacy);cli(['plan'],0,true,legacy)
+  writeFileSync(join(legacy,'trainctl.yaml'),RUNNING_PROFILE);cli(['plan'],0,true,legacy)
   const second=await connect(legacy,'en')
   const migration=await call(second.client,'migrate',{prepare:true})
   await call(second.client,'migrate',{apply:migration.proposal.id})

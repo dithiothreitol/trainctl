@@ -50,7 +50,17 @@ try {
   assert(simulation.calendarFilesVerified>0 && simulation.calendarEventsVerified>0)
   console.log(`Installed CLI: ${simulation.commands} scenario commands passed`)
   const legacy=join(dir,'legacy');mkdirSync(legacy)
-  run(process.execPath,[binary,'-C',legacy,'--json','init','--template'])
+  // profil planu biegowego (v1) wprost: `init` zakłada profil v2 od PLAN-v0.7 E3
+  writeFileSync(join(legacy,'trainctl.yaml'),`athlete:
+  recentWeeklyKm: 45
+  daysAvailable: [tue, thu, sat, sun]
+  results:
+    - { date: "2026-03-29", distanceKm: 10, timeSec: 2580 }
+goal:
+  name: Half marathon
+  date: "2026-11-29"
+  distanceKm: 21.0975
+`)
   for(const args of [['log','--actual-sport','bike','--minutes','40'],['export','--session','id'],['shift','--sport','bike']]) {
     const rejected=spawnSync(process.execPath,[binary,'-C',legacy,'--json',...args],{cwd:dir,encoding:'utf8',windowsHide:true,env,timeout:30_000})
     assert.equal(rejected.status,1,rejected.stdout+rejected.stderr)

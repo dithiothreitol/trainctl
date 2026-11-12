@@ -7,6 +7,29 @@ import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { Decoder, Stream } from '@garmin/fitsdk'
+
+// Profil planu biegowego (v1) do scenariusza migracji: `init` zakłada profil v2 od PLAN-v0.7 E3.
+// Te same wartości co dawny szablon `init --template`.
+const RUNNING_PROFILE = `athlete:
+  sex: unspecified
+  recentWeeklyKm: 45
+  peakWeeklyKm: 65
+  daysAvailable: [tue, wed, thu, sat, sun]
+  longRunDay: sat
+  results:
+    - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "example 10 km" }
+  tuneUpRaces: []
+goal:
+  name: "Half marathon"
+  date: "2026-11-29"
+  distanceKm: 21.0975
+  priority: A
+desk:
+  workStart: "09:00"
+  workEnd: "17:00"
+  lunchMinutes: 45
+  prefer: evening
+`
 import { createAcceptanceBundle, verifySportsCalendar } from './multisport-evidence.ts'
 const {parse,stringify}=createRequire(new URL('../packages/cli/package.json',import.meta.url))('yaml')
 
@@ -109,7 +132,7 @@ try {
   const ids=ics.split('\n').filter(l=>l.startsWith('UID:'))
   assert.equal(new Set(ids).size,ids.length)
   current=join(dir,'migration');mkdirSync(current)
-  cli(['init','--template']);const legacy=cli(['plan']).plan
+  writeFileSync(join(current,'trainctl.yaml'),RUNNING_PROFILE);const legacy=cli(['plan']).plan
   const migration=cli(['migrate','--prepare']).proposal
   cli(['migrate','--apply',migration.id])
   const migrated=cli(['plan']).plan
