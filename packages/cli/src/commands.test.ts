@@ -75,16 +75,21 @@ describe('trainctl plan', () => {
 })
 
 describe('trainctl today / why', () => {
-  it('dzień treningowy: opis jednostki + kind', () => {
+  it('dzień treningowy: struktura z celami (C2), opis słowny pod --full', () => {
     const r = cmdToday(dir, { date: '2026-08-04' }) // wtorek — akcent
     expect(r.code).toBe(0)
     expect(r.output).toContain('interwały')
-    expect(r.output).toContain('rozgrzewkowe')
+    expect(r.output).toContain('etap | dawka | cel | przerwa')
+    expect(r.output).toMatch(/^rozgrzewka \| \d+(,\d+)? km \| \d:\d\d–\d:\d\d$/m)
+    expect(r.output).not.toContain('rozgrzewkowe')
+    expect(r.data).toMatchObject({ structure: expect.arrayContaining([expect.objectContaining({ part: 'rozgrzewka' })]) })
+    expect(cmdToday(dir, { date: '2026-08-04', full: true }).output).toContain('rozgrzewkowe')
   })
 
   it('dzień wolny komunikowany wprost', () => {
     const r = cmdToday(dir, { date: '2026-08-03' }) // poniedziałek
-    expect(r.output).toContain('Dzień wolny')
+    expect(r.output).toMatch(/^PN 3\.08 · wolne$/m)
+    expect(r.output).toContain('Odpoczynek')
   })
 
   it('data poza planem — czytelny komunikat', () => {

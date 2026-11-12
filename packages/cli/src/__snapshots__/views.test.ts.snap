@@ -1,0 +1,1453 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`C2: migawki widoków > p4 · en · season: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"Season · Base · 2026-12-27 · 8 weeks of plan
+────────────────────────────────────────────────────────────
+
+  wk   from    phase   sessions  time
+  ───  ──────  ──────  ────────  ────
+▸ 1    Nov 2   base           6  5:30
+  2    Nov 9   base           6  5:30
+  3    Nov 16  build          6  5:30
+  4 ↓  Nov 23  deload         6  4:35
+  5    Nov 30  build          6  5:30
+  6    Dec 7   build          6  5:30
+  7    Dec 14  build          6  5:30
+  8 ↓  Dec 21  deload         6  4:35
+↓ deload · time including preparation"
+`;
+
+exports[`C2: migawki widoków > p4 · en · season: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"Season · Base · 2026-12-27 · 8 weeks of plan
+────────────────────────────────────────────────────────────────
+
+  wk   from    phase   sessions  time
+  ───  ──────  ──────  ────────  ────
+▸ 1    Nov 2   base           6  5:30
+  2    Nov 9   base           6  5:30
+  3    Nov 16  build          6  5:30
+  4 ↓  Nov 23  deload         6  4:35
+  5    Nov 30  build          6  5:30
+  6    Dec 7   build          6  5:30
+  7    Dec 14  build          6  5:30
+  8 ↓  Dec 21  deload         6  4:35
+↓ deload · time including preparation"
+`;
+
+exports[`C2: migawki widoków > p4 · en · season: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"Season · Base · 2026-12-27 · 8 weeks of plan
+────────────────────────────────────────────────────────────────
+
+  wk   from    phase   sessions  time
+  ───  ──────  ──────  ────────  ────
+▸ 1    Nov 2   base           6  5:30
+  2    Nov 9   base           6  5:30
+  3    Nov 16  build          6  5:30
+  4 ↓  Nov 23  deload         6  4:35
+  5    Nov 30  build          6  5:30
+  6    Dec 7   build          6  5:30
+  7    Dec 14  build          6  5:30
+  8 ↓  Dec 21  deload         6  4:35
+↓ deload · time including preparation"
+`;
+
+exports[`C2: migawki widoków > p4 · en · season: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"Season · Base · 2026-12-27 · 8 weeks of plan
+────────────────────────────────────────────────────────────────
+
+  wk   from    phase   sessions  time
+  ───  ──────  ──────  ────────  ────
+▸ 1    Nov 2   base           6  5:30
+  2    Nov 9   base           6  5:30
+  3    Nov 16  build          6  5:30
+  4 ↓  Nov 23  deload         6  4:35
+  5    Nov 30  build          6  5:30
+  6    Dec 7   build          6  5:30
+  7    Dec 14  build          6  5:30
+  8 ↓  Dec 21  deload         6  4:35
+↓ deload · time including preparation"
+`;
+
+exports[`C2: migawki widoków > p4 · en · season: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"Season · Base · 2026-12-27 · 8 weeks of plan
+----------------------------------------------------------------
+
+  wk   from    phase   sessions  time
+  ---  ------  ------  --------  ----
+> 1    Nov 2   base           6  5:30
+  2    Nov 9   base           6  5:30
+  3    Nov 16  build          6  5:30
+  4 v  Nov 23  deload         6  4:35
+  5    Nov 30  build          6  5:30
+  6    Dec 7   build          6  5:30
+  7    Dec 14  build          6  5:30
+  8 v  Dec 21  deload         6  4:35
+v deload · time including preparation"
+`;
+
+exports[`C2: migawki widoków > p4 · en · season: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"Season · Base · 2026-12-27 · 8 weeks of plan
+wk | from | phase | sessions | time
+1 | Nov 2 | base | 6 | 5:30 | today
+2 | Nov 9 | base | 6 | 5:30
+3 | Nov 16 | build | 6 | 5:30
+4 ↓ | Nov 23 | deload | 6 | 4:35
+5 | Nov 30 | build | 6 | 5:30
+6 | Dec 7 | build | 6 | 5:30
+7 | Dec 14 | build | 6 | 5:30
+8 ↓ | Dec 21 | deload | 6 | 4:35
+↓ deload · time including preparation"
+`;
+
+exports[`C2: migawki widoków > p4 · en · today: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"Wed Nov 4 · run · easy · about 50 min including preparation
+Sports plan: Base
+────────────────────────────────────────────────────────────
+
+part       dose  target
+─────────  ────  ───────
+warm-up    5'    RPE 2–3
+work       31'   RPE 3–4
+cool-down  4'    RPE 1–2
+
+next: Thursday 2026-11-05 · bike · long · about 64 min
+
+→ why this session: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · en · today: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"Wed Nov 4 · run · easy · about 50 min including preparation
+Sports plan: Base
+────────────────────────────────────────────────────────────────
+
+part       dose  target
+─────────  ────  ───────
+warm-up    5'    RPE 2–3
+work       31'   RPE 3–4
+cool-down  4'    RPE 1–2
+
+next: Thursday 2026-11-05 · bike · long · about 64 min
+
+→ why this session: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · en · today: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"Wed Nov 4 · run · easy · about 50 min including preparation
+Sports plan: Base
+────────────────────────────────────────────────────────────────
+
+part       dose  target
+─────────  ────  ───────
+warm-up    5'    RPE 2–3
+work       31'   RPE 3–4
+cool-down  4'    RPE 1–2
+
+next: Thursday 2026-11-05 · bike · long · about 64 min
+
+→ why this session: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · en · today: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"Wed Nov 4 · run · easy · about 50 min including preparation
+Sports plan: Base
+────────────────────────────────────────────────────────────────
+
+part       dose  target
+─────────  ────  ───────
+warm-up    5'    RPE 2–3
+work       31'   RPE 3–4
+cool-down  4'    RPE 1–2
+
+next: Thursday 2026-11-05 · bike · long · about 64 min
+
+→ why this session: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · en · today: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"Wed Nov 4 · run · easy · about 50 min including preparation
+Sports plan: Base
+----------------------------------------------------------------
+
+part       dose  target
+---------  ----  -------
+warm-up    5'    RPE 2-3
+work       31'   RPE 3-4
+cool-down  4'    RPE 1-2
+
+next: Thursday 2026-11-05 · bike · long · about 64 min
+
+-> why this session: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · en · today: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"Wed Nov 4 · run · easy · about 50 min including preparation
+Sports plan: Base
+part | dose | target
+warm-up | 5' | RPE 2–3
+work | 31' | RPE 3–4
+cool-down | 4' | RPE 1–2
+
+next: Thursday 2026-11-05 · bike · long · about 64 min
+why this session: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · en · week: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"Week Nov 2–Nov 8 · 6 sessions
+Sports plan: Base
+────────────────────────────────────────────────────────────
+
+  day  sport  type       time  session
+✓ Mon  run    long       1:00  WU 5' · 40' · CD 5'
+  Tue  swim   long       1:00  WU 5' · 40' · CD 5'
+▸ Wed  run    easy       0:50  WU 5' · 31' · CD 4'
+  Thu  bike   long       1:04  WU 5' · 44' @143 W · CD 5'
+  Fri  swim   technique  0:50  WU 5' · drill 8×1' r. 20" ·
+                               20'20" · CD 4'
+  Sat  bike   easy       0:46  WU 5' · 27'24" @143 W · CD
+                               3'36"
+              total      5:30
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · en · week: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"Week Nov 2–Nov 8 · 6 sessions
+Sports plan: Base
+────────────────────────────────────────────────────────────────
+
+  day  sport  type       time  session
+✓ Mon  run    long       1:00  WU 5' · 40' · CD 5'
+  Tue  swim   long       1:00  WU 5' · 40' · CD 5'
+▸ Wed  run    easy       0:50  WU 5' · 31' · CD 4'
+  Thu  bike   long       1:04  WU 5' · 44' @143 W · CD 5'
+  Fri  swim   technique  0:50  WU 5' · drill 8×1' r. 20" · 20'20" · CD 4'
+  Sat  bike   easy       0:46  WU 5' · 27'24" @143 W · CD 3'36"
+              total      5:30
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · en · week: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"Week Nov 2–Nov 8 · 6 sessions
+Sports plan: Base
+────────────────────────────────────────────────────────────────
+
+  day  sport  type       time  session
+✓ Mon  run    long       1:00  WU 5' · 40' · CD 5'
+  Tue  swim   long       1:00  WU 5' · 40' · CD 5'
+▸ Wed  run    easy       0:50  WU 5' · 31' · CD 4'
+  Thu  bike   long       1:04  WU 5' · 44' @143 W · CD 5'
+  Fri  swim   technique  0:50  WU 5' · drill 8×1' r. 20" · 20'20" · CD 4'
+  Sat  bike   easy       0:46  WU 5' · 27'24" @143 W · CD 3'36"
+              total      5:30
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · en · week: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"Week Nov 2–Nov 8 · 6 sessions
+Sports plan: Base
+────────────────────────────────────────────────────────────────
+
+  day  sport  type       time  session
+✓ Mon  run    long       1:00  WU 5' · 40' · CD 5'
+  Tue  swim   long       1:00  WU 5' · 40' · CD 5'
+▸ Wed  run    easy       0:50  WU 5' · 31' · CD 4'
+  Thu  bike   long       1:04  WU 5' · 44' @143 W · CD 5'
+  Fri  swim   technique  0:50  WU 5' · drill 8×1' r. 20" · 20'20" · CD 4'
+  Sat  bike   easy       0:46  WU 5' · 27'24" @143 W · CD 3'36"
+              total      5:30
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · en · week: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"Week Nov 2–Nov 8 · 6 sessions
+Sports plan: Base
+----------------------------------------------------------------
+
+  day  sport  type       time  session
++ Mon  run    long       1:00  WU 5' | 40' | CD 5'
+  Tue  swim   long       1:00  WU 5' | 40' | CD 5'
+> Wed  run    easy       0:50  WU 5' | 31' | CD 4'
+  Thu  bike   long       1:04  WU 5' | 44' @143 W | CD 5'
+  Fri  swim   technique  0:50  WU 5' | drill 8x1' r. 20" | 20'20" | CD 4'
+  Sat  bike   easy       0:46  WU 5' | 27'24" @143 W | CD 3'36"
+              total      5:30
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · en · week: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"Week Nov 2–Nov 8 · 6 sessions
+Sports plan: Base
+day | sport | type | time | session
+Mon | run | long | 1:00 | WU 5' · 40' · CD 5' | done
+Tue | swim | long | 1:00 | WU 5' · 40' · CD 5'
+Wed | run | easy | 0:50 | WU 5' · 31' · CD 4' | today
+Thu | bike | long | 1:04 | WU 5' · 44' @143 W · CD 5'
+Fri | swim | technique | 0:50 | WU 5' · drill 8×1' r. 20" · 20'20" · CD 4'
+Sat | bike | easy | 0:46 | WU 5' · 27'24" @143 W · CD 3'36"
+total | 5:30
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · season: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"Sezon · Base · 2026-12-27 · 8 tygodni planu
+────────────────────────────────────────────────────────────
+
+  tydz     od  faza        sesje  czas
+  ────  ─────  ──────────  ─────  ────
+▸ 1      2.11  baza            6  5:30
+  2      9.11  baza            6  5:30
+  3     16.11  budowanie       6  5:30
+  4 ↓   23.11  odciążenie      6  4:35
+  5     30.11  budowanie       6  5:30
+  6      7.12  budowanie       6  5:30
+  7     14.12  budowanie       6  5:30
+  8 ↓   21.12  odciążenie      6  4:35
+↓ odciążenie · czas z przygotowaniem"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · season: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"Sezon · Base · 2026-12-27 · 8 tygodni planu
+────────────────────────────────────────────────────────────────
+
+  tydz     od  faza        sesje  czas
+  ────  ─────  ──────────  ─────  ────
+▸ 1      2.11  baza            6  5:30
+  2      9.11  baza            6  5:30
+  3     16.11  budowanie       6  5:30
+  4 ↓   23.11  odciążenie      6  4:35
+  5     30.11  budowanie       6  5:30
+  6      7.12  budowanie       6  5:30
+  7     14.12  budowanie       6  5:30
+  8 ↓   21.12  odciążenie      6  4:35
+↓ odciążenie · czas z przygotowaniem"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · season: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"Sezon · Base · 2026-12-27 · 8 tygodni planu
+────────────────────────────────────────────────────────────────
+
+  tydz     od  faza        sesje  czas
+  ────  ─────  ──────────  ─────  ────
+▸ 1      2.11  baza            6  5:30
+  2      9.11  baza            6  5:30
+  3     16.11  budowanie       6  5:30
+  4 ↓   23.11  odciążenie      6  4:35
+  5     30.11  budowanie       6  5:30
+  6      7.12  budowanie       6  5:30
+  7     14.12  budowanie       6  5:30
+  8 ↓   21.12  odciążenie      6  4:35
+↓ odciążenie · czas z przygotowaniem"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · season: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"Sezon · Base · 2026-12-27 · 8 tygodni planu
+────────────────────────────────────────────────────────────────
+
+  tydz     od  faza        sesje  czas
+  ────  ─────  ──────────  ─────  ────
+▸ 1      2.11  baza            6  5:30
+  2      9.11  baza            6  5:30
+  3     16.11  budowanie       6  5:30
+  4 ↓   23.11  odciążenie      6  4:35
+  5     30.11  budowanie       6  5:30
+  6      7.12  budowanie       6  5:30
+  7     14.12  budowanie       6  5:30
+  8 ↓   21.12  odciążenie      6  4:35
+↓ odciążenie · czas z przygotowaniem"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · season: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"Sezon · Base · 2026-12-27 · 8 tygodni planu
+----------------------------------------------------------------
+
+  tydz     od  faza        sesje  czas
+  ----  -----  ----------  -----  ----
+> 1      2.11  baza            6  5:30
+  2      9.11  baza            6  5:30
+  3     16.11  budowanie       6  5:30
+  4 v   23.11  odciążenie      6  4:35
+  5     30.11  budowanie       6  5:30
+  6      7.12  budowanie       6  5:30
+  7     14.12  budowanie       6  5:30
+  8 v   21.12  odciążenie      6  4:35
+v odciążenie · czas z przygotowaniem"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · season: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"Sezon · Base · 2026-12-27 · 8 tygodni planu
+tydz | od | faza | sesje | czas
+1 | 2.11 | baza | 6 | 5:30 | dziś
+2 | 9.11 | baza | 6 | 5:30
+3 | 16.11 | budowanie | 6 | 5:30
+4 ↓ | 23.11 | odciążenie | 6 | 4:35
+5 | 30.11 | budowanie | 6 | 5:30
+6 | 7.12 | budowanie | 6 | 5:30
+7 | 14.12 | budowanie | 6 | 5:30
+8 ↓ | 21.12 | odciążenie | 6 | 4:35
+↓ odciążenie · czas z przygotowaniem"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · today: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"ŚR 4.11 · bieg · spokojna · około 50 min razem z
+przygotowaniem
+Plan sportowy: Base
+────────────────────────────────────────────────────────────
+
+etap         dawka  cel
+───────────  ─────  ───────
+rozgrzewka   5'     RPE 2–3
+praca        31'    RPE 3–4
+schłodzenie  4'     RPE 1–2
+
+następny: czwartek 2026-11-05 · rower · długa · około 64 min
+
+→ dlaczego ten trening: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · today: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"ŚR 4.11 · bieg · spokojna · około 50 min razem z przygotowaniem
+Plan sportowy: Base
+────────────────────────────────────────────────────────────────
+
+etap         dawka  cel
+───────────  ─────  ───────
+rozgrzewka   5'     RPE 2–3
+praca        31'    RPE 3–4
+schłodzenie  4'     RPE 1–2
+
+następny: czwartek 2026-11-05 · rower · długa · około 64 min
+
+→ dlaczego ten trening: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · today: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"ŚR 4.11 · bieg · spokojna · około 50 min razem z przygotowaniem
+Plan sportowy: Base
+────────────────────────────────────────────────────────────────
+
+etap         dawka  cel
+───────────  ─────  ───────
+rozgrzewka   5'     RPE 2–3
+praca        31'    RPE 3–4
+schłodzenie  4'     RPE 1–2
+
+następny: czwartek 2026-11-05 · rower · długa · około 64 min
+
+→ dlaczego ten trening: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · today: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"ŚR 4.11 · bieg · spokojna · około 50 min razem z przygotowaniem
+Plan sportowy: Base
+────────────────────────────────────────────────────────────────
+
+etap         dawka  cel
+───────────  ─────  ───────
+rozgrzewka   5'     RPE 2–3
+praca        31'    RPE 3–4
+schłodzenie  4'     RPE 1–2
+
+następny: czwartek 2026-11-05 · rower · długa · około 64 min
+
+→ dlaczego ten trening: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · today: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"ŚR 4.11 · bieg · spokojna · około 50 min razem z przygotowaniem
+Plan sportowy: Base
+----------------------------------------------------------------
+
+etap         dawka  cel
+-----------  -----  -------
+rozgrzewka   5'     RPE 2-3
+praca        31'    RPE 3-4
+schłodzenie  4'     RPE 1-2
+
+następny: czwartek 2026-11-05 · rower · długa · około 64 min
+
+-> dlaczego ten trening: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · today: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"ŚR 4.11 · bieg · spokojna · około 50 min razem z przygotowaniem
+Plan sportowy: Base
+etap | dawka | cel
+rozgrzewka | 5' | RPE 2–3
+praca | 31' | RPE 3–4
+schłodzenie | 4' | RPE 1–2
+
+następny: czwartek 2026-11-05 · rower · długa · około 64 min
+dlaczego ten trening: trainctl why --date 2026-11-04"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · week: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"Tydzień 2.11–8.11 · 6 sesji
+Plan sportowy: Base
+────────────────────────────────────────────────────────────
+
+  dz  sport     typ       czas  rozpiska
+✓ PN  bieg      długa     1:00  RG 5' · 40' · SCH 5'
+  WT  pływanie  długa     1:00  RG 5' · 40' · SCH 5'
+▸ ŚR  bieg      spokojna  0:50  RG 5' · 31' · SCH 4'
+  CZ  rower     długa     1:04  RG 5' · 44' @143 W · SCH 5'
+  PT  pływanie  technika  0:50  RG 5' · technika 8×1' p. 20"
+                                · 20'20" · SCH 4'
+  SB  rower     spokojna  0:46  RG 5' · 27'24" @143 W · SCH
+                                3'36"
+                suma      5:30
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w
+min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · week: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"Tydzień 2.11–8.11 · 6 sesji
+Plan sportowy: Base
+────────────────────────────────────────────────────────────────
+
+  dz  sport     typ       czas  rozpiska
+✓ PN  bieg      długa     1:00  RG 5' · 40' · SCH 5'
+  WT  pływanie  długa     1:00  RG 5' · 40' · SCH 5'
+▸ ŚR  bieg      spokojna  0:50  RG 5' · 31' · SCH 4'
+  CZ  rower     długa     1:04  RG 5' · 44' @143 W · SCH 5'
+  PT  pływanie  technika  0:50  RG 5' · technika 8×1' p. 20" · 20'20" · SCH 4'
+  SB  rower     spokojna  0:46  RG 5' · 27'24" @143 W · SCH 3'36"
+                suma      5:30
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · week: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"Tydzień 2.11–8.11 · 6 sesji
+Plan sportowy: Base
+────────────────────────────────────────────────────────────────
+
+  dz  sport     typ       czas  rozpiska
+✓ PN  bieg      długa     1:00  RG 5' · 40' · SCH 5'
+  WT  pływanie  długa     1:00  RG 5' · 40' · SCH 5'
+▸ ŚR  bieg      spokojna  0:50  RG 5' · 31' · SCH 4'
+  CZ  rower     długa     1:04  RG 5' · 44' @143 W · SCH 5'
+  PT  pływanie  technika  0:50  RG 5' · technika 8×1' p. 20" · 20'20" · SCH 4'
+  SB  rower     spokojna  0:46  RG 5' · 27'24" @143 W · SCH 3'36"
+                suma      5:30
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · week: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"Tydzień 2.11–8.11 · 6 sesji
+Plan sportowy: Base
+────────────────────────────────────────────────────────────────
+
+  dz  sport     typ       czas  rozpiska
+✓ PN  bieg      długa     1:00  RG 5' · 40' · SCH 5'
+  WT  pływanie  długa     1:00  RG 5' · 40' · SCH 5'
+▸ ŚR  bieg      spokojna  0:50  RG 5' · 31' · SCH 4'
+  CZ  rower     długa     1:04  RG 5' · 44' @143 W · SCH 5'
+  PT  pływanie  technika  0:50  RG 5' · technika 8×1' p. 20" · 20'20" · SCH 4'
+  SB  rower     spokojna  0:46  RG 5' · 27'24" @143 W · SCH 3'36"
+                suma      5:30
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · week: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"Tydzień 2.11–8.11 · 6 sesji
+Plan sportowy: Base
+----------------------------------------------------------------
+
+  dz  sport     typ       czas  rozpiska
++ PN  bieg      długa     1:00  RG 5' | 40' | SCH 5'
+  WT  pływanie  długa     1:00  RG 5' | 40' | SCH 5'
+> ŚR  bieg      spokojna  0:50  RG 5' | 31' | SCH 4'
+  CZ  rower     długa     1:04  RG 5' | 44' @143 W | SCH 5'
+  PT  pływanie  technika  0:50  RG 5' | technika 8x1' p. 20" | 20'20" | SCH 4'
+  SB  rower     spokojna  0:46  RG 5' | 27'24" @143 W | SCH 3'36"
+                suma      5:30
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km"
+`;
+
+exports[`C2: migawki widoków > p4 · pl · week: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"Tydzień 2.11–8.11 · 6 sesji
+Plan sportowy: Base
+dz | sport | typ | czas | rozpiska
+PN | bieg | długa | 1:00 | RG 5' · 40' · SCH 5' | wykonany
+WT | pływanie | długa | 1:00 | RG 5' · 40' · SCH 5'
+ŚR | bieg | spokojna | 0:50 | RG 5' · 31' · SCH 4' | dziś
+CZ | rower | długa | 1:04 | RG 5' · 44' @143 W · SCH 5'
+PT | pływanie | technika | 0:50 | RG 5' · technika 8×1' p. 20" · 20'20" · SCH 4'
+SB | rower | spokojna | 0:46 | RG 5' · 27'24" @143 W · SCH 3'36"
+suma | 5:30
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km"
+`;
+
+exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"Season · Half · 21.1 km · 2027-03-28 · 25 weeks of plan
+────────────────────────────────────────────────────────────
+
+  wk    from    phase       km  accents                 long
+  ────  ──────  ──────────  ──  ──────────────────────  ────
+  1     Oct 19  base        43  4×1 km @4:32 · hills ·  16
+                                3 km 5:01→4:32
+▸ 2     Oct 26  base        44  4×1 km @4:32 · hills ·  17
+                                3 km 5:01→4:32
+  3     Nov 2   base        46  4×1 km @4:32 · hills ·  18.5
+                                3.5 km 5:01→4:32
+  4 ↓   Nov 9   base        32  4×1 km @4:32 · 3 km     11
+                                5:01→4:32
+  5     Nov 16  base        44  4×1 km @4:32 · 5 km     16
+                                time trial
+  6     Nov 23  base        46  4×1 km @4:32 · hills ·  18.5
+                                3.5 km 5:01→4:32
+  7     Nov 30  base        47  4×1 km @4:32 · hills ·  19.5
+                                3.5 km 5:01→4:32
+  8 ↓   Dec 7   base        33  4×1 km @4:32 · 3 km     12
+                                5:01→4:32
+  9     Dec 14  build       46  4×1 km @4:32 · hills ·  18.5
+                                3.5 km 5:01→4:32
+  10    Dec 21  build       47  4×1 km @4:32 · hills ·  19.5
+                                3.5 km 5:01→4:32
+  11    Dec 28  build       49  4×1 km @4:32 · hills ·  20
+                                5 km time trial
+  12 ↓  Jan 4   build       34  4×1 km @4:32 · 3 km     13
+                                5:01→4:32
+  13    Jan 11  build       47  4×1 km @4:32 · hills ·  19.5
+                                3.5 km 5:01→4:32
+  14    Jan 18  build       49  4×1 km @4:32 · hills ·  21
+                                4 km 5:01→4:32
+  15    Jan 25  build       50  5×1 km @4:32 · hills ·  20.5
+                                4.5 km 5:01→4:32
+  16 ↓  Feb 1   build       35  4×1 km @4:32 · 3.5 km   14
+                                5:01→4:32
+  17    Feb 8   build       48  4×1 km @4:32 · hills ·  21
+                                5 km time trial
+  18    Feb 15  peak        50  3×1 km + 3×400 m +      22.7
+                                3×200 m @4:04 · hills
+                                · alternating 4.5 km
+  19    Feb 22  peak        52  3×1 km + 3×400 m +      22.2
+                                3×200 m @4:04 · hills
+                                · alternating 5 km
+  20 ↓  Mar 1   peak        36  3×1 km + 3×400 m +      15
+                                3×200 m @4:04 ·
+                                alternating 4 km
+  21    Mar 8   peak        52  3×1 km + 3×400 m +      22.2
+                                3×200 m @4:04 · hills
+                                · alternating 5 km
+  22    Mar 15  taper       36  4×1 km @4:04 ·
+                                alternating 4 km
+  23    Mar 22  race        26  5×300 m @4:04           RACE
+  24    Mar 29  transition  22
+  25    Apr 5   transition  44  3×1 km @4:32            16
+↓ deload · accents without warm-up and cool-down · long run
+in km"
+`;
+
+exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"Season · Half · 21.1 km · 2027-03-28 · 25 weeks of plan
+────────────────────────────────────────────────────────────────
+
+  wk    from    phase       km  accents                                     long
+  ────  ──────  ──────────  ──  ──────────────────────────────────────────  ────
+  1     Oct 19  base        43  4×1 km @4:32 · hills · 3 km 5:01→4:32       16
+▸ 2     Oct 26  base        44  4×1 km @4:32 · hills · 3 km 5:01→4:32       17
+  3     Nov 2   base        46  4×1 km @4:32 · hills · 3.5 km 5:01→4:32     18.5
+  4 ↓   Nov 9   base        32  4×1 km @4:32 · 3 km 5:01→4:32               11
+  5     Nov 16  base        44  4×1 km @4:32 · 5 km time trial              16
+  6     Nov 23  base        46  4×1 km @4:32 · hills · 3.5 km 5:01→4:32     18.5
+  7     Nov 30  base        47  4×1 km @4:32 · hills · 3.5 km 5:01→4:32     19.5
+  8 ↓   Dec 7   base        33  4×1 km @4:32 · 3 km 5:01→4:32               12
+  9     Dec 14  build       46  4×1 km @4:32 · hills · 3.5 km 5:01→4:32     18.5
+  10    Dec 21  build       47  4×1 km @4:32 · hills · 3.5 km 5:01→4:32     19.5
+  11    Dec 28  build       49  4×1 km @4:32 · hills · 5 km time trial      20
+  12 ↓  Jan 4   build       34  4×1 km @4:32 · 3 km 5:01→4:32               13
+  13    Jan 11  build       47  4×1 km @4:32 · hills · 3.5 km 5:01→4:32     19.5
+  14    Jan 18  build       49  4×1 km @4:32 · hills · 4 km 5:01→4:32       21
+  15    Jan 25  build       50  5×1 km @4:32 · hills · 4.5 km 5:01→4:32     20.5
+  16 ↓  Feb 1   build       35  4×1 km @4:32 · 3.5 km 5:01→4:32             14
+  17    Feb 8   build       48  4×1 km @4:32 · hills · 5 km time trial      21
+  18    Feb 15  peak        50  3×1 km + 3×400 m + 3×200 m @4:04 · hills ·  22.7
+                                alternating 4.5 km
+  19    Feb 22  peak        52  3×1 km + 3×400 m + 3×200 m @4:04 · hills ·  22.2
+                                alternating 5 km
+  20 ↓  Mar 1   peak        36  3×1 km + 3×400 m + 3×200 m @4:04 ·          15
+                                alternating 4 km
+  21    Mar 8   peak        52  3×1 km + 3×400 m + 3×200 m @4:04 · hills ·  22.2
+                                alternating 5 km
+  22    Mar 15  taper       36  4×1 km @4:04 · alternating 4 km
+  23    Mar 22  race        26  5×300 m @4:04                               RACE
+  24    Mar 29  transition  22
+  25    Apr 5   transition  44  3×1 km @4:32                                16
+↓ deload · accents without warm-up and cool-down · long run in km"
+`;
+
+exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"Season · Half · 21.1 km · 2027-03-28 · 25 weeks of plan
+────────────────────────────────────────────────────────────────
+
+  wk    from    phase       km  accents                                                        long
+  ────  ──────  ──────────  ──  ─────────────────────────────────────────────────────────────  ────
+  1     Oct 19  base        43  4×1 km @4:32 · hills · 3 km 5:01→4:32                          16
+▸ 2     Oct 26  base        44  4×1 km @4:32 · hills · 3 km 5:01→4:32                          17
+  3     Nov 2   base        46  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        18.5
+  4 ↓   Nov 9   base        32  4×1 km @4:32 · 3 km 5:01→4:32                                  11
+  5     Nov 16  base        44  4×1 km @4:32 · 5 km time trial                                 16
+  6     Nov 23  base        46  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        18.5
+  7     Nov 30  base        47  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        19.5
+  8 ↓   Dec 7   base        33  4×1 km @4:32 · 3 km 5:01→4:32                                  12
+  9     Dec 14  build       46  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        18.5
+  10    Dec 21  build       47  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        19.5
+  11    Dec 28  build       49  4×1 km @4:32 · hills · 5 km time trial                         20
+  12 ↓  Jan 4   build       34  4×1 km @4:32 · 3 km 5:01→4:32                                  13
+  13    Jan 11  build       47  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        19.5
+  14    Jan 18  build       49  4×1 km @4:32 · hills · 4 km 5:01→4:32                          21
+  15    Jan 25  build       50  5×1 km @4:32 · hills · 4.5 km 5:01→4:32                        20.5
+  16 ↓  Feb 1   build       35  4×1 km @4:32 · 3.5 km 5:01→4:32                                14
+  17    Feb 8   build       48  4×1 km @4:32 · hills · 5 km time trial                         21
+  18    Feb 15  peak        50  3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 4.5 km  22.7
+  19    Feb 22  peak        52  3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 5 km    22.2
+  20 ↓  Mar 1   peak        36  3×1 km + 3×400 m + 3×200 m @4:04 · alternating 4 km            15
+  21    Mar 8   peak        52  3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 5 km    22.2
+  22    Mar 15  taper       36  4×1 km @4:04 · alternating 4 km
+  23    Mar 22  race        26  5×300 m @4:04                                                  RACE
+  24    Mar 29  transition  22
+  25    Apr 5   transition  44  3×1 km @4:32                                                   16
+↓ deload · accents without warm-up and cool-down · long run in km"
+`;
+
+exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"Season · Half · 21.1 km · 2027-03-28 · 25 weeks of plan
+────────────────────────────────────────────────────────────────
+
+  wk    from    phase       km  accents                                                        long
+  ────  ──────  ──────────  ──  ─────────────────────────────────────────────────────────────  ────
+  1     Oct 19  base        43  4×1 km @4:32 · hills · 3 km 5:01→4:32                          16
+▸ 2     Oct 26  base        44  4×1 km @4:32 · hills · 3 km 5:01→4:32                          17
+  3     Nov 2   base        46  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        18.5
+  4 ↓   Nov 9   base        32  4×1 km @4:32 · 3 km 5:01→4:32                                  11
+  5     Nov 16  base        44  4×1 km @4:32 · 5 km time trial                                 16
+  6     Nov 23  base        46  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        18.5
+  7     Nov 30  base        47  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        19.5
+  8 ↓   Dec 7   base        33  4×1 km @4:32 · 3 km 5:01→4:32                                  12
+  9     Dec 14  build       46  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        18.5
+  10    Dec 21  build       47  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        19.5
+  11    Dec 28  build       49  4×1 km @4:32 · hills · 5 km time trial                         20
+  12 ↓  Jan 4   build       34  4×1 km @4:32 · 3 km 5:01→4:32                                  13
+  13    Jan 11  build       47  4×1 km @4:32 · hills · 3.5 km 5:01→4:32                        19.5
+  14    Jan 18  build       49  4×1 km @4:32 · hills · 4 km 5:01→4:32                          21
+  15    Jan 25  build       50  5×1 km @4:32 · hills · 4.5 km 5:01→4:32                        20.5
+  16 ↓  Feb 1   build       35  4×1 km @4:32 · 3.5 km 5:01→4:32                                14
+  17    Feb 8   build       48  4×1 km @4:32 · hills · 5 km time trial                         21
+  18    Feb 15  peak        50  3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 4.5 km  22.7
+  19    Feb 22  peak        52  3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 5 km    22.2
+  20 ↓  Mar 1   peak        36  3×1 km + 3×400 m + 3×200 m @4:04 · alternating 4 km            15
+  21    Mar 8   peak        52  3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 5 km    22.2
+  22    Mar 15  taper       36  4×1 km @4:04 · alternating 4 km
+  23    Mar 22  race        26  5×300 m @4:04                                                  RACE
+  24    Mar 29  transition  22
+  25    Apr 5   transition  44  3×1 km @4:32                                                   16
+↓ deload · accents without warm-up and cool-down · long run in km"
+`;
+
+exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"Season · Half · 21.1 km · 2027-03-28 · 25 weeks of plan
+----------------------------------------------------------------
+
+  wk    from    phase       km  accents                                     long
+  ----  ------  ----------  --  ------------------------------------------  ----
+  1     Oct 19  base        43  4x1 km @4:32 | hills | 3 km 5:01->4:32      16
+> 2     Oct 26  base        44  4x1 km @4:32 | hills | 3 km 5:01->4:32      17
+  3     Nov 2   base        46  4x1 km @4:32 | hills | 3.5 km 5:01->4:32    18.5
+  4 v   Nov 9   base        32  4x1 km @4:32 | 3 km 5:01->4:32              11
+  5     Nov 16  base        44  4x1 km @4:32 | 5 km time trial              16
+  6     Nov 23  base        46  4x1 km @4:32 | hills | 3.5 km 5:01->4:32    18.5
+  7     Nov 30  base        47  4x1 km @4:32 | hills | 3.5 km 5:01->4:32    19.5
+  8 v   Dec 7   base        33  4x1 km @4:32 | 3 km 5:01->4:32              12
+  9     Dec 14  build       46  4x1 km @4:32 | hills | 3.5 km 5:01->4:32    18.5
+  10    Dec 21  build       47  4x1 km @4:32 | hills | 3.5 km 5:01->4:32    19.5
+  11    Dec 28  build       49  4x1 km @4:32 | hills | 5 km time trial      20
+  12 v  Jan 4   build       34  4x1 km @4:32 | 3 km 5:01->4:32              13
+  13    Jan 11  build       47  4x1 km @4:32 | hills | 3.5 km 5:01->4:32    19.5
+  14    Jan 18  build       49  4x1 km @4:32 | hills | 4 km 5:01->4:32      21
+  15    Jan 25  build       50  5x1 km @4:32 | hills | 4.5 km 5:01->4:32    20.5
+  16 v  Feb 1   build       35  4x1 km @4:32 | 3.5 km 5:01->4:32            14
+  17    Feb 8   build       48  4x1 km @4:32 | hills | 5 km time trial      21
+  18    Feb 15  peak        50  3x1 km + 3x400 m + 3x200 m @4:04 | hills |  22.7
+                                alternating 4.5 km
+  19    Feb 22  peak        52  3x1 km + 3x400 m + 3x200 m @4:04 | hills |  22.2
+                                alternating 5 km
+  20 v  Mar 1   peak        36  3x1 km + 3x400 m + 3x200 m @4:04 |          15
+                                alternating 4 km
+  21    Mar 8   peak        52  3x1 km + 3x400 m + 3x200 m @4:04 | hills |  22.2
+                                alternating 5 km
+  22    Mar 15  taper       36  4x1 km @4:04 | alternating 4 km
+  23    Mar 22  race        26  5x300 m @4:04                               RACE
+  24    Mar 29  transition  22
+  25    Apr 5   transition  44  3x1 km @4:32                                16
+v deload · accents without warm-up and cool-down · long run in km"
+`;
+
+exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"Season · Half · 21.1 km · 2027-03-28 · 25 weeks of plan
+wk | from | phase | km | accents | long
+1 | Oct 19 | base | 43 | 4×1 km @4:32 · hills · 3 km 5:01→4:32 | 16
+2 | Oct 26 | base | 44 | 4×1 km @4:32 · hills · 3 km 5:01→4:32 | 17 | today
+3 | Nov 2 | base | 46 | 4×1 km @4:32 · hills · 3.5 km 5:01→4:32 | 18.5
+4 ↓ | Nov 9 | base | 32 | 4×1 km @4:32 · 3 km 5:01→4:32 | 11
+5 | Nov 16 | base | 44 | 4×1 km @4:32 · 5 km time trial | 16
+6 | Nov 23 | base | 46 | 4×1 km @4:32 · hills · 3.5 km 5:01→4:32 | 18.5
+7 | Nov 30 | base | 47 | 4×1 km @4:32 · hills · 3.5 km 5:01→4:32 | 19.5
+8 ↓ | Dec 7 | base | 33 | 4×1 km @4:32 · 3 km 5:01→4:32 | 12
+9 | Dec 14 | build | 46 | 4×1 km @4:32 · hills · 3.5 km 5:01→4:32 | 18.5
+10 | Dec 21 | build | 47 | 4×1 km @4:32 · hills · 3.5 km 5:01→4:32 | 19.5
+11 | Dec 28 | build | 49 | 4×1 km @4:32 · hills · 5 km time trial | 20
+12 ↓ | Jan 4 | build | 34 | 4×1 km @4:32 · 3 km 5:01→4:32 | 13
+13 | Jan 11 | build | 47 | 4×1 km @4:32 · hills · 3.5 km 5:01→4:32 | 19.5
+14 | Jan 18 | build | 49 | 4×1 km @4:32 · hills · 4 km 5:01→4:32 | 21
+15 | Jan 25 | build | 50 | 5×1 km @4:32 · hills · 4.5 km 5:01→4:32 | 20.5
+16 ↓ | Feb 1 | build | 35 | 4×1 km @4:32 · 3.5 km 5:01→4:32 | 14
+17 | Feb 8 | build | 48 | 4×1 km @4:32 · hills · 5 km time trial | 21
+18 | Feb 15 | peak | 50 | 3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 4.5 km | 22.7
+19 | Feb 22 | peak | 52 | 3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 5 km | 22.2
+20 ↓ | Mar 1 | peak | 36 | 3×1 km + 3×400 m + 3×200 m @4:04 · alternating 4 km | 15
+21 | Mar 8 | peak | 52 | 3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 5 km | 22.2
+22 | Mar 15 | taper | 36 | 4×1 km @4:04 · alternating 4 km
+23 | Mar 22 | race | 26 | 5×300 m @4:04 | RACE
+24 | Mar 29 | transition | 22
+25 | Apr 5 | transition | 44 | 3×1 km @4:32 | 16
+↓ deload · accents without warm-up and cool-down · long run in km"
+`;
+
+exports[`C2: migawki widoków > run · en · today: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"Thu Oct 29 · hills · 12 km · about 88 min including
+preparation
+week 2/25 · base · 150 days to race
+────────────────────────────────────────────────────────────
+
+part       dose      target     recovery
+─────────  ────────  ─────────  ────────
+easy       5 km      5:05–6:05
+hills      15×200 m  easy       jog down
+cool-down  1 km      jog
+
+next: Saturday 2026-10-31 · long run · 17 km
+
+→ why this session: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · en · today: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"Thu Oct 29 · hills · 12 km · about 88 min including preparation
+week 2/25 · base · 150 days to race
+────────────────────────────────────────────────────────────────
+
+part       dose      target     recovery
+─────────  ────────  ─────────  ────────
+easy       5 km      5:05–6:05
+hills      15×200 m  easy       jog down
+cool-down  1 km      jog
+
+next: Saturday 2026-10-31 · long run · 17 km
+
+→ why this session: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · en · today: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"Thu Oct 29 · hills · 12 km · about 88 min including preparation
+week 2/25 · base · 150 days to race
+────────────────────────────────────────────────────────────────
+
+part       dose      target     recovery
+─────────  ────────  ─────────  ────────
+easy       5 km      5:05–6:05
+hills      15×200 m  easy       jog down
+cool-down  1 km      jog
+
+next: Saturday 2026-10-31 · long run · 17 km
+
+→ why this session: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · en · today: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"Thu Oct 29 · hills · 12 km · about 88 min including preparation
+week 2/25 · base · 150 days to race
+────────────────────────────────────────────────────────────────
+
+part       dose      target     recovery
+─────────  ────────  ─────────  ────────
+easy       5 km      5:05–6:05
+hills      15×200 m  easy       jog down
+cool-down  1 km      jog
+
+next: Saturday 2026-10-31 · long run · 17 km
+
+→ why this session: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · en · today: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"Thu Oct 29 · hills · 12 km · about 88 min including preparation
+week 2/25 · base · 150 days to race
+----------------------------------------------------------------
+
+part       dose      target     recovery
+---------  --------  ---------  --------
+easy       5 km      5:05-6:05
+hills      15x200 m  easy       jog down
+cool-down  1 km      jog
+
+next: Saturday 2026-10-31 · long run · 17 km
+
+-> why this session: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · en · today: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"Thu Oct 29 · hills · 12 km · about 88 min including preparation
+week 2/25 · base · 150 days to race
+part | dose | target | recovery
+easy | 5 km | 5:05–6:05
+hills | 15×200 m | easy | jog down
+cool-down | 1 km | jog
+
+next: Saturday 2026-10-31 · long run · 17 km
+why this session: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"Week 2/25 · base · Oct 26–Nov 1 · 44 km · 4 runs · 2
+strength
+────────────────────────────────────────────────────────────
+
+  day  type       km  time  session
+  Mon  rest
+✓ Tue  intervals   8  1:06  WU 3 km · 4×1 km @4:32 r. 2'
+                            walk · CD 1 km
+  Wed  strength       0:35
+▸ Thu  hills      12  1:28  5 km @5:05–6:05 · hills 15×200 m
+                            · CD 1 km
+  Fri  strength       0:35
+  Sat  long run   17  2:07  17 km @6:05–6:35
+  Sun  tempo       7  0:55  WU 3 km · 3 km 5:01→4:32 · CD 1
+                            km
+       total      44  6:46
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"Week 2/25 · base · Oct 26–Nov 1 · 44 km · 4 runs · 2 strength
+────────────────────────────────────────────────────────────────
+
+  day  type       km  time  session
+  Mon  rest
+✓ Tue  intervals   8  1:06  WU 3 km · 4×1 km @4:32 r. 2' walk · CD 1 km
+  Wed  strength       0:35
+▸ Thu  hills      12  1:28  5 km @5:05–6:05 · hills 15×200 m · CD 1 km
+  Fri  strength       0:35
+  Sat  long run   17  2:07  17 km @6:05–6:35
+  Sun  tempo       7  0:55  WU 3 km · 3 km 5:01→4:32 · CD 1 km
+       total      44  6:46
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"Week 2/25 · base · Oct 26–Nov 1 · 44 km · 4 runs · 2 strength
+────────────────────────────────────────────────────────────────
+
+  day  type       km  time  session
+  Mon  rest
+✓ Tue  intervals   8  1:06  WU 3 km · 4×1 km @4:32 r. 2' walk · CD 1 km
+  Wed  strength       0:35
+▸ Thu  hills      12  1:28  5 km @5:05–6:05 · hills 15×200 m · CD 1 km
+  Fri  strength       0:35
+  Sat  long run   17  2:07  17 km @6:05–6:35
+  Sun  tempo       7  0:55  WU 3 km · 3 km 5:01→4:32 · CD 1 km
+       total      44  6:46
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"Week 2/25 · base · Oct 26–Nov 1 · 44 km · 4 runs · 2 strength
+────────────────────────────────────────────────────────────────
+
+  day  type       km  time  session
+  Mon  rest
+✓ Tue  intervals   8  1:06  WU 3 km · 4×1 km @4:32 r. 2' walk · CD 1 km
+  Wed  strength       0:35
+▸ Thu  hills      12  1:28  5 km @5:05–6:05 · hills 15×200 m · CD 1 km
+  Fri  strength       0:35
+  Sat  long run   17  2:07  17 km @6:05–6:35
+  Sun  tempo       7  0:55  WU 3 km · 3 km 5:01→4:32 · CD 1 km
+       total      44  6:46
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"Week 2/25 · base · Oct 26–Nov 1 · 44 km · 4 runs · 2 strength
+----------------------------------------------------------------
+
+  day  type       km  time  session
+  Mon  rest
++ Tue  intervals   8  1:06  WU 3 km | 4x1 km @4:32 r. 2' walk | CD 1 km
+  Wed  strength       0:35
+> Thu  hills      12  1:28  5 km @5:05-6:05 | hills 15x200 m | CD 1 km
+  Fri  strength       0:35
+  Sat  long run   17  2:07  17 km @6:05-6:35
+  Sun  tempo       7  0:55  WU 3 km | 3 km 5:01->4:32 | CD 1 km
+       total      44  6:46
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"Week 2/25 · base · Oct 26–Nov 1 · 44 km · 4 runs · 2 strength
+day | type | km | time | session
+Mon | rest
+Tue | intervals | 8 | 1:06 | WU 3 km · 4×1 km @4:32 r. 2' walk · CD 1 km | done
+Wed | strength | 0:35
+Thu | hills | 12 | 1:28 | 5 km @5:05–6:05 · hills 15×200 m · CD 1 km | today
+Fri | strength | 0:35
+Sat | long run | 17 | 2:07 | 17 km @6:05–6:35
+Sun | tempo | 7 | 0:55 | WU 3 km · 3 km 5:01→4:32 · CD 1 km
+total | 44 | 6:46
+WU warm-up · CD cool-down · r. recovery · pace in min/km"
+`;
+
+exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"Sezon · Half · 21,1 km · 2027-03-28 · 25 tygodni planu
+────────────────────────────────────────────────────────────
+
+  tydz     od  faza       km  akcenty                 długie
+  ────  ─────  ─────────  ──  ──────────────────────  ──────
+  1     19.10  baza       43  4×1 km @4:32 ·          16
+                              podbiegi · 3 km
+                              5:01→4:32
+▸ 2     26.10  baza       44  4×1 km @4:32 ·          17
+                              podbiegi · 3 km
+                              5:01→4:32
+  3      2.11  baza       46  4×1 km @4:32 ·          18,5
+                              podbiegi · 3,5 km
+                              5:01→4:32
+  4 ↓    9.11  baza       32  4×1 km @4:32 · 3 km     11
+                              5:01→4:32
+  5     16.11  baza       44  4×1 km @4:32 · 5 km na  16
+                              czas
+  6     23.11  baza       46  4×1 km @4:32 ·          18,5
+                              podbiegi · 3,5 km
+                              5:01→4:32
+  7     30.11  baza       47  4×1 km @4:32 ·          19,5
+                              podbiegi · 3,5 km
+                              5:01→4:32
+  8 ↓    7.12  baza       33  4×1 km @4:32 · 3 km     12
+                              5:01→4:32
+  9     14.12  budowanie  46  4×1 km @4:32 ·          18,5
+                              podbiegi · 3,5 km
+                              5:01→4:32
+  10    21.12  budowanie  47  4×1 km @4:32 ·          19,5
+                              podbiegi · 3,5 km
+                              5:01→4:32
+  11    28.12  budowanie  49  4×1 km @4:32 ·          20
+                              podbiegi · 5 km na
+                              czas
+  12 ↓   4.01  budowanie  34  4×1 km @4:32 · 3 km     13
+                              5:01→4:32
+  13    11.01  budowanie  47  4×1 km @4:32 ·          19,5
+                              podbiegi · 3,5 km
+                              5:01→4:32
+  14    18.01  budowanie  49  4×1 km @4:32 ·          21
+                              podbiegi · 4 km
+                              5:01→4:32
+  15    25.01  budowanie  50  5×1 km @4:32 ·          20,5
+                              podbiegi · 4,5 km
+                              5:01→4:32
+  16 ↓   1.02  budowanie  35  4×1 km @4:32 · 3,5 km   14
+                              5:01→4:32
+  17     8.02  budowanie  48  4×1 km @4:32 ·          21
+                              podbiegi · 5 km na
+                              czas
+  18    15.02  szczyt     50  3×1 km + 3×400 m +      22,7
+                              3×200 m @4:04 ·
+                              podbiegi · zmienny 4,5
+                              km
+  19    22.02  szczyt     52  3×1 km + 3×400 m +      22,2
+                              3×200 m @4:04 ·
+                              podbiegi · zmienny 5
+                              km
+  20 ↓   1.03  szczyt     36  3×1 km + 3×400 m +      15
+                              3×200 m @4:04 ·
+                              zmienny 4 km
+  21     8.03  szczyt     52  3×1 km + 3×400 m +      22,2
+                              3×200 m @4:04 ·
+                              podbiegi · zmienny 5
+                              km
+  22    15.03  taper      36  4×1 km @4:04 · zmienny
+                              4 km
+  23    22.03  start      26  5×300 m @4:04           START
+  24    29.03  przejście  22
+  25     5.04  przejście  44  3×1 km @4:32            16
+↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie
+w km"
+`;
+
+exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"Sezon · Half · 21,1 km · 2027-03-28 · 25 tygodni planu
+────────────────────────────────────────────────────────────────
+
+  tydz     od  faza       km  akcenty                                     długie
+  ────  ─────  ─────────  ──  ──────────────────────────────────────────  ──────
+  1     19.10  baza       43  4×1 km @4:32 · podbiegi · 3 km 5:01→4:32    16
+▸ 2     26.10  baza       44  4×1 km @4:32 · podbiegi · 3 km 5:01→4:32    17
+  3      2.11  baza       46  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32  18,5
+  4 ↓    9.11  baza       32  4×1 km @4:32 · 3 km 5:01→4:32               11
+  5     16.11  baza       44  4×1 km @4:32 · 5 km na czas                 16
+  6     23.11  baza       46  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32  18,5
+  7     30.11  baza       47  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32  19,5
+  8 ↓    7.12  baza       33  4×1 km @4:32 · 3 km 5:01→4:32               12
+  9     14.12  budowanie  46  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32  18,5
+  10    21.12  budowanie  47  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32  19,5
+  11    28.12  budowanie  49  4×1 km @4:32 · podbiegi · 5 km na czas      20
+  12 ↓   4.01  budowanie  34  4×1 km @4:32 · 3 km 5:01→4:32               13
+  13    11.01  budowanie  47  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32  19,5
+  14    18.01  budowanie  49  4×1 km @4:32 · podbiegi · 4 km 5:01→4:32    21
+  15    25.01  budowanie  50  5×1 km @4:32 · podbiegi · 4,5 km 5:01→4:32  20,5
+  16 ↓   1.02  budowanie  35  4×1 km @4:32 · 3,5 km 5:01→4:32             14
+  17     8.02  budowanie  48  4×1 km @4:32 · podbiegi · 5 km na czas      21
+  18    15.02  szczyt     50  3×1 km + 3×400 m + 3×200 m @4:04 ·          22,7
+                              podbiegi · zmienny 4,5 km
+  19    22.02  szczyt     52  3×1 km + 3×400 m + 3×200 m @4:04 ·          22,2
+                              podbiegi · zmienny 5 km
+  20 ↓   1.03  szczyt     36  3×1 km + 3×400 m + 3×200 m @4:04 · zmienny  15
+                              4 km
+  21     8.03  szczyt     52  3×1 km + 3×400 m + 3×200 m @4:04 ·          22,2
+                              podbiegi · zmienny 5 km
+  22    15.03  taper      36  4×1 km @4:04 · zmienny 4 km
+  23    22.03  start      26  5×300 m @4:04                               START
+  24    29.03  przejście  22
+  25     5.04  przejście  44  3×1 km @4:32                                16
+↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km"
+`;
+
+exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"Sezon · Half · 21,1 km · 2027-03-28 · 25 tygodni planu
+────────────────────────────────────────────────────────────────
+
+  tydz     od  faza       km  akcenty                                                       długie
+  ────  ─────  ─────────  ──  ────────────────────────────────────────────────────────────  ──────
+  1     19.10  baza       43  4×1 km @4:32 · podbiegi · 3 km 5:01→4:32                      16
+▸ 2     26.10  baza       44  4×1 km @4:32 · podbiegi · 3 km 5:01→4:32                      17
+  3      2.11  baza       46  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    18,5
+  4 ↓    9.11  baza       32  4×1 km @4:32 · 3 km 5:01→4:32                                 11
+  5     16.11  baza       44  4×1 km @4:32 · 5 km na czas                                   16
+  6     23.11  baza       46  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    18,5
+  7     30.11  baza       47  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    19,5
+  8 ↓    7.12  baza       33  4×1 km @4:32 · 3 km 5:01→4:32                                 12
+  9     14.12  budowanie  46  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    18,5
+  10    21.12  budowanie  47  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    19,5
+  11    28.12  budowanie  49  4×1 km @4:32 · podbiegi · 5 km na czas                        20
+  12 ↓   4.01  budowanie  34  4×1 km @4:32 · 3 km 5:01→4:32                                 13
+  13    11.01  budowanie  47  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    19,5
+  14    18.01  budowanie  49  4×1 km @4:32 · podbiegi · 4 km 5:01→4:32                      21
+  15    25.01  budowanie  50  5×1 km @4:32 · podbiegi · 4,5 km 5:01→4:32                    20,5
+  16 ↓   1.02  budowanie  35  4×1 km @4:32 · 3,5 km 5:01→4:32                               14
+  17     8.02  budowanie  48  4×1 km @4:32 · podbiegi · 5 km na czas                        21
+  18    15.02  szczyt     50  3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 4,5 km  22,7
+  19    22.02  szczyt     52  3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 5 km    22,2
+  20 ↓   1.03  szczyt     36  3×1 km + 3×400 m + 3×200 m @4:04 · zmienny 4 km               15
+  21     8.03  szczyt     52  3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 5 km    22,2
+  22    15.03  taper      36  4×1 km @4:04 · zmienny 4 km
+  23    22.03  start      26  5×300 m @4:04                                                 START
+  24    29.03  przejście  22
+  25     5.04  przejście  44  3×1 km @4:32                                                  16
+↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km"
+`;
+
+exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"Sezon · Half · 21,1 km · 2027-03-28 · 25 tygodni planu
+────────────────────────────────────────────────────────────────
+
+  tydz     od  faza       km  akcenty                                                       długie
+  ────  ─────  ─────────  ──  ────────────────────────────────────────────────────────────  ──────
+  1     19.10  baza       43  4×1 km @4:32 · podbiegi · 3 km 5:01→4:32                      16
+▸ 2     26.10  baza       44  4×1 km @4:32 · podbiegi · 3 km 5:01→4:32                      17
+  3      2.11  baza       46  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    18,5
+  4 ↓    9.11  baza       32  4×1 km @4:32 · 3 km 5:01→4:32                                 11
+  5     16.11  baza       44  4×1 km @4:32 · 5 km na czas                                   16
+  6     23.11  baza       46  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    18,5
+  7     30.11  baza       47  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    19,5
+  8 ↓    7.12  baza       33  4×1 km @4:32 · 3 km 5:01→4:32                                 12
+  9     14.12  budowanie  46  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    18,5
+  10    21.12  budowanie  47  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    19,5
+  11    28.12  budowanie  49  4×1 km @4:32 · podbiegi · 5 km na czas                        20
+  12 ↓   4.01  budowanie  34  4×1 km @4:32 · 3 km 5:01→4:32                                 13
+  13    11.01  budowanie  47  4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32                    19,5
+  14    18.01  budowanie  49  4×1 km @4:32 · podbiegi · 4 km 5:01→4:32                      21
+  15    25.01  budowanie  50  5×1 km @4:32 · podbiegi · 4,5 km 5:01→4:32                    20,5
+  16 ↓   1.02  budowanie  35  4×1 km @4:32 · 3,5 km 5:01→4:32                               14
+  17     8.02  budowanie  48  4×1 km @4:32 · podbiegi · 5 km na czas                        21
+  18    15.02  szczyt     50  3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 4,5 km  22,7
+  19    22.02  szczyt     52  3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 5 km    22,2
+  20 ↓   1.03  szczyt     36  3×1 km + 3×400 m + 3×200 m @4:04 · zmienny 4 km               15
+  21     8.03  szczyt     52  3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 5 km    22,2
+  22    15.03  taper      36  4×1 km @4:04 · zmienny 4 km
+  23    22.03  start      26  5×300 m @4:04                                                 START
+  24    29.03  przejście  22
+  25     5.04  przejście  44  3×1 km @4:32                                                  16
+↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km"
+`;
+
+exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"Sezon · Half · 21,1 km · 2027-03-28 · 25 tygodni planu
+----------------------------------------------------------------
+
+  tydz     od  faza       km  akcenty                                     długie
+  ----  -----  ---------  --  ------------------------------------------  ------
+  1     19.10  baza       43  4x1 km @4:32 | podbiegi | 3 km 5:01->4:32   16
+> 2     26.10  baza       44  4x1 km @4:32 | podbiegi | 3 km 5:01->4:32   17
+  3      2.11  baza       46  4x1 km @4:32 | podbiegi | 3,5 km            18,5
+                              5:01->4:32
+  4 v    9.11  baza       32  4x1 km @4:32 | 3 km 5:01->4:32              11
+  5     16.11  baza       44  4x1 km @4:32 | 5 km na czas                 16
+  6     23.11  baza       46  4x1 km @4:32 | podbiegi | 3,5 km            18,5
+                              5:01->4:32
+  7     30.11  baza       47  4x1 km @4:32 | podbiegi | 3,5 km            19,5
+                              5:01->4:32
+  8 v    7.12  baza       33  4x1 km @4:32 | 3 km 5:01->4:32              12
+  9     14.12  budowanie  46  4x1 km @4:32 | podbiegi | 3,5 km            18,5
+                              5:01->4:32
+  10    21.12  budowanie  47  4x1 km @4:32 | podbiegi | 3,5 km            19,5
+                              5:01->4:32
+  11    28.12  budowanie  49  4x1 km @4:32 | podbiegi | 5 km na czas      20
+  12 v   4.01  budowanie  34  4x1 km @4:32 | 3 km 5:01->4:32              13
+  13    11.01  budowanie  47  4x1 km @4:32 | podbiegi | 3,5 km            19,5
+                              5:01->4:32
+  14    18.01  budowanie  49  4x1 km @4:32 | podbiegi | 4 km 5:01->4:32   21
+  15    25.01  budowanie  50  5x1 km @4:32 | podbiegi | 4,5 km            20,5
+                              5:01->4:32
+  16 v   1.02  budowanie  35  4x1 km @4:32 | 3,5 km 5:01->4:32            14
+  17     8.02  budowanie  48  4x1 km @4:32 | podbiegi | 5 km na czas      21
+  18    15.02  szczyt     50  3x1 km + 3x400 m + 3x200 m @4:04 |          22,7
+                              podbiegi | zmienny 4,5 km
+  19    22.02  szczyt     52  3x1 km + 3x400 m + 3x200 m @4:04 |          22,2
+                              podbiegi | zmienny 5 km
+  20 v   1.03  szczyt     36  3x1 km + 3x400 m + 3x200 m @4:04 | zmienny  15
+                              4 km
+  21     8.03  szczyt     52  3x1 km + 3x400 m + 3x200 m @4:04 |          22,2
+                              podbiegi | zmienny 5 km
+  22    15.03  taper      36  4x1 km @4:04 | zmienny 4 km
+  23    22.03  start      26  5x300 m @4:04                               START
+  24    29.03  przejście  22
+  25     5.04  przejście  44  3x1 km @4:32                                16
+v odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km"
+`;
+
+exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"Sezon · Half · 21,1 km · 2027-03-28 · 25 tygodni planu
+tydz | od | faza | km | akcenty | długie
+1 | 19.10 | baza | 43 | 4×1 km @4:32 · podbiegi · 3 km 5:01→4:32 | 16
+2 | 26.10 | baza | 44 | 4×1 km @4:32 · podbiegi · 3 km 5:01→4:32 | 17 | dziś
+3 | 2.11 | baza | 46 | 4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32 | 18,5
+4 ↓ | 9.11 | baza | 32 | 4×1 km @4:32 · 3 km 5:01→4:32 | 11
+5 | 16.11 | baza | 44 | 4×1 km @4:32 · 5 km na czas | 16
+6 | 23.11 | baza | 46 | 4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32 | 18,5
+7 | 30.11 | baza | 47 | 4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32 | 19,5
+8 ↓ | 7.12 | baza | 33 | 4×1 km @4:32 · 3 km 5:01→4:32 | 12
+9 | 14.12 | budowanie | 46 | 4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32 | 18,5
+10 | 21.12 | budowanie | 47 | 4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32 | 19,5
+11 | 28.12 | budowanie | 49 | 4×1 km @4:32 · podbiegi · 5 km na czas | 20
+12 ↓ | 4.01 | budowanie | 34 | 4×1 km @4:32 · 3 km 5:01→4:32 | 13
+13 | 11.01 | budowanie | 47 | 4×1 km @4:32 · podbiegi · 3,5 km 5:01→4:32 | 19,5
+14 | 18.01 | budowanie | 49 | 4×1 km @4:32 · podbiegi · 4 km 5:01→4:32 | 21
+15 | 25.01 | budowanie | 50 | 5×1 km @4:32 · podbiegi · 4,5 km 5:01→4:32 | 20,5
+16 ↓ | 1.02 | budowanie | 35 | 4×1 km @4:32 · 3,5 km 5:01→4:32 | 14
+17 | 8.02 | budowanie | 48 | 4×1 km @4:32 · podbiegi · 5 km na czas | 21
+18 | 15.02 | szczyt | 50 | 3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 4,5 km | 22,7
+19 | 22.02 | szczyt | 52 | 3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 5 km | 22,2
+20 ↓ | 1.03 | szczyt | 36 | 3×1 km + 3×400 m + 3×200 m @4:04 · zmienny 4 km | 15
+21 | 8.03 | szczyt | 52 | 3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 5 km | 22,2
+22 | 15.03 | taper | 36 | 4×1 km @4:04 · zmienny 4 km
+23 | 22.03 | start | 26 | 5×300 m @4:04 | START
+24 | 29.03 | przejście | 22
+25 | 5.04 | przejście | 44 | 3×1 km @4:32 | 16
+↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km"
+`;
+
+exports[`C2: migawki widoków > run · pl · today: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"CZ 29.10 · podbiegi · 12 km · około 88 min razem z
+przygotowaniem
+tydzień 2/25 · baza · do startu: 150 dni
+────────────────────────────────────────────────────────────
+
+etap         dawka     cel        przerwa
+───────────  ────────  ─────────  ───────
+spokojnie    5 km      5:05–6:05
+podbiegi     15×200 m  spokojnie  zbieg
+schłodzenie  1 km      trucht
+
+następny: sobota 2026-10-31 · długie · 17 km
+
+→ dlaczego ten trening: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · pl · today: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"CZ 29.10 · podbiegi · 12 km · około 88 min razem z przygotowaniem
+tydzień 2/25 · baza · do startu: 150 dni
+────────────────────────────────────────────────────────────────
+
+etap         dawka     cel        przerwa
+───────────  ────────  ─────────  ───────
+spokojnie    5 km      5:05–6:05
+podbiegi     15×200 m  spokojnie  zbieg
+schłodzenie  1 km      trucht
+
+następny: sobota 2026-10-31 · długie · 17 km
+
+→ dlaczego ten trening: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · pl · today: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"CZ 29.10 · podbiegi · 12 km · około 88 min razem z przygotowaniem
+tydzień 2/25 · baza · do startu: 150 dni
+────────────────────────────────────────────────────────────────
+
+etap         dawka     cel        przerwa
+───────────  ────────  ─────────  ───────
+spokojnie    5 km      5:05–6:05
+podbiegi     15×200 m  spokojnie  zbieg
+schłodzenie  1 km      trucht
+
+następny: sobota 2026-10-31 · długie · 17 km
+
+→ dlaczego ten trening: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · pl · today: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"CZ 29.10 · podbiegi · 12 km · około 88 min razem z przygotowaniem
+tydzień 2/25 · baza · do startu: 150 dni
+────────────────────────────────────────────────────────────────
+
+etap         dawka     cel        przerwa
+───────────  ────────  ─────────  ───────
+spokojnie    5 km      5:05–6:05
+podbiegi     15×200 m  spokojnie  zbieg
+schłodzenie  1 km      trucht
+
+następny: sobota 2026-10-31 · długie · 17 km
+
+→ dlaczego ten trening: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · pl · today: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"CZ 29.10 · podbiegi · 12 km · około 88 min razem z przygotowaniem
+tydzień 2/25 · baza · do startu: 150 dni
+----------------------------------------------------------------
+
+etap         dawka     cel        przerwa
+-----------  --------  ---------  -------
+spokojnie    5 km      5:05-6:05
+podbiegi     15x200 m  spokojnie  zbieg
+schłodzenie  1 km      trucht
+
+następny: sobota 2026-10-31 · długie · 17 km
+
+-> dlaczego ten trening: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · pl · today: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"CZ 29.10 · podbiegi · 12 km · około 88 min razem z przygotowaniem
+tydzień 2/25 · baza · do startu: 150 dni
+etap | dawka | cel | przerwa
+spokojnie | 5 km | 5:05–6:05
+podbiegi | 15×200 m | spokojnie | zbieg
+schłodzenie | 1 km | trucht
+
+następny: sobota 2026-10-31 · długie · 17 km
+dlaczego ten trening: trainctl why --date 2026-10-29"
+`;
+
+exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i ASCII > 60 1`] = `
+"Tydzień 2/25 · baza · 26.10–1.11 · 44 km · 4 biegi · 2 siły
+────────────────────────────────────────────────────────────
+
+  dz  typ          km  czas  rozpiska
+  PN  wolne
+✓ WT  interwały     8  1:06  RG 3 km · 4×1 km @4:32 p. 2'
+                             marsz · SCH 1 km
+  ŚR  siła             0:35
+▸ CZ  podbiegi     12  1:28  5 km @5:05–6:05 · podbiegi
+                             15×200 m · SCH 1 km
+  PT  siła             0:35
+  SB  długie       17  2:07  17 km @6:05–6:35
+  ND  narastające   7  0:55  RG 3 km · 3 km 5:01→4:32 · SCH
+                             1 km
+      suma         44  6:46
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w
+min/km"
+`;
+
+exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i ASCII > 80 1`] = `
+"Tydzień 2/25 · baza · 26.10–1.11 · 44 km · 4 biegi · 2 siły
+────────────────────────────────────────────────────────────────
+
+  dz  typ          km  czas  rozpiska
+  PN  wolne
+✓ WT  interwały     8  1:06  RG 3 km · 4×1 km @4:32 p. 2' marsz · SCH 1 km
+  ŚR  siła             0:35
+▸ CZ  podbiegi     12  1:28  5 km @5:05–6:05 · podbiegi 15×200 m · SCH 1 km
+  PT  siła             0:35
+  SB  długie       17  2:07  17 km @6:05–6:35
+  ND  narastające   7  0:55  RG 3 km · 3 km 5:01→4:32 · SCH 1 km
+      suma         44  6:46
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km"
+`;
+
+exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i ASCII > 100 1`] = `
+"Tydzień 2/25 · baza · 26.10–1.11 · 44 km · 4 biegi · 2 siły
+────────────────────────────────────────────────────────────────
+
+  dz  typ          km  czas  rozpiska
+  PN  wolne
+✓ WT  interwały     8  1:06  RG 3 km · 4×1 km @4:32 p. 2' marsz · SCH 1 km
+  ŚR  siła             0:35
+▸ CZ  podbiegi     12  1:28  5 km @5:05–6:05 · podbiegi 15×200 m · SCH 1 km
+  PT  siła             0:35
+  SB  długie       17  2:07  17 km @6:05–6:35
+  ND  narastające   7  0:55  RG 3 km · 3 km 5:01→4:32 · SCH 1 km
+      suma         44  6:46
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km"
+`;
+
+exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i ASCII > 120 1`] = `
+"Tydzień 2/25 · baza · 26.10–1.11 · 44 km · 4 biegi · 2 siły
+────────────────────────────────────────────────────────────────
+
+  dz  typ          km  czas  rozpiska
+  PN  wolne
+✓ WT  interwały     8  1:06  RG 3 km · 4×1 km @4:32 p. 2' marsz · SCH 1 km
+  ŚR  siła             0:35
+▸ CZ  podbiegi     12  1:28  5 km @5:05–6:05 · podbiegi 15×200 m · SCH 1 km
+  PT  siła             0:35
+  SB  długie       17  2:07  17 km @6:05–6:35
+  ND  narastające   7  0:55  RG 3 km · 3 km 5:01→4:32 · SCH 1 km
+      suma         44  6:46
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km"
+`;
+
+exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i ASCII > ascii-80 1`] = `
+"Tydzień 2/25 · baza · 26.10–1.11 · 44 km · 4 biegi · 2 siły
+----------------------------------------------------------------
+
+  dz  typ          km  czas  rozpiska
+  PN  wolne
++ WT  interwały     8  1:06  RG 3 km | 4x1 km @4:32 p. 2' marsz | SCH 1 km
+  ŚR  siła             0:35
+> CZ  podbiegi     12  1:28  5 km @5:05-6:05 | podbiegi 15x200 m | SCH 1 km
+  PT  siła             0:35
+  SB  długie       17  2:07  17 km @6:05-6:35
+  ND  narastające   7  0:55  RG 3 km | 3 km 5:01->4:32 | SCH 1 km
+      suma         44  6:46
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km"
+`;
+
+exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i ASCII > plain 1`] = `
+"Tydzień 2/25 · baza · 26.10–1.11 · 44 km · 4 biegi · 2 siły
+dz | typ | km | czas | rozpiska
+PN | wolne
+WT | interwały | 8 | 1:06 | RG 3 km · 4×1 km @4:32 p. 2' marsz · SCH 1 km | wykonany
+ŚR | siła | 0:35
+CZ | podbiegi | 12 | 1:28 | 5 km @5:05–6:05 · podbiegi 15×200 m · SCH 1 km | dziś
+PT | siła | 0:35
+SB | długie | 17 | 2:07 | 17 km @6:05–6:35
+ND | narastające | 7 | 0:55 | RG 3 km · 3 km 5:01→4:32 · SCH 1 km
+suma | 44 | 6:46
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km"
+`;

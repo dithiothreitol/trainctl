@@ -99,7 +99,7 @@ describe('binarka: --json, -C, TRAINCTL_TODAY, daty względne, kody wyjścia', (
     const elsewhere = mkdtempSync(join(tmpdir(), 'trainctl-040-cwd-'))
     try {
       expect(run(['-C', dir, 'plan', '--date', '2026-08-08'], {}, elsewhere).stdout).toContain('Saved plan/plan.yaml')
-      expect(run(['today', '--date', '2026-08-11'], { TRAINCTL_DIR: dir }, elsewhere).stdout).toContain('2026-08-11 · Tuesday')
+      expect(run(['today', '--date', '2026-08-11'], { TRAINCTL_DIR: dir }, elsewhere).stdout).toContain('Tue Aug 11 · ')
       expect(run(['--dir', join(dir, 'missing'), 'today'], {}, elsewhere).status).toBe(1)
     } finally {
       rmSync(elsewhere, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
@@ -110,7 +110,7 @@ describe('binarka: --json, -C, TRAINCTL_TODAY, daty względne, kody wyjścia', (
     run(['plan', '--date', '2026-08-08'])
     const r = run(['today'], { TRAINCTL_TODAY: '2026-08-11' })
     expect(r.stdout.split('\n')[0]).toContain('simulated date 2026-08-11 (TRAINCTL_TODAY)')
-    expect(r.stdout).toContain('2026-08-11 · Tuesday')
+    expect(r.stdout).toContain('Tue Aug 11 · ')
     // ochrona przeszłości idzie za symulacją: dzień przed nią jest przeszły
     expect(run(['shift', '--from', '2026-08-10', '--to', '2026-08-11'], { TRAINCTL_TODAY: '2026-08-11' }).status).toBe(1)
     const json = JSON.parse(run(['today', '--json'], { TRAINCTL_TODAY: '2026-08-11' }).stdout) as { notice: string }

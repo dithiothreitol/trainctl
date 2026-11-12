@@ -127,8 +127,12 @@ describe('week pokazuje prawdziwy czas trwania siły', () => {
   it('czas pochodzi z danych, nie z zaszytej stałej', () => {
     setup()
     const day = strengthDays()[0]!
-    const out = cmdWeek(dir, { date: day.date }).output
-    expect(out).toContain(`SIŁA ~${day.strength!.durationMin} min`)
+    const week = cmdWeek(dir, { date: day.date })
+    // C2: siła to osobny wiersz z czasem h:mm z danych sesji
+    const minutes = day.strength!.durationMin
+    const clock = `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
+    expect(week.output).toMatch(new RegExp(`^(?:\\S+ \\| )?siła \\| ${clock}$`, 'm'))
+    expect(week.data!.rows).toContainEqual(expect.objectContaining({ date: day.date, sport: 'strength', minutes }))
   })
 })
 

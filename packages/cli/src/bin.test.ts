@@ -101,10 +101,25 @@ describe('binarka CLI pod natywnym Node', () => {
 
   it('--help działa (parsowanie całego drzewa komend)', () => {
     const out = run(['--help'])
-    for (const cmd of ['plan', 'today', 'week', 'log', 'shift', 'why', 'diff', 'push', 'pull', 'review']) {
+    for (const cmd of ['plan', 'today', 'week', 'season', 'log', 'shift', 'why', 'diff', 'push', 'pull', 'review']) {
       expect(out).toContain(cmd)
     }
   })
+
+  it('C2: season, help season, --full i uzupełnianie powłoki', () => {
+    run(['plan', '--date', '2026-08-05'])
+    const season = run(['season', '--date', '2026-08-04', '--color', 'never'])
+    expect(season).toMatch(/^Sezon · Bieg testowy · 21,1 km/m)
+    expect(season).toMatch(/tydz +od +faza +km +akcenty +długie/)
+    expect(run(['help', 'season'])).toContain('--date')
+    expect(run(['today', '--help'])).toContain('--full')
+    const full = run(['week', '--date', '2026-08-04', '--full', '--plain'])
+    expect(full).toContain('rozgrzewkowe')
+    expect(run(['week', '--date', '2026-08-04', '--plain'])).not.toContain('rozgrzewkowe')
+    const bash = run(['completion', 'bash'])
+    expect(bash).toContain('season')
+    expect(bash).toContain('--full')
+  }, 40_000)
 
   it('--version podaje wersję z manifestu paczki', () => {
     // Ścieżka `../package.json` musi trafiać i z `src/`, i z `dist/` — a wersja

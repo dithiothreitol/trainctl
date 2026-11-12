@@ -30,6 +30,7 @@ import {
   cmdReschedule,
   cmdReview,
   cmdRules,
+  cmdSeason,
   cmdShift,
   cmdShorten,
   cmdStatus,
@@ -273,18 +274,26 @@ program
   .command('today')
   .description(ui().cmd.today)
   .option('--date <iso>', ui().cmd.optDateOther, ahead)
+  .option('--full', ui().cmd.optFull)
   .action((opts) => print(cmdToday(cwd, opts)))
 
 program
   .command('week')
   .description(ui().cmd.week)
   .option('--date <iso>', ui().cmd.optDateWeek, ahead)
+  .option('--full', ui().cmd.optFull)
   .option('-i, --interactive', ui().cmd.weekInteractive)
   .action(async (opts) => {
     if (opts.interactive !== true || !tty) return print(cmdWeek(cwd, opts))
     if (isSportsWorkspace(cwd)) return print(await runSportsWeekBrowser(cwd,opts.date ?? localToday(),theme))
     printInteractive(await runWeekBrowser(cwd, opts.date ?? localToday(), theme))
   })
+
+program
+  .command('season')
+  .description(ui().cmd.season)
+  .option('--date <iso>', ui().cmd.optDateWeek, ahead)
+  .action((opts) => print(cmdSeason(cwd, opts)))
 
 withExamples(
   commitOption(

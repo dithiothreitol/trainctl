@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { b, renderAnsi, renderPlain, wrap } from './blocks.ts'
+import { b, renderAnsi, renderPlain, wrap, type RowMark } from './blocks.ts'
 import { detectCapabilities, Theme, stripAnsi, visibleLength } from './theme.ts'
 import { helpItem } from './help.ts'
 
@@ -45,6 +45,22 @@ describe('responsive terminal layout', () => {
     expect(visibleLength('東京')).toBe(4)
     expect(visibleLength('🏊‍♀️')).toBe(2)
     expect(wrap('東京東京 e\u0301e\u0301e\u0301', 4)).toEqual(['東京', '東京', 'e\u0301e\u0301e\u0301'])
+  })
+
+  it('C2: znaczniki wierszy — symbol w terminalu, słowo w tekście; status spoza listy to „?"', () => {
+    // ręcznie poprawiony dziennik może dać dowolny status, także klucz prototypu
+    const marks: (RowMark | undefined)[] = [{ kind: 'done', word: 'wykonany' }, undefined, { kind: 'constructor', word: 'constructor' } as unknown as RowMark]
+    const table = b.table(['dz', 'typ', 'czas'], [['WT', 'interwały', '1:06'], ['ŚR', 'siła', '0:35'], ['CZ', 'podbiegi', '1:28']], undefined, { foot: ['', 'suma', '3:09'], marks })
+    const unicode = renderAnsi([table], new Theme({ color: false, unicode: true, width: 60 }))
+    expect(unicode).toMatch(/^✓ WT {2}interwały/m)
+    expect(unicode).toMatch(/^ {2}ŚR {2}siła/m)
+    expect(unicode).toMatch(/^\? CZ {2}podbiegi/m)
+    expect(unicode).not.toContain('native code')
+    expect(renderAnsi([table], new Theme({ color: false, unicode: false, width: 60 }))).toMatch(/^\+ WT/m)
+    const plain = renderPlain([table])
+    expect(plain).toContain('WT | interwały | 1:06 | wykonany')
+    expect(plain).toContain('suma | 3:09')
+    expect(plain).not.toMatch(/[✓?]/)
   })
 
   it('uses readable ASCII structure when Unicode is unavailable', () => {

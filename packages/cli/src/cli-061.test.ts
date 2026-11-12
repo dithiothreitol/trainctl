@@ -22,7 +22,7 @@ import { improvePl } from './i18n/improve-pl.ts'
 import { coachEn } from './i18n/coach-en.ts'
 import { coachPl } from './i18n/coach-pl.ts'
 import { shortenDetail } from './proposals.ts'
-import { renderAnsi, wrap, wrapText } from './ui/blocks.ts'
+import { renderAnsi, wrap, wrapText, type Block } from './ui/blocks.ts'
 import { parseDistanceInput } from './ui/wizard.ts'
 import { renderChoices } from './ui/select.ts'
 import { Theme, visibleLength } from './ui/theme.ts'
@@ -74,7 +74,8 @@ describe.each(['pl', 'en'] as const)('pakiet A · %s', (lang) => {
     const plan = cmdPlan(dir).output
     const why = cmdWhy(dir, { date: '2026-10-27' }).output
     if (lang === 'pl') {
-      for (const out of [plan, why]) expect(out.replace(/https?:\/\/\S+/g, '')).not.toMatch(/\d\.\d/)
+      // krótka data „19.10" w siatce sezonu (C2) to zapis daty, nie liczba dziesiętna
+      for (const out of [plan, why]) expect(out.replace(/https?:\/\/\S+/g, '').replace(/\b\d{1,2}\.(0[1-9]|1[0-2])\b/g, '')).not.toMatch(/\d\.\d/)
       expect(plan).toContain('21,1 km')
       expect(plan).toContain('47,7')
     } else {
@@ -86,19 +87,21 @@ describe.each(['pl', 'en'] as const)('pakiet A · %s', (lang) => {
   it('A4: faza jednotygodniowa bez zakresu', () => {
     const out = cmdPlan(dir).output
     expect(out).not.toMatch(/(\d+)–\1\b/)
-    expect(out).toMatch(lang === 'pl' ? /taper: tyg\. 22\b/ : /taper: week 22\b/)
+    // C2: szkic faz zastąpiła siatka sezonu — tydzień taperu to jeden wiersz
+    expect(out).toMatch(lang === 'pl' ? /^22 \| 15\.03 \| taper \|/m : /^22 \| Mar 15 \| taper \|/m)
   })
 
   it('A5: status dziennika słowem z katalogu, surowy enum w danych', () => {
     process.env['TRAINCTL_TODAY'] = '2026-10-27'
     cmdLog(dir, { date: '2026-10-27', status: 'done' })
     const word = lang === 'pl' ? 'wykonany' : 'done'
-    expect(cmdWeek(dir).output).toContain(`[${word}]`)
+    // C2: w wyjściu tekstowym status słowem na końcu wiersza jednostki
+    expect(cmdWeek(dir).output).toMatch(new RegExp(`^WT\\b.* \\| ${word}$|^Tue\\b.* \\| ${word}$`, 'm'))
     expect(cmdStatus(dir).output).toContain(`(${word})`)
     const today = cmdToday(dir)
     expect(today.output).toContain(word)
     expect(today.data).toMatchObject({ log: { status: 'done' } })
-    if (lang === 'pl') expect(cmdWeek(dir).output).not.toContain('[done]')
+    if (lang === 'pl') expect(cmdWeek(dir).output).not.toMatch(/\| done$/m)
   })
 
   it('A7: wiek wyniku w why liczony od dziś, data kalibracji osobno', () => {
@@ -182,7 +185,10 @@ describe('poprawki po przeglądzie etapu 1', () => {
 
   it('podtytuł tygodnia: bez planowanej sumy jedna liczba', () => {
     setLocale('en')
-    expect(cmdWeek(dir).output).toMatch(/\(pyramidal\) · \d+ km/)
+    // C2: cel tygodnia raz w nagłówku, suma dni pod tabelą; „target" tylko przy różnicy
+    const out = cmdWeek(dir).output
+    expect(out).toMatch(/^Week \d+\/\d+ · base · .* · \d+ km · \d+ runs/m)
+    expect(out).not.toContain('target')
   })
 })
 
@@ -243,9 +249,13 @@ describe('poprawki po trzeciej rundzie przeglądu etapu 1', () => {
     setLocale('en')
     process.env['TRAINCTL_TODAY'] = '2026-10-27'
     appendFileSync(join(dir, 'log.jsonl'), JSON.stringify({ date: '2026-10-27', status: 'constructor', loggedAt: '2026-10-27T10:00:00Z' }) + '\n')
-    const out = cmdWeek(dir).output
-    expect(out).toContain('[constructor]')
-    expect(out).not.toContain('native code')
+    const week = cmdWeek(dir)
+    expect(week.output).toMatch(/\| constructor$/m)
+    expect(week.output).not.toContain('native code')
+    // w terminalu znacznik „?" zamiast funkcji z prototypu (C2)
+    const ansi = renderAnsi((week as { blocks: Block[] }).blocks, new Theme({ color: false, unicode: true, width: 100 }))
+    expect(ansi).not.toContain('native code')
+    expect(ansi).toMatch(/^\? Tue /m)
   })
 
   it('macierz profili nie trafia do paczki npm', () => {

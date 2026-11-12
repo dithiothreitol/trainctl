@@ -256,8 +256,9 @@ a key is configured). `trainctl adapt` compares execution with the plan and
 |---|---|---|
 | `init` | profile wizard | `--template`, `--from-intervals`, `--agent claude\|codex\|all`, `--commit` |
 | `plan` | generate the plan; on an existing plan regenerate only the future | `--date`, `--fresh`, `--commit` |
-| `today` | the session for today | `--date` |
-| `week` | the week, with journal status | `--date`, `-i` (arrow-key browsing) |
+| `today` | the session for today: structure with targets, time, next session | `--date`, `--full` |
+| `week` | the week, one row per session, with journal status | `--date`, `--full`, `-i` (arrow-key browsing) |
+| `season` | the season grid, one row per week: phase, km, accents, long run | `--date` |
 | `why` | purpose + research rules behind a session | `--date` |
 | `log` | record a completed session (no flags in a terminal: asks) | `--status`, `--km`, `--time`, `--test-time`, `--rpe`, `--note`, `--commit` |
 | `shift` | swap two sessions inside a week | `--from`, `--to` (or pick from a list), `--commit` |
@@ -473,7 +474,7 @@ Any MCP client works — the generic form:
 
 The tools run over the same handlers the CLI uses, so the agent and your
 terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
-`trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
+`trainctl_season`, `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
 `trainctl_adapt`, `trainctl_replace`, `trainctl_migrate`, `trainctl_shorten`, `trainctl_desk`, `trainctl_reschedule`,
 `trainctl_export`, `trainctl_review`, `trainctl_status`, `trainctl_rule`. The

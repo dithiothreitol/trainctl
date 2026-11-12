@@ -25,6 +25,7 @@ import {
   seasonShapeIssues,
   validatePlan,
   weekTotals,
+  workoutStructure,
   WEEK_KM_TOLERANCE,
   COACH_STYLE,
   INFER_WINDOW_WEEKS,
@@ -94,17 +95,8 @@ const OUR_EXTERNAL_ID_PREFIX = 'trainctl-'
 /** Nowe selektory nie mogą zostać po cichu zignorowane przez zapis v1. */
 const sessionOptions = (opts: object): boolean => ['session','sport','actualSport','meters','activity','sets'].some(key=>Reflect.get(opts,key)!==undefined)
 
-/** Kolor semantyczny jednostki treningowej — spójny w całym CLI. */
-export const KIND_COLOR: Record<string, ColorName> = {
-  easy: 'easy',
-  long: 'long',
-  easy_hills: 'accent',
-  quality_intervals: 'quality',
-  quality_continuous: 'quality',
-  sharpener: 'quality',
-  test: 'race',
-  race: 'race',
-}
+import { KIND_COLOR, asciiOutput, dayHeading, rowsTable, runningSeasonRows, runningWeekRows, seasonTable, structureTable } from './ui/rows.ts'
+export { KIND_COLOR }
 
 /** Etykiety jednostek i faz pochodzą z katalogu — zmieniają się razem z językiem. */
 export const kindLabel = (kind: string): string =>
@@ -444,20 +436,8 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
       }
     }
 
-    // szkic makrocyklu — jedna linia na fazę
-    const phases: string[] = []
-    let current = ''
-    let from = 0
-    cycle.forEach((w, i) => {
-      const label = phaseLabel(w.skeleton.phase)
-      if (label !== current) {
-        if (current) phases.push(ui().plan.phaseSpan(current, from + 1, i))
-        current = label
-        from = i
-      }
-    })
-    if (current) phases.push(ui().plan.phaseSpan(current, from + 1, cycle.length))
-    blocks.push(b.section(ui().plan.structure), b.bullets(phases))
+    // C2: siatka sezonu (ta sama co w `trainctl season`) zamiast szkicu faz
+    blocks.push(b.section(ui().plan.structure), ...seasonBlocks(plan, today))
     if (rebuild && existing && !rebuild.upToDate) blocks.push(...regenerationBlocks(existing, rebuild))
     if (opts.fresh === true && existing) {
       const dropped = freshDropped(existing)
@@ -527,7 +507,7 @@ function freshDropped(existing: StoredPlan): string {
   ].join(', ')
 }
 
-export function cmdToday(cwd: string, opts: { session?: string | undefined; sport?: string | undefined; date?: string | undefined } = {}): CmdResult {
+export function cmdToday(cwd: string, opts: { session?: string | undefined; sport?: string | undefined; date?: string | undefined; full?: boolean | undefined } = {}): CmdResult {
   if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'today', opts)
   if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   try {
@@ -542,26 +522,28 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
     const { week, day } = hit
     const sk = week.skeleton
     const toRace = diffDays(date, plan.goal.date)
+    const t = ui().rows
+    const estimatedMinutes = (day.workout ? estimateWorkoutMinutes(day.workout, plan.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
+    // C2: w nagłówku dnia typ, dystans i czas z przygotowaniem; niżej struktura z celami
     const blocks: Block[] = [
       b.title(
-        `${date} · ${weekdayName(day.weekday)}`,
+        dayHeading(date, day.weekday, [
+          day.workout ? kindLabel(day.workout.kind) : day.strength ? t.strength : t.rest,
+          day.workout ? workoutKm(day.workout) : undefined,
+          (day.workout || day.strength) && Number.isFinite(estimatedMinutes) ? ui().today.estimate(estimatedMinutes) : undefined,
+        ]),
         `${ui().today.weekOf(weekPosition(plan, week).index + 1, weekPosition(plan, week).total)} · ${phaseLabel(sk.phase)}` +
           `${sk.deload ? ` · ${ui().today.deload}` : ''} · ${raceDistanceLine(plan, toRace)}`,
       ),
       ...compatibilityNotes(plan),
     ]
 
-    if (!day.workout) {
-      blocks.push(b.panel(ui().today.restDayTitle, [ui().today.restDayBody], 'muted'))
-    } else {
+    if (!day.workout && !day.strength) blocks.push(b.text(ui().today.restDayBody, 'muted'))
+    if (day.workout) {
       const w = day.workout
-      blocks.push(
-        b.panel(
-          `${kindLabel(w.kind)} · ${workoutKm(w)}`,
-          [workoutText(day)],
-          KIND_COLOR[w.kind] ?? 'accent',
-        ),
-      )
+      blocks.push(structureTable(workoutStructure(w, { ascii: asciiOutput() }), KIND_COLOR[w.kind] ?? 'accent'))
+      // pełna karta (--full): opis słowny jednostki, jak w plan.yaml
+      if (opts.full === true) blocks.push(b.panel(`${kindLabel(w.kind)} · ${workoutKm(w)}`, [workoutText(day)], KIND_COLOR[w.kind] ?? 'accent'))
     }
 
     if (day.strength) {
@@ -574,7 +556,8 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
             ? ui().today.strengthWithLong
             : ui().today.strengthWithQuality(kindLabel(kind))
       blocks.push(
-        b.panel(ui().today.strengthTitle(day.strength.durationMin), [day.strength.description], 'accent'),
+        b.blank(),
+        b.text(day.strength.description),
         kind && !['easy', 'long'].includes(kind) ? b.warn(advice) : b.text(advice, 'muted'),
       )
     }
@@ -594,21 +577,23 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
     }
     const strengthEntry = latestByDate(journal.strength).get(date)
     if (strengthEntry) blocks.push(b.success(ui().today.strengthLogged(logStatusText(strengthEntry.status, true))))
-    const estimatedMinutes = (day.workout ? estimateWorkoutMinutes(day.workout, plan.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
-    // Dla biegacza zza biurka dwie najważniejsze liczby dnia: ile to potrwa i co dalej.
-    if ((day.workout || day.strength) && Number.isFinite(estimatedMinutes)) blocks.push(b.text(ui().today.estimate(estimatedMinutes), 'muted'))
     const next = plan.weeks.flatMap((w) => w.days).find((d) => d.date > date && d.workout)
     if (next?.workout) {
-      blocks.push(b.text(ui().today.next(next.date, weekdayName(next.weekday), kindLabel(next.workout.kind), workoutKm(next.workout)), 'muted'))
+      blocks.push(b.blank(), b.text(ui().today.next(next.date, weekdayName(next.weekday), kindLabel(next.workout.kind), workoutKm(next.workout)), 'muted'))
     }
     if (day.workout) blocks.push(b.hint(ui().today.whyHint(date)))
-    return okDoc(blocks, { date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null, estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : null, next: next ? { date: next.date, kind: next.workout!.kind, distanceKm: shownKm(next.workout!) } : null })
+    return okDoc(blocks, {
+      date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null,
+      estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : null,
+      structure: day.workout ? workoutStructure(day.workout) : [],
+      next: next ? { date: next.date, kind: next.workout!.kind, distanceKm: shownKm(next.workout!) } : null,
+    })
   } catch (e) {
     return fail(e)
   }
 }
 
-export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport?: string | undefined; date?: string | undefined } = {}): CmdResult {
+export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport?: string | undefined; date?: string | undefined; full?: boolean | undefined } = {}): CmdResult {
   if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'week', opts)
   if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
   try {
@@ -618,43 +603,75 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     if (!hit) return ok(ui().common.outsidePlan(date, plan.weeks[0]?.weekStart ?? '', planEnd(plan)))
     const { week } = hit
     const sk = week.skeleton
-    const model = messages().intensityModel[sk.intensityModel]
-    const rows: string[][] = []
-    const accents: (ColorName | undefined)[] = []
     // dziennik czytany raz; ostatni wpis daty wygrywa, jak w logFor
-    const logs = readLog(cwd)
-    const lastByDate = latestByDate(logs)
-    for (const day of week.days) {
-      const entry = lastByDate.get(day.date)
-      // status słowem, nie symbolem: to samo wyjście czyta agent przez MCP
-      const mark = entry ? ` [${logStatusText(entry.status)}]` : ''
-      const kind = day.workout?.kind
-      const strength = day.strength ? ` ${ui().week.strengthTag(day.strength.durationMin)}` : ''
-      rows.push([
-        weekdayShort(day.weekday),
-        day.date.slice(5),
-        day.workout ? workoutKm(day.workout) : '—',
-        day.workout ? `${workoutText(day)}${strength}${mark}` : `${ui().week.rest}${strength}`,
-      ])
-      accents.push(kind ? KIND_COLOR[kind] : 'muted')
-    }
+    const journal = readJournal(cwd)
+    // C2: jeden wiersz na jednostkę (bieg, siła, dzień wolny), rozpiska ze struktury (C1),
+    // suma pod tabelą; status w terminalu symbolem, w MCP słowem
+    const rows = runningWeekRows(week, {
+      preparationMinutes: plan.preparationMinutes ?? 15,
+      runs: latestByDate(journal.runs),
+      strength: latestByDate(journal.strength),
+      ascii: asciiOutput(),
+    })
+    const position = weekPosition(plan, week)
+    const t = ui().rows
+    const phase = phaseLabel(sk.phase) + (sk.deload ? ` (${t.deload})` : '')
     const blocks: Block[] = [
-      b.title(
-        ui().week.title(weekPosition(plan, week).index + 1, weekPosition(plan, week).total, week.weekStart),
-        ui().week.subtitle(phaseLabel(sk.phase), model, plannedWeekKm(sk), kmDiffers(week.totalKm, plannedWeekKm(sk)) ? week.totalKm : undefined) +
-          (sk.deload ? ` · ${ui().week.deloadUpper}` : ''),
-      ),
+      // cel tygodnia; gdy suma dni (wiersz sumy) się od niego różni, cel jest podpisany
+      b.title(t.weekHeading(position.index + 1, position.total, phase, t.shortDate(week.weekStart), t.shortDate(addDays(week.weekStart, 6)),
+        plannedWeekKm(sk), kmDiffers(week.totalKm, plannedWeekKm(sk)), rows.filter((r) => r.sport === 'run').length, rows.filter((r) => r.sport === 'strength').length)),
       ...compatibilityNotes(plan),
-      b.table([ui().week.columns.day, ui().week.columns.date, ui().week.columns.km, ui().week.columns.workout], rows, accents),
+      rowsTable(rows, { today: localToday() }),
+      b.text(messages().notation.legend, 'muted'),
     ]
+    // pełne karty (--full): opis słowny każdej jednostki i siły, jak w plan.yaml
+    if (opts.full === true) {
+      for (const day of week.days) {
+        const heading = `${messages().weekdayShort[day.weekday]} ${t.shortDate(day.date)}`
+        if (day.workout) blocks.push(b.panel(`${heading} · ${kindLabel(day.workout.kind)} · ${workoutKm(day.workout)}`, [workoutText(day)], KIND_COLOR[day.workout.kind] ?? 'accent'))
+        if (day.strength) blocks.push(b.panel(`${heading} · ${ui().today.strengthTitle(day.strength.durationMin)}`, [day.strength.description], 'accent'))
+      }
+    }
     if (sk.raceDate) blocks.push(b.info(ui().week.raceThisWeek(sk.raceDate)))
     if (sk.keepIntensity) {
       blocks.push(b.info(ui().week.taperNote))
     }
-    return okDoc(blocks, { week, execution: buildExecution(plan, readSnapshot(cwd)?.activities ?? [], logs, date).filter((e) => week.days.some((d) => d.date === e.date)) })
+    return okDoc(blocks, { week, rows, execution: buildExecution(plan, readSnapshot(cwd)?.activities ?? [], journal.runs, date).filter((e) => week.days.some((d) => d.date === e.date)) })
   } catch (e) {
     return fail(e)
   }
+}
+
+/**
+ * Siatka sezonu (C2, decyzja 3 z PLAN-v0.7 §10): tydzień w wierszu — faza, plan km,
+ * akcenty w notacji z C1 bez rozgrzewki i schłodzenia, długie. Tylko do odczytu.
+ */
+export function cmdSeason(cwd: string, opts: { date?: string | undefined } = {}): CmdResult {
+  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'season', opts)
+  try {
+    const plan = loadPlan(cwd)
+    const t = ui().rows
+    const goal = plan.goal.kind === 'base' ? plan.goal.name : `${plan.goal.name} · ${kmLabel(plan.goal.distanceKm)}`
+    const when = plan.goal.kind === 'base' ? ui().plan.baseUntil(plan.goal.date) : plan.goal.date
+    // nagłówek w jednym wierszu: budżet sezonu to liczba tygodni + 10 wierszy przy 80 kolumnach
+    const blocks: Block[] = [
+      b.title(`${t.season.title(goal)} · ${when} · ${ui().plan.weeksOfPlan(cycleWeeksOf(plan).length)}`),
+      ...compatibilityNotes(plan),
+      ...seasonBlocks(plan, opts.date ?? localToday()),
+    ]
+    return okDoc(blocks, { weeks: runningSeasonRows(cycleWeeksOf(plan)) })
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+/** Siatka i legenda sezonu — wspólne dla `season` i wyjścia `plan`. */
+function seasonBlocks(plan: StoredPlan, today: string): Block[] {
+  const ascii = asciiOutput()
+  return [
+    seasonTable(runningSeasonRows(cycleWeeksOf(plan), { ascii }), { today, ascii }),
+    b.text(ui().rows.season.legend(ascii ? 'v' : '↓'), 'muted'),
+  ]
 }
 
 type LogOptions = {

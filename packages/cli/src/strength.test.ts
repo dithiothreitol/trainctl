@@ -83,7 +83,9 @@ describe('widoczność w komendach', () => {
   it('week oznacza dni z siłą', () => {
     const day = strengthDays().find((d) => d.date >= '2026-08-03')!
     const r = cmdWeek(dir, { date: day.date })
-    expect(r.output).toContain('SIŁA')
+    // C2: siła w osobnym wierszu, a nagłówek tygodnia ją liczy
+    expect(r.output).toMatch(/\| siła \| \d:\d\d$/m)
+    expect(r.output).toMatch(/· \d+ (siła|siły|sił)$/m)
   })
 
   it('rozpiska do druku zawiera siłę', () => {

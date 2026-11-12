@@ -114,6 +114,14 @@ export const coreEn = {
     /** Dłuższa przerwa w połowie serii: po którym odcinku. */
     afterRep: (rep: number) => `after rep ${rep}`,
     legend: 'WU warm-up · CD cool-down · r. recovery · pace in min/km',
+    /** Nazwy części jednostki w widoku struktury (`today`, C2). */
+    part: {
+      warmup: 'warm-up', cooldown: 'cool-down', easy: 'easy', steady: 'steady', intervals: 'main set',
+      hills: 'hills', progression: 'progression', alternating: 'alternating', race: 'race',
+      timeTrial: 'time trial', strides: 'strides', work: 'work', drill: 'drill', rest: 'rest',
+    },
+    /** Zbieg po podbiegu jako przerwa. */
+    jogDown: 'jog down',
   },
 
   /**

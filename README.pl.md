@@ -260,8 +260,9 @@ Twoimi plecami.
 |---|---|---|
 | `init` | kreator profilu | `--template`, `--from-intervals`, `--agent claude\|codex\|all`, `--commit` |
 | `plan` | generuje plan; na istniejącym regeneruje tylko przyszłość | `--date`, `--fresh`, `--commit` |
-| `today` | trening na dziś | `--date` |
-| `week` | tydzień ze statusem z dziennika | `--date`, `-i` (przeglądanie strzałkami) |
+| `today` | trening na dziś: struktura z celami, czas, następna jednostka | `--date`, `--full` |
+| `week` | tydzień, jednostka w wierszu, ze statusem z dziennika | `--date`, `--full`, `-i` (przeglądanie strzałkami) |
+| `season` | siatka sezonu, tydzień w wierszu: faza, km, akcenty, długie | `--date` |
 | `why` | cel jednostki + reguły z badań | `--date` |
 | `log` | zapis wykonania (bez flag w terminalu: pyta) | `--status`, `--km`, `--time`, `--test-time`, `--rpe`, `--note`, `--commit` |
 | `shift` | zamiana dwóch jednostek w tygodniu | `--from`, `--to` (albo wybór z listy), `--commit` |
@@ -482,7 +483,7 @@ Dowolny klient MCP — postać ogólna:
 
 Narzędzia działają nad tymi samymi handlerami, z których korzysta CLI, więc
 agent i terminal nie mogą się rozjechać: `trainctl_plan`, `trainctl_today`,
-`trainctl_week`, `trainctl_log`, `trainctl_shift`, `trainctl_why`,
+`trainctl_week`, `trainctl_season`, `trainctl_log`, `trainctl_shift`, `trainctl_why`,
 `trainctl_diff`, `trainctl_check`, `trainctl_init`, `trainctl_push`,
 `trainctl_pull`, `trainctl_adapt`, `trainctl_replace`, `trainctl_migrate`, `trainctl_shorten`, `trainctl_desk`,
 `trainctl_reschedule`, `trainctl_export`, `trainctl_review`, `trainctl_status`,

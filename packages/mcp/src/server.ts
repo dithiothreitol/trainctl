@@ -28,6 +28,7 @@ import {
   cmdReschedule,
   cmdReview,
   cmdRules,
+  cmdSeason,
   cmdShift,
   cmdShorten,
   cmdStatus,
@@ -128,7 +129,7 @@ export function createTrainctlServer(
       description: t.today,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
-      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(), date: isoDate().optional() },
+      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(), date: isoDate().optional(), full: z.boolean().optional().describe(t.full) },
     },
     async (args) => toTool(cmdToday(trainingDir(), args)),
   )
@@ -139,9 +140,20 @@ export function createTrainctlServer(
       description: t.week,
       outputSchema: toolOutputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
-      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(), date: isoDate().optional().describe(t.weekDate) },
+      inputSchema: { session: z.string().optional().describe(sportMessages().session), sport: z.enum(['run','bike','swim','strength']).optional(), date: isoDate().optional().describe(t.weekDate), full: z.boolean().optional().describe(t.full) },
     },
     async (args) => toTool(cmdWeek(trainingDir(), args)),
+  )
+
+  server.registerTool(
+    'trainctl_season',
+    {
+      description: t.season,
+      outputSchema: toolOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
+      inputSchema: { date: isoDate().optional().describe(t.weekDate) },
+    },
+    async (args) => toTool(cmdSeason(trainingDir(), args)),
   )
 
   server.registerTool(

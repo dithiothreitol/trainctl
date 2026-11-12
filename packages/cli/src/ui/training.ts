@@ -47,8 +47,18 @@ function compactSteps(s: TrainingSession): Block {
   return b.table([text('Etap', 'Step'), text('Dawka', 'Dose'), text('Cel / wysiłek', 'Target / effort')], rows, accents)
 }
 
-/** Presentation only: never infer RPE from pace, watts or a legacy session's purpose. */
-export function trainingCard(s: TrainingSession, detail = false, label?: string): Block {
+/** Objaśnienie skali RPE: w widoku z kartami drukowane raz, pod kartami (C2). */
+export const rpeScaleLegend = (): string =>
+  text('1–2 bardzo lekko · 3–4 lekko · 5–6 umiarkowanie · 7–8 mocno · 9–10 bardzo mocno. Nawiasy [ ] wskazują zaplanowany zakres.', '1–2 very easy · 3–4 easy · 5–6 moderate · 7–8 hard · 9–10 very hard. Brackets [ ] mark the planned range.')
+
+/** Karta ma skalę RPE, gdy któryś krok ma zaplanowany wysiłek (bieg z migracji go nie ma). */
+export const hasEffortScale = (s: TrainingSession): boolean => !s.legacyWorkout && s.steps.some(step => step.effort)
+
+/**
+ * Presentation only: never infer RPE from pace, watts or a legacy session's purpose.
+ * `scale: false`: objaśnienie skali drukuje widok raz dla wszystkich kart.
+ */
+export function trainingCard(s: TrainingSession, detail = false, label?: string, scale = detail): Block {
   const t = sportMessages(), c = s.coaching
   const heading = (label ? label + ' · ' : '') + s.date + (s.start ? ' ' + s.start : '') + ' · ' + t.sport[s.sport]
   const body: Block[] = [b.text(t.purpose[s.purpose] + ' · ' + trainingDuration(s.durationSec) + (s.distanceM ? ' · ' + s.distanceM + ' m' : ''))]
@@ -59,8 +69,7 @@ export function trainingCard(s: TrainingSession, detail = false, label?: string)
   body.push(b.section(text('Intensywność', 'Intensity'), 'quality'))
   if (highest !== undefined) {
     const min = Math.min(...efforts.filter(e => e.max === highest).map(e => e.min))
-    body.push(b.rpe(text('Najmocniejszy etap (plan)', 'Hardest step (planned)'), min, highest,
-      detail ? text('1–2 bardzo lekko · 3–4 lekko · 5–6 umiarkowanie · 7–8 mocno · 9–10 bardzo mocno. Nawiasy [ ] wskazują zaplanowany zakres.', '1–2 very easy · 3–4 easy · 5–6 moderate · 7–8 hard · 9–10 very hard. Brackets [ ] mark the planned range.') : ''))
+    body.push(b.rpe(text('Najmocniejszy etap (plan)', 'Hardest step (planned)'), min, highest, scale ? rpeScaleLegend() : ''))
   } else body.push(b.text(text('Nie określono zakresu RPE. Korzystaj z celów podanych w etapach treningu.', 'No RPE range prescribed. Follow the targets in the workout steps.'), 'muted'))
   body.push(b.section(text('Przebieg treningu', 'Workout structure'), 'accent'))
   if (s.legacyWorkout) {

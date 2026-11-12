@@ -34,6 +34,8 @@ export const cliEn = {
     plan: 'generate the plan from trainctl.yaml → plan/plan.yaml + plan/PLAN.md',
     today: 'what to run today',
     week: 'week overview; -i browses with arrow keys',
+    season: 'season grid: one row per week (phase, volume, accents, long run)',
+    optFull: 'full session cards: description, purpose, guidance',
     weekInteractive: 'browse weeks with keys (←/→, s, q)',
     log: 'record a completed session',
     shift: 'swap sessions within a week (no arguments: pick from a list)',
@@ -188,7 +190,6 @@ export const cliEn = {
     goalConservative: (target: string) => `The goal of ${target} is conservative against the prediction.`,
     goalInRange: (target: string) => `The goal of ${target} sits inside the predicted range.`,
     structure: 'Structure',
-    phaseSpan: (phase: string, from: number, to: number) => from === to ? `${phase}: week ${from}` : `${phase}: weeks ${from}–${to}`,
     regenSection: 'What the regeneration changes',
     sameCycle: (start: string) =>
       `Same training cycle: phases stay anchored to ${start}; future days follow trainctl.yaml.`,
@@ -237,12 +238,11 @@ export const cliEn = {
     daysAfterRace: (days: number) => `${dayCount(days)} after the race`,
     weekOf: (index: number, total: number) => `week ${index}/${total}`,
     deload: 'deload',
-    restDayTitle: 'Rest day',
     restDayBody: 'Rest is part of the plan — adaptation happens in recovery.',
     logged: (status: string) => `Logged: ${status}`,
     whyHint: (date: string) => `why this session: trainctl why --date ${date}`,
     strengthLogged: (status: string) => `Strength logged: ${status}`,
-    estimate: (minutes: number) => `about ${minutes} min including preparation`,
+    estimate: (minutes: number) => `about ${n(Math.round(minutes))} min including preparation`,
     /** `distance` już sformatowany (workoutKm): ta sama dokładność co w panelu dnia. */
     next: (date: string, weekday: string, kind: string, distance: string) => `next: ${weekday} ${date} · ${kind} · ${distance}`,
     strengthTitle: (minutes: number) => `Strength · ~${n(minutes)} min`,
@@ -259,17 +259,47 @@ export const cliEn = {
   },
 
   week: {
-    title: (index: number, total: number, weekStart: string) =>
-      `Week ${index}/${total} · from ${weekStart}`,
-    /** `plannedKm` pominięte, gdy suma dni równa się celowi — wtedy jedna liczba. */
-    subtitle: (phase: string, model: string, targetKm: number, plannedKm?: number) =>
-      plannedKm === undefined ? `${phase} (${model}) · ${n(targetKm)} km` : `${phase} (${model}) · target ${n(targetKm)} km · planned ${n(plannedKm)} km`,
-    deloadUpper: 'DELOAD',
-    columns: { day: 'day', date: 'date', km: 'km', workout: 'workout' },
+    columns: { km: 'km' },
     rest: 'rest',
-    strengthTag: (minutes: number) => `+ STRENGTH ~${n(minutes)} min`,
     raceThisWeek: (date: string) => `Race this week: ${date}`,
     taperNote: 'Taper: volume drops, but intensity and session count stay (T-1/T-2).',
+  },
+
+  /** PLAN-v0.7 C2: wspólny wiersz jednostki w `week`, `today` i `season` (plan biegowy i v2). */
+  rows: {
+    columns: { day: 'day', sport: 'sport', kind: 'type', km: 'km', time: 'time', line: 'session' },
+    total: 'total',
+    rest: 'rest',
+    strength: 'strength',
+    today: 'today',
+    deload: 'deload',
+    /** Data krótko: „Oct 26". */
+    shortDate: (iso: string) => `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}`,
+    /** `target`: suma dni różni się od celu tygodnia — cel podpisany, suma jest pod tabelą. */
+    weekHeading: (index: number, total: number, phase: string, from: string, to: string, km: number, target: boolean, runs: number, strength: number) =>
+      `Week ${index}/${total} · ${phase} · ${from}–${to} · ${target ? 'target ' : ''}${n(km)} km · ${runs} ${runs === 1 ? 'run' : 'runs'}` +
+      (strength ? ` · ${strength} strength` : ''),
+    sessionsHeading: (from: string, to: string, sessions: number) =>
+      `Week ${from}–${to} · ${sessions} ${sessions === 1 ? 'session' : 'sessions'}`,
+    /** Akcent ciągły w kolumnie typu według części głównej; po angielsku krótkie „tempo". */
+    continuous: { progression: 'tempo', alternating: 'tempo' },
+    /** Sport i cel sesji v2 krótko, małą literą jak typy jednostek biegowych. */
+    sport: { run: 'run', bike: 'bike', swim: 'swim', strength: 'strength' },
+    purpose: { easy: 'easy', long: 'long', intervals: 'intervals', technique: 'technique', race: 'race', strength: 'strength' },
+    /** Kolumny struktury jednostki w `today`. */
+    structure: { part: 'part', dose: 'dose', target: 'target', recovery: 'recovery' },
+    about: (minutes: number) => `about ${n(Math.round(minutes))} min`,
+    sessions: (count: number) => `${count} ${count === 1 ? 'session' : 'sessions'}`,
+    /** Siatka sezonu (`season`, `plan`): tydzień w wierszu. */
+    season: {
+      columns: { week: 'wk', from: 'from', phase: 'phase', km: 'km', accents: 'accents', long: 'long', sessions: 'sessions', time: 'time' },
+      /** Fazy krótko: kolumna siatki zostawia miejsce akcentom. */
+      phase: { base: 'base', build: 'build', peak: 'peak', taper: 'taper', race: 'race', transition: 'transition', deload: 'deload', recovery: 'recovery' },
+      title: (name: string) => `Season · ${name}`,
+      legend: (deload: string) => `${deload} deload · accents without warm-up and cool-down · long run in km`,
+      legendSessions: (deload: string, accents: boolean) =>
+        `${deload} deload · time including preparation${accents ? ' · accents without warm-up and cool-down' : ''}`,
+    },
   },
 
   log: {
@@ -1179,11 +1209,13 @@ export const cliEn = {
       'trainctl_diff shows exactly the same changes without saving.',
     planFresh: 'true = regenerate from scratch, discarding kept days and approvals (ask the user first)',
     planDate: '“today” (defaults to the current date)',
-    today: 'The session for today (or a given date): description, distance, status from the journal.',
+    today: 'The session for today (or a given date): structure with targets, time including preparation, status from the journal, the next session.',
     week:
-      'The whole training week (phase, target km, day by day, statuses from the journal). ' +
+      'The whole training week, one row per session (type, km, time, session in short notation, status from the journal). ' +
       'Use it BEFORE renegotiating the week (trainctl_shift) so you can see the context.',
     weekDate: 'any date inside the week you care about',
+    full: 'true = also the full description of every session (purpose, guidance, RPE scale)',
+    season: 'The season grid: one row per week (phase, planned km, accents, long run); read-only.',
     log: 'Record a completed session in the journal (log.jsonl).',
     logStatus: 'defaults to done',
     logTo: 'last day of a break (with status skipped): every day from date to this one is logged as skipped.',

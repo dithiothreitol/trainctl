@@ -829,6 +829,36 @@ z C2 spełnione; MCP dostaje krótszy tekst i te same dane; `PLAN.md` i eksporty
 w tym samym układzie; mile i skróty klubowe zmieniają tylko tekst, a `--json`
 zostaje bez zmian; pułap tętna tylko przy biegach spokojnych i długich.
 
+**Realizacja w etapie 3: odstępstwa od tekstu punktów.** Każde ma uzasadnienie
+w commicie punktu.
+
+- **C1.** Rama sesji v2 jest zapisana bez celu (`RG 10'`), tak jak rama biegu
+  (`RG 3 km`) w specyfikacji. Cel rozgrzewki pokazuje struktura dnia w `today`.
+  Zmiana weszła z C2, bo cel w ramie łamał budżet tygodnia v2.
+- **C2.** Blok `table` w `ui/blocks.ts` dostał trzy zmiany zamiast jednej:
+  - wiersz sumy (`foot`);
+  - znaczniki wierszy (`marks`): symbol w terminalu, słowo w wyjściu tekstowym
+    i MCP;
+  - regułę układu: tabela z jedną szeroką kolumną zostaje tabelą, jeśli
+    minimalne szerokości mieszczą się w terminalu. Tabela z sumą nie ma kreski
+    pod nagłówkiem, jak w makiecie.
+  Bez tych zmian tydzień przy 80 kolumnach przechodził w układ piętrowy albo
+  przekraczał budżet.
+- **C2, sezon.** Siatka nie ma wiersza sumy, jak w makiecie. Strzałka
+  odciążenia stoi przy numerze tygodnia. Fazy mają krótkie nazwy. Akcenty są
+  zapisane zwięźle: same „podbiegi", „zmienny 4 km", tempo kolejnych serii raz,
+  części jednej jednostki łączy „+". Nagłówek mieści się w jednym wierszu.
+- **C2, tydzień.** Nagłówek podaje cel tygodnia. Gdy suma dni się od niego
+  różni, cel ma podpis „cel”, a suma jest pod tabelą. Model intensywności
+  zniknął z nagłówka. Został w `why` i w `PLAN.md`. Akcent ciągły ma po polsku
+  w kolumnie typu nazwę części głównej („narastające”, „zmienny”).
+- **C2, budżety.** Mierzone na profilach z §1: P1 dla planu biegowego, P4 dla
+  v2 (rower skalibrowany, pływanie bez kalibracji, jak w `sports.test.ts`). Przy
+  pływaniu ze skalibrowanym tempem rozpiska zawija się i tydzień v2 przekracza
+  liczbę sesji + 9. Test pilnuje wtedy tylko szerokości wierszy.
+- **C2, przegląd v2.** `status` w planie v2 też pokazuje wiersze sesji,
+  z datą przy dniu, bo obejmuje siedem dni od dziś.
+
 ---
 
 ## 6. Pakiet D: wykonanie nie tylko w kilometrach (etap 3)

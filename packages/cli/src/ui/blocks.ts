@@ -7,6 +7,12 @@
 import { ui } from '../i18n/index.ts'
 import { Theme, graphemes, padVisible, visibleLength, type ColorName } from './theme.ts'
 
+/**
+ * Znacznik wiersza tabeli (PLAN-v0.7 C2): w terminalu symbol przed pierwszą kolumną,
+ * w wyjściu tekstowym i MCP słowo podane przez handler (status słowem, nie symbolem).
+ */
+export interface RowMark { kind: 'done' | 'skipped' | 'modified' | 'today' | 'unknown'; word: string }
+
 export type Block =
   | { t: 'title'; text: string; sub?: string }
   | { t: 'section'; text: string; accent?: ColorName }
@@ -15,7 +21,7 @@ export type Block =
   | { t: 'text'; text: string; tone?: 'normal' | 'muted' }
   | { t: 'kv'; pairs: [string, string][] }
   | { t: 'bullets'; items: string[]; tone?: 'normal' | 'muted' }
-  | { t: 'table'; head: string[]; rows: string[][]; accent?: (ColorName | undefined)[] }
+  | { t: 'table'; head: string[]; rows: string[][]; accent?: (ColorName | undefined)[]; foot?: string[]; marks?: (RowMark | undefined)[] }
   | { t: 'note'; text: string; kind: 'warn' | 'success' | 'error' | 'info' }
   | { t: 'panel'; title: string; lines: string[]; accent?: ColorName; meta?: string[] }
   | { t: 'blank' }
@@ -33,11 +39,14 @@ export const b = {
     items,
     ...(tone ? { tone } : {}),
   }),
-  table: (head: string[], rows: string[][], accent?: (ColorName | undefined)[]): Block => ({
+  table: (head: string[], rows: string[][], accent?: (ColorName | undefined)[], extra: { foot?: string[]; marks?: (RowMark | undefined)[] } = {}): Block => ({
     t: 'table',
     head,
     rows,
     ...(accent ? { accent } : {}),
+    // wiersz sumy pod tabelą (C2) i znaczniki statusu wierszy
+    ...(extra.foot ? { foot: extra.foot } : {}),
+    ...(extra.marks?.some(Boolean) ? { marks: extra.marks } : {}),
   }),
   warn: (text: string): Block => ({ t: 'note', text, kind: 'warn' }),
   success: (text: string): Block => ({ t: 'note', text, kind: 'success' }),
@@ -114,22 +123,43 @@ function keyValues(pairs: [string, string][], theme: Theme, width: number): stri
   })
 }
 
+/**
+ * Symbol znacznika wiersza: jeden znak, żeby pierwsza kolumna się wyrównywała.
+ * Status spoza listy (ręcznie poprawiony dziennik) dostaje „?" — także klucz prototypu.
+ */
+function markGlyph(kind: RowMark['kind'], unicode: boolean): string {
+  const glyphs: Record<string, string> = { done: unicode ? '✓' : '+', skipped: unicode ? '✗' : 'x', modified: '~', today: unicode ? '▸' : '>' }
+  return Object.hasOwn(glyphs, kind) ? glyphs[kind]! : '?'
+}
+
 function table(block: Extract<Block, { t: 'table' }>, theme: Theme): string[] {
-  const { width } = theme.caps
+  // znaczniki wierszy (C2): margines symboli przed tabelą, poza zawijaniem komórek
+  // (zawijanie po słowach zjadłoby wcięcie wierszy bez znacznika)
+  const marks = block.marks
+  const inset = marks ? 2 : 0
+  const width = Math.max(1, theme.caps.width - inset)
+  const lead = (index: number | undefined, line: number): string =>
+    !marks ? '' : index !== undefined && line === 0 && marks[index] ? `${markGlyph(marks[index]!.kind, theme.caps.unicode)} ` : '  '
   const cols = block.head.length
   if (!cols) return []
-  const cells = block.head.map((head, col) => [head, ...block.rows.map(row => row[col] ?? '')])
+  const body = block.foot ? [...block.rows, block.foot] : block.rows
+  const summed = block.foot !== undefined
+  const cells = block.head.map((head, col) => [head, ...body.map(row => row[col] ?? '')])
   const natural = cells.map(values => Math.max(1, ...values.flatMap(value => value.split('\n').map(visibleLength))))
   const minimum = cells.map((values, col) => Math.min(natural[col]!, Math.max(8,
     Math.min(18, Math.max(...values.flatMap(value => value.split(/\s+/).map(visibleLength)))))))
   const gap = 2 * (cols - 1)
+  // Wiersze jednostek i siatka sezonu (C2): wszystkie kolumny wąskie poza jedną (rozpiska,
+  // akcenty) czytają się jako tabela także przy wielu kolumnach — decyduje, czy minimalne
+  // szerokości mieszczą się w terminalu.
+  const oneWide = natural.filter(n => n > 16).length <= 1
   // Too many columns: keep every labelled value in stacked records, never clip data.
-  if (cols > Math.max(3, Math.floor(width / 16)) || minimum.reduce((sum, n) => sum + n, gap) > width) {
-    return block.rows.flatMap((row, index) => {
+  if ((!oneWide && cols > Math.max(3, Math.floor(width / 16))) || minimum.reduce((sum, n) => sum + n, gap) > width) {
+    return body.flatMap((row, index) => {
       const first = `${block.head[0]}: ${row[0] ?? ''}`
       const heading = wrapText(first, width).map(line => theme.bold(theme.color(line, block.accent?.[index] ?? 'accent')))
-      return [ ...(index ? [''] : []), ...heading,
-        ...keyValues(block.head.slice(1).map((head, i) => [head, row[i + 1] ?? '']), theme, width) ]
+      const lines = [...heading, ...keyValues(block.head.slice(1).map((head, i) => [head, row[i + 1] ?? '']), theme, width)]
+      return [...(index ? [''] : []), ...lines.map((line, i) => lead(index < block.rows.length ? index : undefined, i) + line)]
     })
   }
   const widths = [...natural]
@@ -141,12 +171,15 @@ function table(block: Extract<Block, { t: 'table' }>, theme: Theme): string[] {
     if (widest < 0) break
     widths[widest]!--
   }
-  const numeric = block.head.map((_, col) => col > 0 && block.rows.length > 0 && block.rows.every(row =>
-    /^[+−-]?\d+(?:[.,]\d+)?(?:\s*(?:%|km|m|min|h|s|W))?$/.test(row[col] ?? '')))
-  const rowLines = (row: string[], heading: boolean, accent?: ColorName): string[] => {
+  // Tabela z sumą (C2): kolumna liczbowa może mieć puste komórki (dzień wolny) i czas h:mm
+  const isNumber = (value: string) => /^[+−-]?\d+(?:[.,]\d+)?(?:\s*(?:%|km|m|mi|min|h|s|W))?$/.test(value) || (summed && /^\d+:\d{2}$/.test(value))
+  const numeric = block.head.map((_, col) => col > 0 && block.rows.length > 0 && (summed
+    ? body.some(row => row[col]) && body.every(row => !row[col] || isNumber(row[col]!))
+    : block.rows.every(row => isNumber(row[col] ?? ''))))
+  const rowLines = (row: string[], heading: boolean, accent?: ColorName, index?: number): string[] => {
     const wrapped = block.head.map((_, col) => wrap(row[col] ?? '', widths[col]!))
     return Array.from({ length: Math.max(...wrapped.map(lines => lines.length)) }, (_, line) =>
-      wrapped.map((lines, col) => {
+      lead(index, line) + wrapped.map((lines, col) => {
         const text = lines[line] ?? ''
         const padded = numeric[col] ? ' '.repeat(Math.max(0, widths[col]! - visibleLength(text))) + text : padVisible(text, widths[col]!)
         if (heading) return theme.bold(padded)
@@ -156,8 +189,11 @@ function table(block: Extract<Block, { t: 'table' }>, theme: Theme): string[] {
   }
   return [
     ...rowLines(block.head, true),
-    theme.dim(widths.map(n => theme.sym.horizontal.repeat(n)).join('  ')),
-    ...block.rows.flatMap((row, index) => rowLines(row, false, block.accent?.[index])),
+    // tabela wierszy z sumą (C2, makieta tygodnia): nagłówek i suma pogrubione, bez kresek —
+    // każda kreska to wiersz mniej w budżecie widoku
+    ...(summed ? [] : [lead(undefined, 0) + theme.dim(widths.map(n => theme.sym.horizontal.repeat(n)).join('  '))]),
+    ...block.rows.flatMap((row, index) => rowLines(row, false, block.accent?.[index], index)),
+    ...(block.foot ? rowLines(block.foot, true) : []),
   ]
 }
 
@@ -310,7 +346,12 @@ export function renderPlain(blocks: Block[]): string {
         break
       case 'table':
         out.push(block.head.join(' | '))
-        for (const row of block.rows) out.push(row.filter(Boolean).join(' | '))
+        // status słowem (C2): w MCP i potoku bez symboli
+        for (const [index, row] of block.rows.entries()) {
+          const mark = block.marks?.[index]
+          out.push([...row.filter(Boolean), ...(mark ? [mark.word] : [])].join(' | '))
+        }
+        if (block.foot) out.push(block.foot.filter(Boolean).join(' | '))
         break
       case 'note': {
         const c = ui().common

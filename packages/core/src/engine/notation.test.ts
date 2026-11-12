@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PlannedSegment, PlannedWorkout } from '../domain/types.ts'
 import type { SessionStep, TrainingSession } from '../sports/types.ts'
-import { sessionLine, workoutLine } from './notation.ts'
+import { accentLine, sessionLine, sessionStructure, workoutLine, workoutStructure } from './notation.ts'
 
 const easyPace = { loSecPerKm: 305, hiSecPerKm: 365 }
 const intervalPace = { loSecPerKm: 265, hiSecPerKm: 279 } // środek 4:32
@@ -87,15 +87,16 @@ describe('C1: notacja sesji planu v2', () => {
     expect(sessionLine(swim, en)).toBe('WU 200 m · drill 4×50 m r. 15" · 10×100 m @1:45/100 m r. 20" · CD 100 m')
   })
 
-  it('rower: moc w watach, czas w minutach, odpoczynek jako osobny krok', () => {
+  it('rower: moc w watach, czas w minutach, odpoczynek jako osobny krok; rama bez celu (C2)', () => {
     const bike = session('bike', [
       { role: 'warmup', durationSec: 600, target: { kind: 'power', watts: 150 } },
       { role: 'work', durationSec: 240, repeat: 5, restSec: 120, target: { kind: 'power', watts: 250, ftpPercent: 105 } },
       { role: 'rest', durationSec: 300, target: { kind: 'open' } },
       { role: 'cooldown', durationSec: 600, target: { kind: 'open' } },
     ])
-    expect(sessionLine(bike, pl)).toBe("RG 10' @150 W · 5×4' @250 W p. 2' · p. 5' · SCH 10'")
-    expect(sessionLine(bike, { ...en, ascii: true })).toBe("WU 10' @150 W | 5x4' @250 W r. 2' | r. 5' | CD 10'")
+    expect(sessionLine(bike, pl)).toBe("RG 10' · 5×4' @250 W p. 2' · p. 5' · SCH 10'")
+    expect(sessionLine(bike, { ...en, ascii: true })).toBe("WU 10' | 5x4' @250 W r. 2' | r. 5' | CD 10'")
+    expect(sessionStructure(bike, pl)[0]).toEqual({ part: 'rozgrzewka', dose: "10'", target: '150 W', recovery: '' })
   })
 
   it('bieg v2: z krokami tempo na km; z migracji czyta segmenty', () => {
@@ -114,5 +115,77 @@ describe('C1: notacja sesji planu v2', () => {
     const w = workout('quality_continuous', frame(seg('progression', { distanceKm: 4, pace: { loSecPerKm: 272, hiSecPerKm: 301 } })))
     for (const line of [workoutLine(w, pl), workoutLine(w, en), workoutLine(w, ascii)]) expect(line).not.toContain('\x1b[')
     expect(workoutLine(w, ascii)).toMatch(/^[\x20-\x7e]+$/)
+  })
+})
+
+describe('C2: część główna do siatki sezonu', () => {
+  it('bez ramy, biegu spokojnego przed akcentem, przerw i przebieżek', () => {
+    const intervals = workout('quality_intervals', frame(seg('intervals', { reps: 4, repM: 1000, distanceKm: 4, pace: intervalPace, recoverySec: 120, recoveryMode: 'walk' })))
+    expect(accentLine(intervals, pl)).toBe('4×1 km @4:32')
+    const hills = workout('easy_hills', [seg('easy', { distanceKm: 5, pace: easyPace }), seg('hills', { reps: 6, repM: 150, distanceKm: 1.8 }), seg('cooldown', { distanceKm: 1 })])
+    expect(accentLine(hills, en)).toBe('hills')
+    expect(accentLine(workout('test', frame(seg('race', { distanceKm: 5 }))), pl)).toBe('5 km na czas')
+    expect(accentLine(workout('easy', [seg('easy', { distanceKm: 8, pace: easyPace, strides: { count: 6, meters: 80 } })]), ascii)).toBe('8 km @5:05-6:05')
+    expect(accentLine(workout('quality_continuous', [seg('alternating', { distanceKm: 4.5, pace: { loSecPerKm: 265, hiSecPerKm: 305 } })]), pl)).toBe('zmienny 4,5 km')
+  })
+
+  it('serie w tym samym tempie: tempo raz, na końcu; w innym tempie przy każdej', () => {
+    const fast = { loSecPerKm: 240, hiSecPerKm: 248 }
+    const mixed = workout('quality_intervals', frame(seg('intervals', { reps: 3, repM: 1000, distanceKm: 3, pace: fast, recoverySec: 120 })))
+    mixed.segments.splice(2, 0, seg('intervals', { reps: 3, repM: 400, distanceKm: 1.2, pace: fast }), seg('intervals', { reps: 3, repM: 200, distanceKm: 0.6, pace: intervalPace }))
+    expect(accentLine(mixed, pl)).toBe('3×1 km + 3×400 m @4:04 + 3×200 m @4:32')
+  })
+
+  it('sesja v2: same serie, bez przerw i bez pracy ciągłej po serii; bez serii cała praca', () => {
+    const bike = session('bike', [
+      { role: 'warmup', durationSec: 600, target: { kind: 'power', watts: 150 } },
+      { role: 'work', durationSec: 240, repeat: 5, restSec: 120, target: { kind: 'power', watts: 250 } },
+      { role: 'work', durationSec: 720, target: { kind: 'power', watts: 132 } },
+      { role: 'cooldown', durationSec: 600, target: { kind: 'open' } },
+    ])
+    expect(accentLine(bike, pl)).toBe("5×4' @250 W")
+    const steady = session('bike', [{ role: 'work', durationSec: 1800, target: { kind: 'power', watts: 200 } }])
+    expect(accentLine(steady, en)).toBe("30' @200 W")
+  })
+})
+
+describe('C2: struktura jednostki w widoku dnia', () => {
+  const cells = (rows: ReturnType<typeof sessionStructure>) => rows.map((r) => [r.part, r.dose, r.target, r.recovery])
+
+  it('interwały: rama, zakres tempa odcinka, przerwa z rodzajem i przerwą w połowie serii', () => {
+    const w = workout('quality_intervals', frame(seg('intervals', { reps: 6, repM: 1000, distanceKm: 6, pace: { loSecPerKm: 265, hiSecPerKm: 278 }, recoverySec: 120, recoveryMode: 'jog', setBreak: { afterRep: 3, sec: 240, mode: 'walk' } })))
+    w.segments[0]!.pace = easyPace
+    expect(cells(workoutStructure(w, pl))).toEqual([
+      ['rozgrzewka', '3 km', '5:05–6:05', ''],
+      ['główna', '6×1 km', '4:25–4:38', "2' trucht, po 3. odcinku 4' marsz"],
+      ['schłodzenie', '1 km', 'trucht', ''],
+    ])
+    expect(cells(workoutStructure(w, { locale: 'en', ascii: true }))[1]).toEqual(['main set', '6x1 km', '4:25-4:38', "2' jog, after rep 3 4' walk"])
+  })
+
+  it('spokojny z przebieżkami, podbiegi, narastanie, zmienny, sprawdzian i start', () => {
+    expect(cells(workoutStructure(workout('easy', [seg('easy', { distanceKm: 8, pace: easyPace, strides: { count: 6, meters: 80 } })]), pl)))
+      .toEqual([['spokojnie', '8 km', '5:05–6:05', ''], ['przebieżki', '6×80 m', '', '']])
+    expect(cells(workoutStructure(workout('easy_hills', [seg('hills', { reps: 6, repM: 150, distanceKm: 1.8 })]), en))).toEqual([['hills', '6×150 m', 'easy', 'jog down']])
+    expect(cells(workoutStructure(workout('quality_continuous', [seg('progression', { distanceKm: 4, pace: { loSecPerKm: 272, hiSecPerKm: 301 } })]), pl))).toEqual([['narastające', '4 km', '5:01→4:32', '']])
+    expect(cells(workoutStructure(workout('quality_continuous', [seg('alternating', { distanceKm: 4, pace: { loSecPerKm: 265, hiSecPerKm: 305 } })]), pl))).toEqual([['zmienny', '4 km', '1 km 4:25 / 1 km 5:05', '']])
+    expect(cells(workoutStructure(workout('test', [seg('race', { distanceKm: 5 })]), en))).toEqual([['time trial', '5 km', '', '']])
+    expect(cells(workoutStructure(workout('race', [seg('race', { distanceKm: 21.0975 })], { raceDistanceKm: 21.0975 }), pl))).toEqual([['start', '21,1 km', '', '']])
+  })
+
+  it('sesja v2: cel tempem albo mocą, przy celu otwartym zakres RPE; siła bez struktury', () => {
+    const swim = session('swim', [
+      { role: 'warmup', durationSec: 240, distanceM: 200, target: { kind: 'open' }, effort: { min: 2, max: 3, cue: '' } },
+      { role: 'work', durationSec: 105, distanceM: 100, repeat: 10, restSec: 20, sendoffSec: 125, target: { kind: 'pace', seconds: 105, perM: 100 } },
+    ])
+    expect(cells(sessionStructure(swim, pl))).toEqual([
+      ['rozgrzewka', '200 m', 'RPE 2–3', ''],
+      ['praca', '10×100 m', '1:45/100 m', '20", co 2\'05"'],
+    ])
+    const bike = session('bike', [{ role: 'work', durationSec: 240, repeat: 5, restSec: 120, target: { kind: 'power', watts: 250 } }])
+    expect(cells(sessionStructure(bike, en))).toEqual([['work', "5×4'", '250 W', "2'"]])
+    expect(sessionStructure(session('strength', [], { purpose: 'strength' }), pl)).toEqual([])
+    const legacy = workout('easy', [seg('easy', { distanceKm: 10, pace: easyPace })])
+    expect(cells(sessionStructure(session('run', [], { legacyWorkout: legacy }), pl))).toEqual([['spokojnie', '10 km', '5:05–6:05', '']])
   })
 })

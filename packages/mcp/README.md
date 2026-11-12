@@ -21,7 +21,7 @@ cannot change within a server session; restart to use another directory.
 
 Tools over the same handlers the CLI uses, so the agent and your
 terminal can never disagree: `trainctl_plan`, `trainctl_today`, `trainctl_week`,
-`trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
+`trainctl_season`, `trainctl_log`, `trainctl_shift`, `trainctl_why`, `trainctl_diff`,
 `trainctl_check`, `trainctl_init`, `trainctl_push`, `trainctl_pull`,
 `trainctl_adapt`, `trainctl_replace`, `trainctl_migrate`, `trainctl_desk`, `trainctl_reschedule`, `trainctl_export`,
 `trainctl_review`, `trainctl_shorten`, `trainctl_status`, `trainctl_rule`.

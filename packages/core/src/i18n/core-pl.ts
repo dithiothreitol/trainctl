@@ -119,6 +119,12 @@ export const corePl: CoreMessages = {
     strength: 'siła',
     afterRep: (rep: number) => `po ${rep}. odcinku`,
     legend: 'RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km',
+    part: {
+      warmup: 'rozgrzewka', cooldown: 'schłodzenie', easy: 'spokojnie', steady: 'tempo', intervals: 'główna',
+      hills: 'podbiegi', progression: 'narastające', alternating: 'zmienny', race: 'start',
+      timeTrial: 'na czas', strides: 'przebieżki', work: 'praca', drill: 'technika', rest: 'przerwa',
+    },
+    jogDown: 'zbieg',
   },
 
   fitStep: {

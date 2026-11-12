@@ -102,6 +102,11 @@ describe('polski nie jest kalką', () => {
         'status.plan',
         'review.columns.planned',
         'review.columns.status',
+        // C2: kolumny wiersza jednostki i siatki sezonu; „taper" to termin w obu językach
+        'rows.columns.sport',
+        'rows.columns.km',
+        'rows.season.columns.km',
+        'rows.season.phase.taper',
       ].sort(),
     )
   })

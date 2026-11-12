@@ -46,6 +46,8 @@ export const cliPl: CliMessages = {
     plan: 'wygeneruj plan z trainctl.yaml → plan/plan.yaml + plan/PLAN.md',
     today: 'dzisiejsze treningi i czas potrzebny na ich wykonanie',
     week: 'podgląd tygodnia; -i włącza przeglądanie strzałkami',
+    season: 'siatka sezonu: tydzień w wierszu (faza, objętość, akcenty, długie)',
+    optFull: 'pełne karty jednostek: opis, cel, wskazówki',
     weekInteractive: 'przeglądaj tygodnie klawiszami (←/→, s, q)',
     log: 'zaloguj wykonanie treningu',
     shift: 'zamień treningi w tygodniu (bez argumentów: wybór z listy)',
@@ -197,7 +199,6 @@ export const cliPl: CliMessages = {
     goalConservative: (target: string) => `Cel ${target} jest zachowawczy względem predykcji.`,
     goalInRange: (target: string) => `Cel ${target} mieści się w przedziale predykcji.`,
     structure: 'Struktura',
-    phaseSpan: (phase: string, from: number, to: number) => from === to ? `${phase}: tyg. ${from}` : `${phase}: tyg. ${from}–${to}`,
     regenSection: 'Co zmienia regeneracja',
     sameCycle: (start: string) =>
       `Ten sam cykl treningowy: fazy zostają zakotwiczone w ${start}; przyszłe dni idą za trainctl.yaml.`,
@@ -246,12 +247,11 @@ export const cliPl: CliMessages = {
     daysAfterRace: (days: number) => `${dni(days)} po starcie`,
     weekOf: (index: number, total: number) => `tydzień ${index}/${total}`,
     deload: 'odciążenie',
-    restDayTitle: 'Dzień wolny',
     restDayBody: 'Odpoczynek jest częścią planu — adaptacja zachodzi w regeneracji.',
     logged: (status: string) => `Zalogowano: ${status}`,
     whyHint: (date: string) => `dlaczego ten trening: trainctl why --date ${date}`,
     strengthLogged: (status: string) => `Siła zalogowana: ${status}`,
-    estimate: (minutes: number) => `około ${minutes} min razem z przygotowaniem`,
+    estimate: (minutes: number) => `około ${n(Math.round(minutes))} min razem z przygotowaniem`,
     next: (date: string, weekday: string, kind: string, distance: string) => `następny: ${weekday} ${date} · ${kind} · ${distance}`,
     strengthTitle: (minutes: number) => `Siła · ~${n(minutes)} min`,
     strengthAloneDay: 'Dzień bez biegania — idealny na siłownię (zero konfliktu z sesjami biegowymi).',
@@ -267,16 +267,39 @@ export const cliPl: CliMessages = {
   },
 
   week: {
-    title: (index: number, total: number, weekStart: string) =>
-      `Tydzień ${index}/${total} · od ${weekStart}`,
-    subtitle: (phase: string, model: string, targetKm: number, plannedKm?: number) =>
-      plannedKm === undefined ? `${phase} (${model}) · ${n(targetKm)} km` : `${phase} (${model}) · cel ${n(targetKm)} km · zaplanowano ${n(plannedKm)} km`,
-    deloadUpper: 'ODCIĄŻENIE',
-    columns: { day: 'dzień', date: 'data', km: 'km', workout: 'trening' },
+    columns: { km: 'km' },
     rest: 'wolne',
-    strengthTag: (minutes: number) => `+ SIŁA ~${n(minutes)} min`,
     raceThisWeek: (date: string) => `Start w tym tygodniu: ${date}`,
     taperNote: 'Taper: objętość w dół, ale intensywność i liczba sesji zostają (T-1/T-2).',
+  },
+
+  rows: {
+    columns: { day: 'dz', sport: 'sport', kind: 'typ', km: 'km', time: 'czas', line: 'rozpiska' },
+    total: 'suma',
+    rest: 'wolne',
+    strength: 'siła',
+    today: 'dziś',
+    deload: 'odciążenie',
+    shortDate: (iso: string) => `${Number(iso.slice(8, 10))}.${iso.slice(5, 7)}`,
+    weekHeading: (index: number, total: number, phase: string, from: string, to: string, km: number, target: boolean, runs: number, strength: number) =>
+      `Tydzień ${index}/${total} · ${phase} · ${from}–${to} · ${target ? 'cel ' : ''}${n(km)} km · ${runs} ${pluralPl(runs, { one: 'bieg', few: 'biegi', other: 'biegów' })}` +
+      (strength ? ` · ${strength} ${pluralPl(strength, { one: 'siła', few: 'siły', other: 'sił' })}` : ''),
+    sessionsHeading: (from: string, to: string, sessions: number) =>
+      `Tydzień ${from}–${to} · ${sessions} ${pluralPl(sessions, { one: 'sesja', few: 'sesje', other: 'sesji' })}`,
+    continuous: { progression: 'narastające', alternating: 'zmienny' },
+    sport: { run: 'bieg', bike: 'rower', swim: 'pływanie', strength: 'siła' },
+    purpose: { easy: 'spokojna', long: 'długa', intervals: 'interwały', technique: 'technika', race: 'start', strength: 'siła' },
+    structure: { part: 'etap', dose: 'dawka', target: 'cel', recovery: 'przerwa' },
+    about: (minutes: number) => `około ${n(Math.round(minutes))} min`,
+    sessions: (count: number) => `${count} ${pluralPl(count, { one: 'sesja', few: 'sesje', other: 'sesji' })}`,
+    season: {
+      columns: { week: 'tydz', from: 'od', phase: 'faza', km: 'km', accents: 'akcenty', long: 'długie', sessions: 'sesje', time: 'czas' },
+      phase: { base: 'baza', build: 'budowanie', peak: 'szczyt', taper: 'taper', race: 'start', transition: 'przejście', deload: 'odciążenie', recovery: 'regeneracja' },
+      title: (name: string) => `Sezon · ${name}`,
+      legend: (deload: string) => `${deload} odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km`,
+      legendSessions: (deload: string, accents: boolean) =>
+        `${deload} odciążenie · czas z przygotowaniem${accents ? ' · akcenty bez rozgrzewki i schłodzenia' : ''}`,
+    },
   },
 
   log: {
@@ -1177,11 +1200,13 @@ export const cliPl: CliMessages = {
       'Zapytaj przed wywołaniem; trainctl_diff pokazuje dokładnie te same zmiany bez zapisu.',
     planFresh: 'true = regeneracja od zera, porzuca chronione dni i zatwierdzenia (najpierw zapytaj użytkownika)',
     planDate: 'data „dzisiaj” (domyślnie: bieżąca)',
-    today: 'Trening na dziś (albo wskazaną datę): opis jednostki, kilometraż, status z dziennika.',
+    today: 'Trening na dziś (albo wskazaną datę): struktura z celami, czas z przygotowaniem, status z dziennika, następna jednostka.',
     week:
-      'Podgląd całego tygodnia treningowego (faza, cel km, dzień po dniu, statusy z dziennika). ' +
+      'Cały tydzień treningowy, jednostka w wierszu (typ, km, czas, rozpiska w notacji skrótowej, status z dziennika). ' +
       'Użyj PRZED renegocjacją tygodnia (trainctl_shift), żeby zobaczyć kontekst.',
     weekDate: 'dowolna data w interesującym tygodniu',
+    full: 'true = także pełny opis każdej jednostki (cel, wskazówki, skala RPE)',
+    season: 'Siatka sezonu: tydzień w wierszu (faza, plan km, akcenty, długie); tylko do odczytu.',
     log: 'Zapisz wykonanie treningu w dzienniku (log.jsonl).',
     logStatus: 'domyślnie done',
     logTo: 'ostatni dzień przerwy (ze statusem skipped): każdy dzień od date do tego dnia zapisany jako opuszczony.',

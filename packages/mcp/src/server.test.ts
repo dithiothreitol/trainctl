@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from 'trainctl-core'
-import { localToday } from 'trainctl'
+import { cmdSeason, cmdToday, cmdWeek, localToday } from 'trainctl'
 import { createTrainctlServer } from './server.ts'
 import { setLocale } from 'trainctl-core'
 
@@ -76,9 +76,30 @@ describe('serwer MCP trainctl', () => {
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual([
       'trainctl_adapt', 'trainctl_check', 'trainctl_desk', 'trainctl_diff', 'trainctl_export', 'trainctl_init', 'trainctl_log', 'trainctl_migrate',
-      'trainctl_plan', 'trainctl_pull', 'trainctl_push', 'trainctl_replace', 'trainctl_reschedule', 'trainctl_review', 'trainctl_rule', 'trainctl_shift', 'trainctl_shorten',
+      'trainctl_plan', 'trainctl_pull', 'trainctl_push', 'trainctl_replace', 'trainctl_reschedule', 'trainctl_review', 'trainctl_rule', 'trainctl_season', 'trainctl_shift', 'trainctl_shorten',
       'trainctl_status', 'trainctl_today', 'trainctl_week', 'trainctl_why',
     ])
+    expect(tools.find((tool) => tool.name === 'trainctl_season')?.annotations?.readOnlyHint).toBe(true)
+  })
+
+  it('C2: week, today i season — krótszy tekst bez ANSI, w structuredContent te same dane co CLI', async () => {
+    await call('trainctl_plan', { date: '2026-08-05' })
+    for (const [name, args, cli] of [
+      ['trainctl_week', { date: '2026-08-05' }, () => cmdWeek(dir, { date: '2026-08-05' })],
+      ['trainctl_today', { date: '2026-08-04' }, () => cmdToday(dir, { date: '2026-08-04' })],
+      ['trainctl_season', { date: '2026-08-05' }, () => cmdSeason(dir, { date: '2026-08-05' })],
+    ] as const) {
+      const result = await client.callTool({ name, arguments: args })
+      const content = result.structuredContent as { code: number; output: string; data: Record<string, unknown> }
+      const expected = cli()
+      expect(content.code, name).toBe(0)
+      expect(content.output, name).not.toContain('\x1b[')
+      expect(content.data, name).toEqual(JSON.parse(JSON.stringify(expected.data)))
+    }
+    const week = (await client.callTool({ name: 'trainctl_week', arguments: { date: '2026-08-05' } })).structuredContent as { data: { rows: { line: string }[] } }
+    expect(week.data.rows.some((row) => row.line.includes('RG'))).toBe(true)
+    const season = (await client.callTool({ name: 'trainctl_season', arguments: {} })).structuredContent as { data: { weeks: { week: number }[] } }
+    expect(season.data.weeks[0]!.week).toBe(1)
   })
 
   it('zasoby: plan, profil i AGENTS.md do czytania; reguły z szablonu', async () => {
@@ -211,7 +232,9 @@ describe('serwer MCP trainctl', () => {
     })
     expect(log.isError).toBe(false)
     const week = await call('trainctl_week', { date: '2026-08-05' })
-    expect(week.text).toContain('[wykonany]')
+    // C2: status słowem na końcu wiersza jednostki, bez symbolu
+    expect(week.text).toMatch(/^ŚR \| .* \| wykonany$/m)
+    expect(week.text).not.toContain('✓')
     // odprawa cytuje odczucie dosłownie — materiał do rozmowy, nie do liczenia (ADR-027)
     const review = await call('trainctl_review', { date: '2026-08-05' })
     expect(review.text).toContain('RPE 6')

@@ -1,20 +1,21 @@
-import { trainingCard, trainingDuration } from './ui/training.ts'
+import { hasEffortScale, rpeScaleLegend, trainingCard, trainingDuration } from './ui/training.ts'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { parse, stringify } from 'yaml'
 import {
-  activityEvidence, activityKey, resolveActivity, ENDURANCE_SPORTS, addDays, buildSessionExecution, calendarIssues, calendarMinutes, generateSportsPlan, mondayOf, parseIso,
-  replaceSportSession, restoreSportSession, rescheduleSportsPlan, sessionDeskDay, shortenSportSession, sportOf, sportMessages as msg, sportsTotals, validateSportsPlan,
-  type EnduranceSport, type SessionLog, type SportsConfig, type SportsPlan, type TrainingSession,
+  activityEvidence, activityKey, resolveActivity, ENDURANCE_SPORTS, addDays, buildSessionExecution, calendarIssues, calendarMinutes, generateSportsPlan, messages, mondayOf, parseIso,
+  replaceSportSession, restoreSportSession, rescheduleSportsPlan, sessionDeskDay, sessionStructure, shortenSportSession, sportOf, sportMessages as msg, sportsTotals, validateSportsPlan, weekdayOf,
+  type EnduranceSport, type SessionExecution, type SessionLog, type SportsConfig, type SportsPlan, type TrainingSession,
 } from 'trainctl-core'
-import { b, renderPlain, type Block } from './ui/blocks.ts'
+import { b, renderPlain, type Block, type RowMark } from './ui/blocks.ts'
+import { asciiOutput, dayHeading, markKind, rowsTable, seasonTable, sessionRows, sessionsSeasonRows, structureTable } from './ui/rows.ts'
 import { ui } from './i18n/index.ts'
 import { clockToday } from './clock.ts'
 import { packageVersion } from './version.ts'
 import { CONFIG_FILE } from './config.ts'
 import { lineSeparator, LOG_FILE, LOG_KM_MAX, LOG_LIMITS, parseTime } from './logfile.ts'
-import { logStatusText, parseDecimal } from './format.ts'
+import { kmLabel, logStatusText, parseDecimal } from './format.ts'
 import { PLAN_MD, PLAN_YAML } from './planfile.ts'
 import { commitFiles } from './git.ts'
 import { readSnapshot, SYNC_FILE } from './sync.ts'
@@ -27,7 +28,7 @@ export interface SportsOptions {
   restore?: boolean | undefined; actualSport?: string | undefined; sets?: string | undefined;
   variant?: 'endurance' | 'quality' | undefined;
   recover?: 'resume' | 'rollback' | undefined;
-  date?: string | undefined; session?: string | undefined; sport?: string | undefined; toSport?: string | undefined;
+  date?: string | undefined; session?: string | undefined; sport?: string | undefined; toSport?: string | undefined; full?: boolean | undefined;
   minutes?: string | number | undefined; reason?: string | undefined; prepare?: boolean | undefined;
   apply?: string | boolean | undefined; fresh?: boolean | undefined; commit?: string | boolean | undefined;
   from?: string | undefined; to?: string | undefined; status?: string | undefined; strength?: string | undefined;
@@ -71,6 +72,75 @@ function volumeBlocks(sessions: TrainingSession[]): Block[] {
     return [t.sport[s],trainingDuration(row.minutes * 60),`${row.distanceM} m`,
       keys.filter(k=>row.intensityPercent[k]>0).map(k=>`${t.intensity[k]} ${Number(row.intensityPercent[k].toFixed(1))}%`).join(' · ') || '—']
   }),sports),b.blank(),b.text(t.intensityMethod, 'muted')]
+}
+
+/** Przejścia w grupie sesji (zakładka): jedna informacja na grupę widoczną w widoku. */
+function transitionNotes(plan: SportsPlan, list: TrainingSession[]): Block[] {
+  const t = msg()
+  return plan.groups.filter(g => g.sessionIds.some(id => list.some(s => s.id === id)) && g.transitionSec > 0)
+    .map(group => b.info(`${t.group}: ${group.id} · ${t.transitions}: ${group.transitionsSec?.map((n, i) => `T${i + 1}=${n}`).join(', ') ?? group.transitionSec}`))
+}
+
+/**
+ * Status wiersza sesji (C2): ostatni wpis dziennika słowem; bez wpisu aktywność
+ * dopasowana z synchronizacji liczy się jako wykonana.
+ */
+function rowStatus(logs: SessionLog[], execution: SessionExecution[]): Map<string, { kind: RowMark['kind']; word: string }> {
+  const out = new Map<string, { kind: RowMark['kind']; word: string }>()
+  for (const e of execution) if (e.status === 'done' && e.source === 'sync') out.set(e.sessionId, { kind: 'done', word: logStatusText('done', e.sport === 'strength') })
+  for (const l of logs) out.set(l.sessionId, { kind: markKind(l.status), word: logStatusText(l.status, l.sport === 'strength') })
+  return out
+}
+
+/** Tydzień planu v2 (C2): wiersz na sesję z kolumną sportu, suma, legenda notacji. */
+function sessionsWeek(plan: SportsPlan, list: TrainingSession[], logs: SessionLog[], execution: SessionExecution[], date: string): SportsResult {
+  const t = ui().rows, from = mondayOf(date)
+  const rows = sessionRows(list, { status: rowStatus(logs, execution), ascii: asciiOutput() })
+  const blocks: Block[] = [b.title(t.sessionsHeading(t.shortDate(from), t.shortDate(addDays(from, 6)), list.length), `${msg().plan}: ${plan.goal.name}`)]
+  if (list.length) blocks.push(rowsTable(rows, { today: clockToday(), sport: true }), b.text(messages().notation.legend, 'muted'))
+  else blocks.push(b.info(msg().rest))
+  blocks.push(...transitionNotes(plan, list))
+  return sportsResult(blocks, { sessions: list, rows, totals: sportsTotals(list), occupiedMinutes: calendarMinutes(list, plan.groups), execution: execution.filter(e => list.some(s => s.id === e.sessionId)), schemaVersion: 2 })
+}
+
+const weekdayName = (day: ReturnType<typeof weekdayOf>): string => messages().weekday[day]
+
+/** Dzień planu v2 (C2): nagłówek z czasem, struktura każdej sesji, status, następna sesja. */
+function sessionsDay(plan: SportsPlan, list: TrainingSession[], logs: SessionLog[], execution: SessionExecution[], date: string): SportsResult {
+  const t = ui().rows, ascii = asciiOutput(), status = rowStatus(logs, execution)
+  const sessions = [...list].sort((a, z) => (a.start ?? '').localeCompare(z.start ?? ''))
+  const minutes = (items: TrainingSession[]) => items.reduce((sum, s) => sum + (s.durationSec + s.preparationSec) / 60, 0)
+  const km = (s: TrainingSession) => (s.distanceM ? kmLabel(s.distanceM / 1000) : undefined)
+  const what = (s: TrainingSession) => [t.sport[s.sport], s.sport === 'strength' ? undefined : t.purpose[s.purpose], km(s)]
+  const only = sessions.length === 1 ? sessions[0]! : undefined
+  const heading = dayHeading(date, weekdayOf(date), [
+    ...(only ? what(only) : sessions.length ? [t.sessions(sessions.length)] : [t.rest]),
+    sessions.length ? ui().today.estimate(minutes(sessions)) : undefined,
+  ])
+  const blocks: Block[] = [b.title(heading, `${msg().plan}: ${plan.goal.name}`)]
+  if (!sessions.length) blocks.push(b.info(msg().rest))
+  for (const s of sessions) {
+    // kilka sesji dnia: każda z własnym podpisem nad strukturą
+    if (!only) blocks.push(b.blank(), b.text([...what(s), t.about(minutes([s]))].filter(Boolean).join(' · ')))
+    const parts = sessionStructure(s, { ascii })
+    if (parts.length) blocks.push(structureTable(parts, s.sport === 'strength' ? 'accent' : s.sport))
+    else if (s.description) blocks.push(b.text(s.description))
+    const mark = status.get(s.id)
+    if (mark) blocks.push(b.success(ui().today.logged(mark.word)))
+  }
+  blocks.push(...transitionNotes(plan, sessions))
+  const next = [...plan.sessions].filter(s => s.date > date).sort((a, z) => a.date.localeCompare(z.date) || (a.start ?? '').localeCompare(z.start ?? ''))[0]
+  if (next) {
+    const nextWhat = [t.sport[next.sport], next.sport === 'strength' ? undefined : t.purpose[next.purpose]].filter(Boolean).join(' · ')
+    blocks.push(b.blank(), b.text(ui().today.next(next.date, weekdayName(weekdayOf(next.date)), nextWhat, km(next) ?? t.about(minutes([next]))), 'muted'))
+  }
+  if (sessions.length) blocks.push(b.hint(ui().today.whyHint(date)))
+  return sportsResult(blocks, {
+    sessions: list, structure: sessions.map(s => ({ sessionId: s.id, parts: sessionStructure(s) })),
+    totals: sportsTotals(list), occupiedMinutes: calendarMinutes(list, plan.groups),
+    execution: execution.filter(e => list.some(s => s.id === e.sessionId)), schemaVersion: 2,
+    next: next ? { date: next.date, sessionId: next.id, sport: next.sport, purpose: next.purpose } : null,
+  })
 }
 
 /** Keep proposal data intact; present the session comparison as structured cards. */
@@ -130,9 +200,21 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
     if (action === 'plan') return generate(cwd, config, o)
     const plan = loadSportsPlan(cwd), logs = readSessionLogs(cwd), activities = readSnapshot(cwd)?.activities ?? []
     const execution = buildSessionExecution(plan, activities, logs, date)
+    if (action === 'season') {
+      // C2: siatka sezonu planu v2 — tydzień w wierszu, akcenty z nazwą sportu
+      const r = ui().rows, ascii = asciiOutput(), rows = sessionsSeasonRows(plan.sessions, { ascii })
+      return sportsResult([
+        b.title(`${r.season.title(plan.goal.name)} · ${plan.goal.date} · ${ui().plan.weeksOfPlan(rows.length)}`),
+        ...(rows.length ? [seasonTable(rows, { today: date, ascii, sessions: true }), b.text(r.season.legendSessions(ascii ? 'v' : '↓', rows.some(w => w.accents.length > 0)), 'muted')] : [b.info(t.rest)]),
+      ], { weeks: sessionsSeasonRows(plan.sessions), schemaVersion: 2 })
+    }
     if (['today', 'week', 'why', 'desk', 'status'].includes(action)) {
       const list = plan.sessions.filter(s => o.session ? s.id === o.session : action === 'status' ? s.date >= date && s.date < addDays(date, 7) : action === 'week' ? mondayOf(s.date) === mondayOf(date) : s.date === date).filter(s => !o.sport || s.sport === o.sport)
       if (o.session && !list.length) throw new Error(t.noSession)
+      // C2: tydzień i dzień w układzie wiersza; karty zostają w `why`, `desk`, przy --session i pod --full
+      if (!o.session && !o.full && (action === 'week' || action === 'today')) {
+        return action === 'week' ? sessionsWeek(plan, list, logs, execution, date) : sessionsDay(plan, list, logs, execution, date)
+      }
       const d = ui().display
       const view = d.views[action as keyof typeof d.views]
       const start = o.session ? list[0]!.date : action === 'week' ? mondayOf(date) : date
@@ -143,10 +225,19 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
         [d.trainingTime, trainingDuration(list.reduce((sum, s) => sum + s.durationSec, 0))],
         [d.occupiedTime, trainingDuration(calendarMinutes(list, plan.groups) * 60)],
       ]))
-      blocks.push(...list.map(s=>trainingCard(s,action==='today'||action==='why'||!!o.session)))
+      // przegląd (status) w układzie wiersza z C2; pełne karty w why, desk, przy --session i pod --full
+      if (action === 'status' && !o.session && !o.full) {
+        // przegląd obejmuje 7 dni od dziś, czyli zwykle dwa tygodnie: dzień z datą
+        if (list.length) blocks.push(b.blank(), rowsTable(sessionRows(list, { status: rowStatus(logs, execution), ascii: asciiOutput() }), { today, sport: true, dates: true }))
+      } else {
+        const detail = action === 'today' || action === 'why' || !!o.session || !!o.full
+        blocks.push(...list.map(s => trainingCard(s, detail, undefined, false)))
+        // skala RPE raz na widok, nie w każdej karcie
+        if (detail && list.some(hasEffortScale)) blocks.push(b.text(rpeScaleLegend(), 'muted'))
+      }
       if (!list.length) blocks.push(b.info(t.rest))
       if (action === 'week' || action === 'status') blocks.push(...volumeBlocks(list))
-      for (const group of plan.groups.filter(g=>g.sessionIds.some(id=>list.some(s=>s.id===id)) && g.transitionSec>0)) blocks.push(b.info(`${t.group}: ${group.id} · ${t.transitions}: ${group.transitionsSec?.map((n,i)=>`T${i+1}=${n}`).join(', ') ?? group.transitionSec}`))
+      blocks.push(...transitionNotes(plan, list))
       if (action === 'why') for (const s of list) {
         blocks.push(b.info(`${s.ruleRefs.join(', ')}: ${s.ruleRefs.includes('MS-2') ? t.substitution : s.ruleRefs.includes('MS-1') ? t.engineering : s.description ?? ''}`))
         const replacement = plan.replacements.find(r=>r.targetId===s.id)

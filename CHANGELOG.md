@@ -105,8 +105,32 @@ change between minor versions — a regenerated plan can differ.
   warning), with the ways out — a race in a later week when the profile allows it
   (counted from today, or from the return after a break),
   `peakWeeklyKm` or `returning` if you have run more before, or a base goal.
+- `week` shows one row per session in both the running and the multisport
+  plan: day, type, km, time including preparation and the session in short
+  notation built from its structure (`RG 3 km · 4×1 km @4:32 p. 2' marsz · SCH 1 km`,
+  in English `WU … r. … CD`), with a total under the table and one legend line.
+  Easy and long runs show their pace. A multisport week adds a sport column, and
+  several sessions on one day share the day label. In a terminal the journal
+  status is a symbol (✓ ✗ ~, ▸ for today); plain output and MCP get the word.
+  A running week fits in 14 lines at 80 columns. A multisport session line no
+  longer repeats the warm-up target; `today` shows it.
+- `today` shows the structure of the session with its targets (part, dose,
+  pace or power range, recovery), the time including preparation and the next
+  session, in at most 18 lines. The worded description moved to `--full` and
+  `why`. A multisport day shows each session's steps; the RPE scale is printed
+  once per view instead of in every card.
+- `plan` shows the season grid instead of the list of phases. The multisport
+  overview (`status`) lists the next seven days as session rows.
 
 ### Added
+
+- `trainctl season` (and the MCP tool `trainctl_season`): the season grid, one
+  row per week with the phase, planned km, the main sets of the accents and the
+  long run, the current week marked and deload weeks arrowed. Read-only. In the
+  multisport plan the grid shows sessions and time per week.
+- `--full` on `today` and `week` (and `full` on the MCP tools) prints the full
+  session cards: the worded description of a running session, the purpose and
+  guidance of a multisport one.
 
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in
