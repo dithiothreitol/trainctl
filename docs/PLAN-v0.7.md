@@ -75,15 +75,21 @@ poprzedniego.
 3. Testy własne etapu z tabeli w §2.
 4. `/code-review high` z celem ustawionym na gałąź etapu, czyli na różnicę
    względem `main`. Zakres przeglądu to zakres etapu.
-5. Każde potwierdzone znalezisko w zakresie etapu dostaje poprawkę i test,
-   który bez poprawki zawodzi. Po poprawkach wracają kroki 1–4. Przegląd
-   kończy się na pierwszej rundzie bez błędu, który użytkownik może spotkać.
-   Błąd to zły wynik, awaria albo utrata danych w komendzie, w MCP albo przy
-   pliku, który użytkownik edytuje. Sugestie porządkowe (nazwy, powtórzony
-   kod, komentarze, styl) trafiają do rejestru w §14. Mogą wejść razem
-   z poprawkami błędów, ale same nie otwierają kolejnej rundy. Warunek
-   obowiązuje od etapu 2. Etap 1 miał warunek „zero potwierdzonych znalezisk"
-   i nie zbiegł po 24 rundach.
+5. Przegląd ma dwie rundy. Runda 1 obejmuje całą gałąź etapu. Każde
+   potwierdzone znalezisko w zakresie etapu dostaje poprawkę i test, który
+   bez poprawki zawodzi, po czym wracają kroki 1–3. Runda 2 sprawdza
+   poprawki z rundy 1: poprawkę dostaje tylko regresja z poprawki albo błąd
+   w typowym przepływie, reszta trafia do rejestru w §14. Kolejnej rundy nie
+   ma. Błąd to zły wynik, awaria albo utrata danych w komendzie, w MCP albo
+   przy pliku, który użytkownik edytuje. Typowy przepływ to ścieżka opisana
+   w README albo przy ustawieniach domyślnych, a nie rzadkie połączenie kilku
+   opcji. Sugestie porządkowe (nazwy, powtórzony kod, komentarze, styl)
+   trafiają do rejestru. Najbardziej ryzykowną część etapu od startu pokrywa
+   macierz scenariuszy w testach, żeby przegląd nie był jedynym sposobem
+   szukania przypadków brzegowych. Zasada obowiązuje od etapu 3. Etap 1 miał
+   warunek „zero potwierdzonych znalezisk" i nie zbiegł po 24 rundach. Etap 2
+   miał warunek „pierwsza runda bez błędu, który użytkownik może spotkać"
+   i nie zbiegł po 33 rundach (§2).
 6. Znalezisko spoza zakresu etapu trafia do rejestru w §14 i nie jest naprawiane
    w tym etapie.
 7. CHANGELOG, SPEC z nowymi ADR-ami, oba README.
@@ -952,7 +958,8 @@ Decyzje 9–12 i zmiany decyzji 2 i 7 przyjęto po etapie 1, tego samego dnia.
 | 9 | Przerwa w trakcie planu: zapis w dzienniku i blok powrotu jako propozycja `adapt` do przyjęcia | B11, ADR-055 |
 | 10 | Mile i tempo na milę jako opcja widoku. Dane zostają w kilometrach | C9, ADR-057 |
 | 11 | Teren i ultra jako pakiet po etapie 4, od pomiaru | §9 |
-| 12 | Przegląd etapu kończy się na pierwszej rundzie bez błędu, który użytkownik może spotkać. Sugestie porządkowe trafiają do rejestru | §0, krok 5 |
+| 12 | Przegląd etapu kończy się na pierwszej rundzie bez błędu, który użytkownik może spotkać. Sugestie porządkowe trafiają do rejestru | §0, krok 5 (etap 2) |
+| 13 | Przyjęte 2026-11-12: od etapu 3 przegląd ma dwie rundy, całą gałąź i poprawki z rundy 1. W rundzie 2 poprawkę dostaje tylko regresja albo błąd w typowym przepływie, reszta trafia do rejestru. Ryzykowną część etapu pokrywa od startu macierz scenariuszy | §0, krok 5 |
 
 ---
 
@@ -1010,6 +1017,10 @@ Decyzje 9–12 i zmiany decyzji 2 i 7 przyjęto po etapie 1, tego samego dnia.
   poprawek nie wprowadzała regresji jak w 0.4.0.
 - **Przegląd wychodzi poza zakres etapu.** Mitygacja: rejestr w §14. Znalezisko
   spoza różnicy gałęzi nie blokuje zamknięcia etapu.
+- **Przegląd się nie zbiega.** Każda runda to nowy recenzent bez pamięci
+  poprzednich, więc zawsze znajdzie rzadki przypadek; etap 2 miał 33 rundy.
+  Mitygacja: dwie rundy (§0, krok 5) i macierz scenariuszy dla ryzykownej
+  części etapu, pisana na starcie.
 - **Opcje mnożą warianty planu, których nikt nie ocenił** (tętno, mile, skróty
   klubowe). Mitygacja: opcje zmieniają widok albo dopisują pułap, a kształt
   sezonu zostaje ten sam. Macierz B0 biegnie bez opcji, a migawki widoków
