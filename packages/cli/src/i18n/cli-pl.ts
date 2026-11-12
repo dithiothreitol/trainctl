@@ -287,7 +287,7 @@ export const cliPl: CliMessages = {
     breakOrder: (from: string, to: string) => `Przerwa kończy się przed początkiem: ${from} do ${to}.`,
     breakTooLong: (days: number) => `Przerwa dłuższa niż ${days} dni to nowy plan, nie przerwa — zapisz ją w krótszych częściach albo zacznij nowy plan.`,
     breakRecorded: (from: string, to: string, days: number, reason?: string) =>
-      `Zapisano przerwę ${from} do ${to}: ${days} ${days === 1 ? 'dzień' : 'dni'} opuszczonych${reason ? `, przyczyna: ${reason}` : ''}. Po przerwie adapt zaproponuje powrót.`,
+      `Zapisano przerwę ${from} do ${to}: ${days} ${pluralPl(days, { one: 'dzień opuszczony', few: 'dni opuszczone', other: 'dni opuszczonych' })}${reason ? `, przyczyna: ${reason}` : ''}. Po przerwie adapt zaproponuje powrót.`,
     breakRunningPlanOnly: 'Zakres przerwy (--to) i jej przyczyna (--reason) należą do planu biegowego; w obszarze multisport zapisz każdą sesję osobno.',
     breakRunsOnly: 'Przerwa (--to, --reason) dotyczy biegania; siłę zapisz osobnym wpisem.',
     breakKeptRuns: (dates: string) => `Dni z zapisanym biegiem (dziennik albo synchronizacja) zostają bez zmian: ${dates}.`,

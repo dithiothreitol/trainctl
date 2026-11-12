@@ -216,6 +216,14 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(cmdLog(dir, { date: '2026-10-29', to: '2026-11-12', status: 'skipped', reason }).code).toBe(0)
   }
 
+  it('log --to po polsku: liczba dni przerwy z odmianą (1 dzień opuszczony, 2 dni opuszczone, 5 dni opuszczonych)', () => {
+    setup()
+    setLocale('pl')
+    expect(cmdLog(dir, { date: '2026-10-26', to: '2026-10-26', reason: 'illness' }).output).toContain('1 dzień opuszczony')
+    expect(cmdLog(dir, { date: '2026-10-27', to: '2026-10-28', reason: 'illness' }).output).toContain('2 dni opuszczone')
+    expect(cmdLog(dir, { date: '2026-11-02', to: '2026-11-06', reason: 'illness' }).output).toContain('5 dni opuszczonych')
+  })
+
   it('log --to --reason: każdy dzień przerwy dostaje wpis skipped z przyczyną', () => {
     setup()
     const r = cmdLog(dir, { date: '2026-10-26', to: '2026-10-30', status: 'skipped', reason: 'illness' })

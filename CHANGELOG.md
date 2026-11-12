@@ -136,7 +136,8 @@ change between minor versions — a regenerated plan can differ.
   the loading weeks of the first block easy after any other break (R-11; the
   taper keeps its intensity), the long run shrinking with the week, growth
   within P-3 until the plan catches up, a deload at 0.7 of the return's last
-  loading week (P-2), and
+  loading week (P-2; a return that starts in a deload week starts at the
+  restart level), and
   no time trial in the return block (the accent it replaced comes back). The
   earlier volume is the plan's last loading week up to your last run before the
   break, not a

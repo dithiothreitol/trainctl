@@ -337,8 +337,10 @@ export function applyReturnBlock(weeks: WeekSkeleton[], ret: ReturnBlock): WeekS
     if (i < start) return w
     const curve = level(loading)
     // P-2: odciążenie to ułamek poziomu bloku przed nim — ostatniego tygodnia ładowania
-    // krzywej, nie następnego (jak w volumeSchedule)
-    let cap = w.deload ? level(Math.max(0, loading - 1)) * DELOAD_FACTOR : curve
+    // krzywej, nie następnego (jak w volumeSchedule). Powrót, który zaczyna się od
+    // odciążenia, nie ma bloku przed sobą: tydzień powrotu to już restart (R-5, R-11),
+    // więc bez drugiego cięcia poniżej pasma 50–60%
+    let cap = w.deload && loading > 0 ? level(loading - 1) * DELOAD_FACTOR : curve
     if (!w.deload && ['base', 'build', 'peak'].includes(w.phase)) {
       // tydzień startu kontrolnego ma cel obniżony mini-taperem (T-9) — nie jest poziomem,
       // od którego liczy się taper, a na krzywej powrotu jest lżejszy o ten sam ułamek

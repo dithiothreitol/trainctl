@@ -110,7 +110,7 @@ describe('przerwa w treningu', () => {
     const exec = history(21, 1).map((e) => (e.date > '2026-08-10' && e.date < '2026-08-22' ? omitActual(e) : e))
     const p = analyzeExecution({ today: TODAY, execution: exec, currentWeeklyKm: 33, returnInProgress: true })
     expect(p.actions.map((a) => a.type)).not.toContain('reduce-volume')
-    expect(p.actions.map((a) => a.type)).toContain('hold-course')
+    expect(p.actions.find((a) => a.type === 'hold-course')?.ruleRefs).toEqual(['R-5', 'R-11'])
     // bez trwającego powrotu ta sama zgodność obniża bazę
     const plain = analyzeExecution({ today: TODAY, execution: exec, currentWeeklyKm: 33 })
     expect(plain.actions.map((a) => a.type)).toContain('reduce-volume')

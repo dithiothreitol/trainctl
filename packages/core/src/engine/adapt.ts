@@ -283,7 +283,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   // zawiera jeszcze przerwę — obniżenie bazy zastąpiłoby powrót i złożyło drugie cięcie
   if ((input.returnInProgress || input.breakHasReturn) && dataStatus === 'complete' && layoff < LAYOFF_DAYS && !injury) {
     diagnosis.push(m.adapt.returnInProgress)
-    actions.push({ type: 'hold-course', detail: m.adapt.holdCourse, ruleRefs: ['R-11'] })
+    actions.push({ type: 'hold-course', detail: m.adapt.holdCourse, ruleRefs: ['R-5', 'R-11'] })
   } else if (dataStatus === 'complete' && plannedKm > 0 && layoff < LAYOFF_DAYS && !injury) {
     if (compliance < 0.7) {
       // tempo z dni, które się liczą: bez dni przerwy zapisanej z przyczyną

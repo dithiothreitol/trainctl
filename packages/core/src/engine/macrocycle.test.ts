@@ -511,6 +511,12 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
     expect(weeks[next + 1]!.easyOnly).toBeUndefined()
   })
 
+  it('powrót zaczęty w tygodniu odciążenia: tydzień powrotu w paśmie restartu, bez drugiego cięcia (R-11, P-2)', () => {
+    const deloadAt = plan.weeks.findIndex((w, i) => i > 2 && w.deload)
+    const weeks = applyReturnBlock(plan.weeks, { since: plan.weeks[deloadAt]!.weekStart, previousWeeklyKm: 60, illness: false })
+    expect(weeks[deloadAt]!.targetKm).toBe(Math.min(plan.weeks[deloadAt]!.targetKm, Math.round(0.55 * 60)))
+  })
+
   it('po innej przerwie w ostatnim bloku (bez odciążenia przed taperem): spokojna połowa tygodni ładowania', () => {
     // 7 tygodni ładowania (LLLD LLL) i taper: ostatni blok ma trzy tygodnie
     const seven = planMacrocycle({ today: '2026-10-22', goal: { ...half, date: '2026-12-20' }, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] } })
