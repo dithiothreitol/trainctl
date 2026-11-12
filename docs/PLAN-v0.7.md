@@ -241,6 +241,28 @@ poprawki zawodzi, cztery sugestie w §14. Runda 2 na poprawkach z rundy 1:
 i `notation` przy migracji do v2 oraz komentarz, pięć sugestii w §14.
 Odstępstwa od tekstu punktów opisuje „Realizacja w etapie 3” pod DoD pakietu C.
 
+**Stan etapu 4 (2026-11-12):** punkty E1–E4 zrealizowane na gałęzi
+`plan-0.7/etap-4` w kolejności 1, 4 z 2, 3, razem z pozycjami rejestru §14
+przypisanymi do etapu 4: dziesięć naprawionych, osiem przeniesionych do
+następnego planu (jeden model powrotu i objętości, `metricKm`, okrążenia
+z pamięci, remis dopasowania okrążeń), dwie zamknięte notą. Test etapu: macierz
+B0 daje ten sam kształt sezonu w v1 i v2 (576 profili przez silnik biegowy
+profilu v2, 52 przez pełne `plan` na plikach); ścieżka plikowa wykryła zapis
+plan.yaml v2 z aliasami YAML, którego długiego planu nie dało się wczytać.
+Bramka: `pnpm check` 1672 testy, `pnpm build`, `verify:distribution` (tarballe
+bez dostępu do rejestru, 128 plików FIT, 8 kalendarzy, 11 wywołań MCP),
+`plugin:build` i `verify:plugin` (23 narzędzia), `render-skills --check`,
+`simulate:coaching`, `simulate:multisport`, `benchmark:multisport`: wszystko
+PASS. Backtest lokalnie w progach. Najbardziej ryzykowne miejsca (ochrona dni
+zmienionych w v2, powrót dni generatora w propozycji, zapis bez aliasów, kroki
+biegu) sprawdzone mutacją. Przegląd `/code-review high` w dwóch rundach (§0,
+krok 5). Runda 1: 10 kandydatów, dziewięć poprawionych z testem (skrócony bieg
+i bieg sprzed E1 bez struktury w eksporcie, RPE segmentu, metry, reszta czasu,
+pola usunięte z profilu v2, stałe bez etykiety, zapis przerwy), jeden odrzucony
+z uzasadnieniem w §14. Runda 2: 10 pozycji, poprawione regresje (teren celu,
+blok `running` bez wyniku), walidacja profilu v2 i testy szablonów v2; pięć
+pozycji w §14. Odstępstwa opisuje „Realizacja w etapie 4” pod pakietem E.
+
 **Etap 1** nie zmienia żadnej liczby w silniku ani zapisanych planów. Pierwszy
 commit tworzy migawkę macierzy na silniku z 0.6.0. Linty kształtu działają
 w tym etapie tylko w teście macierzy. Do `check` trafiają w etapie 2, żeby
@@ -1038,6 +1060,21 @@ odcinków i tempami wobec celu; brak okrążeń jest nazwany wprost.
   4. jedna ścieżka komend nad modelem wiersza z C2.
 - **Test:** macierz B0 daje ten sam kształt sezonu dla profilu biegowego w v1
   i w v2.
+- **Realizacja w etapie 4:**
+  - E4 to widok, nie usunięcie ścieżki v1. Komendy analizy planu biegowego
+    (`why`, `status`, `review`, `adapt`, `desk`, przerwa `log --to --reason`)
+    czytają w katalogu v2 z samym biegiem widok planu biegowego: tygodnie
+    i kalibrację z `legacy.generatorPlan`, dni z sesji v2, profil z profilu v2,
+    dziennik z wpisów sesji. Zapis idzie ścieżką v2 (propozycja v2,
+    `--apply`). Widoki dnia, tygodnia i sezonu zostają na modelu wiersza
+    z C2. Katalog z rowerem albo pływaniem zostaje przy komendach v2.
+  - E2: lista parytetu z testami jest w `docs/MULTISPORT.md`. Poza listą
+    doszły przerwa B11 w dzienniku sesji i predykcja w `plan` v2.
+  - E3: `init` (szablon, kreator, `--from-intervals`) zapisuje profil v2.
+    Pola profilu biegowego są w `running` (płeć, HRmax, powrót, siła),
+    a czas docelowy i teren w celu. Sam bieg ma budżet czasu tylko z `time`,
+    jak plan biegowy (ADR-058). Komunikaty planu biegowego w katalogu v2
+    wskazują pola profilu v2.
 
 ---
 
