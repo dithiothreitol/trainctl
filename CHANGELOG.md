@@ -35,6 +35,11 @@ change between minor versions — a regenerated plan can differ.
   trial replaces it instead of adding a second hard day. In a week under about
   8.6 km (a small tune-up week) the 35% share is below 3 km, so the easy run
   keeps 3 km and the shape check accepts it.
+- `review` shows execution day by day in the session row layout: the day with
+  its date, the session type in its colour, plan, actual, the day's average pace
+  where synced runs carry their time (`execution[].paceSecPerKm`), and status.
+  A run outside the plan has no type and no plan. Distances and pace follow
+  `units`.
 - The I-5 check (at least 75% easy) runs after the rest of the week is
   distributed, so accents are no longer trimmed for distance that easy runs
   carry.
@@ -192,6 +197,12 @@ change between minor versions — a regenerated plan can differ.
   slower range included). A 3 s/km margin covers measurement error. Heart rate
   is not judged (Z-3, Z-6), the plan does not change, and the facts are in
   `execution[].intervals` and `execution[].easyPace` of `--json` and MCP.
+- `review` proposes a fresh result when the reps of the last two interval
+  sessions ran faster than the target (at least two thirds of them each time):
+  a tune-up race within four weeks first, then a time trial in the plan, else
+  a new race result or a time trial (W-12, W-13). Only sessions after the
+  latest result in `athlete.results` and inside the 21-day window count. It is
+  a sentence and `calibration` in the data; the plan does not change.
 
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in

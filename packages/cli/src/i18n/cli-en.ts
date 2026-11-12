@@ -723,7 +723,7 @@ export const cliEn = {
     },
     toRace: 'To race day',
     sinceRace: 'Since the race',
-    columns: { planned: 'Plan', actual: 'Actual', status: 'Status' },
+    columns: { day: 'Day', kind: 'Type', planned: 'Plan', actual: 'Actual', pace: 'Pace', status: 'Status' },
     baseEnd: 'Base plan until',
     raceThisWeek: (date: string) =>
       `Race this week: ${date} — the day before stays clear (T-10).`,
@@ -746,6 +746,12 @@ export const cliEn = {
     repsNoMatch: (date: string, plan: string) => `${date} · ${plan}: no laps matching the plan`,
     easyPace: (date: string, kind: string, pace: string, range: string, verdict: 'within' | 'faster' | 'slower') =>
       `${date} · ${kind} ${pace}: ${verdict === 'within' ? 'within' : verdict === 'faster' ? 'faster than' : 'slower than'} ${range}`,
+    /** D5: a text proposal; the plan does not change. */
+    calibration: (dates: string, action: string) =>
+      `The reps of the last accents (${dates}) ran faster than the target. The zones may be too slow: ${action} (W-12, W-13).`,
+    calibrationRace: (date: string, name: string) => `the tune-up race on ${date} (${name}) will give a fresh result; write it into athlete.results`,
+    calibrationTrial: (date: string) => `the time trial on ${date} will give a fresh result; write it into athlete.results`,
+    calibrationNew: 'write a fresh race result into athlete.results, or plan a time trial',
   },
 
   wizard: {

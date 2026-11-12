@@ -10,6 +10,8 @@ import {
   addDays,
   analyzeExecution,
   BREAK_REASONS,
+  CALIBRATION_WINDOW_DAYS,
+  fasterThanTarget,
   diffDays,
   distanceIn,
   kmFrom,
@@ -102,7 +104,7 @@ const OUR_EXTERNAL_ID_PREFIX = 'trainctl-'
 /** Nowe selektory nie mogą zostać po cichu zignorowane przez zapis v1. */
 const sessionOptions = (opts: object): boolean => ['session','sport','actualSport','meters','activity','sets'].some(key=>Reflect.get(opts,key)!==undefined)
 
-import { KIND_COLOR, asciiOutput, dayHeading, hrCeilingText, metricData, rowsTable, runningSeasonRows, runningWeekRows, seasonTable, structureTable } from './ui/rows.ts'
+import { KIND_COLOR, asciiOutput, dayHeading, executionTable, hrCeilingText, metricData, rowsTable, runningSeasonRows, runningWeekRows, seasonTable, structureTable } from './ui/rows.ts'
 export { KIND_COLOR }
 
 /** Etykiety jednostek i faz pochodzą z katalogu — zmieniają się razem z językiem. */
@@ -1658,7 +1660,8 @@ export async function cmdReview(
     const rows = compare(plan, snapshot?.activities ?? [], from, today, logs)
     const plannedKm = rows.reduce((s, r) => s + r.plannedKm, 0)
     const actualKm = rows.reduce((s, r) => s + (r.actualKm ?? 0), 0)
-    const execution = buildExecution(plan, snapshot?.activities ?? [], logs, today).filter(e => e.date >= from)
+    const allExecution = buildExecution(plan, snapshot?.activities ?? [], logs, today)
+    const execution = allExecution.filter(e => e.date >= from)
     const done = execution.filter(e => e.status === 'done').length
     const missed = rows.filter((r) => r.status === 'missed')
     blocks.push(
@@ -1673,14 +1676,30 @@ export async function cmdReview(
           : []),
       ]),
     )
-    blocks.push(b.section(ui().coach.reviewFacts), b.table([ui().improve.date, ui().review.columns.planned, ui().review.columns.actual, ui().review.columns.status],
-      execution.filter(e => e.kind || e.status === 'unplanned').map(e => [e.date, kmLabel(e.plannedKm), e.actualKm === undefined ? ui().compare.unknown : kmLabel(e.actualKm), ui().coach.status[e.status]])))
+    // D4: wykonanie w układzie wiersza z C2, z tempem dnia tam, gdzie są dane
+    const workouts = new Map(plan.weeks.flatMap((w) => w.days).flatMap((d) => (d.workout ? [[d.date, d.workout] as const] : [])))
+    blocks.push(b.section(ui().coach.reviewFacts), executionTable(execution.filter(e => e.kind || e.status === 'unplanned'), workouts))
     const unknown = execution.filter(e => e.status === 'unknown').map(e => e.date)
     if (unknown.length) blocks.push(b.warn(ui().coach.reviewUnknown(unknown.join(', '))))
     // D2, D3: odcinki akcentu i tempo biegu spokojnego wobec celu — fakty, bez oceny
-    const workouts = new Map(plan.weeks.flatMap((w) => w.days).flatMap((d) => (d.workout ? [[d.date, d.workout] as const] : [])))
     const targets = targetLines(execution, workouts, asciiOutput())
     if (targets.length) blocks.push(b.section(ui().review.targets), b.bullets(targets))
+    // D5: odcinki stale szybsze od celu → propozycja świeżego wyniku (W-12, W-13), plan bez zmian.
+    // Liczą się akcenty z okna adaptacji po ostatnim wyniku w profilu: wcześniejsze biegły do starych stref.
+    const lastResult = (config.athlete.results ?? []).reduce((latest, r) => (r.date > latest ? r.date : latest), '')
+    const fast = fasterThanTarget(allExecution.filter((e) => e.date >= syncFrom && e.date > lastResult))
+    let calibration: { dates: string[]; race?: string; trial?: string } | null = null
+    if (fast.length) {
+      const t = ui().review
+      const soon = (date: string) => date > today && diffDays(today, date) <= CALIBRATION_WINDOW_DAYS
+      // W-13: prawdziwy start przed sprawdzianem; sprawdzian z planu przed nowym
+      const race = (config.athlete.tuneUpRaces ?? []).filter((r) => soon(r.date)).sort((a, z) => a.date.localeCompare(z.date))[0]
+      const trial = race ? undefined : plan.weeks.flatMap((w) => w.days).find((d) => d.workout?.kind === 'test' && soon(d.date))
+      const action = race ? t.calibrationRace(race.date, race.name ?? kmLabel(race.distanceKm)) : trial ? t.calibrationTrial(trial.date) : t.calibrationNew
+      if (!targets.length) blocks.push(b.section(t.targets))
+      blocks.push(b.info(t.calibration(fast.join(', '), action)))
+      calibration = { dates: fast, ...(race ? { race: race.date } : {}), ...(trial ? { trial: trial.date } : {}) }
+    }
 
     // 2b) ślad subiektywny — dziennik cytowany dosłownie, po jednym wpisie na
     // datę (późniejszy nadpisuje wcześniejszy, jak w logFor). Żadnej agregacji
@@ -1806,7 +1825,7 @@ export async function cmdReview(
         blocks.push(reason === ui().improve.noPatch ? b.info(ui().coach.reviewNoChange) : b.warn(ui().coach.reviewBlocked(reason)))
       }
     } else blocks.push(b.hint(ui().coach.reviewHint))
-    return okDoc(blocks, { rows, execution, period: { from, to: today, days }, adaptation: adaptation ?? null, upcoming: week ?? null, notes, preparation, prepared })
+    return okDoc(blocks, { rows, execution, period: { from, to: today, days }, adaptation: adaptation ?? null, upcoming: week ?? null, notes, calibration, preparation, prepared })
   } catch (e) {
     return fail(e)
   }

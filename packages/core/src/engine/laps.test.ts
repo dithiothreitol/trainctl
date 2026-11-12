@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PaceRange, PlannedWorkout } from '../domain/types.ts'
 import type { ActivityLap } from '../ports/sync.ts'
-import { PACE_TOLERANCE_SEC, easyBand, easyPace, matchReps, paceVerdict, plannedReps, type RepTarget } from './laps.ts'
+import { PACE_TOLERANCE_SEC, easyBand, easyPace, fasterThanTarget, matchReps, paceVerdict, plannedReps, type RepTarget } from './laps.ts'
 
 /** Strefa spokojna 5:30–6:10/km, cel odcinków 4:00–4:08/km. */
 const EASY: PaceRange = { loSecPerKm: 330, hiSecPerKm: 370 }
@@ -249,5 +249,42 @@ describe('tempo biegu spokojnego (D3)', () => {
     const easy: PlannedWorkout = { kind: 'easy', distanceKm: 8, ruleRefs: [], segments: [{ type: 'easy', distanceKm: 8, description: '' }] }
     expect(easyBand(easy, EASY)).toEqual(EASY)
     expect(easyPace(318.4, EASY)).toEqual({ paceSecPerKm: 318, range: EASY, vsRange: 'faster' })
+  })
+})
+
+describe('fasterThanTarget (D5)', () => {
+  const session = (date: string, verdicts: ('faster' | 'within' | 'slower' | undefined)[]) => ({
+    date,
+    intervals: {
+      planned: verdicts.length, inRange: 0, extra: 0,
+      matched: verdicts.map((v) => ({ repM: 1000, distanceKm: 1, movingTimeSec: 240, paceSecPerKm: 240, ...(v ? { vsTarget: v } : {}) })),
+    },
+  })
+  const F = 'faster' as const
+  const W = 'within' as const
+
+  it('dwa ostatnie akcenty stale szybciej: daty po kolei, bez względu na kolejność wejścia', () => {
+    expect(fasterThanTarget([session('2026-08-11', [F, F, F]), session('2026-08-04', [F, F, F, F])])).toEqual(['2026-08-04', '2026-08-11'])
+  })
+
+  it('jeden akcent to za mało', () => {
+    expect(fasterThanTarget([session('2026-08-11', [F, F, F])])).toEqual([])
+  })
+
+  it('próg dwóch trzecich: 2 z 3 wystarcza, 2 z 4 nie', () => {
+    expect(fasterThanTarget([session('2026-08-04', [F, F, W]), session('2026-08-11', [F, W, F])])).toEqual(['2026-08-04', '2026-08-11'])
+    expect(fasterThanTarget([session('2026-08-04', [F, F, F]), session('2026-08-11', [F, W, F, W])])).toEqual([])
+  })
+
+  it('liczą się dwa ostatnie: wcześniejszy akcent w zakresie nie blokuje, późniejszy tak', () => {
+    expect(fasterThanTarget([session('2026-07-28', [W, W]), session('2026-08-04', [F, F]), session('2026-08-11', [F, F])])).toEqual(['2026-08-04', '2026-08-11'])
+    expect(fasterThanTarget([session('2026-08-04', [F, F]), session('2026-08-11', [F, F]), session('2026-08-18', [W, W])])).toEqual([])
+  })
+
+  it('akcent bez dopasowanych odcinków albo bez celu tempa jest pomijany', () => {
+    const noMatch = { date: '2026-08-18', intervals: { planned: 4, matched: [], inRange: 0, extra: 0, reason: 'no-match' as const } }
+    expect(fasterThanTarget([session('2026-08-04', [F, F]), session('2026-08-11', [F, F]), noMatch, session('2026-08-19', [undefined, undefined])]))
+      .toEqual(['2026-08-04', '2026-08-11'])
+    expect(fasterThanTarget([{ date: '2026-08-04' }, session('2026-08-11', [F, F])])).toEqual([])
   })
 })

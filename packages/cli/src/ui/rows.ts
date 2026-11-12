@@ -5,11 +5,11 @@
  * w wyjściu tekstowym i MCP słowem. Handlery budują wiersze, kolory dokłada renderer.
  */
 import {
-  accentLine, addDays, distanceIn, distanceUnit, estimateWorkoutMinutes, formatNumber, getLocale, getUnits, HR_CEILING_KINDS, messages, mondayOf, plannedWeekKm, sessionLine, withUnits,
-  type Microcycle, type StructureRow, type TrainingSession, type Weekday,
+  accentLine, addDays, distanceIn, distanceUnit, estimateWorkoutMinutes, formatNumber, getLocale, getUnits, HR_CEILING_KINDS, messages, mondayOf, paceClock, parseIso, plannedWeekKm, sessionLine, withUnits,
+  type ExecutionRecord, type Microcycle, type PlannedWorkout, type StructureRow, type TrainingSession, type Weekday,
 } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
-import { logStatusText, shownKm } from '../format.ts'
+import { kmLabel, logStatusText, shownKm } from '../format.ts'
 import type { LogEntry, StrengthLogEntry } from '../logfile.ts'
 import { b, type Block, type RowMark } from './blocks.ts'
 import type { ColorName } from './theme.ts'
@@ -179,6 +179,37 @@ export function rowsTable(rows: SessionRow[], opts: { today?: string; sport?: bo
     cells,
     rows.map((r) => r.accent),
     { foot: ['', ...(opts.sport ? [''] : []), t.total, ...(distance ? [km(totalKm)] : []), hoursMinutes(totalMinutes), ''], marks },
+  )
+}
+
+const WEEKDAYS: Weekday[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+
+/**
+ * D4: wykonanie dzień po dniu w układzie wiersza z C2 — dzień z datą, typ jednostki
+ * w kolorze jej rodzaju, plan, wykonanie i status (kolumny z A1). Kolumna tempa
+ * (średnie tempo biegów dnia z synchronizacji) tylko wtedy, gdy któryś dzień je ma.
+ */
+export function executionTable(records: ExecutionRecord[], workouts: Map<string, PlannedWorkout>): Block {
+  const t = ui().review.columns
+  const pace = records.some((r) => r.paceSecPerKm !== undefined)
+  const cells = records.map((r) => {
+    const workout = workouts.get(r.date)
+    return [
+      `${messages().weekdayShort[WEEKDAYS[parseIso(r.date).getUTCDay()]!]} ${ui().rows.shortDate(r.date)}`,
+      workout ? kindText(workout) : '',
+      workout ? kmLabel(r.plannedKm) : '',
+      r.actualKm !== undefined ? kmLabel(r.actualKm) : '',
+      ...(pace ? [r.paceSecPerKm !== undefined ? `${paceClock(r.paceSecPerKm)}/${distanceUnit()}` : ''] : []),
+      ui().coach.status[r.status],
+    ]
+  })
+  return b.table(
+    [t.day, t.kind, t.planned, t.actual, ...(pace ? [t.pace] : []), t.status],
+    cells,
+    records.map((r) => {
+      const workout = workouts.get(r.date)
+      return workout ? KIND_COLOR[workout.kind] ?? 'accent' : 'muted'
+    }),
   )
 }
 

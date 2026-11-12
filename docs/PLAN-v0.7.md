@@ -919,6 +919,20 @@ w commicie punktu.
   długi ma go wolniejszego niż strefa (`buildLong`) i w tempie planu nie jest
   „wolniej niż zakres”. Dwa biegi jednego dnia dają średnią z łącznego czasu
   i dystansu.
+- **D4.** Status zostaje kolumną ze słowem, jak w A1, a nie znacznikiem wiersza
+  z C2: przegląd jest o statusie, a znacznik w terminalu to sam symbol. Z C2
+  tabela bierze dzień z datą, typ jednostki w kolorze rodzaju i jednostkę widoku.
+  Kolumna tempa to średnie tempo biegów dnia z synchronizacji
+  (`execution[].paceSecPerKm`) i pojawia się, gdy któryś dzień ma czas ruchu.
+  Wykonanie bez danych to pusta komórka; status mówi „niepotwierdzony”. Tabela
+  nie ma wiersza sumy, bo objętość jest nad nią.
+- **D5.** „Stale szybciej” to dwa ostatnie akcenty z dopasowanymi odcinkami,
+  w każdym co najmniej dwie trzecie odcinków szybciej niż zakres (inż.). Liczą
+  się akcenty z okna adaptacji (21 dni) po ostatnim wyniku w profilu, bo
+  wcześniejsze biegły do starych stref. Propozycja według W-13: start kontrolny
+  w ciągu 28 dni (W-12), potem sprawdzian z planu, inaczej nowy wynik albo
+  sprawdzian. To zdanie pod „Wobec celu” i pole `calibration` w danych; plan
+  się nie zmienia, a `--prepare` nie robi z tego propozycji stref.
 
 ---
 

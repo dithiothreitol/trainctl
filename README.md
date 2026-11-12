@@ -251,7 +251,9 @@ a key is configured). With laps from the watch it sets each interval session
 against its targets: how many reps match the plan, their paces and how many fell
 within the target range; auto laps every kilometre are named as "no laps
 matching the plan" instead of being guessed. Easy and long runs get their
-average pace against the easy range. Heart rate is not judged. `trainctl adapt`
+average pace against the easy range. Heart rate is not judged. When the reps of
+the last two interval sessions run faster than the target, it suggests a fresh
+result: the next tune-up race or a time trial. `trainctl adapt`
 compares execution with the plan and *proposes* corrections; it never rewrites
 the plan behind your back.
 

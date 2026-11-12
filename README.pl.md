@@ -254,7 +254,9 @@ z intervals.icu, jeśli klucz jest ustawiony). Z okrążeń z zegarka zestawia a
 z celem: ile odcinków pasuje do planu, w jakim tempie i ile mieści się w zakresie.
 Okrążenia automatyczne co kilometr nazywa „brakiem okrążeń pasujących do planu”
 zamiast zgadywać. Biegi spokojne i długie dostają średnie tempo wobec zakresu
-strefy spokojnej. Tętna nie ocenia. `trainctl adapt` porównuje wykonanie z planem
+strefy spokojnej. Tętna nie ocenia. Gdy odcinki dwóch ostatnich akcentów są
+szybsze od celu, podpowiada świeży wynik: najbliższy start kontrolny albo
+sprawdzian. `trainctl adapt` porównuje wykonanie z planem
 i **proponuje** korekty — nigdy nie przepisuje planu za Twoimi plecami.
 
 ## Komendy

@@ -717,7 +717,7 @@ export const cliPl: CliMessages = {
     },
     toRace: 'Do startu',
     sinceRace: 'Od startu',
-    columns: { planned: 'Plan', actual: 'Wykonanie', status: 'Status' },
+    columns: { day: 'Dzień', kind: 'Typ', planned: 'Plan', actual: 'Wykonanie', pace: 'Tempo', status: 'Status' },
     baseEnd: 'Plan bazowy do',
     raceThisWeek: (date: string) =>
       `Start w tym tygodniu: ${date} — dzień przed zostaje wolny (T-10).`,
@@ -739,6 +739,11 @@ export const cliPl: CliMessages = {
     repsNoMatch: (date: string, plan: string) => `${date} · ${plan}: brak okrążeń pasujących do planu`,
     easyPace: (date: string, kind: string, pace: string, range: string, verdict: 'within' | 'faster' | 'slower') =>
       `${date} · ${kind} ${pace}: ${verdict === 'within' ? 'w zakresie' : verdict === 'faster' ? 'szybciej niż' : 'wolniej niż'} ${range}`,
+    calibration: (dates: string, action: string) =>
+      `Odcinki w ostatnich akcentach (${dates}) były szybsze od celu. Strefy mogą być za wolne: ${action} (W-12, W-13).`,
+    calibrationRace: (date: string, name: string) => `start kontrolny ${date} (${name}) da świeży wynik; wpisz go do athlete.results`,
+    calibrationTrial: (date: string) => `sprawdzian ${date} da świeży wynik; wpisz go do athlete.results`,
+    calibrationNew: 'wpisz świeży wynik startu do athlete.results albo zaplanuj sprawdzian',
   },
 
   wizard: {

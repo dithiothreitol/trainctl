@@ -5,6 +5,7 @@
  * po kolejności i długości. Okrążenia automatyczne (co kilometr) nie pasują do
  * struktury i dają `no-match` — bez zgadywania, które okrążenie było odcinkiem.
  * D3: średnie tempo biegu spokojnego i długiego wobec zakresu strefy spokojnej.
+ * D5: odcinki stale szybsze od celu — propozycja świeżego wyniku (W-12, W-13).
  *
  * Granica (ADR-011, ADR-027): to opis, nie ocena. Wynik nie zmienia objętości,
  * stref ani planu. Tętna nie oceniamy (Z-3, Z-6): kotwicą jest tempo.
@@ -187,6 +188,33 @@ export function easyBand(workout: PlannedWorkout, easyZone: PaceRange): PaceRang
     loSecPerKm: Math.min(easyZone.loSecPerKm, planned.loSecPerKm),
     hiSecPerKm: Math.max(easyZone.hiSecPerKm, planned.hiSecPerKm),
   }
+}
+
+/**
+ * D5, E-3 (inż.): „stale szybciej od celu" — dwa ostatnie akcenty z dopasowanymi
+ * odcinkami, w każdym co najmniej dwie trzecie odcinków z celem szybciej niż zakres.
+ * Jeden szybki akcent to dzień, dwa z rzędu to sygnał, że strefy mogą być za wolne.
+ */
+const CALIBRATION_SESSIONS = 2
+const CALIBRATION_SHARE = 2 / 3
+/** W-12: rytm kalibracji ~4 tygodnie (mediana odstępu startów w korpusie 28 dni). */
+export const CALIBRATION_WINDOW_DAYS = 28
+
+/**
+ * D5: daty akcentów, w których odcinki były stale szybsze od celu, albo pusta lista.
+ * Wywołujący podaje akcenty po ostatnim wyniku w profilu: wcześniejsze biegły do starych stref.
+ */
+export function fasterThanTarget(sessions: { date: string; intervals?: IntervalsExecution | undefined }[]): string[] {
+  const scored = sessions
+    .filter((s) => s.intervals?.matched.some((r) => r.vsTarget !== undefined))
+    .sort((a, z) => a.date.localeCompare(z.date))
+    .slice(-CALIBRATION_SESSIONS)
+  if (scored.length < CALIBRATION_SESSIONS) return []
+  const fast = scored.every((s) => {
+    const targeted = s.intervals!.matched.filter((r) => r.vsTarget !== undefined)
+    return targeted.filter((r) => r.vsTarget === 'faster').length >= CALIBRATION_SHARE * targeted.length
+  })
+  return fast ? scored.map((s) => s.date) : []
 }
 
 /** D3: średnie tempo wobec zakresu biegu spokojnego. */

@@ -7,6 +7,7 @@ import type { ActivityLap, ExecutionRecord, SyncProvider, SyncedActivity } from 
 import { cmdInit, cmdLog, cmdPlan, cmdReview } from './commands.ts'
 import { AGENTS_FILE } from './agents-md.ts'
 import { SECRET_FILE } from './sync.ts'
+import { loadPlan, writePlan } from './planfile.ts'
 import { setLocale, setUnits } from 'trainctl-core'
 
 // Ten plik weryfikuje ZACHOWANIE komend, a asercje czyta się najłatwiej
@@ -262,6 +263,134 @@ describe('trainctl review — wykonanie wobec celu (D2, D3)', () => {
     const before = readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')
     await review([run('2026-08-11', 8, { laps: accent([240, 240, 240, 240]) })])
     expect(readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')).toBe(before)
+  })
+})
+
+describe('trainctl review — tabela wykonania (D4)', () => {
+  const run = (date: string, km: number, sec?: number): SyncedActivity =>
+    ({ externalId: `run-${date}`, date, type: 'Run', distanceKm: km, ...(sec ? { movingTimeSec: sec } : {}) })
+  const review = async (runs: SyncedActivity[]) => {
+    withKey()
+    return cmdReview(dir, { date: TODAY }, () => ({
+      ...provider,
+      listActivities: async (oldest: string, newest: string) => runs.filter((a) => a.date >= oldest && a.date <= newest),
+    }))
+  }
+
+  it('układ wiersza: dzień z datą, typ, plan, wykonanie, tempo dnia i status', async () => {
+    const r = await review([run('2026-08-11', 8.3, 2400), run('2026-08-14', 5, 1700), run('2026-08-15', 20.2)])
+    expect(r.output).toContain('Dzień | Typ | Plan | Wykonanie | Tempo | Status')
+    expect(r.output).toContain('WT 11.08 | interwały | 8 km | 8,3 km | 4:49/km | wykonany')
+    // bieg poza planem: bez typu i planu
+    expect(r.output).toContain('PT 14.08 | 5 km | 5:40/km | bieg poza planem')
+    // bieg bez czasu ruchu: bez tempa, reszta wiersza zostaje
+    expect(r.output).toContain('SB 15.08 | długie | 20 km | 20,2 km | wykonany')
+    expect((r.data!.execution as ExecutionRecord[]).find((e) => e.date === '2026-08-11')!.paceSecPerKm).toBe(289)
+  })
+
+  it('bez tempa w danych kolumny tempa nie ma', async () => {
+    const r = await review([run('2026-08-11', 8.3)])
+    expect(r.output).toContain('Dzień | Typ | Plan | Wykonanie | Status')
+    expect(r.output).not.toContain('Tempo')
+  })
+
+  it('w milach: dystans i tempo w jednostce widoku, dane w km', async () => {
+    const previous = setUnits('imperial')
+    try {
+      const r = await review([run('2026-08-11', 8.3, 2400)])
+      expect(r.output).toContain('WT 11.08 | interwały | 4,97 mi | 5,16 mi | 7:45/mi | wykonany')
+      expect((r.data!.execution as ExecutionRecord[]).find((e) => e.date === '2026-08-11')!.actualKm).toBe(8.3)
+    } finally {
+      setUnits(previous)
+    }
+  })
+})
+
+describe('trainctl review — podpowiedź kalibracji (D5)', () => {
+  // Akcenty 4.08 i 11.08: 4×1000 m @4:11–4:23/km. Okrążenia wymyślone.
+  const lap = (km: number, secPerKm: number, extra: Partial<ActivityLap> = {}): ActivityLap =>
+    ({ distanceKm: km, movingTimeSec: Math.round(km * secPerKm), ...extra })
+  const accent = (date: string, paces: number[]): SyncedActivity => ({
+    externalId: `acc-${date}`, date, type: 'Run', distanceKm: 8,
+    laps: [
+      lap(2, 320, { intensity: 'warmup' }),
+      ...paces.flatMap((p) => [lap(1, p, { intensity: 'work' }), lap(0.2, 600, { intensity: 'rest' })]),
+      lap(1.5, 330, { intensity: 'cooldown' }),
+    ],
+  })
+  const review = async (runs: SyncedActivity[]) => {
+    withKey()
+    return cmdReview(dir, { date: TODAY }, () => ({
+      ...provider,
+      listActivities: async (oldest: string, newest: string) => runs.filter((a) => a.date >= oldest && a.date <= newest),
+    }))
+  }
+  const FAST = [240, 241, 239, 242]
+
+  it('dwa akcenty z rzędu szybciej od celu: propozycja startu kontrolnego, plan bez zmian', async () => {
+    const before = readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')
+    const r = await review([accent('2026-08-04', FAST), accent('2026-08-11', FAST)])
+    expect(r.output).toContain('Odcinki w ostatnich akcentach (2026-08-04, 2026-08-11) były szybsze od celu.')
+    // W-13: prawdziwy start w oknie 28 dni przed sprawdzianem
+    expect(r.output).toContain('start kontrolny 2026-09-05 (Bieg Falenicki) da świeży wynik')
+    expect(r.data!.calibration).toEqual({ dates: ['2026-08-04', '2026-08-11'], race: '2026-09-05' })
+    expect(readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')).toBe(before)
+  })
+
+  it('bez startu w oknie: świeży wynik albo sprawdzian', async () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(/  tuneUpRaces:\n.*\n/, ''), 'utf-8')
+    const r = await review([accent('2026-08-04', FAST), accent('2026-08-11', FAST)])
+    expect(r.output).toContain('wpisz świeży wynik startu do athlete.results albo zaplanuj sprawdzian')
+  })
+
+  it('jeden szybki akcent to jeszcze nie sygnał', async () => {
+    const r = await review([accent('2026-08-04', [255, 258, 260, 262]), accent('2026-08-11', FAST)])
+    expect(r.output).not.toContain('szybsze od celu')
+    expect(r.data!.calibration).toBeNull()
+  })
+
+  it('sprawdzian z planu w oknie, bez startu kontrolnego', async () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace(/  tuneUpRaces:\n.*\n/, ''), 'utf-8')
+    const plan = loadPlan(dir)
+    const day = plan.weeks.flatMap((w) => w.days).find((d) => d.workout && d.date > '2026-08-24')!
+    day.workout = { ...day.workout!, kind: 'test' }
+    writePlan(dir, plan)
+    const r = await review([accent('2026-08-04', FAST), accent('2026-08-11', FAST)])
+    expect(r.output).toContain(`sprawdzian ${day.date} da świeży wynik`)
+    expect(r.data!.calibration).toEqual({ dates: ['2026-08-04', '2026-08-11'], trial: day.date })
+  })
+
+  it('start kontrolny ma pierwszeństwo przed sprawdzianem z planu (W-13)', async () => {
+    const plan = loadPlan(dir)
+    const day = plan.weeks.flatMap((w) => w.days).find((d) => d.workout && d.date > '2026-08-24')!
+    day.workout = { ...day.workout!, kind: 'test' }
+    writePlan(dir, plan)
+    const r = await review([accent('2026-08-04', FAST), accent('2026-08-11', FAST)])
+    expect(r.data!.calibration).toEqual({ dates: ['2026-08-04', '2026-08-11'], race: '2026-09-05' })
+  })
+
+  it('start kontrolny, który już się odbył, nie jest propozycją', async () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('2026-09-05', '2026-08-09'), 'utf-8')
+    const r = await review([accent('2026-08-04', FAST), accent('2026-08-11', FAST)])
+    expect(r.output).toContain('wpisz świeży wynik startu do athlete.results albo zaplanuj sprawdzian')
+    expect(r.data!.calibration).toEqual({ dates: ['2026-08-04', '2026-08-11'] })
+  })
+
+  it('akcent spoza okna adaptacji (21 dni) się nie liczy', async () => {
+    // pierwszy przegląd zapisuje szybki akcent 4.08 w migawce; tydzień później jest już poza oknem
+    await review([accent('2026-08-04', FAST)])
+    withKey()
+    const r = await cmdReview(dir, { date: '2026-08-25' }, () => ({
+      ...provider,
+      listActivities: async (oldest: string, newest: string) => [accent('2026-08-18', [240, 241, 239, 242, 240])].filter((a) => a.date >= oldest && a.date <= newest),
+    }))
+    expect(r.data!.calibration).toBeNull()
+  })
+
+  it('akcent sprzed ostatniego wyniku w profilu się nie liczy', async () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), CONFIG.replace('  tuneUpRaces:', '    - { date: "2026-08-08", distanceKm: 10, timeSec: 2460 }\n  tuneUpRaces:'), 'utf-8')
+    const r = await review([accent('2026-08-04', FAST), accent('2026-08-11', FAST)])
+    expect(r.data!.calibration).toBeNull()
   })
 })
 

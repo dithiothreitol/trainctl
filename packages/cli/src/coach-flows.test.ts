@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve, sep } from 'node:path'
 import { tmpdir } from 'node:os'
-import { reschedule, setLocale, validatePlan } from 'trainctl-core'
+import { plannedReps, reschedule, setLocale, validatePlan, type SyncedActivity } from 'trainctl-core'
 import { cmdAdapt, cmdLog, cmdReview, cmdShorten, cmdWhy } from './commands.ts'
 import { computePlan, findDay, loadPlan, PLAN_YAML, shiftWorkout, writePlan } from './planfile.ts'
 import { prepareProposal, type PlanProposal } from './proposals.ts'
@@ -160,6 +160,28 @@ describe('three coach workflows', () => {
     expect(existsSync(join(dir, 'plan/proposals'))).toBe(false)
     const result = await cmdReview(dir, { prepare: true })
     expect(result.data!.preparation).toMatchObject({ status: 'no-change' })
+  })
+  it('suggests a fresh result when reps keep running faster than the target, without preparing a zones change (D5)', async () => {
+    const accents = loadPlan(dir).weeks.flatMap(w => w.days)
+      .filter(d => d.workout && plannedReps(d.workout).length && d.date >= '2026-08-17' && d.date <= today)
+    expect(accents.length).toBeGreaterThanOrEqual(2)
+    // okrążenia wymyślone: każdy odcinek 10 s/km szybciej niż szybsza granica celu
+    const activities: SyncedActivity[] = accents.map(d => ({
+      externalId: `acc-${d.date}`, date: d.date, type: 'Run', distanceKm: d.workout!.distanceKm,
+      laps: plannedReps(d.workout!).flatMap(r => [
+        { distanceKm: r.repM / 1000, movingTimeSec: Math.round((r.repM / 1000) * (r.pace!.loSecPerKm - 10)), intensity: 'work' as const },
+        { distanceKm: 0.2, movingTimeSec: 120, intensity: 'rest' as const },
+      ]),
+    }))
+    writeSnapshot(dir, { pulledAt: today, activities, wellness: [] })
+    const before = bytes()
+    const result = await cmdReview(dir, { prepare: true })
+    expect(result.code, result.output).toBe(0)
+    expect(result.output).toContain('ran faster than the target')
+    expect(result.data!.calibration).toMatchObject({ dates: accents.slice(-2).map(d => d.date) })
+    expect(bytes()).toBe(before)
+    const proposal = result.data!.prepared as { vdot: number } | null
+    if (proposal) expect(proposal.vdot).toBe(loadPlan(dir).vdot)
   })
   it('rejects invalid options before reading or fetching data', async () => {
     expect(cmdShorten(dir).code).toBe(1)

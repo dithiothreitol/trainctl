@@ -17,21 +17,27 @@ export function runningKmByDate(activities: SyncedActivity[]): Map<string, numbe
   return runs
 }
 
-/**
- * D2, D3: fakty o wykonaniu jednostki z biegów zsynchronizowanych tego dnia — odcinki
- * akcentu z okrążeń i średnie tempo biegu spokojnego. Bez biegu z zegarka nic nie dopisujemy:
- * sam wpis dziennika nie mówi, jak bieg wyglądał.
- */
-function executionFacts(workout: PlannedWorkout, runs: SyncedActivity[], easyZone: PaceRange): Pick<ExecutionRecord, 'intervals' | 'easyPace'> {
-  if (!runs.length) return {}
-  const reps = plannedReps(workout)
-  if (reps.length) return { intervals: matchReps(reps, runs.flatMap((r) => r.laps ?? []), easyZone) }
-  if (workout.kind !== 'easy' && workout.kind !== 'long') return {}
+/** Średnie tempo biegów dnia: łączny czas ruchu przez łączny dystans (biegi z oboma polami). */
+function dayPace(runs: SyncedActivity[]): number | undefined {
   const timed = runs.filter((r) => (r.distanceKm ?? 0) > 0 && (r.movingTimeSec ?? 0) > 0)
   const km = timed.reduce((s, r) => s + r.distanceKm!, 0)
-  if (!(km > 0)) return {}
-  const sec = timed.reduce((s, r) => s + r.movingTimeSec!, 0)
-  return { easyPace: easyPace(sec / km, easyBand(workout, easyZone)) }
+  return km > 0 ? timed.reduce((s, r) => s + r.movingTimeSec!, 0) / km : undefined
+}
+
+/**
+ * D2–D4: fakty o wykonaniu z biegów zsynchronizowanych tego dnia — tempo dnia, odcinki
+ * akcentu z okrążeń i tempo biegu spokojnego wobec zakresu. Bez biegu z zegarka nic nie
+ * dopisujemy: sam wpis dziennika nie mówi, jak bieg wyglądał.
+ */
+function executionFacts(workout: PlannedWorkout | undefined, runs: SyncedActivity[], easyZone: PaceRange): Pick<ExecutionRecord, 'paceSecPerKm' | 'intervals' | 'easyPace'> {
+  if (!runs.length) return {}
+  const pace = dayPace(runs)
+  const facts: Pick<ExecutionRecord, 'paceSecPerKm' | 'intervals' | 'easyPace'> = pace !== undefined ? { paceSecPerKm: Math.round(pace) } : {}
+  if (!workout) return facts
+  const reps = plannedReps(workout)
+  if (reps.length) facts.intervals = matchReps(reps, runs.flatMap((r) => r.laps ?? []), easyZone)
+  else if ((workout.kind === 'easy' || workout.kind === 'long') && pace !== undefined) facts.easyPace = easyPace(pace, easyBand(workout, easyZone))
+  return facts
 }
 
 /** Jedna interpretacja wykonania dla pull, review i adaptacji. Wygrywa ostatni wpis dziennika. */
@@ -65,7 +71,7 @@ export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], l
     return {
       date, plannedKm,
       ...(day?.workout ? { kind: day.workout.kind } : {}),
-      ...(done && day?.workout ? executionFacts(day.workout, runsOn.get(date) ?? [], easyZone) : {}),
+      ...(done ? executionFacts(day?.workout, runsOn.get(date) ?? [], easyZone) : {}),
       ...(actualKm !== undefined ? { actualKm } : {}),
       source: log ? 'journal' : runs.has(date) ? 'sync' : 'none',
       // dzień odpoczynku z wpisem „skipped” (przerwa jako zakres dni, B11) to nadal odpoczynek

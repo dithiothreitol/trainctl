@@ -27,6 +27,8 @@ export interface ExecutionRecord {
   /** Missing evidence is unknown; only an explicit skipped entry is missed. */
   status: 'done' | 'missed' | 'unplanned' | 'rest' | 'unknown'
   source?: 'sync' | 'journal' | 'none'
+  /** D4: średnie tempo biegów dnia z synchronizacji (łączny czas ruchu przez łączny dystans). */
+  paceSecPerKm?: number
   /** D2: odcinki akcentu wobec planu, z okrążeń zsynchronizowanego biegu. Fakty do `review`, adaptacja ich nie czyta. */
   intervals?: IntervalsExecution
   /** D3: średnie tempo biegu spokojnego albo długiego wobec zakresu strefy spokojnej. */
