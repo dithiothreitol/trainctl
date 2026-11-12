@@ -126,6 +126,18 @@ describe('przerwa w treningu', () => {
     expect(p.layoff?.reason).toBe('injury')
     expect(p.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
   })
+  it('B11: krótka przerwa z przyczyną (choroba 6 dni) nie obniża bazy przez zgodność (R-5)', () => {
+    // plan wykonany w całości poza sześcioma dniami choroby zapisanymi z przyczyną
+    const sick = ['2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21', '2026-08-22', '2026-08-23']
+    const exec = history(21, 1).map((e) => (sick.includes(e.date) ? omitActual(e) : e))
+    const breakLog = sick.map((date) => ({ date, reason: 'illness' as const }))
+    const p = analyzeExecution({ today: TODAY, execution: exec, currentWeeklyKm: 60, breakLog })
+    expect(p.actions.map((a) => a.type)).not.toContain('reduce-volume')
+    expect(p.actions.map((a) => a.type)).toContain('hold-course')
+    // te same dni bez przyczyny to nadal niezgodność, która obniża bazę
+    const unexplained = analyzeExecution({ today: TODAY, execution: exec, currentWeeklyKm: 60 })
+    expect(unexplained.actions.map((a) => a.type)).toContain('reduce-volume')
+  })
   it('B11: kontuzja zapisana w dniu ostatniego biegu (bieg z synchronizacji) zaczyna przerwę (R-6, R-7)', () => {
     // ostatni bieg 2026-08-16, kontuzja tego samego dnia, potem 15 dni bez biegania
     const injured = history(30, 1).map((e) => (e.date > '2026-08-16' ? omitActual(e) : e))

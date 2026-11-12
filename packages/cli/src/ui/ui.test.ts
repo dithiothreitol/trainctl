@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { setLocale } from 'trainctl-core'
 import { b, renderAnsi, renderPlain, wrap } from './blocks.ts'
 import { Theme, detectCapabilities, stripAnsi, visibleLength } from './theme.ts'
@@ -166,14 +166,33 @@ describe('kreator init — parsery', () => {
     }
     const theme = new Theme()
     const declined = answers('0')
-    expect(await askReturningKm(declined.rl, theme, 45)).toBeUndefined()
+    expect(await askReturningKm(declined.rl, theme, 30, 45)).toBeUndefined()
     expect(declined.asked[0]).toContain('0 = bez przerwy')
-    expect(await askReturningKm(answers('').rl, theme, 45)).toBe(45)
-    expect(await askReturningKm(answers('30').rl, theme, 45)).toBe(30)
+    expect(await askReturningKm(answers('').rl, theme, 30, 45)).toBe(45)
+    expect(await askReturningKm(answers('35').rl, theme, 30, 45)).toBe(35)
     // bez podpowiedzi Enter znaczy „bez przerwy”
     const plain = answers('')
-    expect(await askReturningKm(plain.rl, theme)).toBeUndefined()
+    expect(await askReturningKm(plain.rl, theme, 30)).toBeUndefined()
     expect(plain.asked[0]).toContain('Enter = bez przerwy')
+  })
+
+  it('pytanie o powrót: objętość sprzed przerwy niższa niż obecna nie przechodzi — plan by ją pominął (R-11)', async () => {
+    const asked: string[] = []
+    const list = ['35', '0']
+    const rl = { question: async (q: string) => { asked.push(q); return list.shift() ?? '' } }
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    try {
+      expect(await askReturningKm(rl, new Theme(), 40)).toBeUndefined()
+      // pierwsza odpowiedź odrzucona z wyjaśnieniem, druga (0) to brak przerwy
+      expect(asked).toHaveLength(2)
+      expect(stripAnsi(log.mock.calls.map((c) => String(c[0])).join(' '))).toContain('co najmniej tyle, co teraz')
+      // podpowiedź z historii niższa niż obecna objętość nie jest domyślna
+      const hinted: string[] = []
+      expect(await askReturningKm({ question: async (q: string) => { hinted.push(stripAnsi(q)); return '' } }, new Theme(), 40, 35)).toBeUndefined()
+      expect(hinted[0]).toContain('Enter = bez przerwy')
+    } finally {
+      log.mockRestore()
+    }
   })
 
   it('bez wyniku startu zostawia czytelną podpowiedź zamiast pustej listy', () => {

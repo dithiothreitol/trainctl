@@ -717,6 +717,7 @@ export const cliEn = {
     errDate: 'Date as YYYY-MM-DD',
     errBadDate: 'Invalid date',
     errKm: 'Give a number of kilometres',
+    errReturningBelowRecent: (recent: number) => `Before the break you ran at least as much as now: give ${n(recent)} km or more, or 0 for no break (R-11)`,
     errHour: 'Time as HH:MM',
     intervalsFound: 'I found an intervals.icu key — pull your history and propose a profile?',
     intervalsFetching: 'pulling the last 16 weeks…',

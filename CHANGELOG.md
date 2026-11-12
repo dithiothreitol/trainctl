@@ -117,7 +117,9 @@ change between minor versions — a regenerated plan can differ.
   weekday name in `--to` counts from `--date` (a multisport workspace and
   `--strength` reject `--to` and `--reason` instead of logging one session)
   (`--date mon --to fri` is one week). The MCP
-  `trainctl_log` tool and the log prompt take the same fields. After the break
+  `trainctl_log` tool and the log prompt take the same fields. Days of a break
+  logged with a reason do not count against compliance, so a short break does
+  not lower the baseline. After a break of 10 days or more
   `adapt` proposes a return block you can approve:
   about 55% of the earlier volume, at least 7 days easy after illness (R-5) or
   the loading weeks of the first block easy after any other break (R-11; the
@@ -156,7 +158,8 @@ change between minor versions — a regenerated plan can differ.
   before the taper keeps the first half of its loading weeks easy, so accents
   come back before the taper. `init` asks for it, and `init --from-intervals` proposes it when
   the history ends with two weeks off (in the wizard Enter accepts the proposal
-  and 0 declines it).
+  and 0 declines it; the volume before the break is at least the current one,
+  otherwise the plan would ignore the return).
 - `trainctl rules E-3` lists the engine's fixed values that have no source
   (easy-run cap, accent share, phase split, recoveries, race-week sessions),
   each marked in code for review.

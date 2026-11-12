@@ -110,17 +110,21 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
     .filter((e) => e.date >= from && e.date <= input.today)
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const training = window.filter(e => e.kind !== 'race')
+  // B11: dzień przerwy zapisanej z przyczyną nie jest niezgodnością z planem — zgodność
+  // objętości i opuszczone sesje liczą się z pozostałych dni okna. Inaczej krótka przerwa
+  // (choroba, wyjazd) dawała stałą redukcję bazy, a po niej R-5 wraca do planu bez cięcia.
+  const excused = new Set((input.breakLog ?? []).map((l) => l.date))
+  const training = window.filter(e => e.kind !== 'race' && !excused.has(e.date))
   const plannedKm = training.reduce((s, e) => s + e.plannedKm, 0)
   const actualKm = training.reduce((s, e) => s + (e.actualKm ?? 0), 0)
   const compliance = plannedKm > 0 ? actualKm / plannedKm : 1
-  const missedSessions = window.filter((e) => e.status === 'missed').length
+  const missedSessions = window.filter((e) => e.status === 'missed' && !excused.has(e.date)).length
   const unknownSessions = window.filter((e) => e.status === 'unknown').length
   const observed = window.some((e) => e.status === 'done' || e.status === 'missed' || e.status === 'unplanned')
   const staleWindow = window.length > 0 && diffDays(window.at(-1)!.date, input.today) > 1
   const dataStatus = !observed ? 'empty' : unknownSessions || staleWindow ? 'incomplete' : 'complete'
   const missedQuality = window.filter(
-    (e) => e.status === 'missed' && (e.kind === 'quality_intervals' || e.kind === 'quality_continuous'),
+    (e) => e.status === 'missed' && !excused.has(e.date) && (e.kind === 'quality_intervals' || e.kind === 'quality_continuous'),
   ).length
 
   const diagnosis: string[] = []
@@ -217,7 +221,9 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   // 4) Zgodność objętości
   if (dataStatus === 'complete' && plannedKm > 0 && layoff < LAYOFF_DAYS && !injury) {
     if (compliance < 0.7) {
-      const realistic = Math.max(10, Math.round((actualKm / Math.max(1, observedDays)) * 7))
+      // tempo z dni, które się liczą: bez dni przerwy zapisanej z przyczyną
+      const countedDays = observedDays - window.filter((e) => excused.has(e.date)).length
+      const realistic = Math.max(10, Math.round((actualKm / Math.max(1, countedDays)) * 7))
       diagnosis.push(
         m.adapt.complianceLow(
           Math.round(compliance * 100), Math.round(actualKm), Math.round(plannedKm),

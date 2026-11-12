@@ -726,6 +726,7 @@ export const cliPl: CliMessages = {
     errDate: 'Data w formacie RRRR-MM-DD',
     errBadDate: 'Nieprawidłowa data',
     errKm: 'Podaj liczbę kilometrów',
+    errReturningBelowRecent: (recent: number) => `Przed przerwą biegałeś co najmniej tyle, co teraz: podaj ${n(recent)} km albo więcej, albo 0, jeśli przerwy nie było (R-11)`,
     errHour: 'Godzina w formacie HH:MM',
     intervalsFound: 'Znalazłem klucz intervals.icu — pobrać historię i zaproponować profil?',
     intervalsFetching: 'pobieram ostatnie 16 tygodni…',
