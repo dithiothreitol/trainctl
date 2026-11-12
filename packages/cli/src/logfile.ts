@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { BREAK_REASONS, type BreakReason } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 import { parseDecimal } from './format.ts'
-import { activeView, assertNoView } from './view-context.ts'
+import { activeView } from './view-context.ts'
 
 export const LOG_FILE = 'log.jsonl'
 
@@ -48,7 +48,9 @@ export interface StrengthLogEntry {
 export const lineSeparator = (tail: string): string => (tail !== '' && !tail.endsWith('\n') ? '\n' : '')
 
 export function appendLog(cwd: string, entry: LogEntry | StrengthLogEntry): void {
-  assertNoView(cwd)
+  // E4: w widoku planu biegowego nad planem v2 wpis trafia do dziennika sesji v2
+  const view = activeView(cwd)
+  if (view) return view.record(entry)
   const path = join(cwd, LOG_FILE)
   appendFileSync(path, lineSeparator(lastChar(path)) + JSON.stringify(entry) + '\n', 'utf-8')
 }

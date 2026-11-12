@@ -10,7 +10,7 @@ import { parse, stringify } from 'yaml'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { addDays, setLocale, weekdayOf, type SportsConfig } from 'trainctl-core'
 import { cmdAdapt, cmdInit, cmdLog, cmdMigrate, cmdPlan, cmdReview, cmdShift, cmdWhy } from './commands.ts'
-import { loadPlan, type StoredPlan } from './planfile.ts'
+import { fmtTime, loadPlan, type StoredPlan } from './planfile.ts'
 import { cmdStatus } from './status.ts'
 import { loadSportsPlan } from './sports-store.ts'
 
@@ -153,6 +153,48 @@ describe('E4: plan v2 z silnikiem biegowym idzie ścieżką planu biegowego', ()
     expect(review.data).toHaveProperty('period')
     expect(review.data!['preparation']).toEqual({ status: 'prepared' })
     expect((review.data!['prepared'] as { id: string }).id).toMatch(/^[a-f0-9-]{36}$/)
+  })
+
+  it('B11: przerwa z przyczyną w v2 daje tę samą analizę adapt co w planie biegowym', () => {
+    // pierwszy bieg planu, potem choroba zapisana zakresem: 12 dni bez biegania (próg 10, B11)
+    const setup = (v2: boolean) => {
+      expect(cmdInit(dir, PROFILE).code).toBe(0)
+      expect(cmdPlan(dir).code).toBe(0)
+      const plan = loadPlan(dir)
+      day('2026-11-16')
+      for (const d of plan.weeks.flatMap((w) => w.days).filter((d) => d.workout && d.date < '2026-11-04')) {
+        expect(cmdLog(dir, { date: d.date, km: String(d.workout!.distanceKm), time: `${Math.round(d.workout!.distanceKm * 6)}:00` }).code).toBe(0)
+      }
+      if (v2) migrate()
+      const logged = cmdLog(dir, { date: '2026-11-04', to: '2026-11-15', reason: 'illness' })
+      expect(logged.code, logged.output).toBe(0)
+      return cmdAdapt(dir)
+    }
+    const v1 = setup(false)
+    expect((v1.data!['proposal'] as { actions: { type: string }[] }).actions.map((a) => a.type)).toContain('conservative-restart')
+    rmSync(dir, { recursive: true, force: true, maxRetries: 3 })
+    dir = mkdtempSync(join(tmpdir(), 'trainctl-view-'))
+    day('2026-11-02')
+    const v2 = setup(true)
+    const lines = readFileSync(join(dir, 'log.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l) as { schemaVersion: number; reason?: string })
+    expect(lines.filter((l) => l.reason === 'illness')).toHaveLength(12)
+    expect(lines.every((l) => l.schemaVersion === 2)).toBe(true)
+    expect(v2.output).toBe(v1.output)
+    expect(v2.data!['proposal']).toEqual(v1.data!['proposal'])
+  })
+
+  it('plan v2 z silnikiem biegowym pokazuje szczyt objętości, VDOT i predykcję jak plan biegowy', () => {
+    runningWorkspace()
+    const v1 = cmdPlan(dir)
+    const prediction = loadPlan(dir).prediction!
+    migrate()
+    const v2 = cmdPlan(dir)
+    expect(v2.code, v2.output).toBe(0)
+    const range = `${fmtTime(prediction.loSec)} – ${fmtTime(prediction.hiSec)}`
+    expect(v1.output).toContain(range)
+    expect(v2.output).toContain(range)
+    const vdotLine = (out: string) => out.split('\n').find((l) => l.includes('VDOT'))
+    expect(vdotLine(v2.output)).toBe(vdotLine(v1.output))
   })
 
   it('katalog z innym sportem zostaje na ścieżce v2', () => {

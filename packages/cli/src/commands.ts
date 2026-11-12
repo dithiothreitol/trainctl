@@ -1,6 +1,7 @@
 import { isSportsWorkspace, sportsTemplate } from './sports-store.ts'
 import { onRunningView, runningDay } from './running-view.ts'
 import { rpeScaleLegend } from './ui/training.ts'
+import { runningPlanSummary } from './running-summary.ts'
 import { activeView } from './view-context.ts'
 import { sportsCommand, type SportsOptions } from './sports-commands.ts'
 import { sportsSyncCommand } from './sports-sync.ts'
@@ -413,44 +414,8 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
         plan.goal.kind === 'base' ? plan.goal.name : `${plan.goal.name} · ${kmLabel(plan.goal.distanceKm)}`,
         `${plan.goal.kind === 'base' ? ui().plan.baseUntil(plan.goal.date) : plan.goal.date} · ${ui().plan.weeksOfPlan(weeksToRace)}`,
       ),
-      b.kv([
-        [ui().plan.volumePeak, perWeekLabel(plan.peakKmPlanned)],
-        ...(plan.peakKmRecommended > 0 ? ([[ui().plan.recommendedForDistance, perWeekLabel(plan.peakKmRecommended)]] as [string, string][]) : []),
-        [
-          ui().plan.vdot,
-          `${formatNumber(getLocale(), plan.vdot)} (${plan.vdotSource === 'result' ? ui().plan.vdotFromResult : ui().plan.vdotFromGoal})`,
-        ],
-      ]),
+      ...runningPlanSummary(plan),
     ]
-
-    if (plan.prediction) {
-      const range = `${fmtTime(plan.prediction.loSec)} – ${fmtTime(plan.prediction.hiSec)}`
-      blocks.push(
-        b.blank(),
-        b.panel(
-          ui().plan.prediction,
-          [
-            `${range}   ${ui().plan.predictionMethod(plan.prediction.method)}`,
-            ui().plan.predictionAlwaysRange,
-          ],
-          'brand',
-        ),
-      )
-      const target = plan.goal.targetTimeSec
-      if (target) {
-        if (target < plan.prediction.loSec) {
-          blocks.push(
-            b.warn(
-              ui().plan.goalAmbitious(fmtTime(target)),
-            ),
-          )
-        } else if (target > plan.prediction.hiSec) {
-          blocks.push(b.info(ui().plan.goalConservative(fmtTime(target))))
-        } else {
-          blocks.push(b.success(ui().plan.goalInRange(fmtTime(target))))
-        }
-      }
-    }
 
     // C2: siatka sezonu (ta sama co w `trainctl season`) zamiast szkicu faz
     blocks.push(b.section(ui().plan.structure), ...seasonBlocks(plan, today))
@@ -734,11 +699,18 @@ const BREAK_MAX_DAYS = 60
 
 export function cmdLog(cwd: string, opts: LogOptions & { commit?: CommitOption } = {}): CmdResult {
   if (isSportsWorkspace(cwd)) {
-    // B11: zakres przerwy i przyczyna to model planu biegowego — tu cicho zapisałyby jedną sesję jako wykonaną
-    if (opts.to !== undefined || opts.reason !== undefined) return fail(new Error(ui().log.breakRunningPlanOnly))
-    return sportsCommand(cwd, 'log', opts)
+    if (opts.to === undefined && opts.reason === undefined) return sportsCommand(cwd, 'log', opts)
+    // B11: zakres przerwy i przyczyna idą ścieżką planu biegowego na widoku planu v2 (E4), a wpisy
+    // trafiają do dziennika sesji v2. W katalogu z innymi sportami — każda sesja osobno
+    const date = opts.session !== undefined ? runningDay(cwd, { session: opts.session }) : opts.date
+    if (opts.session !== undefined && date === undefined) return fail(new Error(sportMessages().noSession))
+    return onRunningView(cwd, () => logResult(cwd, { ...opts, date })) ?? fail(new Error(ui().log.breakRunningPlanOnly))
   }
   if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
+  return logResult(cwd, opts)
+}
+
+function logResult(cwd: string, opts: LogOptions & { commit?: CommitOption }): CmdResult {
   const result = logImpl(cwd, opts)
   const entry = result.data?.['entry'] as LogEntry | undefined
   // B11: przerwa jako zakres — w komunikacie cały zakres; bez nowych wpisów nie ma czego zapisać

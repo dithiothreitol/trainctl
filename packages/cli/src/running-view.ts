@@ -5,13 +5,13 @@
  * dziennik z wpisów sesji. Komendy planu biegowego (`why`, `status`, `review`, `adapt`)
  * czytają widok; zapis idzie ścieżką v2: propozycja v2 przyjmowana przez `--apply`.
  */
-import { BREAK_REASONS, validateSportsPlan, weekTotals, type BreakReason, type TrainingSession } from 'trainctl-core'
+import { BREAK_REASONS, validateSportsPlan, weekTotals, type BreakReason, type SessionLog, type TrainingSession } from 'trainctl-core'
 import { clockToday } from './clock.ts'
 import { validateConfig } from './config.ts'
-import type { LogEntry, StrengthLogEntry } from './logfile.ts'
+import { lineSeparator, LOG_FILE, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import { cycleWeeksOf, dayFingerprint, settleMixedWeek, type StoredPlan } from './planfile.ts'
 import { runningConfig, runningSessions } from './sports-running.ts'
-import { fingerprint, isSportsWorkspace, loadSportsConfig, loadSportsPlan, prepareSportsProposal, readSessionLogs, sportsProposalStatus } from './sports-store.ts'
+import { fingerprint, isSportsWorkspace, loadSportsConfig, loadSportsPlan, prepareSportsProposal, readOptional, readSessionLogs, sportsProposalStatus, writeTransaction } from './sports-store.ts'
 import { activeView, inRunningView, type RunningView } from './view-context.ts'
 
 /** Dzień zmieniony w v2 (przesunięcie, skrócenie, zamiana, zatwierdzenie): odcisk, którego nie ma żaden dzień. */
@@ -69,7 +69,7 @@ export function runningView(cwd: string): RunningView | undefined {
         ...(l.durationSec ? { minutes: Math.min(300, Math.max(1, Math.round(l.durationSec / 60))) } : {}), ...(l.note ? { note: l.note } : {}), loggedAt: l.loggedAt })
     } else if (l.sport === 'run') {
       journal.runs.push({ date: l.date, status: l.status,
-        ...(l.distanceM !== undefined && l.status !== 'skipped' ? { km: l.distanceM / 1000 } : {}), ...(l.durationSec ? { timeSec: l.durationSec } : {}),
+        ...(l.distanceM !== undefined && l.status !== 'skipped' ? { km: Math.round(l.distanceM * 10) / 1e4 } : {}), ...(l.durationSec ? { timeSec: l.durationSec } : {}),
         ...(l.testTimeSec ? { testTimeSec: l.testTimeSec } : {}), ...(l.rpe !== undefined ? { rpe: l.rpe } : {}), ...(l.note ? { note: l.note } : {}),
         ...((BREAK_REASONS as readonly unknown[]).includes(reason) ? { reason: reason as BreakReason } : {}), loggedAt: l.loggedAt })
     } else if (l.plannedSport === 'run') {
@@ -116,7 +116,29 @@ export function runningView(cwd: string): RunningView | undefined {
     state: p.valid ? 'valid' as const : 'stale' as const,
   }))
 
-  return { plan, config, journal, propose, proposals }
+  // B11: przerwa z planu biegowego jako wpisy sesji v2; dzień bez sesji dostaje ID, które
+  // silnik biegowy nadałby jego sesji (widoki v2 go pomijają, analiza planu biegowego czyta)
+  const record = (entry: LogEntry | StrengthLogEntry): void => {
+    const strength = 'activity' in entry
+    const sport = strength ? 'strength' as const : 'run' as const
+    const session = sports.sessions.find((s) => s.date === entry.date && s.sport === sport && isRunningEngine(s))
+    const minutes = strength ? entry.minutes : undefined
+    const run = strength ? undefined : entry
+    const line: SessionLog & { reason?: BreakReason } = {
+      schemaVersion: 2, sessionId: session?.id ?? `${sports.legacy?.cycleId ?? sports.cycleId}-${entry.date}-${sport}`, date: entry.date, sport,
+      status: entry.status, loggedAt: entry.loggedAt,
+      ...(minutes !== undefined ? { durationSec: minutes * 60 } : run?.timeSec !== undefined ? { durationSec: run.timeSec } : {}),
+      ...(run?.km !== undefined ? { distanceM: Math.round(run.km * 1e4) / 10 } : {}),
+      ...(run?.testTimeSec !== undefined ? { testTimeSec: run.testTimeSec } : {}), ...(run?.rpe !== undefined ? { rpe: run.rpe } : {}),
+      ...(entry.note ? { note: entry.note } : {}), ...(run?.reason ? { reason: run.reason } : {}),
+    }
+    const before = readOptional(cwd, LOG_FILE) ?? ''
+    writeTransaction(cwd, { [LOG_FILE]: before + lineSeparator(before) + JSON.stringify(line) + '\n' })
+    if (strength) journal.strength.push(entry)
+    else journal.runs.push(entry)
+  }
+
+  return { plan, config, journal, propose, proposals, record }
 }
 
 /**

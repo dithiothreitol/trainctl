@@ -16,7 +16,8 @@ import { packageVersion } from './version.ts'
 import { CONFIG_FILE } from './config.ts'
 import { lineSeparator, LOG_FILE, LOG_KM_MAX, LOG_LIMITS, parseTime } from './logfile.ts'
 import { kmLabel, logStatusText, parseDecimal } from './format.ts'
-import { PLAN_MD, PLAN_YAML } from './planfile.ts'
+import { PLAN_MD, PLAN_YAML, type StoredPlan } from './planfile.ts'
+import { runningPlanSummary } from './running-summary.ts'
 import { commitFiles } from './git.ts'
 import { readSnapshot, SYNC_FILE } from './sync.ts'
 import { applySportsProposal, fingerprint, loadSportsConfig, loadSportsPlan, migrationCandidate, prepareSportsProposal, readOptional, readSessionLogs, sessionStepsText, sessionText, sportsProposalStatus, writeSportsPlan, writeTransaction } from './sports-store.ts'
@@ -475,9 +476,12 @@ function planOverview(plan: SportsPlan, config: SportsConfig, today: string): Bl
   const goal = plan.goal.distanceM ? `${plan.goal.name} · ${kmLabel(plan.goal.distanceM / 1000)}` : plan.goal.name
   const when = plan.goal.kind === 'base' ? ui().plan.baseUntil(plan.goal.date) : plan.goal.date
   const sports = ENDURANCE_SPORTS.filter(s => config.athlete.sports[s])
+  // E2: plan z silnikiem biegowym mówi o szczycie objętości, VDOT i predykcji jak plan biegowy
+  const running = (plan.legacy?.generatorPlan ?? plan.legacy?.plan) as StoredPlan | undefined
   return [
     b.title(goal, `${when} · ${ui().plan.weeksOfPlan(season.length)}`),
     ...(sports.length ? [b.kv([[ui().plan.weeklyTime, sports.map(s => `${r.sport[s]} ${hoursMinutes(config.athlete.sports[s]!.weeklyMinutes)}`).join(' · ')]])] : []),
+    ...(running?.weeks ? runningPlanSummary(running) : []),
     ...(season.length ? [b.section(ui().plan.structure), seasonTable(season, { today, ascii, sessions: true }), b.text(r.season.legendSessions(ascii ? 'v' : '↓', season.some(w => w.accents.length > 0)), 'muted')] : []),
   ]
 }

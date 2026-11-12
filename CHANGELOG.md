@@ -23,6 +23,10 @@ change between minor versions — a regenerated plan can differ.
   `adapt --apply` changes the sessions; days moved, shortened or approved in
   the session plan stay protected (PLAN-v0.7 E4).
 - `why` shows the planned RPE range of a run, as the session card does.
+- In the same workspace `log --to … --reason …` records a break as session
+  entries, so `adapt` proposes the return block after illness or a layoff
+  (B11), and `plan` shows the peak volume, VDOT and the race prediction of the
+  running engine (PLAN-v0.7 E2).
 
 - The running engine lays out weeks differently, so the first `trainctl plan`
   after updating rewrites future days of an existing plan. Past, logged,

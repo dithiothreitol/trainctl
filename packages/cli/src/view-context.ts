@@ -29,6 +29,8 @@ export interface RunningView {
   propose(plan: StoredPlan, changes: { date: string; before: string; after: string }[]): string
   /** Propozycje v2 w kształcie listy propozycji planu biegowego. */
   proposals(): ViewProposalRow[]
+  /** Wpis dziennika planu biegowego zapisany jako wpis sesji v2 (przerwa B11). */
+  record(entry: LogEntry | StrengthLogEntry): void
 }
 
 const store = new AsyncLocalStorage<{ cwd: string; view: RunningView }>()
@@ -43,7 +45,7 @@ export function inRunningView<T>(cwd: string, view: RunningView, fn: () => T): T
   return store.run({ cwd, view }, fn)
 }
 
-/** Zapis plików planu biegowego w widoku byłby zapisem v1 w katalogu v2 — zapis idzie ścieżką v2. */
+/** Zapis planu biegowego w widoku byłby zapisem v1 w katalogu v2 — plan zmienia się ścieżką v2. */
 export function assertNoView(cwd: string): void {
   if (activeView(cwd)) throw new Error('E4: running view is read-only')
 }
