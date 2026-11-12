@@ -10,6 +10,7 @@ import {
   addDays,
   analyzeExecution,
   BREAK_REASONS,
+  notationLegend,
   CALIBRATION_WINDOW_DAYS,
   fasterThanTarget,
   diffDays,
@@ -128,7 +129,7 @@ import {
 
 // dla MCP (importuje wyłącznie z trainctl = commands.ts)
 export { defaultProviderFactory, hasApiKey, type ProviderFactory } from './sync.ts'
-export { readConfigLanguage, readConfigUnits } from './config.ts'
+export { readConfigLanguage, readConfigNotation, readConfigUnits } from './config.ts'
 export { loadEnvFile, ENV_FILE, type EnvFileOutcome } from './env-file.ts'
 // serwer MCP opisuje narzędzia tym samym katalogiem, co CLI
 export { ui, type CliMessages } from './i18n/index.ts'
@@ -640,7 +641,7 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
         distanceIn(plannedWeekKm(sk)), distanceUnit(), kmDiffers(week.totalKm, plannedWeekKm(sk)), rows.filter((r) => r.sport === 'run').length, rows.filter((r) => r.sport === 'strength').length)),
       ...compatibilityNotes(plan),
       rowsTable(rows, { today: localToday() }),
-      b.text(messages().notation.legend(distanceUnit()), 'muted'),
+      b.text(notationLegend(distanceUnit()), 'muted'),
       // C8, Z-5: pułap z szacowanego HRmax — ostrzeżenie raz na widok
       ...(hrCeilingEstimated(plan, week.days) ? [b.warn(ui().today.hrEstimated)] : []),
     ]

@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { distanceIn, distanceUnit, estimateWorkoutMinutes, formatNumber, getLocale, heatLadder, messages, workoutLine, workoutStructure, type PlannedDay } from 'trainctl-core'
+import { distanceIn, distanceUnit, estimateWorkoutMinutes, formatNumber, getLocale, heatLadder, messages, notationLegend, workoutLine, workoutStructure, type PlannedDay } from 'trainctl-core'
 import {
   encodeWorkoutFit,
   fmtClock,
@@ -257,7 +257,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   const html = toPrintableHtml({
     title: `${plan.goal.name} — ${plan.goal.date}`,
     subtitle: p.subtitle(cycle.length, plan.peakKmPlanned, plan.vdot, plan.generatedAt),
-    legend: core.notation.legend(distanceUnit()),
+    legend: notationLegend(distanceUnit()),
     weeks,
     footer: p.footer,
     labels: { lang: getLocale(), ...p, columns: { ...p.columns, km: distanceUnit() }, weekMeta: (weekStart: string, phase: string, distance: number) => p.weekMeta(weekStart, phase, distance, distanceUnit()) },

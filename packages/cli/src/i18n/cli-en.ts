@@ -1098,6 +1098,7 @@ export const cliEn = {
     ],
     templateLanguage: 'interface and plan language: en | pl (default: en)',
     templateUnits: 'distances and pace: metric (km) | imperial (mi); files stay in km',
+    templateNotation: 'session notation: neutral | club (Polish club codes such as OWB1, WT; Polish output only)',
     templateAthlete: {
       sex: 'male | female | unspecified',
       hrMax: 'heart-rate ceiling for easy and long runs (Z-2, needs sex); measured: false = estimate',
@@ -1166,6 +1167,7 @@ export const cliEn = {
       hourFormat: (path: string) => `${path}: format HH:MM`,
       sex: (path: string) => `${path}: male, female or unspecified`,
       units: (path: string) => `${path}: metric or imperial`,
+      notation: (path: string) => `${path}: neutral or club`,
       hrMax: (path: string, min: number, max: number) => `${path}: { bpm: a whole number ${min}–${max}, measured: true or false }`,
     },
   },

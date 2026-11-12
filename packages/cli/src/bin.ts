@@ -7,10 +7,10 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Command, InvalidArgumentError, Option } from 'commander'
-import { isUnits, resolveLocale, setLocale, setUnits, sportMessages } from 'trainctl-core'
+import { isUnits, resolveLocale, setLocale, setNotation, setUnits, sportMessages } from 'trainctl-core'
 import { runSportsPicker, runSportsWeekBrowser, runSportsWizard } from './sports-interactive.ts'
 import { isSportsWorkspace } from './sports-store.ts'
-import { readConfigLanguage, readConfigUnits } from './config.ts'
+import { readConfigLanguage, readConfigNotation, readConfigUnits } from './config.ts'
 import { loadEnvFile, ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import {
@@ -98,6 +98,8 @@ setLocale(
 // Nieznaną wartość flagi zgłasza commander (choices); tu zostaje wtedy jednostka z profilu.
 const unitsFlag = argValue(['--units'])
 setUnits(isUnits(unitsFlag) ? unitsFlag : readConfigUnits(cwd) ?? 'metric')
+// C10: zapis notacji z profilu (neutral albo club); bez flagi — to wybór na stałe, nie na jedno wywołanie
+setNotation(readConfigNotation(cwd) ?? 'neutral')
 
 const colorMode = argValue(['--color']) ?? 'auto'
 const theme = new Theme(detectCapabilities(process.stdout, process.env,

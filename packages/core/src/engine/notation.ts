@@ -14,9 +14,55 @@ import { formatNumber, type Locale } from '../i18n/locale.ts'
 import { distanceIn, distanceUnit, getUnits, paceIn, type Units } from '../i18n/units.ts'
 import type { SessionStep, StepTarget, TrainingSession } from '../sports/types.ts'
 
+/**
+ * C10: zapis notacji — `neutral` (skróty RG, SCH, p.; domyślnie) albo `club`: kody znane
+ * z polskich planów klubowych (OWB1, BNP, WT…). Wybór jak jednostka: raz na starcie CLI
+ * albo serwera MCP (`notation` w trainctl.yaml). Kody tylko po polsku; dane bez zmian.
+ */
+export const NOTATION_STYLES = ['neutral', 'club'] as const
+export type NotationStyle = (typeof NOTATION_STYLES)[number]
+
+export const isNotationStyle = (value: unknown): value is NotationStyle =>
+  typeof value === 'string' && (NOTATION_STYLES as readonly string[]).includes(value)
+
+let currentStyle: NotationStyle = 'neutral'
+
+/** Ustawia zapis notacji procesu. Zwraca poprzedni — wygodne w testach (`try/finally`). */
+export function setNotation(style: NotationStyle): NotationStyle {
+  const previous = currentStyle
+  currentStyle = style
+  return previous
+}
+
+export const getNotation = (): NotationStyle => currentStyle
+
+/** Uruchamia funkcję w danym zapisie notacji i przywraca poprzedni (także przy wyjątku). */
+export function withNotation<T>(style: NotationStyle, fn: () => T): T {
+  const previous = setNotation(style)
+  try {
+    return fn()
+  } finally {
+    setNotation(previous)
+  }
+}
+
+/**
+ * C10, E-4 (inż.): kody klubowe przypisane do segmentów silnika. Szkoły różnią się
+ * definicjami (FOUNDATIONS §10.16): bieg spokojny i długi to OWB1 (pierwszy zakres),
+ * praca w równym tempie BC2, narastanie BNP, bieg zmienny BZ, podbiegi SB (siła
+ * biegowa), przebieżki RT. Odcinki według długości: do 300 m rytmy (RT), od 2 km
+ * odcinki w trzecim zakresie (BC3), pomiędzy wytrzymałość tempowa (WT).
+ */
+const CLUB = { easy: 'OWB1', steady: 'BC2', progression: 'BNP', alternating: 'BZ', hills: 'SB', strides: 'RT' } as const
+const CLUB_RHYTHM_MAX_M = 300
+const CLUB_LONG_REP_M = 2000
+const clubRepCode = (repM: number): string => (repM <= CLUB_RHYTHM_MAX_M ? 'RT' : repM >= CLUB_LONG_REP_M ? 'BC3' : 'WT')
+
 export interface NotationOptions {
   /** Język skrótów; bez niego bieżący katalog. */
   locale?: Locale
+  /** C10: zapis notacji; bez niego bieżący (`getNotation`). Kody klubowe tylko po polsku. */
+  style?: NotationStyle
   /** Bez Unicode: `x` zamiast `×`, `-` zamiast `–`, `->` zamiast `→`, ` | ` między częściami. */
   ascii?: boolean
   /** C9: jednostka widoku; bez niej bieżąca (`getUnits`). Dane zostają w km. */
@@ -38,7 +84,7 @@ function pace(secPerKm: number): string {
  * tempo na km albo na milę. Odcinek to dystans bieżni: metry, a przy kilometrach
  * pełne kilometry; przy milach zawsze metry (`4×1000 m`), bez „km" w wyjściu.
  */
-interface Format { locale: Locale; g: Glyphs; km: (km: number) => string; rep: (meters: number) => string; pace: (secPerKm: number) => string }
+interface Format { locale: Locale; g: Glyphs; club: boolean; km: (km: number) => string; rep: (meters: number) => string; pace: (secPerKm: number) => string }
 function format(opts: NotationOptions): Format {
   const locale = opts.locale ?? getLocale()
   const units = opts.units ?? getUnits()
@@ -46,6 +92,8 @@ function format(opts: NotationOptions): Format {
   return {
     locale,
     g: opts.ascii ? ASCII : UNICODE,
+    // C10: po angielsku `club` daje notację neutralną — kody są polskie
+    club: (opts.style ?? currentStyle) === 'club' && locale === 'pl',
     km,
     rep: (meters: number) => (units === 'metric' && meters >= 1000 && meters % 100 === 0 ? km(meters / 1000) : `${meters} m`),
     pace: (secPerKm: number) => pace(paceIn(secPerKm, units)),
@@ -87,8 +135,10 @@ export function accentLine(item: PlannedWorkout | TrainingSession, opts: Notatio
 }
 
 function segmentsLine(workout: PlannedWorkout, segments: PlannedSegment[], opts: NotationOptions, main: boolean): string {
-  const { locale, g, km, rep, pace: speed } = format(opts)
+  const { locale, g, club, km, rep, pace: speed } = format(opts)
   const t = messages(locale).notation
+  // C10: kod klubowy przed zapisem segmentu; w notacji neutralnej nic
+  const code = (value: string, text: string) => (club ? `${value} ${text}` : text)
   const range = (r: { loSecPerKm: number; hiSecPerKm: number }) =>
     r.loSecPerKm === r.hiSecPerKm ? `@${speed(r.loSecPerKm)}` : `@${speed(r.loSecPerKm)}${g.dash}${speed(r.hiSecPerKm)}`
   const mid = (r: { loSecPerKm: number; hiSecPerKm: number }) => `@${speed((r.loSecPerKm + r.hiSecPerKm) / 2)}`
@@ -101,29 +151,33 @@ function segmentsLine(workout: PlannedWorkout, segments: PlannedSegment[], opts:
       case 'cooldown':
         return `${t.cooldown} ${dist}`
       case 'easy': {
-        const base = s.pace ? `${dist} ${range(s.pace)}` : dist
-        return s.strides && !main ? `${base} + ${s.strides.count}${g.times}${s.strides.meters} m ${t.strides}` : base
+        const base = code(CLUB.easy, s.pace ? `${dist} ${range(s.pace)}` : dist)
+        if (!s.strides || main) return base
+        const strides = `${s.strides.count}${g.times}${s.strides.meters} m`
+        return `${base} + ${club ? `${CLUB.strides} ${strides}` : `${strides} ${t.strides}`}`
       }
       case 'steady':
-        return s.pace ? `${dist} ${mid(s.pace)}` : dist
+        return code(CLUB.steady, s.pace ? `${dist} ${mid(s.pace)}` : dist)
       case 'intervals': {
         // siatka sezonu: następna seria w tym samym tempie podaje tempo za obie
         const shared = main && next?.type === 'intervals' && s.pace && next.pace && mid(s.pace) === mid(next.pace)
-        const work = `${s.reps ?? 1}${g.times}${rep(s.repM ?? 0)}${s.pace && !shared ? ` ${mid(s.pace)}` : ''}`
+        const work = code(clubRepCode(s.repM ?? 0), `${s.reps ?? 1}${g.times}${rep(s.repM ?? 0)}${s.pace && !shared ? ` ${mid(s.pace)}` : ''}`)
         if (main) return work
         const recovery = s.recoverySec ? ` ${t.recovery} ${duration(s.recoverySec)}${s.recoveryMode ? ` ${t[s.recoveryMode]}` : ''}` : ''
         const setBreak = s.setBreak ? `, ${t.afterRep(s.setBreak.afterRep)} ${duration(s.setBreak.sec)} ${t[s.setBreak.mode]}` : ''
         return `${work}${recovery}${setBreak}`
       }
-      case 'hills':
-        return main ? t.hills : `${t.hills} ${s.reps ?? 0}${g.times}${s.repM ?? 0} m`
+      case 'hills': {
+        const name = club ? CLUB.hills : t.hills
+        return main ? name : `${name} ${s.reps ?? 0}${g.times}${s.repM ?? 0} m`
+      }
       case 'progression':
         // od wolniejszego końca (hi) do szybszego (lo)
-        return s.pace ? `${dist} ${speed(s.pace.hiSecPerKm)}${g.arrow}${speed(s.pace.loSecPerKm)}` : dist
+        return code(CLUB.progression, s.pace ? `${dist} ${speed(s.pace.hiSecPerKm)}${g.arrow}${speed(s.pace.loSecPerKm)}` : dist)
       case 'alternating':
         // na zmianę 1 km szybko (lo) i 1 km spokojnie (hi); odcinek zmiany to dystans bieżni
-        if (main) return `${t.part.alternating} ${dist}`
-        return s.pace ? `${dist}: ${rep(1000)} @${speed(s.pace.loSecPerKm)} / ${rep(1000)} @${speed(s.pace.hiSecPerKm)}` : dist
+        if (main) return `${club ? CLUB.alternating : t.part.alternating} ${dist}`
+        return code(CLUB.alternating, s.pace ? `${dist}: ${rep(1000)} @${speed(s.pace.loSecPerKm)} / ${rep(1000)} @${speed(s.pace.hiSecPerKm)}` : dist)
       case 'race':
         return workout.kind === 'race'
           ? `${t.race} ${km(workout.raceDistanceKm ?? s.distanceKm ?? 0)}`
@@ -181,6 +235,16 @@ export function sessionLine(item: PlannedWorkout | TrainingSession, opts: Notati
   const f = format(opts)
   if (item.sport === 'strength') return messages(f.locale).notation.strength
   return item.steps.map((step) => stepLine(step, f)).join(f.g.sep)
+}
+
+/**
+ * Legenda notacji pod widokiem (C1, C10): skróty ramy i przerwy, a w zapisie klubowym
+ * (tylko po polsku) także kody jednostek. Jednostka tempa w jednostce widoku.
+ */
+export function notationLegend(unit: string, opts: { locale?: Locale; style?: NotationStyle } = {}): string {
+  const locale = opts.locale ?? getLocale()
+  const t = messages(locale).notation
+  return (opts.style ?? currentStyle) === 'club' && locale === 'pl' ? t.clubLegend(unit) : t.legend(unit)
 }
 
 /** Wiersz struktury jednostki w widoku dnia (C2): część, dawka, cel, przerwa. */

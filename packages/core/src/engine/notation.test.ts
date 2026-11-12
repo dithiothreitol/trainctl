@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PlannedSegment, PlannedWorkout } from '../domain/types.ts'
 import type { SessionStep, TrainingSession } from '../sports/types.ts'
-import { accentLine, sessionLine, sessionStructure, workoutLine, workoutStructure } from './notation.ts'
+import { accentLine, getNotation, isNotationStyle, notationLegend, sessionLine, sessionStructure, setNotation, workoutLine, workoutStructure } from './notation.ts'
 
 const easyPace = { loSecPerKm: 305, hiSecPerKm: 365 }
 const intervalPace = { loSecPerKm: 265, hiSecPerKm: 279 } // środek 4:32
@@ -208,5 +208,78 @@ describe('C2: struktura jednostki w widoku dnia', () => {
     expect(sessionStructure(session('strength', [], { purpose: 'strength' }), pl)).toEqual([])
     const legacy = workout('easy', [seg('easy', { distanceKm: 10, pace: easyPace })])
     expect(cells(sessionStructure(session('run', [], { legacyWorkout: legacy }), pl))).toEqual([['spokojnie', '10 km', '5:05–6:05', '']])
+  })
+})
+
+describe('C10: notacja klubowa', () => {
+  const club = { locale: 'pl' as const, style: 'club' as const }
+  const intervals = (reps: number, repM: number, extra: Partial<PlannedSegment> = {}) =>
+    seg('intervals', { reps, repM, distanceKm: (reps * repM) / 1000, pace: intervalPace, recoverySec: 120, recoveryMode: 'walk', ...extra })
+
+  it('odcinki według długości: do 300 m rytmy, od 2 km trzeci zakres, pomiędzy wytrzymałość tempowa', () => {
+    expect(workoutLine(workout('quality_intervals', frame(intervals(4, 1000))), club)).toBe("RG 3 km · WT 4×1 km @4:32 p. 2' marsz · SCH 1 km")
+    expect(workoutLine(workout('quality_intervals', [intervals(2, 3000)]), club)).toBe("BC3 2×3 km @4:32 p. 2' marsz")
+    expect(workoutLine(workout('quality_intervals', [intervals(2, 2000)]), club)).toBe("BC3 2×2 km @4:32 p. 2' marsz")
+    expect(workoutLine(workout('sharpener', [intervals(5, 300, { recoverySec: 60, recoveryMode: 'jog' })]), club)).toBe("RT 5×300 m @4:32 p. 1' trucht")
+    expect(workoutLine(workout('quality_intervals', [intervals(5, 400)]), club)).toBe("WT 5×400 m @4:32 p. 2' marsz")
+  })
+
+  it('bieg spokojny, długie i przebieżki: OWB1 i rytmy', () => {
+    expect(workoutLine(workout('easy', [seg('easy', { distanceKm: 17, pace: easyPace })]), club)).toBe('OWB1 17 km @5:05–6:05')
+    expect(workoutLine(workout('long', [seg('easy', { distanceKm: 19, pace: { loSecPerKm: 365, hiSecPerKm: 395 } })]), club)).toBe('OWB1 19 km @6:05–6:35')
+    const strides = workout('easy', [seg('easy', { distanceKm: 8.5, pace: easyPace, strides: { count: 6, meters: 80 } })])
+    expect(workoutLine(strides, club)).toBe('OWB1 8,5 km @5:05–6:05 + RT 6×80 m')
+  })
+
+  it('podbiegi, narastanie, zmienny i równe tempo', () => {
+    const hills = workout('easy_hills', [seg('easy', { distanceKm: 5, pace: easyPace }), seg('hills', { reps: 6, repM: 150, distanceKm: 1.8 }), seg('cooldown', { distanceKm: 1 })])
+    expect(workoutLine(hills, club)).toBe('OWB1 5 km @5:05–6:05 · SB 6×150 m · SCH 1 km')
+    expect(workoutLine(workout('quality_continuous', frame(seg('progression', { distanceKm: 4, pace: { loSecPerKm: 272, hiSecPerKm: 301 } }))), club))
+      .toBe('RG 3 km · BNP 4 km 5:01→4:32 · SCH 1 km')
+    expect(workoutLine(workout('quality_continuous', [seg('alternating', { distanceKm: 4, pace: { loSecPerKm: 265, hiSecPerKm: 305 } })]), club))
+      .toBe('BZ 4 km: 1 km @4:25 / 1 km @5:05')
+    expect(workoutLine(workout('easy', [seg('steady', { distanceKm: 6, pace: intervalPace })]), club)).toBe('BC2 6 km @4:32')
+  })
+
+  it('sprawdzian, start, rama i przerwa zostają jak w notacji neutralnej', () => {
+    expect(workoutLine(workout('test', frame(seg('race', { distanceKm: 5 }))), club)).toBe('RG 3 km · 5 km na czas · SCH 1 km')
+    expect(workoutLine(workout('race', [seg('race', { distanceKm: 21.0975 })], { distanceKm: 0, raceDistanceKm: 21.0975 }), club)).toBe('START 21,1 km')
+  })
+
+  it('siatka sezonu: kod przy części głównej', () => {
+    expect(accentLine(workout('quality_intervals', frame(intervals(4, 1000))), club)).toBe('WT 4×1 km @4:32')
+    expect(accentLine(workout('easy_hills', [seg('easy', { distanceKm: 5, pace: easyPace }), seg('hills', { reps: 6, repM: 150, distanceKm: 1.8 })]), club)).toBe('SB')
+    expect(accentLine(workout('quality_continuous', [seg('alternating', { distanceKm: 4, pace: { loSecPerKm: 265, hiSecPerKm: 305 } })]), club)).toBe('BZ 4 km')
+  })
+
+  it('po angielsku `club` daje notację neutralną; ASCII zachowuje kody', () => {
+    const w = workout('quality_intervals', frame(intervals(4, 1000)))
+    expect(workoutLine(w, { locale: 'en', style: 'club' })).toBe(workoutLine(w, en))
+    expect(workoutLine(w, { locale: 'pl', style: 'club', ascii: true })).toBe("RG 3 km | WT 4x1 km @4:32 p. 2' marsz | SCH 1 km")
+  })
+
+  it('zapis procesu (setNotation) działa bez opcji; neutralny bez zmian', () => {
+    const w = workout('easy', [seg('easy', { distanceKm: 8, pace: easyPace })])
+    expect(workoutLine(w, pl)).toBe('8 km @5:05–6:05')
+    const previous = setNotation('club')
+    try {
+      expect(getNotation()).toBe('club')
+      expect(workoutLine(w, pl)).toBe('OWB1 8 km @5:05–6:05')
+      expect(workoutLine(w, { locale: 'pl', style: 'neutral' })).toBe('8 km @5:05–6:05')
+    } finally {
+      setNotation(previous)
+    }
+  })
+
+  it('struktura dnia zostaje słowami; legenda objaśnia kody tylko po polsku', () => {
+    const w = workout('quality_intervals', frame(intervals(4, 1000)))
+    expect(workoutStructure(w, club)).toEqual(workoutStructure(w, pl))
+    expect(notationLegend('km', { locale: 'pl', style: 'club' })).toMatch(/^OWB1 bieg spokojny · .*WT wytrzymałość tempowa · .*tempo w min\/km$/)
+    expect(notationLegend('mi', { locale: 'en', style: 'club' })).toBe(notationLegend('mi', { locale: 'en', style: 'neutral' }))
+    expect(notationLegend('km', { locale: 'pl', style: 'neutral' })).toBe('RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km')
+  })
+
+  it('isNotationStyle przyjmuje tylko neutral i club', () => {
+    expect(['neutral', 'club', 'klub', '', undefined, 1].map(isNotationStyle)).toEqual([true, true, false, false, false, false])
   })
 })

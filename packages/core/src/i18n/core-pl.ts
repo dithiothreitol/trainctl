@@ -119,6 +119,8 @@ export const corePl: CoreMessages = {
     strength: 'siła',
     afterRep: (rep: number) => `po ${rep}. odcinku`,
     legend: (unit: string) => `RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/${unit}`,
+    clubLegend: (unit: string) =>
+      `OWB1 bieg spokojny · BC2 drugi zakres · BC3 odcinki w trzecim zakresie · BNP bieg z narastającą prędkością · BZ bieg zmienny · WT wytrzymałość tempowa · RT rytmy · SB siła biegowa (podbiegi) · RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/${unit}`,
     part: {
       warmup: 'rozgrzewka', cooldown: 'schłodzenie', easy: 'spokojnie', steady: 'tempo', intervals: 'główna',
       hills: 'podbiegi', progression: 'narastające', alternating: 'zmienny', race: 'start',

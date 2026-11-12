@@ -933,6 +933,14 @@ w commicie punktu.
   w ciągu 28 dni (W-12), potem sprawdzian z planu, inaczej nowy wynik albo
   sprawdzian. To zdanie pod „Wobec celu” i pole `calibration` w danych; plan
   się nie zmienia, a `--prepare` nie robi z tego propozycji stref.
+- **C10.** Kody stoją w rozpisce (notacja C1) i w siatce sezonu; struktura dnia
+  w `today` zostaje słowami. Odcinki dostają kod według długości (RT do 300 m,
+  WT, BC3 od 2 km), bo źródła nazywają środki po długości i charakterze odcinka
+  (FOUNDATIONS E-4). Rama i przerwa zostają neutralne (RG, SCH, p.). Kroki sesji
+  v2 zostają neutralne; biegi v2 z migracji dostają kody. Zapis wybiera profil,
+  bez flagi, jak wybór na stałe. Dane widoków liczy się w notacji neutralnej, tak
+  jak w km przy C9. „WT” i „SB” to też skróty dni tygodnia, więc kod w rozpisce
+  stoi zawsze przed dawką.
 
 ---
 

@@ -5,7 +5,7 @@
  * w wyjściu tekstowym i MCP słowem. Handlery budują wiersze, kolory dokłada renderer.
  */
 import {
-  accentLine, addDays, distanceIn, distanceUnit, estimateWorkoutMinutes, formatNumber, getLocale, getUnits, HR_CEILING_KINDS, messages, mondayOf, paceClock, parseIso, plannedWeekKm, sessionLine, withUnits,
+  accentLine, addDays, distanceIn, distanceUnit, estimateWorkoutMinutes, formatNumber, getLocale, getUnits, HR_CEILING_KINDS, messages, mondayOf, paceClock, plannedWeekKm, sessionLine, weekdayOf, withNotation, withUnits,
   type ExecutionRecord, type Microcycle, type PlannedWorkout, type StructureRow, type TrainingSession, type Weekday,
 } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
@@ -43,10 +43,12 @@ export interface SessionRow {
 }
 
 /**
- * C9: dane (`--json`, `structuredContent`) zawsze w kilometrach — wiersze i struktura
- * liczone w jednostce metrycznej, choć tekst widoku idzie w milach.
+ * C9, C10: dane (`--json`, `structuredContent`) zawsze w kilometrach i w notacji neutralnej —
+ * wiersze i struktura liczone w jednostce metrycznej i bez kodów klubowych, choć tekst
+ * widoku idzie w milach albo w zapisie klubowym.
  */
-export const metricData = <T>(fn: () => T): T => (getUnits() === 'metric' ? fn() : withUnits('metric', fn))
+export const metricData = <T>(fn: () => T): T =>
+  withNotation('neutral', () => (getUnits() === 'metric' ? fn() : withUnits('metric', fn)))
 
 /** C8: pułap tętna w rozpisce — „tętno ≤149", w ASCII „tętno <=149". */
 export const hrCeilingText = (bpm: number, ascii = false): string => `${messages().notation.hr} ${ascii ? '<=' : '≤'}${bpm}`
@@ -182,8 +184,6 @@ export function rowsTable(rows: SessionRow[], opts: { today?: string; sport?: bo
   )
 }
 
-const WEEKDAYS: Weekday[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
-
 /**
  * D4: wykonanie dzień po dniu w układzie wiersza z C2 — dzień z datą, typ jednostki
  * w kolorze jej rodzaju, plan, wykonanie i status (kolumny z A1). Kolumna tempa
@@ -195,7 +195,7 @@ export function executionTable(records: ExecutionRecord[], workouts: Map<string,
   const cells = records.map((r) => {
     const workout = workouts.get(r.date)
     return [
-      `${messages().weekdayShort[WEEKDAYS[parseIso(r.date).getUTCDay()]!]} ${ui().rows.shortDate(r.date)}`,
+      `${messages().weekdayShort[weekdayOf(r.date)]} ${ui().rows.shortDate(r.date)}`,
       workout ? kindText(workout) : '',
       workout ? kmLabel(r.plannedKm) : '',
       r.actualKm !== undefined ? kmLabel(r.actualKm) : '',

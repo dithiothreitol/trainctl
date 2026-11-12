@@ -1962,6 +1962,38 @@ niedzielnym długim): wolne 82, akcent 72, spokojne 5, długie 1. Bieg w niedzie
 | J-10 | Długie rośnie przed startem ≥ HM: ~15 km 15 tygodni przed, 23–25 km 2–7 tygodni przed | n = 3 starty | korpus; spójne z J-2, P-7, P-8 | **korpus (n=3)** |
 | R-11 | **Powrót po przerwie** (≥ 2 tygodnie bez biegania): start z ~50–60% objętości sprzed przerwy, pierwszy blok wyłącznie spokojnie, wzrost do poprzedniej objętości w granicach P-3 (twardy limit 25–30%/tydz.) | VO₂max −4–14% po ≤ 4 tygodniach przerwy, −6–20% po dłuższej (Mujika & Padilla 2000, opis wtórny); brak RCT dotyczącego progresji powrotu; GRONORUN (Buist 2008, N-2) nie znalazł różnicy urazów między progresją 10% a szybszą | **brak źródła dla parametrów** (inż.); spójne z R-5 i P-3 | **—** |
 
+### 10.16 Notacja klubowa (PLAN-v0.7 C10, wybór inżynierski)
+
+**E-4** — kody z polskich planów klubowych przypisane do segmentów silnika
+(`notation: club` w `trainctl.yaml`). Szkoły różnią się definicjami i zakresami
+tętna, więc przypisanie jest inżynierskie. Kod zmienia wyłącznie tekst widoku po
+polsku; dane, `plan.yaml` i treningi wysyłane do huba zostają przy strukturze, a cel
+jednostki zostaje tempem (Z-3).
+
+| Segment silnika | Kod | Znaczenie w źródłach |
+|---|---|---|
+| bieg spokojny i długi (strefa E) | OWB1 | ogólna wytrzymałość biegowa w pierwszym zakresie, „rozbieganie”; to samo co BC1 i WB1 [1][2][3] |
+| praca w równym tempie (`steady`) | BC2 | bieg ciągły w drugim zakresie [1][2] |
+| odcinki od 2 km | BC3 | odcinki 2–6 km w trzecim zakresie, z przerwą [2] |
+| odcinki dłuższe niż 300 m i krótsze niż 2 km | WT | wytrzymałość tempowa: odcinki w tempie startowym albo szybciej, z krótką przerwą [2][4] |
+| odcinki do 300 m, przebieżki | RT | rytmy: krótkie odcinki 80–300 m [2][4]; przebieżki nazywane też rytmami [1][3] |
+| narastanie (`progression`) | BNP | bieg z narastającą prędkością [1][2][3][4] |
+| bieg zmienny (`alternating`) | BZ | bieg zmienny, bez zatrzymania [2] |
+| podbiegi (`hills`) | SB | siła biegowa: skipy i podbiegi [1][2][4] |
+| rama, przerwa, sprawdzian, start | RG, SCH, p., START | bez zmian, jak w notacji neutralnej (C1) |
+
+Granice 300 m i 2 km są inżynierskie: RT to w źródle odcinki 80–300 m [4], BC3
+odcinki 2–6 km [2]. Zakresy tętna w definicjach (np. 65–75% HRmax dla OWB1 [1],
+70–80% w [4]) różnią się między źródłami i nie wpływają na kod. Kod wynika z segmentu
+planu. „WT” i „SB” to po polsku także skróty dni tygodnia; w widoku kod stoi zawsze
+przed dawką w kolumnie rozpiski.
+
+Źródła:
+[1] S. Stwora-Petela, „Interwały biegowe, siła biegowa, podbiegi, OWB, czyli słowniczek podstawowych pojęć dla początkującego biegacza”, Sportano.pl, 2024 (akt. 2025), https://sportano.pl/blog/?p=10033
+[2] Ł. Telejko, „Słownik Biegacza – sprawdź, co oznaczają najważniejsze pojęcia i skróty treningowe!”, Bieganie.pl, 2024-09-02, https://bieganie.pl/zacznij-biegac/slownik-biegacza-sprawdz-co-oznaczaja-najwazniejsze-pojecia-i-skroty-treningowe/
+[3] J. Karasek, „Plan treningowy na wynik 1:50”, Magazyn Bieganie (legenda: BS, P, BNP), https://www.magazynbieganie.pl/wp-content/uploads/2025/01/1-50.pdf
+[4] „Skróty używane w planach treningowych”, blog MarcinBiega, 2014-07-30, https://marcinbiega.blogspot.com/2014/07/skroty-uzywane-w-planach-treningowych_30.html
+
 ## 11. DO WERYFIKACJI
 
 Rzeczy, których **nie** potwierdzono z pierwszej ręki. Nic z tej listy nie powinno

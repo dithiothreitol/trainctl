@@ -2,8 +2,8 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse } from 'yaml'
-import { DEFAULT_LOCALE, getLocale, HR_MAX_BPM, isUnits, parseIso } from 'trainctl-core'
-import type { AthleteProfile, InferredProfile, RaceGoal, Units, Weekday } from 'trainctl-core'
+import { DEFAULT_LOCALE, getLocale, HR_MAX_BPM, isNotationStyle, isUnits, parseIso } from 'trainctl-core'
+import type { AthleteProfile, InferredProfile, NotationStyle, RaceGoal, Units, Weekday } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 
 export const CONFIG_FILE = 'trainctl.yaml'
@@ -51,6 +51,8 @@ export interface TrainctlConfig {
   language?: string
   /** C9: jednostka widoku — metric (domyślnie) albo imperial; dane zostają w km. */
   units?: Units
+  /** C10: zapis notacji — neutral (domyślnie) albo club (kody klubowe po polsku); dane bez zmian. */
+  notation?: NotationStyle
 }
 
 /**
@@ -65,6 +67,18 @@ export function readConfigUnits(cwd: string): Units | undefined {
   try {
     const raw = parse(readFileSync(path, 'utf-8')) as { units?: unknown } | null
     return isUnits(raw?.units) ? raw.units : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** C10: zapis notacji z trainctl.yaml, czytany jak jednostka — bez pełnej walidacji profilu. */
+export function readConfigNotation(cwd: string): NotationStyle | undefined {
+  const path = join(cwd, CONFIG_FILE)
+  if (!existsSync(path)) return undefined
+  try {
+    const raw = parse(readFileSync(path, 'utf-8')) as { notation?: unknown } | null
+    return isNotationStyle(raw?.notation) ? raw.notation : undefined
   } catch {
     return undefined
   }
@@ -105,6 +119,7 @@ export function configTemplate(): string {
     ...t.templateHeader,
     languageLine,
     pad('# units: metric', t.templateUnits),
+    pad('# notation: neutral', t.templateNotation),
     'athlete:',
     pad('  sex: unspecified', t.templateAthlete.sex),
     pad('  # hrMax: { bpm: 190, measured: true }', t.templateAthlete.hrMax),
@@ -222,6 +237,7 @@ export function loadConfig(cwd: string): TrainctlConfig {
     errors.push(v.goalKind('goal.kind'))
   }
   if (raw?.units !== undefined && !isUnits(raw.units)) errors.push(v.units('units'))
+  if (raw?.notation !== undefined && !isNotationStyle(raw.notation)) errors.push(v.notation('notation'))
   if (!g) errors.push(v.missingSection('goal'))
   else if (!base) {
     if (g.targetTimeSec !== undefined && (!Number.isFinite(g.targetTimeSec) || g.targetTimeSec <= 0)) errors.push(v.seconds('goal.targetTimeSec'))
@@ -280,6 +296,7 @@ export function loadConfig(cwd: string): TrainctlConfig {
     ...(sync?.files ? { sync: { files: sync.files } } : {}),
     ...(time ? { time } : {}),
     ...(isUnits(raw?.units) ? { units: raw.units } : {}),
+    ...(isNotationStyle(raw?.notation) ? { notation: raw.notation } : {}),
   }
 }
 

@@ -178,6 +178,15 @@ change between minor versions — a regenerated plan can differ.
   kilometres; the wizard asks for the unit first. `plan` refreshes `PLAN.md`
   when only its view changed, for example after switching units. Diagnostic
   messages in `adapt`, `review` and the race pack still use kilometres.
+- `notation: club` in `trainctl.yaml` writes sessions with the codes of Polish
+  club plans: OWB1 for easy and long runs, BNP for a progression, BZ for the
+  alternating run, WT for reps (RT up to 300 m, BC3 from 2 km), SB for hills and
+  RT for strides, with a legend under the view. It applies to the session rows of
+  `week`, `season`, `plan`, PLAN.md and the exports, in Polish only; English
+  keeps the neutral notation. The warm-up, cool-down and recovery keep RG, SCH
+  and p. Data (`--json`, MCP `structuredContent`), `plan.yaml` and the workouts
+  sent to intervals.icu do not change. The mapping is an engineering choice
+  (FOUNDATIONS E-4).
 - Laps: `pull` and the data refresh in `review` keep the laps of each run in
   `sync.json`: distance, time, heart rate and, where the source gives them, the
   lap's role (work, rest, warm-up, cool-down) and how it closed (manual, by

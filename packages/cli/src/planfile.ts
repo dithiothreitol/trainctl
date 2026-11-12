@@ -33,6 +33,7 @@ import {
   type PlannedDay,
   type RaceGoal,
   type RacePrediction,
+  notationLegend,
   type ReturnBlock,
   type WeekNote,
   type WeekSkeleton,
@@ -862,7 +863,7 @@ export function renderMarkdown(plan: StoredPlan): string {
   // C3: na górze siatka sezonu (ta sama co `trainctl season`), niżej tygodnie
   // w układzie wiersza z C2; opis słowny jednostek zostaje w plan.yaml i w `why`
   lines.push('', `## ${m.season}`, '', ...tableMarkdown(seasonTable(runningSeasonRows(cycleWeeksOf(plan)))), '')
-  lines.push(`> ${ui().rows.season.legend('↓', distanceUnit())}  `, `> ${core.notation.legend(distanceUnit())}`)
+  lines.push(`> ${ui().rows.season.legend('↓', distanceUnit())}  `, `> ${notationLegend(distanceUnit())}`)
   // C8: pułap tętna z szacowanego HRmax — ostrzeżenie Z-5 raz, przy legendzie
   if (plan.hrCeiling) lines.push('', `> ${ui().today.hrCeiling(plan.hrCeiling.bpm, plan.hrCeiling.share)}`, ...(plan.hrCeiling.measured ? [] : [`> ⚠ ${ui().today.hrEstimated}`]))
   // sesje siły opisane raz: w tabelach tygodni wiersz siły ma tylko wariant

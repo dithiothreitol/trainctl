@@ -1080,6 +1080,7 @@ export const cliPl: CliMessages = {
     ],
     templateLanguage: 'język interfejsu i opisów planu: en | pl (domyślnie: en)',
     templateUnits: 'dystans i tempo: metric (km) | imperial (mi); pliki zostają w km',
+    templateNotation: 'zapis jednostek: neutral | club (kody klubowe, np. OWB1, WT; tylko po polsku)',
     templateAthlete: {
       sex: 'male | female | unspecified',
       hrMax: 'pułap tętna biegu spokojnego i długiego (Z-2, wymaga sex); measured: false = szacunek',
@@ -1147,6 +1148,7 @@ export const cliPl: CliMessages = {
       hourFormat: (path: string) => `${path}: format HH:MM`,
       sex: (path: string) => `${path}: male, female albo unspecified`,
       units: (path: string) => `${path}: metric albo imperial`,
+      notation: (path: string) => `${path}: neutral albo club`,
       hrMax: (path: string, min: number, max: number) => `${path}: { bpm: liczba całkowita ${min}–${max}, measured: true albo false }`,
     },
   },

@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { parse, stringify } from 'yaml'
 import {
-  activityEvidence, activityKey, resolveActivity, ENDURANCE_SPORTS, addDays, buildSessionExecution, calendarIssues, calendarMinutes, distanceIn, distanceUnit, generateSportsPlan, kmFrom, messages, mondayOf, parseIso,
+  activityEvidence, activityKey, resolveActivity, ENDURANCE_SPORTS, addDays, buildSessionExecution, calendarIssues, calendarMinutes, distanceIn, distanceUnit, generateSportsPlan, kmFrom, messages, mondayOf, notationLegend, parseIso,
   replaceSportSession, restoreSportSession, rescheduleSportsPlan, sessionDeskDay, sessionStructure, shortenSportSession, sportOf, sportMessages as msg, sportsTotals, validateSportsPlan, weekdayOf,
   type EnduranceSport, type SessionExecution, type SessionLog, type SportsConfig, type SportsPlan, type TrainingSession,
 } from 'trainctl-core'
@@ -97,7 +97,7 @@ function sessionsWeek(plan: SportsPlan, list: TrainingSession[], logs: SessionLo
   const t = ui().rows, from = mondayOf(date)
   const rows = sessionRows(list, { status: rowStatus(logs, execution), ascii: asciiOutput() })
   const blocks: Block[] = [b.title(t.sessionsHeading(t.shortDate(from), t.shortDate(addDays(from, 6)), list.length), `${msg().plan}: ${plan.goal.name}`)]
-  if (list.length) blocks.push(rowsTable(rows, { today: clockToday(), sport: true }), b.text(messages().notation.legend(distanceUnit()), 'muted'))
+  if (list.length) blocks.push(rowsTable(rows, { today: clockToday(), sport: true }), b.text(notationLegend(distanceUnit()), 'muted'))
   else blocks.push(b.info(msg().rest))
   blocks.push(...transitionNotes(plan, list))
   const dataRows = metricData(() => sessionRows(list, { status: rowStatus(logs, execution), ascii: asciiOutput() }))
