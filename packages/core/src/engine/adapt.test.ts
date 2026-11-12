@@ -77,6 +77,29 @@ describe('przerwa w treningu', () => {
   })
 
   const layoff = () => history(21, 1).map((e) => (e.date > '2026-08-16' ? omitActual(e) : e))
+  it('B11: rano po przerwie dzisiejsza sesja bez wpisu nie robi z danych niepełnych — powrót zostaje', () => {
+    const today: ExecutionRecord = { date: TODAY, plannedKm: 12, status: 'unknown', kind: 'easy' }
+    const p = analyzeExecution({ today: TODAY, execution: [...layoff(), today], currentWeeklyKm: 60, breakLog: [{ date: '2026-08-20', reason: 'illness' }] })
+    expect(p.dataStatus).toBe('complete')
+    expect(p.actions.find((a) => a.type === 'conservative-restart')?.ruleRefs).toEqual(['R-5', 'P-3'])
+  })
+  it('B11: przerwa zakończona jednym biegiem w ostatnim tygodniu nadal daje blok powrotu (R-5)', () => {
+    // choroba 2026-08-17…08-29, pierwszy bieg po niej 2026-08-30
+    const back = layoff().map((e) => (e.date === '2026-08-30' ? { ...e, actualKm: 5, status: 'done' as const } : e))
+    const breakLog = ['2026-08-17', '2026-08-20', '2026-08-25', '2026-08-29'].map((date) => ({ date, reason: 'illness' as const }))
+    const p = analyzeExecution({ today: TODAY, execution: back, currentWeeklyKm: 60, breakLog })
+    expect(p.layoff).toMatchObject({ days: 14, reason: 'illness' })
+    expect(p.actions.find((a) => a.type === 'conservative-restart')?.ruleRefs).toEqual(['R-5', 'P-3'])
+    // po tygodniu biegania powrót już się nie proponuje
+    const later = analyzeExecution({ today: '2026-09-07', execution: [...back, ...history(8, 1, { from: '2026-09-07' }).filter((e) => e.date > '2026-08-30')], currentWeeklyKm: 60, breakLog })
+    expect(later.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
+  })
+  it('B11: przerwa zapisana także na kolejne dni — powrót po jej końcu', () => {
+    const ahead = ['2026-09-01', '2026-09-02', '2026-09-03'].map((date) => ({ date, reason: 'illness' as const }))
+    const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-20', reason: 'illness' }, ...ahead, { date: '2026-09-20', reason: 'travel' }] })
+    // wyjazd za trzy tygodnie to inna przerwa — nie przedłuża tej
+    expect(p.layoff?.until).toBe('2026-09-03')
+  })
   it('B11: przerwa bez przyczyny → blok powrotu R-11 do przyjęcia, z objętością sprzed przerwy', () => {
     const restart = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60 }).actions.find((a) => a.type === 'conservative-restart')!
     expect(restart.ruleRefs).toEqual(['R-11', 'P-3'])

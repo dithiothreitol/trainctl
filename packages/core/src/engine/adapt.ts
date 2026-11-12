@@ -14,7 +14,7 @@
  */
 import type { BreakReason, RaceResult, WorkoutKind } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
-import { diffDays } from '../util/dates.ts'
+import { addDays, diffDays } from '../util/dates.ts'
 import { distanceClass } from '../domain/goal-class.ts'
 import { RETURN_RESTART_SHARE } from './macrocycle.ts'
 
@@ -57,7 +57,12 @@ export interface AdaptationProposal {
    * przerwa z kontuzją dowolnej długości. Po kontuzji propozycja zmiany planu nie
    * powstaje — powrót ustala specjalista (R-6, R-7).
    */
-  layoff?: { days: number; reason?: BreakReason }
+  layoff?: {
+    days: number
+    reason?: BreakReason
+    /** Ostatni dzień przerwy zapisanej z góry (po dziś, bez luki): blok powrotu zaczyna się po nim. */
+    until?: string
+  }
 }
 
 export interface AdaptationInput {
@@ -101,13 +106,18 @@ export interface AdaptationInput {
 const WINDOW_DAYS = 21
 /** Przerwa, po której wracamy konserwatywnie zamiast kontynuować progresję. */
 const LAYOFF_DAYS = 10
+/** R-5 (7 dni spokojnie po chorobie): przerwa zakończona tyle dni temu nadal daje blok powrotu. */
+const RECENT_RETURN_DAYS = 7
 
 export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const from = new Date(Date.parse(input.today) - (WINDOW_DAYS - 1) * 86_400_000)
     .toISOString()
     .slice(0, 10)
+  // Dzisiejsza sesja bez wpisu jeszcze się nie odbyła albo nie skończyła: nie jest ani brakiem
+  // danych, ani opuszczeniem. Inaczej `adapt` rano (choćby po `log --to yesterday` z README)
+  // widział dane niepełne i nie proponował powrotu.
   const window = input.execution
-    .filter((e) => e.date >= from && e.date <= input.today)
+    .filter((e) => e.date >= from && e.date <= input.today && !(e.date === input.today && e.status === 'unknown'))
     .sort((a, b) => a.date.localeCompare(b.date))
 
   // B11: dzień przerwy zapisanej z przyczyną nie jest niezgodnością z planem — zgodność
@@ -133,20 +143,38 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const m = messages()
   if (dataStatus !== 'complete') warnings.push(m.adapt.incompleteData)
 
-  // 1) Najdłuższa przerwa bez biegania w oknie
+  // 1) Przerwa bez biegania: bieżąca (od ostatniego biegu do dziś) albo zakończona w ostatnim
+  // tygodniu — biegacz wrócił jednym, dwoma biegami, a blok powrotu nadal ma sens (R-5: co
+  // najmniej 7 dni spokojnie po chorobie; R-11). Zakończona luka liczy się jak bieżąca: dni
+  // od biegu przed nią do pierwszego biegu po niej, w całym wykonaniu (przerwa bywa dłuższa
+  // niż okno).
   const runDays = window.filter((e) => (e.actualKm ?? 0) > 0).map((e) => e.date)
   const lastRun = runDays.at(-1)
   const observedDays = window.length ? Math.min(WINDOW_DAYS, diffDays(window[0]!.date, input.today) + 1) : 0
-  const layoff = lastRun ? diffDays(lastRun, input.today) : observedDays
-  // B11: przyczyna bieżącej przerwy — wpisy od dnia ostatniego biegu w całym wykonaniu, nie
-  // tylko w oknie (przerwa bywa dłuższa niż okno). Wpis z dnia ostatniego biegu też: kontuzja
-  // albo choroba w trakcie biegu zaczyna przerwę tego samego dnia. Kontuzja w którejkolwiek
-  // części przerwy wygrywa (R-6, R-7: powrót ustala specjalista), potem choroba (R-5), potem
-  // najnowszy wpis.
-  const lastRunEver = input.execution.filter((e) => e.date <= input.today && (e.actualKm ?? 0) > 0).map((e) => e.date).sort().at(-1)
+  const currentGap = lastRun ? diffDays(lastRun, input.today) : observedDays
+  const allRuns = [...new Set(input.execution.filter((e) => e.date <= input.today && (e.actualKm ?? 0) > 0).map((e) => e.date))].sort()
+  const lastRunEver = allRuns.at(-1)
+  const ended = currentGap >= LAYOFF_DAYS
+    ? undefined
+    : allRuns.flatMap((run, i) => {
+      const before = allRuns[i - 1]
+      return before && diffDays(run, input.today) < RECENT_RETURN_DAYS && diffDays(before, run) >= LAYOFF_DAYS ? [{ before, run }] : []
+    }).at(-1)
+  const layoff = ended ? diffDays(ended.before, ended.run) : currentGap
+  // B11: przyczyna przerwy — wpisy od dnia biegu przed nią (kontuzja albo choroba w trakcie
+  // biegu zaczyna przerwę tego samego dnia) do dziś, a przy przerwie zakończonej do pierwszego
+  // biegu po niej. Kontuzja w którejkolwiek części przerwy wygrywa (R-6, R-7: powrót ustala
+  // specjalista), potem choroba (R-5), potem najnowszy wpis.
+  const breakFrom = ended ? ended.before : lastRunEver
   const breakEntries = (input.breakLog ?? [])
-    .filter((l) => l.date <= input.today && (lastRunEver === undefined || l.date >= lastRunEver))
+    .filter((l) => l.date <= input.today && (breakFrom === undefined || l.date >= breakFrom) && (!ended || l.date < ended.run))
     .sort((a, z) => a.date.localeCompare(z.date))
+  // przerwa trwająca, zapisana także na kolejne dni (z góry, bez luki): blok powrotu zaczyna
+  // się po jej końcu, a nie jutro — inaczej spokojne dni R-5/R-11 mijałyby w czasie przerwy
+  const logged = new Set((input.breakLog ?? []).map((l) => l.date))
+  let until = input.today
+  while (!ended && logged.has(addDays(until, 1))) until = addDays(until, 1)
+  const breakUntil = until > input.today ? until : undefined
   const reasons = breakEntries.map((l) => l.reason)
   const breakReason = (['injury', 'illness'] as const).find((r) => reasons.includes(r)) ?? reasons.at(-1)
   const layoffFound = dataStatus === 'complete' && layoff >= LAYOFF_DAYS
@@ -265,6 +293,6 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
     diagnosis,
     actions,
     warnings,
-    ...(layoffFound || injury ? { layoff: { days: layoff, ...(breakReason ? { reason: breakReason } : {}) } } : {}),
+    ...(layoffFound || injury ? { layoff: { days: layoff, ...(breakReason ? { reason: breakReason } : {}), ...(breakUntil ? { until: breakUntil } : {}) } } : {}),
   }
 }

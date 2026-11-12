@@ -128,9 +128,10 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   if (analysis.actions.some((a) => a.type === 'post-race-recovery' || (a.type === 'conservative-restart' && !a.returnBlock))) throw new Error(ui().improve.manualRecovery)
   // R-6, R-7: po kontuzji żadna zmiana planu (także sama rekalibracja) nie powstaje automatycznie
   if (analysis.layoff?.reason === 'injury') throw new Error(ui().improve.manualRecovery)
-  // B11: restart po przerwie to blok powrotu od jutra (R-5 po chorobie, R-11 po innej)
+  // B11: restart po przerwie to blok powrotu od jutra (R-5 po chorobie, R-11 po innej), a przy
+  // przerwie zapisanej także na kolejne dni — od dnia po jej końcu
   const restart = analysis.actions.find((a) => a.type === 'conservative-restart' && a.returnBlock)
-  const returnFrom = restart?.returnBlock ? { since: addDays(today, 1), ...restart.returnBlock } : undefined
+  const returnFrom = restart?.returnBlock ? { since: addDays(analysis.layoff?.until ?? today, 1), ...restart.returnBlock } : undefined
   const volume = returnFrom ? undefined : analysis.actions.find((a) => a.suggestedWeeklyKm !== undefined)
   const recalibrate = analysis.actions.some((a) => a.type === 'recalibrate-zones')
   if (!volume && !recalibrate && !returnFrom) throw new Error(ui().improve.noPatch)

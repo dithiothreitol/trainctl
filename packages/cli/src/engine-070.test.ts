@@ -396,6 +396,29 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(readLog(dir)).toHaveLength(0)
   })
 
+  it('adapt po chorobie zapisanej także na kolejne dni: blok powrotu od dnia po końcu przerwy', () => {
+    breakUntilToday('illness')
+    // jeszcze trzy dni choroby zapisane z góry
+    expect(cmdLog(dir, { date: '2026-11-13', to: '2026-11-15', reason: 'illness' }).code).toBe(0)
+    const prepared = cmdAdapt(dir, { prepare: true })
+    expect(prepared.code, prepared.output).toBe(0)
+    expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
+    expect(loadPlan(dir).returnState).toMatchObject({ since: '2026-11-16', illness: true })
+  })
+
+  it('adapt rano po przerwie zapisanej do wczoraj: dzisiejsza sesja bez wpisu nie blokuje powrotu', () => {
+    setup()
+    // dziś: pierwszy dzień z sesją od 2026-11-10
+    const today = loadPlan(dir).weeks.flatMap((w) => w.days).find((d) => d.workout && d.date >= '2026-11-10')!.date
+    process.env['TRAINCTL_TODAY'] = today
+    for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-10-22' && x.date <= '2026-10-28')) {
+      expect(cmdLog(dir, { date: d.date, status: 'done' }).code).toBe(0)
+    }
+    // jak w README: przerwa do wczoraj, dziś sesja z planu jeszcze bez wpisu
+    expect(cmdLog(dir, { date: '2026-10-29', to: addDays(today, -1), reason: 'illness' }).code).toBe(0)
+    expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toMatchObject({ illness: true })
+  })
+
   it('adapt po chorobie: blok powrotu do przyjęcia, plan po --apply odtwarza go regeneracja', () => {
     breakUntilToday('illness')
     const prepared = cmdAdapt(dir, { prepare: true })

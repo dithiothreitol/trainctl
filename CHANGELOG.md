@@ -120,7 +120,9 @@ change between minor versions — a regenerated plan can differ.
   `trainctl_log` tool and the log prompt take the same fields. Days of a break
   logged with a reason do not count against compliance, so a short break does
   not lower the baseline. After a break of 10 days or more
-  `adapt` proposes a return block you can approve:
+  `adapt` proposes a return block you can approve, also in the morning before
+  today's session and during the first week back; when the break is logged
+  ahead, the block starts the day after its last day:
   about 55% of the earlier volume, at least 7 days easy after illness (R-5) or
   the loading weeks of the first block easy after any other break (R-11; the
   taper keeps its intensity), the long run shrinking with the week, growth
