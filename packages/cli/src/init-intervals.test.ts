@@ -93,7 +93,8 @@ describe('cmdInitFromIntervals', () => {
     const yaml = readFileSync(join(dir, 'trainctl.yaml'), 'utf-8')
     expect(yaml).toContain('UZUPEŁNIJ')
     expect(yaml).toContain('date: "RRRR-MM-DD"')
-    expect(yaml).toContain('distanceKm: 0')
+    // E3: profil v2 — dystans celu w metrach
+    expect(yaml).toContain('distanceM: 0')
   })
 
   it('kandydat na start jest w wyjściu, ale NIE w results (wymaga potwierdzenia)', async () => {

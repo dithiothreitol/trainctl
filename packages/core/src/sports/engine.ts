@@ -35,6 +35,9 @@ export function validateSportsConfig(raw: unknown): SportsConfig {
     if (p.qualitySessions !== undefined && !Number.isInteger(p.qualitySessions)) bad(`${sport}.qualitySessions`)
     if (p.daysAvailable && (!Array.isArray(p.daysAvailable) || !p.daysAvailable.length || p.daysAvailable.some(d => !DAYS.includes(d)))) bad(`${sport}.daysAvailable`)
     if (p.running && (sport !== 'run' || !finite(p.running.recentWeeklyKm,1,400) || (p.running.peakWeeklyKm !== undefined && !finite(p.running.peakWeeklyKm,p.running.recentWeeklyKm,500)) || (p.running.longRunDay && !DAYS.includes(p.running.longRunDay)))) bad('run.running')
+    // E3: pola profilu silnika biegowego; szczegóły (zakresy HRmax, daty powrotu) sprawdza profil planu biegowego
+    if (p.running?.sex !== undefined && !['male', 'female', 'unspecified'].includes(p.running.sex)) bad('run.running.sex')
+    if (p.running?.strength !== undefined && (typeof p.running.strength?.enabled !== 'boolean' || (p.running.strength.days !== undefined && (!Array.isArray(p.running.strength.days) || p.running.strength.days.some(d => !DAYS.includes(d)))))) bad('run.running.strength')
     if (p.calibration) { parseIso(p.calibration.date); if (!p.calibration.source?.trim()) bad(`${sport}.calibration.source`) }
     for (const result of p.results ?? []) { parseIso(result.date); if (sport !== 'run' || !finite(result.distanceKm, 0.1, 300) || !finite(result.timeSec, 1, 604800)) bad(`${sport}.results`) }
   }
@@ -42,7 +45,10 @@ export function validateSportsConfig(raw: unknown): SportsConfig {
   if (!['base', 'race', 'multisport'].includes(g.kind) || typeof g.name !== 'string' || !g.name.trim()) bad('goal')
   parseIso(g.date)
   if (g.transitionsSec !== undefined && (g.kind !== 'multisport' || !Array.isArray(g.transitionsSec) || g.transitionsSec.length !== (g.legs?.length ?? 0)-1 || g.transitionsSec.some(n=>!finite(n,0,7200)))) bad('goal.transitionsSec')
-  if (g.kind === 'race' && (!g.sport || !c.athlete.sports[g.sport] || !finite(g.distanceM, 1, 2_000_000) || !finite(g.estimatedMinutes, 1, 3000))) bad('goal.sport/distanceM/estimatedMinutes')
+  // E3: bieg z silnikiem biegowym (profil `running`) nie potrzebuje szacunku czasu startu — podaje go predykcja
+  const predicted = g.sport === 'run' && c.athlete.sports.run?.running !== undefined
+  if (g.kind === 'race' && (!g.sport || !c.athlete.sports[g.sport] || !finite(g.distanceM, 1, 2_000_000) || (!(predicted && g.estimatedMinutes === undefined) && !finite(g.estimatedMinutes, 1, 3000)))) bad('goal.sport/distanceM/estimatedMinutes')
+  if (g.targetTimeSec !== undefined && (g.kind !== 'race' || g.sport !== 'run' || !finite(g.targetTimeSec, 60, 172800))) bad('goal.targetTimeSec')
   if (g.kind === 'multisport') {
     if (!Array.isArray(g.legs) || g.legs.length < 2 || g.legs.length > 10) bad('goal.legs')
     const ids = new Set<string>()
@@ -267,7 +273,9 @@ export function generateSportsPlan(c: SportsConfig, from: string, id: string, cy
   const sports = [...new Set([...(c.priorities ?? []), ...ENDURANCE_SPORTS.filter(s => c.athlete.sports[s])])]
   const events = [...(c.goal.kind !== 'base' ? [{ ...c.goal, priority: 'A' as const }] : []), ...(c.tuneUpGoals ?? [])].filter(g=>g.date>=from)
   for (const event of events) {
-    const legs = event.kind === 'race' ? [{ id: 'race', sport: event.sport!, distanceM: event.distanceM!, estimatedMinutes: event.estimatedMinutes! }] : event.legs!
+    // bieg bez szacunku czasu (E3): 6:00/km jako miejsce na sesję startu (E-3, inż.); silnik biegowy
+    // zastępuje ją startem z predykcją, a start B i C zostaje z tym szacunkiem
+    const legs = event.kind === 'race' ? [{ id: 'race', sport: event.sport!, distanceM: event.distanceM!, estimatedMinutes: event.estimatedMinutes ?? Math.round(event.distanceM! / 1000 * 6) }] : event.legs!
     const groupId = event.priority === 'A' ? `${cycleId}-race` : `${cycleId}-race-${event.date}`
     const members: string[] = []
     for (const leg of legs) {

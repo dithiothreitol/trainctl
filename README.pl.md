@@ -306,35 +306,43 @@ datą symulowaną.
 `trainctl init --template` zapisuje go z komentarzami; wszystkie klucze:
 
 ```yaml
+schemaVersion: 2
 language: pl                # język interfejsu i planu: en | pl (domyślnie: en)
 # units: imperial           # mile i tempo na milę w widokach; pliki zostają w km (domyślnie: metric)
 # notation: club            # kody klubowe (OWB1, WT, BNP…) w wyjściu polskim (domyślnie: neutral)
 athlete:
-  sex: unspecified          # male | female | unspecified (potrzebne do pułapu tętna)
-  # hrMax: { bpm: 190, measured: true }  # pułap tętna biegów spokojnych i długich; celem zostaje tempo
-  recentWeeklyKm: 45        # średnia z ostatnich ~4 tygodni
-  peakWeeklyKm: 65          # najwyższa utrzymana objętość (opcjonalne)
-  # returning: { since: "2026-10-01", previousWeeklyKm: 45 }  # po 2+ tygodniach bez biegania: start od połowy (R-11)
-  daysAvailable: [tue, wed, thu, sat, sun]
-  longRunDay: sat
-  results:                  # kalibracja stref — ze startów, nie z zegarka
-    - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "Wiosenna 10-tka" }
-  tuneUpRaces:              # starty po drodze: B = mini-taper, C = przebiegnięte
-    - { date: "2026-09-19", distanceKm: 10, name: "Jesienna 10-tka", priority: B }
+  sports:
+    run:
+      weeklyMinutes: 270    # czas biegania w tygodniu do przeglądu; przy innych sportach budżet biegu
+      sessionsPerWeek: 5    # przy innych sportach: biegi w tygodniu (silnik biegowy dobiera je z kilometrów)
+      daysAvailable: [tue, wed, thu, sat, sun]
+      preparationMinutes: 15  # przygotowanie i dojazd, liczone w kalendarzu
+      results:              # kalibracja stref — ze startów, nie z zegarka
+        - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "Wiosenna 10-tka" }
+      running:              # silnik biegowy: kilometry, strefy, reguły ze źródłami
+        sex: unspecified    # male | female | unspecified (potrzebne do pułapu tętna)
+        # hrMax: { bpm: 190, measured: true }  # pułap tętna biegów spokojnych i długich; celem zostaje tempo
+        recentWeeklyKm: 45  # średnia z ostatnich ~4 tygodni
+        peakWeeklyKm: 65    # najwyższa utrzymana objętość (opcjonalne)
+        # returning: { since: "2026-10-01", previousWeeklyKm: 45 }  # po 2+ tygodniach bez biegania: start od połowy (R-11)
+        longRunDay: sat
+        tuneUpRaces:        # starty po drodze: B = mini-taper, C = przebiegnięte
+          - { date: "2026-09-19", distanceKm: 10, name: "Jesienna 10-tka", priority: B }
+        strength:           # opcjonalny tor siłowy, 2×/tydz.
+          enabled: true
+          days: [mon, fri]  # opcjonalna preferencja dni
 goal:
+  kind: race
+  sport: run
   name: "Półmaraton"
   date: "2026-11-29"
-  distanceKm: 21.0975
-  priority: A
+  distanceM: 21097.5        # metry: 5000 / 10000 / 21097.5 / 42195
   targetTimeSec: 5700       # opcjonalny cel czasowy — plan oceni, czy realny
 desk:                       # dla trainctl desk (opcjonalne)
   workStart: "09:00"
   workEnd: "17:00"
   lunchMinutes: 45
   prefer: evening           # morning | lunch | evening
-strength:                   # opcjonalny tor siłowy, 2×/tydz.
-  enabled: true
-  days: [mon, fri]          # opcjonalna preferencja dni
 time:                       # opcjonalnie: minuty, które naprawdę masz, z przygotowaniem
   weeklyMinutes: 300        # objętość wypłaszcza się na tym, co się mieści (E-2)
   weekdayMinutes: 60        # dłuższe jednostki są skracane, z pokazanym kompromisem (E-1)
@@ -342,6 +350,13 @@ time:                       # opcjonalnie: minuty, które naprawdę masz, z przy
 sync:
   files: ./activities       # opcjonalnie: eksport FIT/TCX/GPX zamiast intervals.icu
 ```
+
+To układ planu sesji (schemat 2), który `init` zapisuje od 0.7. Profil planu
+biegowego z wcześniejszych wersji (`athlete.recentWeeklyKm`, `athlete.results`,
+`goal.distanceKm`) dalej działa; `trainctl migrate --prepare` przenosi go do tego
+układu ze wszystkimi polami i zachowuje oryginały. Przykłady niżej używają
+krótszych kluczy planu biegowego; w tym układzie leżą pod `athlete.sports.run`
+(`results`, `daysAvailable`) i `athlete.sports.run.running` (pozostałe).
 
 Nie masz startu, do którego się przygotowujesz? Zamiast `goal` z datą i dystansem
 użyj planu bazowego — bez taperu i predykcji, objętość rośnie do Twojego szczytu

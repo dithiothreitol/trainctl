@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parse, stringify } from 'yaml'
 import ICAL from 'ical.js'
 import { buildSportSession, setLocale, type SportsPlan, type SportsConfig, type SyncProvider, type PushableWorkout } from 'trainctl-core'
+import { configTemplate } from './config.ts'
 import { cmdInit, cmdPlan, cmdReplace, cmdMigrate, cmdLog, cmdCheck, cmdWeek, cmdToday, cmdShorten, cmdShift, cmdExport, cmdPush, cmdPull, cmdAdapt, cmdDiff, cmdReview, cmdWhy, cmdReschedule } from './commands.ts'
 import { loadSportsPlan, sportsTemplate } from './sports-store.ts'
 import { pushableSession, sessionExternalId } from './sports-sync.ts'
@@ -364,7 +365,7 @@ goal:
     expect(cmdPlan(dir).data?.changed).toBe(false)
   })
   it('migrates a race with unknown stored duration and retains the running recovery and race pack',()=>{
-    expect(cmdInit(dir).code).toBe(0);expect(cmdPlan(dir).code).toBe(0)
+    expect(cmdInit(dir,configTemplate()).code).toBe(0);expect(cmdPlan(dir).code).toBe(0)
     const old=parse(readFileSync(join(dir,'plan/plan.yaml'),'utf8'))
     expect(cmdExport(dir,{what:'race'}).code).toBe(0)
     const oldHtml=readFileSync(join(dir,'export',readdirSync(join(dir,'export')).find(f=>f.endsWith('.html'))!),'utf8')

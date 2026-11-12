@@ -7,10 +7,10 @@
  */
 import { BREAK_REASONS, validateSportsPlan, weekTotals, type BreakReason, type SessionLog, type TrainingSession } from 'trainctl-core'
 import { clockToday } from './clock.ts'
-import { validateConfig } from './config.ts'
+import { validateConfig, type TrainctlConfig } from './config.ts'
 import { lineSeparator, LOG_FILE, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import { cycleWeeksOf, dayFingerprint, settleMixedWeek, type StoredPlan } from './planfile.ts'
-import { runningConfig, runningSessions } from './sports-running.ts'
+import { runningConfig, runningSessions, sportsProfilePaths } from './sports-running.ts'
 import { fingerprint, isSportsWorkspace, loadSportsConfig, loadSportsPlan, prepareSportsProposal, readOptional, readSessionLogs, sportsProposalStatus, writeTransaction } from './sports-store.ts'
 import { activeView, inRunningView, type RunningView } from './view-context.ts'
 
@@ -31,7 +31,7 @@ export function runningView(cwd: string): RunningView | undefined {
   const generator = (sports.legacy?.generatorPlan ?? sports.legacy?.plan) as StoredPlan | undefined
   const kinds = Object.keys(sportsConfig.athlete.sports)
   if (!generator?.weeks || kinds.length !== 1 || kinds[0] !== 'run') return undefined
-  const config = validateConfig({ ...runningConfig(sports, sportsConfig),
+  const config = validateConfig({ ...runningConfig(sportsConfig, sports.legacy!.config as TrainctlConfig),
     ...(sportsConfig.units ? { units: sportsConfig.units } : {}), ...(sportsConfig.notation ? { notation: sportsConfig.notation } : {}) })
   const generatorDays = new Map(generator.weeks.flatMap((w) => w.days).map((d) => [d.date, d]))
   const sessions = sports.sessions.filter(isRunningEngine)
@@ -151,7 +151,14 @@ export function onRunningView<T>(cwd: string, run: () => T): T | undefined {
   if (!isSportsWorkspace(cwd)) return undefined
   let view: RunningView | undefined
   try { view = runningView(cwd) } catch { return undefined }
-  return view ? inRunningView(cwd, view, run) : undefined
+  if (!view) return undefined
+  const result = inRunningView(cwd, view, run)
+  return result instanceof Promise ? result.then(withSportsPaths) as T : withSportsPaths(result)
+}
+
+/** Komunikaty planu biegowego w katalogu v2 wskazują pola profilu v2 (tekst, bloki i dane). */
+function withSportsPaths<T>(result: T): T {
+  return JSON.parse(JSON.stringify(result), (_key, value: unknown) => typeof value === 'string' ? sportsProfilePaths(value) : value) as T
 }
 
 /**

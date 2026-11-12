@@ -8,8 +8,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parse, stringify } from 'yaml'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { addDays, setLocale, weekdayOf, type SportsConfig } from 'trainctl-core'
-import { cmdAdapt, cmdInit, cmdLog, cmdMigrate, cmdPlan, cmdReview, cmdShift, cmdWhy } from './commands.ts'
+import { addDays, setLocale, weekdayOf, type SportsConfig, type SportsPlan } from 'trainctl-core'
+import { cmdAdapt, cmdDesk, cmdInit, cmdLog, cmdMigrate, cmdPlan, cmdReschedule, cmdReview, cmdShift, cmdShorten, cmdWhy } from './commands.ts'
 import { fmtTime, loadPlan, type StoredPlan } from './planfile.ts'
 import { cmdStatus } from './status.ts'
 import { loadSportsPlan } from './sports-store.ts'
@@ -153,6 +153,9 @@ describe('E4: plan v2 z silnikiem biegowym idzie ścieżką planu biegowego', ()
     expect(review.data).toHaveProperty('period')
     expect(review.data!['preparation']).toEqual({ status: 'prepared' })
     expect((review.data!['prepared'] as { id: string }).id).toMatch(/^[a-f0-9-]{36}$/)
+    // E3: podpowiedź wskazuje pole profilu v2, nie pole profilu planu biegowego
+    expect(review.output).toContain('athlete.sports.run.results')
+    expect(review.output).not.toMatch(/athlete\.results/)
   })
 
   it('B11: przerwa z przyczyną w v2 daje tę samą analizę adapt co w planie biegowym', () => {
@@ -195,6 +198,34 @@ describe('E4: plan v2 z silnikiem biegowym idzie ścieżką planu biegowego', ()
     expect(v2.output).toContain(range)
     const vdotLine = (out: string) => out.split('\n').find((l) => l.includes('VDOT'))
     expect(vdotLine(v2.output)).toBe(vdotLine(v1.output))
+  })
+
+  it('E2: shorten daje tę samą skróconą jednostkę co plan biegowy; reschedule i desk działają na sesjach', () => {
+    const plan = runningWorkspace()
+    const long = plan.weeks.flatMap((w) => w.days).find((d) => d.date > '2026-11-16' && d.workout?.kind === 'long')!
+    const v1 = cmdShorten(dir, { date: long.date, minutes: 45 })
+    expect(v1.code, v1.output).toBe(0)
+    const v1Workout = (v1.data!['adjustment'] as { workout: unknown }).workout
+    const v1Desk = cmdDesk(dir, { date: long.date })
+    migrate()
+    const session = loadSportsPlan(dir).sessions.find((s) => s.date === long.date && s.sport === 'run')!
+    const v2 = cmdShorten(dir, { session: session.id, minutes: 45 })
+    expect(v2.code, v2.output).toBe(0)
+    const shortened = (v2.data!['proposal'] as { plan: SportsPlan }).plan.sessions.find((s) => s.id === session.id)!
+    expect(shortened.legacyWorkout).toEqual(v1Workout)
+    // przesunięcie tygodnia z zablokowanym dniem: sesja schodzi z tego dnia
+    const reschedule = cmdReschedule(dir, { date: '2026-11-16', block: [long.date] })
+    expect(reschedule.code, reschedule.output).toBe(0)
+    const moved = (reschedule.data!['proposal'] as { plan: SportsPlan }).plan.sessions
+    expect(moved.filter((s) => s.date === long.date && s.sport === 'run')).toEqual([])
+    // desk: bez sekcji ta sama podpowiedź co plan biegowy, z sekcją w profilu v2 okna dla biegu
+    expect(cmdDesk(dir, { date: long.date }).output).toBe(v1Desk.output)
+    const c = sportsConfig()
+    c.desk = { workStart: '09:00', workEnd: '17:00', lunchMinutes: 45, prefer: 'evening' }
+    writeConfig(c)
+    const desk = cmdDesk(dir, { date: long.date, heavy: true })
+    expect(desk.code, desk.output).toBe(0)
+    expect(desk.output).toContain('09:00')
   })
 
   it('katalog z innym sportem zostaje na ścieżce v2', () => {

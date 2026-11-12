@@ -21,7 +21,7 @@ import { runningPlanSummary } from './running-summary.ts'
 import { commitFiles } from './git.ts'
 import { readSnapshot, SYNC_FILE } from './sync.ts'
 import { applySportsProposal, fingerprint, loadSportsConfig, loadSportsPlan, migrationCandidate, prepareSportsProposal, readOptional, readSessionLogs, sessionStepsText, sessionText, sportsProposalStatus, writeSportsPlan, writeTransaction } from './sports-store.ts'
-import { initialRunning, regenerateRunning } from './sports-running.ts'
+import { initialRunning, regenerateRunning, sportsProfilePaths } from './sports-running.ts'
 import { recoverSportsTransaction } from './sports-transaction.ts'
 import { exportSportsPlan } from './sports-export.ts'
 
@@ -442,6 +442,10 @@ function generate(cwd: string, config: SportsConfig, o: SportsOptions, preview =
     if (existing.baselines) next.baselines = existing.baselines
     for (const s of kept) if (existing.generatedSessions[s.id]) next.generatedSessions[s.id] = existing.generatedSessions[s.id]!
   }
+  // ostrzeżenia wykonalności silnika biegowego (szczyt, budżet, kalibracja) z bieżącego planu
+  // generatora, jak w planie biegowym — ze ścieżkami pól profilu v2
+  const generator = next.legacy?.generatorPlan as StoredPlan | undefined
+  if (generator?.feasibilityWarnings?.length) next.warnings = [...new Set([...next.warnings, ...generator.feasibilityWarnings.map(sportsProfilePaths)])]
   if (changedGoal) change(next, 'goal', next.sessions.filter(s => s.date >= date).map(s => s.id))
   next.sessions.sort((a, b) => a.date.localeCompare(b.date) || (a.start ?? '').localeCompare(b.start ?? '') || a.id.localeCompare(b.id))
   if (calendarIssues(next, config, date).length) {

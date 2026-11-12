@@ -1131,6 +1131,14 @@ export const cliEn = {
       section: 'execution without an intervals.icu account (optional)',
       files: 'folder of exported FIT/TCX/GPX files — trainctl pull and review read it',
     },
+    templateRun: {
+      weeklyMinutes: 'running time per week for the overview; with other sports, the running time budget',
+      weeklyMinutesInferred: 'weekly volume at 6:00/km (engineering estimate); correct it to your real time',
+      sessionsPerWeek: 'with other sports: runs per week (the running engine picks them from kilometres)',
+      preparation: 'getting ready and travel per session, counted in the calendar',
+      running: 'running engine: kilometres, zones from results, rules with sources',
+      goalDistance: 'metres: 5000 / 10000 / 21097.5 / 42195',
+    },
     templateStrength: {
       section: 'strength 2×/week alongside running (opt-in; needs access to weights)',
       enabled: 'the point is running economy (F-8) — NOT "injury protection" (F-9)',
@@ -1427,14 +1435,16 @@ This directory is a training plan as code. You have the \`trainctl_*\` MCP tools
   The “Against the targets” lines are facts from laps and pace, not verdicts: auto
   laps read “no laps matching the plan”, heart rate is never judged, and a
   calibration hint means proposing a fresh result (a tune-up race or a time
-  trial) — zones change only through \`athlete.results\`.
+  trial) — zones change only through a result in the profile:
+  \`athlete.sports.run.results\` (\`athlete.results\` in a running-plan profile).
 - **Something looks off** (a proposal will not apply, data seems missing, the
   plan reads oddly) → \`trainctl_status\` first: config, engine version, key,
   last pull, proposals with their validity, uncommitted files.
 - **Before any change to the week** → \`trainctl_week\` first, to see the context.
   “Move the intervals” without looking at the week is guesswork.
 - **After a race or a time trial** → ask for the time and propose an entry in
-  \`athlete.results\`. A measurement with no result written down changes nothing —
+  \`athlete.sports.run.results\` (\`athlete.results\` in a running-plan profile).
+  A measurement with no result written down changes nothing —
   the zones still come from the older run. After the goal race the plan continues
   with transition weeks (R-8); when the user names the next goal, change \`goal\` in
   \`trainctl.yaml\` → \`trainctl_diff\` → \`trainctl_plan\` — the new cycle starts

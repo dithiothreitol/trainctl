@@ -18,7 +18,8 @@ trainctl check
 `init --sports bike` i `init --sports swim` nie wymagają danych biegowych.
 Kreator zbiera profile, doświadczenie, sprzęt, basen, kalibrację, okna czasu i etapy celu.
 Wartości 90 min i 2 sesje w szablonie to przykładowe dane do edycji.
-Zwykłe `init` nadal tworzy profil dotychczasowego silnika biegowego v1.
+Zwykłe `init` (kreator, `--template`, `--from-intervals`) od 0.7 też zakłada profil v2:
+bieg z blokiem `running`, czyli z pełnym silnikiem biegowym (PLAN-v0.7 E3).
 
 Przykładowa konfiguracja v2:
 
@@ -215,8 +216,10 @@ Po migracji dodaj profil roweru/pływania do konfiguracji, następnie uruchom
 `plan`. Planowanie tych sportów działa obok dotychczasowego silnika biegowego.
 Nowy wynik w `athlete.sports.run.results` aktualizuje niechronione przyszłe biegi;
 oryginalny profil kilometrowy pozostaje w `athlete.sports.run.running`.
-Nowy profil v2 z `running.recentWeeklyKm` i wynikami również korzysta z pełnego
-silnika biegania. Sam profil minutowy pozwala tworzyć otwarte jednostki czasowe.
+Profil v2 z blokiem `running` korzysta z pełnego silnika biegania: strefy z wyniku
+albo z `goal.targetTimeSec`, a bez obu `plan` odmawia jak plan biegowy. Sam bieg
+nie ma budżetu czasu poza `time`; przy innych sportach budżetem biegu jest
+`weeklyMinutes`. Sam profil minutowy bez `running` tworzy otwarte jednostki czasowe.
 Budżet musi zmieścić sumę zadeklarowanych sesji. Nowy cel wymaga `plan --fresh`;
 historia i zatwierdzone sesje pozostają chronione. `--fresh` nie omija migracji.
 
@@ -230,13 +233,15 @@ przerwania procesu, nie awarii zasilania ani odporności każdego systemu plikó
 
 | Komenda | Zachowanie v2 |
 | --- | --- |
-| `today`, `week`, `why` | Sesje i sumy oddzielnie dla sportów, ID, powiązania i reguły |
+| `today`, `week` | Sesje i sumy oddzielnie dla sportów, ID, powiązania i reguły |
+| `why` | Dzień biegu: cel, dawka, RPE, kalibracja i reguły ze źródłami jak w planie biegowym; dzień z innym sportem: karta sesji i reguły |
 | `log --session ID` | Czas, `--meters` lub `--km`, RPE, notatka; opcjonalnie jawne `--activity ID1,ID2`; `--test-time` dla biegu testowego/startu |
 | `shift --session ID --to DATA` | Przenosi sesję, a zakładkę jako całą grupę; sprawdza kalendarz |
 | `shorten --session ID --minutes N` | Propozycja skrócenia; pływanie zachowuje pełne powtórzenia i przerwy |
 | `reschedule --block DATA --date DATA` | Propozycja rozstawienia tygodnia; `--time DATA=N`, `--pin ID`, `--preparation N --sport bike`, `--strategy long|quality`, `--apply ID` |
-| `adapt --prepare` | Osobna propozycja redukcji czasu dla sportu, wyłącznie z kompletnych danych |
-| `review` | Dziennik i aktywności; brak danych pozostaje nieznany, nie oznacza opuszczenia |
+| `adapt --prepare` | Sam bieg: analiza planu biegowego (P-1, P-3, kalibracja, blok powrotu B11) jako propozycja v2. Przy innych sportach: redukcja czasu dla sportu, wyłącznie z kompletnych danych |
+| `review` | Sam bieg: przegląd planu biegowego z okrążeniami i „Wobec celu”. Przy innych sportach: dziennik i aktywności; brak danych pozostaje nieznany |
+| `log --to DATA --reason R` | Przerwa w planie z samym biegiem: wpisy sesji z przyczyną, które czyta `adapt` |
 | `push`, `pull` | Typy Run/Ride/Swim, tożsamość sesji i zachowanie części plików multisportowych |
 | `export --what all` | FIT per sesja, kalendarz ICS i samodzielny HTML |
 | `check`, `diff`, `status` | Spójność kalendarza, porównanie `diff --plan PLIK`, ważność propozycji i stan sesji |
@@ -250,6 +255,28 @@ W terminalu dostępne są także `week --interactive` oraz wybór sesji w `log`,
 Dodatkowe zawody zapisuje się jako listę `tuneUpGoals`: struktura jak `goal`,
 z polem `priority: B` albo `C`, bez zmiany głównego celu A. Daty muszą być
 różne i nie późniejsze od głównego celu. Zakładka nie może przejąć etapu zawodów.
+
+## Parytet z planem biegowym (PLAN-v0.7 E2)
+
+Katalog v2 z samym biegiem (profil z blokiem `running`) robi to samo, co plan
+biegowy. Komendy analizy czytają widok planu biegowego: tygodnie i kalibrację
+z `legacy.generatorPlan`, dni z bieżących sesji, profil z profilu v2 i dziennik
+z wpisów sesji. Zmiany idą ścieżką v2: propozycja v2 i `--apply`. Dni
+przesunięte, skrócone albo zatwierdzone w v2 są chronione jak dni edytowane.
+
+| Funkcja | Zachowanie v2 | Test |
+| --- | --- | --- |
+| `reschedule` | Rozstawienie tygodnia na sesjach: zablokowane dni, budżety dnia, przypięcia, strategia | `running-view.test.ts` |
+| `adapt` | Ta sama analiza co plan biegowy: opuszczone sesje, objętość, rekalibracja, blok powrotu | `running-view.test.ts` |
+| `desk` | Te same okna dnia pracy co plan biegowy, z `--heavy` i podpowiedzią sekcji `desk` | `running-view.test.ts` |
+| `shorten` | Ta sama skrócona jednostka (E-1) co plan biegowy | `running-view.test.ts` |
+| pakiet startowy | Ten sam HTML pakietu startowego po migracji | `sports.test.ts` |
+| korekta cieplna | Tabela cieplna w tym samym pakiecie startowym | `sports.test.ts` |
+| predykcja | `plan` pokazuje szczyt objętości, VDOT i przedział predykcji z oceną celu | `running-view.test.ts` |
+| backtest | Ten sam silnik biegowy w core (`backtest.test.ts`, lokalny korpus) | `backtest.test.ts` |
+| kształt sezonu | Macierz B0: te same dni, jednostki, kilometry i sesje siły w v1 i v2 | `plan-shape-v2.test.ts` |
+
+Katalog z rowerem albo pływaniem zostaje przy komendach v2 opisanych wyżej.
 
 ## Granice obsługi i metodyki
 

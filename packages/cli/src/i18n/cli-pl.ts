@@ -1113,6 +1113,14 @@ export const cliPl: CliMessages = {
       section: 'wykonanie bez konta w intervals.icu (opcjonalnie)',
       files: 'katalog z eksportem plików FIT/TCX/GPX — czytają go trainctl pull i review',
     },
+    templateRun: {
+      weeklyMinutes: 'czas biegania w tygodniu do przeglądu; przy innych sportach budżet czasu biegu',
+      weeklyMinutesInferred: 'objętość tygodnia przy 6:00/km (szacunek inż.); popraw na swój czas',
+      sessionsPerWeek: 'przy innych sportach: biegi w tygodniu (silnik biegowy dobiera je z kilometrów)',
+      preparation: 'przygotowanie i dojazd na sesję, liczone w kalendarzu',
+      running: 'silnik biegowy: kilometry, strefy z wyników, reguły ze źródłami',
+      goalDistance: 'metry: 5000 / 10000 / 21097.5 / 42195',
+    },
     templateStrength: {
       section: 'siła 2×/tydz. obok biegania (opt-in; wymaga ciężarów)',
       enabled: 'cel: ekonomia biegu (F-8) — NIE „ochrona przed urazami” (F-9)',
@@ -1408,14 +1416,16 @@ Ten katalog to plan treningowy jako kod. Masz narzędzia MCP \`trainctl_*\`
   Zdania „Wobec celu” to fakty z okrążeń i tempa, nie oceny: okrążenia automatyczne
   dają „brak okrążeń pasujących do planu”, tętna nie oceniamy, a podpowiedź
   kalibracji to propozycja świeżego wyniku (start kontrolny albo sprawdzian) —
-  strefy zmienia dopiero wpis w \`athlete.results\`.
+  strefy zmienia dopiero wynik w profilu: \`athlete.sports.run.results\`
+  (w profilu planu biegowego \`athlete.results\`).
 - **Coś się nie zgadza** (propozycja nie chce się zastosować, brakuje danych,
   plan wygląda dziwnie) → najpierw \`trainctl_status\`: profil, wersja silnika,
   klucz, ostatni pull, propozycje z ważnością, niezacommitowane pliki.
 - **Przed każdą zmianą w tygodniu** → najpierw \`trainctl_week\`, żeby zobaczyć kontekst.
   „Przesuń interwały” bez spojrzenia na tydzień to zgadywanie.
 - **Po starcie albo sprawdzianie** → dopytaj o czas i zaproponuj wpis do
-  \`athlete.results\`. Pomiar bez wpisanego wyniku niczego nie zmienia — strefy
+  \`athlete.sports.run.results\` (w profilu planu biegowego \`athlete.results\`).
+  Pomiar bez wpisanego wyniku niczego nie zmienia — strefy
   dalej liczą się ze starego biegu. Po starcie docelowym plan idzie dalej tygodniami
   przejściowymi (R-8); gdy użytkownik poda następny cel, zmień \`goal\`
   w \`trainctl.yaml\` → \`trainctl_diff\` → \`trainctl_plan\` — nowy cykl zaczyna się

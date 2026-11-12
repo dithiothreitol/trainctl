@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { expect, it, vi } from 'vitest'
@@ -12,7 +12,18 @@ it('refuses an actual-sport journal entry in v1 through MCP',async()=>{
   const [ct,st]=InMemoryTransport.createLinkedPair()
   try {
     await Promise.all([server.connect(st),client.connect(ct)])
-    expect((await client.callTool({name:'trainctl_init',arguments:{}})).isError).not.toBe(true)
+    // profil planu biegowego (v1) jawnie: `trainctl_init` zakłada profil v2 (E3)
+    writeFileSync(join(dir,'trainctl.yaml'),`athlete:
+  recentWeeklyKm: 30
+  daysAvailable: [tue, thu, sun]
+  results:
+    - { date: "2026-09-01", distanceKm: 10, timeSec: 3000 }
+goal:
+  kind: base
+  name: Base
+  date: "2026-12-27"
+  distanceKm: 0
+`)
     const response=await client.callTool({name:'trainctl_log',arguments:{actualSport:'bike',minutes:40}})
     expect(response.isError).toBe(true)
     expect(JSON.stringify(response.content)).toContain('migrate')

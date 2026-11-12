@@ -1,5 +1,5 @@
 /** Adapter: the established running engine remains authoritative after migration. */
-import { attachRunningCoaching, estimateWorkoutMinutes, predictTimeSec, runningEffort, runningSteps, type PlannedWorkout, type SportsConfig, type SportsPlan, type TrainingSession } from 'trainctl-core'
+import { attachRunningCoaching, estimateWorkoutMinutes, predictTimeSec, runningEffort, runningSteps, type AthleteProfile, type PlannedWorkout, type SportsConfig, type SportsPlan, type TrainingSession, type Weekday } from 'trainctl-core'
 import { computePlan, dayFingerprint, workoutText, type StoredPlan } from './planfile.ts'
 import type { TrainctlConfig } from './config.ts'
 import { rebuildPlan } from './regenerate.ts'
@@ -33,19 +33,45 @@ export function runningSessions(plan: StoredPlan, cycleId: string): TrainingSess
   })))
 }
 
-/** Profil planu biegowego z profilu v2: ten sam dla regeneracji i dla widoku (E4). */
-export function runningConfig(existing: SportsPlan, config: SportsConfig): TrainctlConfig {
+/**
+ * Ścieżki pól profilu planu biegowego w komunikatach silnika i komend → ścieżki profilu v2
+ * (E3, E4): „wpisz wynik do athlete.results" w katalogu v2 wskazuje athlete.sports.run.results.
+ */
+export function sportsProfilePaths(text: string): string {
+  return text
+    .replace(/\bathlete\.(results|daysAvailable)\b/g, 'athlete.sports.run.$1')
+    .replace(/\bathlete\.(recentWeeklyKm|peakWeeklyKm|longRunDay|tuneUpRaces|returning|hrMax|sex)\b/g, 'athlete.sports.run.running.$1')
+}
+
+/** Dni bez `daysAvailable` w profilu v2 — jak dotąd w pierwszym planie z profilu v2 (E-3, inż.). */
+const DEFAULT_RUNNING_DAYS: Weekday[] = ['mon', 'wed', 'fri', 'sun']
+
+/**
+ * Profil planu biegowego z profilu v2 — jeden dla pierwszego planu, regeneracji i widoku
+ * (E3, E4). Pola profilu v2 wygrywają; profil sprzed migracji (`legacy.config`) uzupełnia
+ * to, czego profil v2 nie ma.
+ */
+export function runningConfig(config: SportsConfig, legacy?: TrainctlConfig): TrainctlConfig {
   const profile = config.athlete.sports.run!
-  const original = existing.legacy!.config as TrainctlConfig
-  const running: TrainctlConfig = structuredClone(original)
-  running.athlete = { ...running.athlete, ...profile.running,
-    results: profile.results ?? original.athlete.results,
-    daysAvailable: profile.daysAvailable ?? original.athlete.daysAvailable,
-  }
-  if (config.goal.kind === 'race' && config.goal.sport === 'run') running.goal = { ...running.goal, kind: 'race', date: config.goal.date, name: config.goal.name, distanceKm: config.goal.distanceM! / 1000 }
-  else running.goal = { kind: 'base', date: config.goal.date, name: config.goal.name, distanceKm: 0, priority: 'A' }
+  const { strength, ...athlete } = profile.running ?? {}
+  const base = legacy ? structuredClone(legacy) : undefined
+  const running = { ...base } as TrainctlConfig
+  running.athlete = { ...base?.athlete, ...athlete,
+    results: profile.results ?? base?.athlete.results ?? [],
+    daysAvailable: profile.daysAvailable ?? base?.athlete.daysAvailable ?? DEFAULT_RUNNING_DAYS,
+  } as AthleteProfile
+  const g = config.goal
+  if (g.kind === 'race' && g.sport === 'run') {
+    const targetTimeSec = g.targetTimeSec ?? base?.goal.targetTimeSec
+    running.goal = { ...(base?.goal ?? { priority: 'A' as const }), kind: 'race', date: g.date, name: g.name, distanceKm: g.distanceM! / 1000, ...(targetTimeSec ? { targetTimeSec } : {}) }
+  } else running.goal = { kind: 'base', date: g.date, name: g.name, distanceKm: 0, priority: 'A' }
+  if (strength) running.strength = strength
+  if (config.desk) running.desk = config.desk
+  if (config.sync) running.sync = config.sync
+  if (config.language) running.language = config.language
   // Running has its own training allocation; shared occupied-time constraints are
-  // checked after composition with cycling/swimming (never spent twice).
+  // checked after composition with cycling/swimming (never spent twice). Sam bieg ma
+  // budżet czasu planu biegowego (`time`, E-2) albo żaden — jak plan biegowy (E3, B0).
   if (Object.keys(config.athlete.sports).length > 1) running.time = { weeklyMinutes: profile.weeklyMinutes + (profile.preparationMinutes ?? 15) * profile.sessionsPerWeek }
   else if (config.time) running.time = config.time
   return running
@@ -53,7 +79,7 @@ export function runningConfig(existing: SportsPlan, config: SportsConfig): Train
 
 export function regenerateRunning(existing: SportsPlan, config: SportsConfig, today: string, fixed: Set<string>, cycleId = existing.cycleId): { sessions: TrainingSession[]; generatorPlan: StoredPlan } | undefined {
   if (!existing.legacy || !config.athlete.sports.run) return undefined
-  const running = runningConfig(existing, config)
+  const running = runningConfig(config, existing.legacy.config as TrainctlConfig)
   const old = (existing.legacy.generatorPlan ?? existing.legacy.plan) as StoredPlan
   const retired = new Set(existing.retiredSessionIds ?? [])
   const recorded = new Set([...existing.sessions, ...existing.archive].filter(s => fixed.has(s.id) || existing.archive.some(a => a.id === s.id && !retired.has(a.id))).map(s => {
@@ -65,15 +91,13 @@ export function regenerateRunning(existing: SportsPlan, config: SportsConfig, to
   return { sessions: runningSessions(rebuilt, cycleId), generatorPlan: rebuilt }
 }
 
-/** New v2 profiles can opt into the full running engine with an actual running baseline/result. */
+/** Profil v2 z blokiem `running` dostaje pełny silnik biegowy (E3). */
 export function initialRunning(config: SportsConfig, from: string, cycleId: string): { sessions: TrainingSession[]; legacy: NonNullable<SportsPlan['legacy']> } | undefined {
   const p = config.athlete.sports.run
-  if (!p?.running || !p.results?.length) return undefined
-  const goal: TrainctlConfig['goal'] = config.goal.kind === 'race' && config.goal.sport === 'run'
-    ? {kind:'race',date:config.goal.date,name:config.goal.name,distanceKm:config.goal.distanceM!/1000,priority:'A'}
-    : {kind:'base',date:config.goal.date,name:config.goal.name,distanceKm:0,priority:'A'}
-  const running: TrainctlConfig = { athlete:{...p.running,results:p.results,daysAvailable:p.daysAvailable ?? ['mon','wed','fri','sun']},goal,
-    time:{weeklyMinutes:p.weeklyMinutes+(p.preparationMinutes??15)*p.sessionsPerWeek},...(config.language?{language:config.language}:{}) }
+  // E3: blok `running` to silnik biegowy, jak profil planu biegowego — strefy z wyniku albo
+  // z czasu docelowego; bez obu plan biegowy odmawia z tym samym komunikatem
+  if (!p?.running) return undefined
+  const running = runningConfig(config)
   const plan=computePlan(running,from,from)
   return {sessions:runningSessions(plan,cycleId),legacy:{plan,config:running,cycleId,generatorPlan:plan}}
 }

@@ -371,5 +371,105 @@ export function writeConfigTemplate(cwd: string, content?: string): void {
   if (existsSync(path)) {
     throw new Error(ui().init.exists(CONFIG_FILE))
   }
-  writeFileSync(path, content ?? configTemplate(), 'utf-8')
+  // E3: nowy katalog zakłada profil v2; profil planu biegowego czytają dalej czytniki v1 i `migrate`
+  writeFileSync(path, content ?? sportsConfigTemplate(), 'utf-8')
+}
+
+/**
+ * E3: szablon profilu v2 dla biegu z silnikiem biegowym — te same pola i komentarze co
+ * profil planu biegowego, w układzie `athlete.sports.run` (pola silnika w `running`).
+ */
+export function sportsConfigTemplate(): string {
+  const t = ui().configFile
+  const r = t.templateRun
+  const locale = getLocale()
+  return [
+    ...t.templateHeader,
+    'schemaVersion: 2',
+    locale === DEFAULT_LOCALE ? pad('# language: pl', t.templateLanguage) : pad(`language: ${locale}`, t.templateLanguage),
+    pad('# units: metric', t.templateUnits),
+    pad('# notation: neutral', t.templateNotation),
+    'athlete:',
+    '  sports:',
+    '    run:',
+    pad('      weeklyMinutes: 270', r.weeklyMinutes),
+    pad('      sessionsPerWeek: 5', r.sessionsPerWeek),
+    '      daysAvailable: [tue, wed, thu, sat, sun]',
+    pad('      preparationMinutes: 15', r.preparation),
+    pad('      results:', t.templateAthlete.results),
+    `        - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "${t.templateAthlete.exampleResultName}" }`,
+    pad('      running:', r.running),
+    pad('        sex: unspecified', t.templateAthlete.sex),
+    pad('        # hrMax: { bpm: 190, measured: true }', t.templateAthlete.hrMax),
+    pad('        recentWeeklyKm: 45', t.templateAthlete.recentWeeklyKm),
+    pad('        peakWeeklyKm: 65', t.templateAthlete.peakWeeklyKm),
+    pad('        # returning: { since: "2026-10-01", previousWeeklyKm: 45 }', t.templateAthlete.returning),
+    '        longRunDay: sat',
+    pad('        tuneUpRaces:', t.templateAthlete.tuneUpRaces),
+    `          []                # - { date: "2026-09-19", distanceKm: 10, name: "${t.templateAthlete.tuneUpExampleName}", priority: B }`,
+    pad('        # strength:', t.templateStrength.section),
+    pad('        #   enabled: true', t.templateStrength.enabled),
+    pad('        #   days: [mon, fri]', t.templateStrength.days),
+    'goal:',
+    '  kind: race',
+    '  sport: run',
+    `  name: "${t.templateGoal.name}"`,
+    '  date: "2026-11-29"',
+    pad('  distanceM: 21097.5', r.goalDistance),
+    pad('  # targetTimeSec: 5700', t.templateGoal.targetTime),
+    pad('desk:', t.templateDesk),
+    '  workStart: "09:00"',
+    '  workEnd: "17:00"',
+    '  lunchMinutes: 45',
+    pad('  prefer: evening', t.templateDeskPrefer),
+    pad('# time:', t.templateTime.section),
+    pad('#   weeklyMinutes: 300', t.templateTime.weekly),
+    pad('#   weekdayMinutes: 60', t.templateTime.weekday),
+    pad('#   weekendMinutes: 120', t.templateTime.weekend),
+    pad('# sync:', t.templateSync.section),
+    pad('#   files: ./activities', t.templateSync.files),
+    '',
+  ].join('\n')
+}
+
+/**
+ * E3: profil v2 z historii intervals.icu (ADR-019) — wartości z komentarzem proweniencji,
+ * cel jako jawne placeholdery: walidacja nie przepuści pliku bez prawdziwego celu.
+ */
+export function inferredSportsYaml(p: InferredProfile): string {
+  const t = ui().configFile
+  const r = t.templateRun
+  const locale = getLocale()
+  const days = p.daysAvailable.length
+  return [
+    ...t.inferredHeader(p.window.oldest, p.window.newest),
+    'schemaVersion: 2',
+    ...(locale === DEFAULT_LOCALE ? [] : [`language: ${locale}`]),
+    'athlete:',
+    '  sports:',
+    '    run:',
+    // minuty tygodnia z objętości przy 6:00/km (E-3, inż.); walidacja v2 wymaga ≥ 5 min na sesję
+    pad(`      weeklyMinutes: ${Math.max(10, 5 * days, Math.round(p.recentWeeklyKm * 6))}`, r.weeklyMinutesInferred),
+    pad(`      sessionsPerWeek: ${days}`, r.sessionsPerWeek),
+    pad(`      daysAvailable: [${p.daysAvailable.join(', ')}]`, t.inferredDays),
+    pad('      preparationMinutes: 15', r.preparation),
+    pad('      results:', t.inferredResults),
+    pad('        []', t.inferredResultsWhy),
+    pad('      running:', r.running),
+    pad(`        recentWeeklyKm: ${p.recentWeeklyKm}`, p.recentBasis),
+    ...(p.peakWeeklyKm !== undefined ? [pad(`        peakWeeklyKm: ${p.peakWeeklyKm}`, t.inferredPeak)] : []),
+    ...(p.returning
+      ? [pad(`        returning: { since: "${p.returning.since}", previousWeeklyKm: ${p.returning.previousWeeklyKm} }`, t.inferredReturning)]
+      : []),
+    ...(p.longRunDay ? [pad(`        longRunDay: ${p.longRunDay}`, t.inferredLongRun)] : []),
+    // C8: najwyższe tętno z historii jako szacunek HRmax — pułap wymaga też płci (N-13)
+    ...(p.hrMax ? [pad(`        hrMax: { bpm: ${p.hrMax.bpm}, measured: false }`, t.inferredHrMax(p.hrMax.date)), pad('        sex: unspecified', t.templateAthlete.sex)] : []),
+    pad('goal:', t.inferredGoal),
+    '  kind: race',
+    '  sport: run',
+    `  name: "${t.inferredGoalName}"`,
+    pad(`  date: "${ui().wizard.hintDate}"`, t.inferredGoalDate),
+    pad('  distanceM: 0', r.goalDistance),
+    '',
+  ].join('\n')
 }

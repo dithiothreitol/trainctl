@@ -13,7 +13,13 @@ export interface SportProfile {
   preparationMinutes?: number
   easyPaceSecPerKm?: number
   results?: RaceResult[]
-  running?: Pick<AthleteProfile, 'recentWeeklyKm' | 'peakWeeklyKm' | 'longRunDay' | 'tuneUpRaces'>
+  /**
+   * Profil silnika biegowego (E3): objętość, płeć i HRmax pułapu tętna (C8), powrót po
+   * przerwie (B11) i siła jako osobny tor planu biegowego (ADR-023).
+   */
+  running?: Pick<AthleteProfile, 'recentWeeklyKm' | 'peakWeeklyKm' | 'longRunDay' | 'tuneUpRaces' | 'sex' | 'hrMax' | 'returning'> & {
+    strength?: { enabled: boolean; days?: Weekday[] }
+  }
   ftpWatts?: number
   cssSecPer100m?: number
   poolLengthM?: number
@@ -34,7 +40,10 @@ export interface SportGoal {
   date: string
   sport?: EnduranceSport
   distanceM?: number
+  /** Bieg z silnikiem biegowym go nie wymaga: czas startu podaje predykcja (E3). */
   estimatedMinutes?: number
+  /** Czas docelowy startu biegowego: porównanie z predykcją, strefy bez wyniku (planu biegowego). */
+  targetTimeSec?: number
   legs?: { id: string; sport: EnduranceSport; distanceM: number; estimatedMinutes?: number }[]
   /** Ordered transitions between legs (e.g. T1, T2), in seconds. */
   transitionsSec?: number[]

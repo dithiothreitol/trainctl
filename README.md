@@ -303,35 +303,43 @@ date.
 `trainctl init --template` writes it with comments; every key it supports:
 
 ```yaml
+schemaVersion: 2
 # language: pl              # interface and plan language: en | pl (default: en)
 # units: imperial           # miles and pace per mile in views; files stay in km (default: metric)
 # notation: club            # Polish club codes (OWB1, WT, BNP…) in Polish output (default: neutral)
 athlete:
-  sex: unspecified          # male | female | unspecified (the heart-rate ceiling needs it)
-  # hrMax: { bpm: 190, measured: true }  # adds a heart-rate ceiling to easy and long runs; pace stays the target
-  recentWeeklyKm: 45        # average of the last ~4 weeks
-  peakWeeklyKm: 65          # highest volume you have held (optional)
-  # returning: { since: "2026-10-01", previousWeeklyKm: 45 }  # after 2+ weeks off: restart at about half (R-11)
-  daysAvailable: [tue, wed, thu, sat, sun]
-  longRunDay: sat
-  results:                  # zone calibration — from races, not from a watch
-    - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "Spring 10K" }
-  tuneUpRaces:              # races on the way: B = mini-taper, C = run through
-    - { date: "2026-09-19", distanceKm: 10, name: "Autumn 10K", priority: B }
+  sports:
+    run:
+      weeklyMinutes: 270    # running time per week for the overview; with other sports, the running budget
+      sessionsPerWeek: 5    # with other sports: runs per week (the running engine picks them from kilometres)
+      daysAvailable: [tue, wed, thu, sat, sun]
+      preparationMinutes: 15  # getting ready and travel, counted in the calendar
+      results:              # zone calibration — from races, not from a watch
+        - { date: "2026-03-29", distanceKm: 10, timeSec: 2580, name: "Spring 10K" }
+      running:              # the running engine: kilometres, zones, rules with sources
+        sex: unspecified    # male | female | unspecified (the heart-rate ceiling needs it)
+        # hrMax: { bpm: 190, measured: true }  # adds a heart-rate ceiling to easy and long runs; pace stays the target
+        recentWeeklyKm: 45  # average of the last ~4 weeks
+        peakWeeklyKm: 65    # highest volume you have held (optional)
+        # returning: { since: "2026-10-01", previousWeeklyKm: 45 }  # after 2+ weeks off: restart at about half (R-11)
+        longRunDay: sat
+        tuneUpRaces:        # races on the way: B = mini-taper, C = run through
+          - { date: "2026-09-19", distanceKm: 10, name: "Autumn 10K", priority: B }
+        strength:           # optional strength track, 2×/week
+          enabled: true
+          days: [mon, fri]  # optional preference
 goal:
+  kind: race
+  sport: run
   name: "Half marathon"
   date: "2026-11-29"
-  distanceKm: 21.0975
-  priority: A
+  distanceM: 21097.5        # metres: 5000 / 10000 / 21097.5 / 42195
   targetTimeSec: 5700       # optional — plan will judge how realistic it is
 desk:                       # for trainctl desk (optional)
   workStart: "09:00"
   workEnd: "17:00"
   lunchMinutes: 45
   prefer: evening           # morning | lunch | evening
-strength:                   # optional strength track, 2×/week
-  enabled: true
-  days: [mon, fri]          # optional preference
 time:                       # optional: the minutes you actually have, preparation included
   weeklyMinutes: 300        # volume levels off at what fits (E-2)
   weekdayMinutes: 60        # longer sessions are shortened, with the trade-off shown (E-1)
@@ -339,6 +347,14 @@ time:                       # optional: the minutes you actually have, preparati
 sync:
   files: ./activities       # optional: exported FIT/TCX/GPX instead of intervals.icu
 ```
+
+This is the session-plan layout (schema 2), which `init` writes since 0.7. A
+running-plan profile from earlier versions (`athlete.recentWeeklyKm`,
+`athlete.results`, `goal.distanceKm`) still works; `trainctl migrate --prepare`
+moves it to this layout with every field and keeps the originals. The examples
+below use the shorter running-plan keys; in this layout they sit under
+`athlete.sports.run` (`results`, `daysAvailable`) and `athlete.sports.run.running`
+(the rest).
 
 No race to train for? Use a base plan instead of `goal` with a date and
 distance — no taper, no prediction, volume grows to your peak and levels off (P-11):

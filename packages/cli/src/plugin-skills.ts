@@ -57,7 +57,7 @@ export function pluginSkills(): Skill[] {
    Record it with \`trainctl_log\` (\`km\`, \`time\`, \`rpe\`, \`note\`; \`testTime\` only for the measured segment of a race or time trial).
 4. When the feeling clashes with the session's role (an easy run described as "barely alive"), ask one question about
    sleep, work or life — do not draw conclusions from a single entry and do not change the plan.
-5. After a race or a time trial, ask for the result and propose an \`athlete.results\` entry; zones come from it.
+5. After a race or a time trial, ask for the result and propose an \`athlete.sports.run.results\` entry (\`athlete.results\` in a running-plan profile); zones come from it.
 `,
     },
     {

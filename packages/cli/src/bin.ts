@@ -9,7 +9,7 @@ import { resolve } from 'node:path'
 import { Command, InvalidArgumentError, Option } from 'commander'
 import { isUnits, resolveLocale, setLocale, setNotation, setUnits, sportMessages } from 'trainctl-core'
 import { runSportsPicker, runSportsWeekBrowser, runSportsWizard } from './sports-interactive.ts'
-import { isSportsWorkspace } from './sports-store.ts'
+import { isSportsWorkspace, sportsYamlFromRunning } from './sports-store.ts'
 import { readConfigLanguage, readConfigNotation, readConfigUnits } from './config.ts'
 import { loadEnvFile, ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
@@ -258,7 +258,8 @@ commitOption(
       { label: 'Claude Code + Codex', value: 'all' },
       { label: ui().init.agentNone, value: 'none' },
     ], theme)
-    print(cmdInit(cwd, toYaml(answers), { commit: opts.commit, agent: agent === 'none' ? undefined : agent }))
+    // E3: kreator zapisuje profil v2 (te same odpowiedzi w układzie athlete.sports.run)
+    print(cmdInit(cwd, sportsYamlFromRunning(toYaml(answers)), { commit: opts.commit, agent: agent === 'none' ? undefined : agent }))
   } catch (e) {
     // Ctrl+C w kreatorze nie powinno zostawiać stack trace'u
     console.log(theme.dim(`\n${ui().common.interrupted}`))

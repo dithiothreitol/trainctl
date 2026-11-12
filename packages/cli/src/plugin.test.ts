@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
 import { cmdInit, cmdPlan, cmdRules, pluginSkills, renderSkill } from './commands.ts'
+import { configTemplate } from './config.ts'
 import { PLAN_YAML } from './planfile.ts'
 // @ts-expect-error — skrypty hooków to czysty JS bez deklaracji typów
 import { feedback, trainingDirOf, TRAINCTL_VERSION } from '../../../plugin/scripts/check-plan.mjs'
@@ -146,7 +147,8 @@ describe('hooki', () => {
   })
 
   it('PostToolUse end-to-end na lokalnej binarce: połamany plan → kod 2 z opisem', () => {
-    cmdInit(dir)
+    // plan biegowy (v1) jawnie: `init` bez treści zakłada profil v2 (E3)
+    cmdInit(dir, configTemplate())
     expect(cmdPlan(dir, { date: '2026-08-08' }).code).toBe(0)
     const hook = (filePath: string) => spawnSync(process.execPath, [join(ROOT, 'plugin/scripts/check-plan.mjs')], {
       input: JSON.stringify({ hook_event_name: 'PostToolUse', tool_name: 'Edit', tool_input: { file_path: filePath } }),

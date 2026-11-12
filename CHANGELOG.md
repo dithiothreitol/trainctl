@@ -26,7 +26,19 @@ change between minor versions — a regenerated plan can differ.
 - In the same workspace `log --to … --reason …` records a break as session
   entries, so `adapt` proposes the return block after illness or a layoff
   (B11), and `plan` shows the peak volume, VDOT and the race prediction of the
-  running engine (PLAN-v0.7 E2).
+  running engine (PLAN-v0.7 E2). `desk` gives the running plan's work-day
+  windows, with `--heavy`.
+- `trainctl init` writes the session-plan profile (schema 2) by default: the
+  template, the wizard and `--from-intervals`. A running profile with the
+  `running` block uses the full running engine; with running alone the time
+  budget comes only from `time`, as in the running plan. The profile now holds
+  every running-plan field (sex, HRmax, return after a break, strength, target
+  time), and `migrate` carries them over. Running-plan profiles keep working
+  (PLAN-v0.7 E3). A season from the B0 matrix has the same days, sessions and
+  kilometres in both schemas.
+- `plan` in a session-plan workspace refreshes the running engine's feasibility
+  warnings each time, and messages there name the session-plan fields
+  (`athlete.sports.run.results` instead of `athlete.results`).
 
 - The running engine lays out weeks differently, so the first `trainctl plan`
   after updating rewrites future days of an existing plan. Past, logged,
@@ -341,6 +353,9 @@ change between minor versions — a regenerated plan can differ.
 
 ### Fixed
 
+- A session plan created from a running profile was written with YAML aliases,
+  and a long plan then failed to load ("Excessive alias count"). Plans are now
+  written without aliases, and such files load again.
 - `review`: the day-by-day execution table is headed Plan / Actual / Status
   instead of reusing the before/after labels of plan changes; the days-to-race
   line no longer repeats its label.

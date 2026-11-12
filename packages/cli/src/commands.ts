@@ -56,7 +56,7 @@ import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
 import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, perWeekLabel, shownKm, workoutKm } from './format.ts'
-import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
+import { inferredSportsYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, latestByDate, LOG_LIMITS, parseBreakReason, parseTime, readJournal, readLog, readLogForChanges, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
   blockLevelOf,
@@ -242,7 +242,8 @@ export async function cmdInitFromIntervals(
     const outcome = await fetchInferredProfile(cwd, today, factory)
     if (!outcome.ok) return fail(new Error(outcome.reason))
     const p = outcome.profile
-    const initialized = cmdInit(cwd, inferredConfigYaml(p), { agent: opts.agent, commit: opts.commit })
+    // E3: profil v2 z tymi samymi wartościami i komentarzami proweniencji
+    const initialized = cmdInit(cwd, inferredSportsYaml(p), { agent: opts.agent, commit: opts.commit })
     if (initialized.code !== 0) return initialized
 
     const recent4 = p.weeklyKm.slice(-4).map((w) => w.km)
@@ -1344,7 +1345,12 @@ export function cmdDesk(
   cwd: string,
   opts: { date?: string | undefined; heavy?: boolean | undefined } = {},
 ): CmdResult {
-  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'desk', opts)
+  // E2: plan biegowy w katalogu v2 — okna dnia pracy dla biegu tak jak w planie biegowym (z --heavy)
+  if (isSportsWorkspace(cwd)) return onRunningView(cwd, () => deskImpl(cwd, opts)) ?? sportsCommand(cwd, 'desk', opts)
+  return deskImpl(cwd, opts)
+}
+
+function deskImpl(cwd: string, opts: { date?: string | undefined; heavy?: boolean | undefined }): CmdResult {
   try {
     const date = opts.date ?? localToday()
     const config = loadConfig(cwd)

@@ -10,7 +10,7 @@ import {
 } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 import { rowsTable, seasonTable, sessionRows, sessionsSeasonRows, tableMarkdown } from './ui/rows.ts'
-import { CONFIG_FILE, inProfileView, loadConfig } from './config.ts'
+import { CONFIG_FILE, inProfileView, loadConfig, validateConfig, type TrainctlConfig } from './config.ts'
 import { PLAN_YAML, PLAN_MD, loadPlan, workoutText } from './planfile.ts'
 import { LOG_FILE } from './logfile.ts'
 import { SYNC_FILE } from './sync.ts'
@@ -22,6 +22,12 @@ import { recoverSportsTransaction, writeTransaction } from './sports-transaction
 export { writeTransaction, recoverSportsTransaction } from './sports-transaction.ts'
 
 export const fingerprint = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex')
+/**
+ * plan.yaml zapisany przed E3 mógł mieć aliasy YAML (wspólny `legacy.plan` i `generatorPlan`);
+ * długi plan przekraczał domyślny limit 100 aliasów parsera. Limit odczytu to wybór inżynierski:
+ * plik z katalogu użytkownika, a zapis od E3 aliasów już nie ma.
+ */
+const PLAN_PARSE = { maxAliasCount: 10_000 }
 export const readOptional = (cwd: string, path: string): string | null => existsSync(join(cwd, path)) ? readFileSync(join(cwd, path), 'utf8') : null
 export function isSportsWorkspace(cwd: string): boolean {
   recoverSportsTransaction(cwd)
@@ -29,7 +35,7 @@ export function isSportsWorkspace(cwd: string): boolean {
   for (const file of [PLAN_YAML, CONFIG_FILE]) {
     const text = readOptional(cwd, file)
     if (file === CONFIG_FILE && text && /^schemaVersion:\s*(?:[2-9]|\d{2,})\s*$/m.test(text)) return true
-    try { const raw = text ? parse(text) : undefined; if (raw?.schemaVersion >= 2 && (file === CONFIG_FILE || Array.isArray(raw.sessions))) return true } catch { /* reported by loader */ }
+    try { const raw = text ? parse(text, PLAN_PARSE) : undefined; if (raw?.schemaVersion >= 2 && (file === CONFIG_FILE || Array.isArray(raw.sessions))) return true } catch { /* reported by loader */ }
   }
   return false
 }
@@ -37,7 +43,7 @@ export const loadSportsConfig = (cwd: string): SportsConfig => validateSportsCon
 export function loadSportsPlan(cwd: string): SportsPlan {
   const text = readOptional(cwd, PLAN_YAML)
   if (!text) throw new Error(msg().noPlan)
-  const p = parse(text) as SportsPlan
+  const p = parse(text, PLAN_PARSE) as SportsPlan
   if (p?.schemaVersion !== 2) throw new Error(msg().migrate)
   const issues = validateSportsPlan(p)
   if (issues.length) throw new Error(issues.join('\n'))
@@ -78,9 +84,13 @@ export function sportsMarkdown(p: SportsPlan): string {
   if (p.replacements.length) lines.push('', `## ${m.changes}`, '', ...p.replacements.map(x => '- ' + x.sourceId + ' → ' + x.targetId + ': ' + x.tradeoffs.join(' ')))
   return lines.join('\n') + '\n'
 }
-/** PLAN.md w jednostce i zapisie z profilu katalogu (C9, C10), nie z flagi jednego wywołania. */
+/**
+ * PLAN.md w jednostce i zapisie z profilu katalogu (C9, C10), nie z flagi jednego wywołania.
+ * plan.yaml bez aliasów YAML, jak plan biegowy: `legacy.plan` i `generatorPlan` bywają tym
+ * samym obiektem, a przy długim planie liczba aliasów przekracza limit parsera (E3, B0).
+ */
 export const planFiles = (p: SportsPlan, cwd: string): Record<string, string> =>
-  ({ [PLAN_YAML]: stringify(p), [PLAN_MD]: inProfileView(cwd, () => sportsMarkdown(p)) })
+  ({ [PLAN_YAML]: stringify(p, { aliasDuplicateObjects: false }), [PLAN_MD]: inProfileView(cwd, () => sportsMarkdown(p)) })
 export function writeSportsPlan(cwd: string, p: SportsPlan): void {
   const issues = validateSportsPlan(p)
   if (issues.length) throw new Error(issues.join('\n'))
@@ -122,6 +132,41 @@ export function sportsTemplate(sports: string, today = clockToday()): string {
   return stringify(config)
 }
 
+/**
+ * Profil v2 z profilu planu biegowego — migracja i kreator `init` (E3). Każde pole planu
+ * biegowego ma miejsce w v2: objętość, płeć, HRmax, powrót i siła w `running`, czas
+ * docelowy w celu. `weeklyMinutes` to szacunek do przeglądu (biegu sam nie ogranicza).
+ */
+export function sportsConfigFromRunning(c: TrainctlConfig, o: { weeklyMinutes: number; preparationMinutes?: number; estimatedMinutes?: number; language?: string | undefined }): SportsConfig {
+  const { daysAvailable, results, ...athlete } = c.athlete
+  const g = c.goal
+  const goal: SportsConfig['goal'] = g.kind === 'base' ? { kind: 'base', date: g.date, name: g.name }
+    : { kind: 'race', date: g.date, name: g.name, sport: 'run', distanceM: g.distanceKm * 1000,
+      ...(o.estimatedMinutes ? { estimatedMinutes: o.estimatedMinutes } : {}), ...(g.targetTimeSec ? { targetTimeSec: g.targetTimeSec } : {}) }
+  return validateSportsConfig({ schemaVersion: 2, ...(o.language ? { language: o.language } : {}),
+    ...(c.units ? { units: c.units } : {}), ...(c.notation ? { notation: c.notation } : {}),
+    athlete: { sports: { run: {
+      // walidacja v2: co najmniej 5 minut na sesję
+      weeklyMinutes: Math.max(10, 5 * daysAvailable.length, Math.round(o.weeklyMinutes)), sessionsPerWeek: daysAvailable.length,
+      daysAvailable, results, preparationMinutes: o.preparationMinutes ?? 15,
+      running: { ...athlete, ...(c.strength ? { strength: c.strength } : {}) },
+    } } },
+    goal, ...(c.time ? { time: c.time } : {}), ...(c.sync ? { sync: c.sync } : {}), ...(c.desk ? { desk: c.desk } : {}) })
+}
+
+/** E3: profil z kreatora `init` (układ planu biegowego) zapisany jako profil v2; błędny zostaje bez zmian. */
+export function sportsYamlFromRunning(text: string): string {
+  try {
+    const raw = parse(text) as { language?: string } | null
+    const c = validateConfig(raw)
+    // minuty tygodnia z objętości przy 6:00/km (E-3, inż.), jak przy migracji bez planu
+    const config = sportsConfigFromRunning(c, { weeklyMinutes: c.athlete.recentWeeklyKm * 6, language: raw?.language })
+    return [ui().configFile.generatedByWizard, stringify(config)].join('\n')
+  } catch {
+    return text
+  }
+}
+
 export function migrationCandidate(cwd: string): { plan: SportsPlan; config: SportsConfig; log: string } {
   const old = loadPlan(cwd), configV1 = loadConfig(cwd), rawConfig = parse(readFileSync(join(cwd, CONFIG_FILE), 'utf8'))
   const id = randomUUID(), cycleId = `c-${id.slice(0, 8)}`
@@ -130,17 +175,18 @@ export function migrationCandidate(cwd: string): { plan: SportsPlan; config: Spo
   plan.sessions = runningSessions(old, cycleId)
   plan.generatedSessions = Object.fromEntries(plan.sessions.map(s => [s.id, fingerprint(s)]))
   const weekly = old.weeks.map(w => plan.sessions.filter(s => s.sport === 'run' && mondayOf(s.date) === w.weekStart).reduce((n, s) => n + s.durationSec / 60, 0)).filter(n => n > 0)
-  // C9, C10: jednostka i zapis notacji przechodzą z profilu — bez nich widoki v2 wróciłyby do km i skrótów neutralnych
-  const config: SportsConfig = { schemaVersion: 2, ...(rawConfig.language ? { language: rawConfig.language } : {}),
-    ...(isUnits(rawConfig.units) ? { units: rawConfig.units } : {}), ...(isNotationStyle(rawConfig.notation) ? { notation: rawConfig.notation } : {}), athlete: { sports: { run: { weeklyMinutes: Math.max(10, Math.round(weekly[0] ?? configV1.athlete.recentWeeklyKm * 6)), sessionsPerWeek: configV1.athlete.daysAvailable.length, daysAvailable: configV1.athlete.daysAvailable, results: configV1.athlete.results, running: { recentWeeklyKm: configV1.athlete.recentWeeklyKm, ...(configV1.athlete.peakWeeklyKm !== undefined ? {peakWeeklyKm: configV1.athlete.peakWeeklyKm} : {}), ...(configV1.athlete.longRunDay ? {longRunDay: configV1.athlete.longRunDay} : {}), ...(configV1.athlete.tuneUpRaces ? {tuneUpRaces: configV1.athlete.tuneUpRaces} : {}) }, preparationMinutes: old.preparationMinutes ?? 15 } } }, goal,
-    ...(rawConfig.time ? { time: rawConfig.time } : {}), ...(rawConfig.sync ? { sync: rawConfig.sync } : {}), ...(rawConfig.desk ? { desk: rawConfig.desk } : {}) }
+  // C9, C10: jednostka i zapis notacji przechodzą z profilu; E3: płeć, HRmax, powrót, siła i czas docelowy też
+  const config = sportsConfigFromRunning(configV1, { weeklyMinutes: weekly[0] ?? configV1.athlete.recentWeeklyKm * 6,
+    preparationMinutes: old.preparationMinutes ?? 15, language: rawConfig.language, ...(goal.kind === 'race' ? { estimatedMinutes: goal.estimatedMinutes } : {}) })
+  // cel planu = cel profilu v2 (z czasem docelowym): inaczej pierwszy `plan` uznałby go za nowy cel
+  plan.goal = structuredClone(config.goal)
   const logs = (readOptional(cwd, LOG_FILE) ?? '').split('\n').filter(l => l.trim()).map(l => {
     const oldLog = JSON.parse(l)
     const sport = oldLog.activity === 'strength' ? 'strength' : 'run'
     const sessionId = `${cycleId}-${oldLog.date}-${sport}`
     return { ...oldLog, schemaVersion: 2, sessionId, sport, ...(oldLog.timeSec !== undefined ? { durationSec: oldLog.timeSec } : oldLog.minutes !== undefined ? { durationSec: oldLog.minutes * 60 } : {}), ...(oldLog.km !== undefined ? { distanceM: oldLog.km * 1000 } : {}) }
   })
-  return { plan, config: validateSportsConfig(config), log: logs.map(l => JSON.stringify(l)).join('\n') + (logs.length ? '\n' : '') }
+  return { plan, config, log: logs.map(l => JSON.stringify(l)).join('\n') + (logs.length ? '\n' : '') }
 }
 
 export function sportsProposalStatus(cwd: string): { id: string; action: string; valid: boolean; date?: string; changes?: number }[] {
