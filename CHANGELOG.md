@@ -6,6 +6,8 @@ change between minor versions — a regenerated plan can differ.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-11-12
+
 ### Changed
 
 - Running sessions in the multisport schema carry their structure as steps:

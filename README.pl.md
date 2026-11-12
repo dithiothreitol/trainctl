@@ -1,8 +1,11 @@
 # trainctl
 
-Nowości w **0.6.0**: szczegółowe cele i instrukcje treningów, jednostki rowerowe
-i pływackie dopasowane do fazy, czytelne podglądy zamian oraz kolorowa skala RPE.
-[Lista zmian](CHANGELOG.md#060--2026-11-04) · [Przykłady terminala](docs/examples/x-thread-2026-11-04/index.html).
+Nowości w **0.9.0**: silnik biegowy sprawdzony na korpusie trenerskim (kształt
+sezonu, tor długiego wybiegania, narastające akcenty, powrót po przerwie), widoki
+sezonu, tygodnia i dnia w jednym układzie wiersza, `review` wobec celów jednostek
+z okrążeń, mile i pułap tętna jako opcje widoku oraz plan sesji jako domyślny
+model, z parytetem planu biegowego.
+[Lista zmian](CHANGELOG.md#090--2026-11-12).
 
 ```sh
 trainctl init --agent claude      # profil + konfiguracja pluginu dla agenta
@@ -57,9 +60,9 @@ historia gita.
 
 ## Instalacja
 
-**Wersja 0.6.0 jest dostępna w [GitHub Releases](https://github.com/dithiothreitol/trainctl/releases/tag/v0.6.0).**
+**Wersja 0.9.0 jest dostępna w [GitHub Releases](https://github.com/dithiothreitol/trainctl/releases/tag/v0.9.0).**
 Pobierz ZIP z CLI/MCP i pluginem Codexa, a następnie wykonaj kroki z `INSTALL.txt`.
-Wszystkie sześć paczek jest też dostępnych w npm w wersji **0.6.0**, oznaczonej jako `latest`.
+Wszystkie sześć paczek jest też dostępnych w npm w wersji **0.9.0**, oznaczonej jako `latest`.
 
 ```bash
 npx trainctl init          # bez instalacji
@@ -351,7 +354,7 @@ sync:
   files: ./activities       # opcjonalnie: eksport FIT/TCX/GPX zamiast intervals.icu
 ```
 
-To układ planu sesji (schemat 2), który `init` zapisuje od 0.7. Profil planu
+To układ planu sesji (schemat 2), który `init` zapisuje od 0.9. Profil planu
 biegowego z wcześniejszych wersji (`athlete.recentWeeklyKm`, `athlete.results`,
 `goal.distanceKm`) dalej działa; `trainctl migrate --prepare` przenosi go do tego
 układu ze wszystkimi polami i zachowuje oryginały. Przykłady niżej używają

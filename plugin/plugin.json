@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "trainctl",
-  "version": "0.6.0",
+  "version": "0.9.0",
   "description": "Local training plans for running, cycling, swimming and multisport, with reversible session replacement and MCP tools.",
   "license": "MIT",
   "extensions": {

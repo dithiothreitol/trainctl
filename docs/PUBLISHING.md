@@ -4,16 +4,19 @@
 <https://github.com/dithiothreitol/trainctl>, MIT, Discussions wyłączone,
 prywatne zgłaszanie podatności włączone. Warunek „sezon na sobie" został
 świadomie odpuszczony — decyzja właściciela, nie przeoczenie.
-**Wersja repozytorium: 0.6.0 (2026-11-04)** dla wszystkich sześciu paczek
+**Wersja repozytorium: 0.9.0 (2026-11-12)** dla wszystkich sześciu paczek
 i pluginu (Claude Code, Codex).
-Historia wydań: `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.5.0`.
+Historia wydań: `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.5.0`, `v0.6.0`.
 0.1.0 pozostaje zdeprecjonowane — przyczynę opisano w historycznej sekcji npm.
 
-0.6.0 dodaje szczegółowe cele i struktury jednostek, instrukcje pływania,
-kontrolę kalibracji, zachowanie pełnych powtórzeń przy skracaniu oraz kolorowe
-sekcje i skalę RPE w CLI. Wydanie obejmuje GitHub Release i samodzielny ZIP
-pluginu z CLI/MCP. Po wydaniu GitHub właściciel zatwierdził także publikację
-wszystkich sześciu paczek 0.6.0 w npm (2026-11-04), z tagiem `latest`.
+0.9.0 zbiera etapy 1–4 planu [PLAN-v0.7](PLAN-v0.7.md); wersje 0.6.1–0.8.0
+z tabeli etapów nie wyszły osobno. Dodaje silnik biegowy zmierzony na korpusie,
+widoki sezonu, tygodnia i dnia na jednym modelu wiersza, okrążenia i „Wobec
+celu” w `review`, mile, zapis klubowy i pułap tętna jako opcje widoku oraz plan
+sesji jako domyślny model z parytetem planu biegowego. Wydanie obejmuje GitHub
+Release, samodzielny ZIP pluginu z CLI/MCP i sześć paczek w npm z tagiem
+`latest`. Plugin Claude Code uruchamia `trainctl-mcp@<wersja>` przez `npx`,
+więc wersja w npm musi być opublikowana razem z tagiem.
 Zakres i ograniczenia opisuje [CHANGELOG.md](../CHANGELOG.md).
 Dostępność paczek w npm sprawdzamy osobno od tagu i GitHub Release;
 sama zmiana wersji w repozytorium nie oznacza publikacji do rejestru.

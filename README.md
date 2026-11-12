@@ -1,8 +1,11 @@
 # trainctl
 
-New in **0.6.0**: detailed workout goals and instructions, phase-specific cycling
-and swimming sessions, structured replacement previews and a coloured RPE scale.
-[Release notes](CHANGELOG.md#060--2026-11-04) · [Terminal examples](docs/examples/x-thread-2026-11-04/index.html).
+New in **0.9.0**: a running engine checked against a coaching corpus (season
+shape, a long-run track, accents that progress, a return after a break), season,
+week and day views on one row layout, `review` against each workout's targets
+from laps, miles and a heart-rate ceiling as view options, and the session plan
+as the default model, on par with the running plan.
+[Release notes](CHANGELOG.md#090--2026-11-12).
 
 ```sh
 trainctl init --agent claude      # profile + plugin setup for your agent
@@ -56,9 +59,9 @@ training is your git history.
 
 ## Install
 
-**Version 0.6.0 is available on [GitHub Releases](https://github.com/dithiothreitol/trainctl/releases/tag/v0.6.0).**
+**Version 0.9.0 is available on [GitHub Releases](https://github.com/dithiothreitol/trainctl/releases/tag/v0.9.0).**
 Download the bundled CLI/MCP and Codex plugin ZIP and follow `INSTALL.txt`.
-All six packages are also available on npm at **0.6.0**; `latest` points to this version.
+All six packages are also available on npm at **0.9.0**; `latest` points to this version.
 
 ```bash
 npx trainctl init          # no install at all
@@ -348,7 +351,7 @@ sync:
   files: ./activities       # optional: exported FIT/TCX/GPX instead of intervals.icu
 ```
 
-This is the session-plan layout (schema 2), which `init` writes since 0.7. A
+This is the session-plan layout (schema 2), which `init` writes since 0.9. A
 running-plan profile from earlier versions (`athlete.recentWeeklyKm`,
 `athlete.results`, `goal.distanceKm`) still works; `trainctl migrate --prepare`
 moves it to this layout with every field and keeps the originals. The examples

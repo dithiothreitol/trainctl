@@ -262,6 +262,8 @@ pola usunięte z profilu v2, stałe bez etykiety, zapis przerwy), jeden odrzucon
 z uzasadnieniem w §14. Runda 2: 10 pozycji, poprawione regresje (teren celu,
 blok `running` bez wyniku), walidacja profilu v2 i testy szablonów v2; pięć
 pozycji w §14. Odstępstwa opisuje „Realizacja w etapie 4” pod pakietem E.
+Wydanie 0.9.0 (2026-11-12) obejmuje etapy 1–4; wersje 0.6.1–0.8.0 z tabeli
+etapów nie wyszły osobno.
 
 **Etap 1** nie zmienia żadnej liczby w silniku ani zapisanych planów. Pierwszy
 commit tworzy migawkę macierzy na silniku z 0.6.0. Linty kształtu działają

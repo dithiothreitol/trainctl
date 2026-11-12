@@ -18,7 +18,7 @@ trainctl check
 `init --sports bike` i `init --sports swim` nie wymagają danych biegowych.
 Kreator zbiera profile, doświadczenie, sprzęt, basen, kalibrację, okna czasu i etapy celu.
 Wartości 90 min i 2 sesje w szablonie to przykładowe dane do edycji.
-Zwykłe `init` (kreator, `--template`, `--from-intervals`) od 0.7 też zakłada profil v2:
+Zwykłe `init` (kreator, `--template`, `--from-intervals`) od 0.9 też zakłada profil v2:
 bieg z blokiem `running`, czyli z pełnym silnikiem biegowym (PLAN-v0.7 E3).
 
 Przykładowa konfiguracja v2:
