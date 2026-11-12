@@ -141,18 +141,21 @@ export function settleMixedWeek(week: Microcycle): void {
  * B1: uwagi generatora (`why`) idą za jednostką, gdy `shift` albo `reschedule` przestawia dni
  * tygodnia; uwaga jednostki, której już nie ma w tygodniu, wypada. `moves` to znane
  * przesunięcia (shift: zamiana dwóch dni); bez nich jednostkę szukamy po treści, najpierw
- * na jej dawnym dniu — dwie takie same jednostki nie zamieniają się uwagami.
+ * na jej dawnym dniu, potem na dniu, który ją dostał — dwie takie same jednostki nie
+ * zamieniają się uwagami, a dzień, który miał taką samą jednostkę już wcześniej, nie
+ * przejmuje uwagi tej, która się przesunęła.
  */
 export function followNotes(week: Microcycle, before: PlannedDay[], moves?: Record<string, string>): void {
   if (!week.notes?.length) return
   const keyOf = (d: PlannedDay | undefined) => (d?.workout ? JSON.stringify(d.workout) : undefined)
+  const keyBefore = (date: string) => keyOf(before.find((d) => d.date === date))
   const notes = week.notes.flatMap((n): WeekNote[] => {
     if (!('date' in n)) return [n]
     if (moves) return [{ ...n, date: moves[n.date] ?? n.date }]
-    const key = keyOf(before.find((d) => d.date === n.date))
+    const key = keyBefore(n.date)
     if (key === undefined) return []
     const stays = keyOf(week.days.find((d) => d.date === n.date)) === key
-    const now = stays ? n.date : week.days.find((d) => keyOf(d) === key)?.date
+    const now = stays ? n.date : week.days.find((d) => keyOf(d) === key && keyBefore(d.date) !== key)?.date
     return now ? [{ ...n, date: now }] : []
   })
   if (notes.length) week.notes = notes
@@ -264,16 +267,14 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     }
   }
   opts.beforeTimeBudget?.(plan)
-  if (config.time) {
-    fitTimeBudget(plan.weeks, config, zones, testDistanceKm(goal), { from: opts.budgetFrom, weeklyFrom: opts.weeklyBudgetFrom ?? opts.budgetFrom })
-    plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
-    if (opts.budgetWarnings !== false) plan.feasibilityWarnings.push(...budgetWarnings(plan, config, today))
-  }
-  // B11: szczyt planu to to, co rozpisano (cały cykl — tak samo liczą regeneracja
-  // i propozycja). Werdykt po powrocie patrzy jednak tylko na tygodnie od powrotu: tygodnie
-  // sprzed przerwy minęły i nie mówią, dokąd plan jeszcze dojdzie. Powrót w taperze: szczyt
-  // był przed przerwą, werdyktu o szczycie nie ma.
-  if (returnFrom) plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
+  if (config.time) fitTimeBudget(plan.weeks, config, zones, testDistanceKm(goal), { from: opts.budgetFrom, weeklyFrom: opts.weeklyBudgetFrom ?? opts.budgetFrom })
+  // Szczyt planu to to, co rozpisano (cały cykl — tak samo liczą regeneracja i propozycja),
+  // a nie cel makrocyklu: dni (B1), budżet (B7) i blok powrotu (B11) potrafią go obniżyć.
+  // Werdykt po powrocie patrzy jednak tylko na tygodnie od powrotu: tygodnie sprzed przerwy
+  // minęły i nie mówią, dokąd plan jeszcze dojdzie. Powrót w taperze: szczyt był przed
+  // przerwą, werdyktu o szczycie nie ma.
+  plan.peakKmPlanned = Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm))
+  if (config.time && opts.budgetWarnings !== false) plan.feasibilityWarnings.push(...budgetWarnings(plan, config, today))
   const loadingPhase = (phase: string) => ['base', 'build', 'peak'].includes(phase)
   const returnMonday = returnFrom ? mondayOf(returnFrom.since) : undefined
   const plannedAhead = returnMonday ? cycleWeeksOf(plan).filter((w) => w.weekStart >= returnMonday && loadingPhase(w.skeleton.phase)) : []

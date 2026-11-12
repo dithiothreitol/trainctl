@@ -19,10 +19,13 @@ change between minor versions — a regenerated plan can differ.
   the other day keeps a run; with one running day the long run is the week.
   The peak is capped at what the available days can
   hold, so deloads and the taper stay lighter than loading weeks, and `plan`
-  says when the days limit the peak.
+  says when the days limit the peak. The peak that `plan`, `status` and
+  PLAN.md show is the highest week the plan lays out, not the macrocycle's
+  target.
 - Small weeks: an accent that would carry more than 35% of a week with a long
   run first loses a repetition, then gets a 2 km warm-up, and below that
-  becomes an easy run with strides (J-6); in the taper the accent stays (T-1). No run besides the long run is shorter than 3 km: two
+  becomes an easy run with strides (J-6), which keeps its strides when a day
+  time budget shortens it; in the taper the accent stays (T-1). No run besides the long run is shorter than 3 km: two
   2 km strides days become one 4 km day, and the long run beside easy runs is
   at least 3.4 km. A time trial is planned only when the whole session with
   warm-up and cool-down fits the same share; with one accent a week, the time
@@ -31,7 +34,8 @@ change between minor versions — a regenerated plan can differ.
   distributed, so accents are no longer trimmed for distance that easy runs
   carry.
 - `why` explains these layout decisions: a hills day turned into an easy run,
-  an accent turned into strides, a week shorter than its target. The
+  an accent turned into strides, a week shorter than its target (with the
+  week's current total, after kept days or a time budget). The
   explanation follows the session when `shift` or `reschedule` moves it, also
   when the week has an identical session on another day.
 - Weekly volume grows across the loading blocks so that the peak falls in the

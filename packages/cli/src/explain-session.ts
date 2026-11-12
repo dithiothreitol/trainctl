@@ -1,4 +1,4 @@
-import { addDays, diffDays, estimateWorkoutMinutes, fmtPace, messages, plannedWeekKm, type ExecutionRecord, type Microcycle, type PlannedDay } from 'trainctl-core'
+import { addDays, diffDays, estimateWorkoutMinutes, fmtPace, messages, plannedWeekKm, type ExecutionRecord, type Microcycle, type PlannedDay, type WeekNote } from 'trainctl-core'
 import { dayFingerprint, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { kindPurpose } from './rules-explain.ts'
@@ -22,7 +22,14 @@ export function explainSession(plan: StoredPlan, week: Microcycle, day: PlannedD
   if (week.skeleton.deload) context.push(t.deload)
   if (week.skeleton.keepIntensity || week.skeleton.keepFrequency) context.push(t.taper)
   // Decyzje generatora o układzie tygodnia: dotyczące dnia — przy tym dniu, objętość — przy każdym.
-  const notes = (week.notes ?? []).filter((n) => !('date' in n) || n.date === day.date)
+  // Krótszy tydzień (volumeShort) mówi o sumie tygodnia, jaki jest teraz: dni zachowane przy
+  // regeneracji, budżet dnia albo reschedule zmieniają ją po generatorze; tydzień, który
+  // doszedł do celu (próg jak w generatorze, 0,5 km), nie jest krótszy.
+  const notes = (week.notes ?? []).flatMap((n): WeekNote[] => {
+    if ('date' in n) return n.date === day.date ? [n] : []
+    const plannedKm = Math.round(week.totalKm * 10) / 10
+    return plannedKm < n.targetKm - 0.5 ? [{ ...n, plannedKm }] : []
+  })
   for (const note of notes) {
     context.push(note.code === 'volumeShort' ? t.weekNote.volumeShort(kmLabel(note.plannedKm), kmLabel(note.targetKm)) : t.weekNote[note.code])
   }

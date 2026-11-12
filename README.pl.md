@@ -207,7 +207,8 @@ Kontuzja nie dostaje propozycji objętości; tę decyzję podejmujesz ze specjal
 
 Daty przyjmują `RRRR-MM-DD`, `dziś`/`jutro`/`wczoraj` (także po angielsku),
 `+N`/`-N` i dni tygodnia (`czw`, `thu`). `log`, `review`, `adapt` i `pull`
-patrzą wstecz; pozostałe komendy — w przód.
+patrzą wstecz; pozostałe komendy — w przód. Przerwę zapisywaną z góry podaj
+datą albo `+N` (`--date +2 --to +4`): `--date pt` w `log` to miniony piątek.
 
 `--rpe` to wysiłek sesji w skali 1–10. Silnik go zapisuje, a tygodniowy
 przegląd cytuje dosłownie — nigdy nie przelicza odczuć na strefy, tempa ani

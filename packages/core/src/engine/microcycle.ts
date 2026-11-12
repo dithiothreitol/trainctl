@@ -166,6 +166,8 @@ function buildStrides(km: number, z: PaceZones): PlannedWorkout {
       type: 'easy',
       distanceKm: km,
       pace: z.easy,
+      // pole, nie tylko tekst: skrócenie (E-1) przepisuje opis z pól i przebieżki zostają
+      strides: { count: STRIDES.count, meters: STRIDES.meters },
       description: messages().workout.easyStrides(km, STRIDES.count, STRIDES.meters),
     }],
   }

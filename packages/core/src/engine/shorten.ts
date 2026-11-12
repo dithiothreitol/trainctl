@@ -22,7 +22,10 @@ const kmOf = (s: PlannedSegment) => s.type === 'hills'
 function describe(s: PlannedSegment, kind: PlannedWorkout['kind']): string {
   const m = messages()
   const km = s.distanceKm ?? 0
-  if (s.type === 'easy') return kind === 'long' ? m.workout.veryEasy(km) : m.workout.easy(km)
+  if (s.type === 'easy') {
+    if (kind === 'long') return m.workout.veryEasy(km)
+    return s.strides ? m.workout.easyStrides(km, s.strides.count, s.strides.meters) : m.workout.easy(km)
+  }
   if (s.type === 'hills') return m.workout.hills(s.reps!, s.repM!)
   if (s.type === 'intervals') return m.shorten.repeats(s.reps!, s.repM!, s.pace ? `${fmtPace(s.pace.loSecPerKm)}–${fmtPace(s.pace.hiSecPerKm)}` : '—', s.recoverySec ?? 0)
   if (s.type === 'progression' && s.pace) return m.workout.progression(km, fmtPace(s.pace.hiSecPerKm), fmtPace(s.pace.loSecPerKm))

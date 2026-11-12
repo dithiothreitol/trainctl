@@ -204,7 +204,8 @@ injury gets no volume proposal; that decision belongs to you and a specialist.
 
 Dates accept `YYYY-MM-DD`, `today`/`tomorrow`/`yesterday`, `+N`/`-N` and weekday
 names (`thu`). `log`, `review`, `adapt` and `pull` look back; everything else
-looks ahead.
+looks ahead. Give a break logged in advance as a date or `+N`
+(`--date +2 --to +4`): `--date fri` in `log` is the last Friday.
 
 `--rpe` is the session effort on the 1–10 scale. The engine stores it and the
 weekly review quotes it back verbatim — it never turns feelings into zones,

@@ -189,6 +189,8 @@ export interface PlannedSegment {
   recoveryMode?: 'walk' | 'jog'
   /** Dłuższa przerwa w połowie serii (C1): po którym odcinku, ile sekund i jak. */
   setBreak?: { afterRep: number; sec: number; mode: 'walk' | 'jog' }
+  /** Przebieżki po biegu spokojnym (J-6, C1): ile i po ile metrów — opis ma je w tekście. */
+  strides?: { count: number; meters: number }
   /** Polska fraza w stylu korpusu — render dla człowieka/zegarka. */
   description: string
 }

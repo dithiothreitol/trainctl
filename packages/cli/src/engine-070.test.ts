@@ -7,7 +7,9 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { earliestFeasibleRaceDate, plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
+import { earliestFeasibleRaceDate, estimateWorkoutMinutes, plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
+import { kmLabel } from './format.ts'
+import { matrixPlan } from './plan-shape.fixture.ts'
 import { applyProposal, prepareProposal } from './proposals.ts'
 import { cmdAdapt, cmdCheck, cmdInit, cmdLog, cmdPlan, cmdRules, cmdShift, cmdWhy } from './commands.ts'
 import { localDateOf } from './clock.ts'
@@ -677,6 +679,51 @@ describe('B1: tydzień mieszany (regeneracja, propozycja)', () => {
     const before = structuredClone(week.days)
     followNotes(week, before)
     expect(week.notes).toEqual([{ code: 'hillsDropped', date: noted.date }])
+  })
+
+  it('followNotes po reschedule: uwaga idzie na dzień, który dostał jednostkę, nie na dzień z taką samą od początku', () => {
+    const { week, noted, free } = twinWeek()
+    const before = structuredClone(week.days)
+    // reschedule przenosi jednostkę z uwagą na wolny dzień, poniedziałek zostaje bez zmian
+    free.workout = noted.workout!
+    delete noted.workout
+    followNotes(week, before)
+    expect(week.notes).toEqual([{ code: 'hillsDropped', date: free.date }])
+  })
+
+  it('why: krótszy tydzień podaje sumę tygodnia, jaki jest teraz, a tydzień z celem nie jest krótszy', () => {
+    const { plan } = planFor(45, 'tue, wed, thu, sat, sun')
+    const week = plan.weeks.find((w) => w.weekStart > '2026-10-26' && !w.skeleton.raceDate)!
+    const day = week.days.find((d) => d.workout)!
+    const total = Math.round(week.totalKm * 10) / 10
+    // uwaga z nowego układu, a dni tygodnia (zachowane i nowe) mają dziś inną sumę
+    week.notes = [{ code: 'volumeShort', targetKm: total + 4, plannedKm: total - 3 }]
+    writePlan(dir, plan)
+    const out = cmdWhy(dir, { date: day.date }).output
+    expect(out).toContain(`This week has ${kmLabel(total)} instead of ${kmLabel(total + 4)}`)
+    week.notes = [{ code: 'volumeShort', targetKm: total, plannedKm: total - 3 }]
+    writePlan(dir, plan)
+    expect(cmdWhy(dir, { date: day.date }).output).not.toContain('This week has')
+  })
+
+  it('plan: szczyt planu to najwyższy rozpisany tydzień, także gdy dni nie mieszczą celu (B1)', () => {
+    // profil z macierzy B0, w którym tydzień szczytu ma mniej niż cel makrocyklu
+    const plan = matrixPlan({ id: 'R17', baseKm: 45, days: 3, goal: 'm', weeks: 8 })
+    expect(plan.peakKmPlanned).toBe(Math.max(...cycleWeeksOf(plan).map((w) => w.totalKm)))
+  })
+
+  it('plan: bieg z przebieżkami skrócony budżetem dnia nadal ma przebieżki (J-6, E-1)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun'), 'utf-8')
+    const free = computePlan(loadConfig(dir), '2026-10-22')
+    const strides = free.weeks.flatMap((w) => w.days).find((d) => d.date > '2026-10-26' && d.workout?.segments.some((s) => s.strides))!
+    // budżet dnia tuż pod czasem tego biegu
+    const minutes = estimateWorkoutMinutes(strides.workout!, 15) - 3
+    writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun') + `time:\n  weekdayMinutes: ${minutes}\n  weekendMinutes: ${minutes}\n`, 'utf-8')
+    const plan = computePlan(loadConfig(dir), '2026-10-22')
+    const day = plan.weeks.flatMap((w) => w.days).find((d) => d.date === strides.date)!
+    expect(day.timeAdjustment?.status).toBe('shortened')
+    expect(day.workout!.distanceKm).toBeLessThan(strides.workout!.distanceKm)
+    expect(day.workout!.segments[0]!.description).toContain('strides')
   })
 
   it('mergeWeekNotes: uwaga dnia z planu, z którego pochodzi dzień; uwaga tygodnia z nowego', () => {

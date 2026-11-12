@@ -122,3 +122,17 @@ describe('C1: przerwa w połowie serii przy skracaniu', () => {
     expect(main.setBreak).toEqual({ afterRep: Math.ceil(main.reps! / 2), sec: 240, mode: 'walk' })
   })
 })
+
+describe('B2: bieg z przebieżkami przy skracaniu', () => {
+  it('skrócony bieg spokojny z przebieżkami nadal je ma (J-6, E-1)', () => {
+    const strides = easy(8)
+    strides.ruleRefs = ['I-5', 'J-6']
+    strides.segments[0] = { ...strides.segments[0]!, strides: { count: 6, meters: 80 }, description: '8 km easy, finishing with 6 strides of about 80 m.' }
+    const result = shortenWorkout(strides, 45)
+    expect(result.status).toBe('shortened')
+    const segment = result.workout!.segments[0]!
+    expect(segment.distanceKm).toBeLessThan(8)
+    expect(segment.strides).toEqual({ count: 6, meters: 80 })
+    expect(segment.description).toContain('6 strides of about 80 m')
+  })
+})
