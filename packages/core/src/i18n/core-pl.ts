@@ -270,6 +270,7 @@ export const corePl: CoreMessages = {
     onTrack: (pct: number, missed: number) =>
       `Wykonanie zgodne z planem (${pct}% objętości, pominiętych sesji: ${missed}).`,
     holdCourse: 'Bez zmian — kontynuuj bieżący mezocykl.',
+    returnInProgress: 'Trwa blok powrotu: objętość prowadzi krzywa powrotu, więc zgodność w oknie, w którym jest jeszcze przerwa, nie zmienia bazy (R-5, R-11).',
     missedQuality: (count: number) =>
       `Pominięte akcenty: ${count}. To one, nie kilometry, budują górny zakres formy.`,
     shiftInsteadOfLosing:

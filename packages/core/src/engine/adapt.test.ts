@@ -104,6 +104,17 @@ describe('przerwa w treningu', () => {
     expect(p.layoff?.days).toBe(30)
     expect(p.actions.some((a) => a.type === 'conservative-restart')).toBe(true)
   })
+  it('B11: w trakcie bloku powrotu niska zgodność (przerwa bez przyczyny w oknie) nie obniża bazy', () => {
+    // przerwa bez przyczyny 2026-08-11…08-21 (ostatni bieg przed nią 08-09), od 08-22 biegi
+    // w bloku powrotu — powrót ponad tydzień temu, więc to już nie przerwa świeżo zakończona
+    const exec = history(21, 1).map((e) => (e.date > '2026-08-10' && e.date < '2026-08-22' ? omitActual(e) : e))
+    const p = analyzeExecution({ today: TODAY, execution: exec, currentWeeklyKm: 33, returnInProgress: true })
+    expect(p.actions.map((a) => a.type)).not.toContain('reduce-volume')
+    expect(p.actions.map((a) => a.type)).toContain('hold-course')
+    // bez trwającego powrotu ta sama zgodność obniża bazę
+    const plain = analyzeExecution({ today: TODAY, execution: exec, currentWeeklyKm: 33 })
+    expect(plain.actions.map((a) => a.type)).toContain('reduce-volume')
+  })
   it('B11: przerwa zakończona przy trwającym bloku powrotu nie daje drugiego restartu', () => {
     const back = layoff().map((e) => (e.date === '2026-08-30' ? { ...e, actualKm: 5, status: 'done' as const } : e))
     const p = analyzeExecution({ today: TODAY, execution: back, currentWeeklyKm: 33, returnInProgress: true, breakLog: [{ date: '2026-08-20', reason: 'illness' }] })

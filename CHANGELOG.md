@@ -144,8 +144,9 @@ change between minor versions — a regenerated plan can differ.
   change at all, not even a recalibration (R-6, R-7). An approved return survives
   `trainctl plan` like an approved baseline (ADR-033) and replaces it; the
   proposal says so when it replaces one. During a return, approved or from
-  `athlete.returning`, `adapt` does not raise the baseline, from the first
-  (partial) week on: the return curve grows on its own. A tune-up race in the
+  `athlete.returning`, `adapt` neither raises nor lowers the baseline, from
+  the first (partial) week on: the return curve grows on its own, and the
+  break still in the analysis window is not low compliance. A tune-up race in the
   easy part of a return stays in the plan, and `plan` says the return rule
   does not expect it; a B race week stays lighter than the curve by the
   mini-taper (T-9). After the A race only the first week is without a long

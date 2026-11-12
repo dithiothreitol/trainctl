@@ -270,8 +270,12 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
     })
   }
 
-  // 4) Zgodność objętości
-  if (dataStatus === 'complete' && plannedKm > 0 && layoff < LAYOFF_DAYS && !injury) {
+  // 4) Zgodność objętości. W trakcie bloku powrotu objętość prowadzi krzywa (R-5, R-11), a okno
+  // zawiera jeszcze przerwę — obniżenie bazy zastąpiłoby powrót i złożyło drugie cięcie
+  if (input.returnInProgress && dataStatus === 'complete' && layoff < LAYOFF_DAYS && !injury) {
+    diagnosis.push(m.adapt.returnInProgress)
+    actions.push({ type: 'hold-course', detail: m.adapt.holdCourse, ruleRefs: ['R-11'] })
+  } else if (dataStatus === 'complete' && plannedKm > 0 && layoff < LAYOFF_DAYS && !injury) {
     if (compliance < 0.7) {
       // tempo z dni, które się liczą: bez dni przerwy zapisanej z przyczyną
       const countedDays = observedDays - window.filter((e) => excused.has(e.date)).length
