@@ -198,16 +198,25 @@ brzegowe (głównie odczyt ręcznie edytowanego `log.jsonl`) i sugestie
 porządkowe. Odrzucone sugestie są w §14. Po etapie 1 zmienił się warunek końca
 przeglądu (§0, krok 5) i doszły punkty B11, C8–C10 oraz pakiet G.
 
-**Stan etapu 2 (2026-11-11):** punkty B1–B8, B10 i B11 zrealizowane na gałęzi
+**Stan etapu 2 (2026-11-12):** punkty B1–B8, B10 i B11 zrealizowane na gałęzi
 `plan-0.7/etap-2` w kolejności z planu, razem z polami segmentu i poprawkami
-zapisu z C1. Bramka po B10: `pnpm check` 1287 testów. Macierz B0:
-`longNotLongest`, `deloadNotLighter`, `sessionShareHigh` i
-`postRaceAccentHeavy` nie odpalają się na żadnym profilu.
-`staleProgression` zostaje na 8 profilach (maraton, 24 tygodnie, baza 45 albo
-70 km, budżet 240 min), a każdy z nich ma ostrzeżenie budżetu i werdykt
-wykonalności. `longBelowGoal` na 212 profilach to werdykt wykonalności z B8,
-zgodnie z B0. Odstępstwa od tekstu punktów opisuje „Realizacja w etapie 2”
-pod DoD pakietu B.
+zapisu z C1. Bramka: `pnpm check` 1436 testów, `pnpm build`,
+`verify:distribution --online` (tarballe, 128 plików FIT, 8 kalendarzy,
+11 wywołań MCP), `plugin:build` i `verify:plugin` (22 narzędzia),
+`render-skills --check`, `simulate:coaching`, `simulate:multisport`,
+`benchmark:multisport`: wszystko PASS. Backtest lokalnie w progach: mediana
+objętości 0,98 planu trenera, mediana różnicy akcentów i sesji 0, długie 3/6
+tygodni, starty kontrolne 6/6. Macierz B0: `longNotLongest`,
+`deloadNotLighter`, `sessionShareHigh`, `postRaceAccentHeavy` i
+`staleProgression` nie odpalają się na żadnym profilu (od rundy 29 bloki
+trzymane budżetem czasu nie są powtórką). `longBelowGoal` na 212 profilach to
+werdykt wykonalności z B8, zgodnie z B0. Przegląd `/code-review high`:
+33 rundy, każde przyjęte znalezisko z poprawką i testem sprawdzonym mutacją.
+Warunek końca (§0, krok 5) się nie zbiegł: każda runda znajdowała nowe
+przypadki brzegowe, głównie w B11 (przerwa i powrót w `adapt`), w rundach
+30–33 już drobne. Przegląd zamknięty decyzją właściciela 2026-11-12;
+pozostałe zgłoszenia i sugestie porządkowe są w §14. Odstępstwa od tekstu
+punktów opisuje „Realizacja w etapie 2” pod DoD pakietu B.
 
 **Etap 1** nie zmienia żadnej liczby w silniku ani zapisanych planów. Pierwszy
 commit tworzy migawkę macierzy na silniku z 0.6.0. Linty kształtu działają
