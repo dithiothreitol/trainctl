@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { BREAK_REASONS, type BreakReason } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 import { parseDecimal } from './format.ts'
+import { activeView, assertNoView } from './view-context.ts'
 
 export const LOG_FILE = 'log.jsonl'
 
@@ -47,6 +48,7 @@ export interface StrengthLogEntry {
 export const lineSeparator = (tail: string): string => (tail !== '' && !tail.endsWith('\n') ? '\n' : '')
 
 export function appendLog(cwd: string, entry: LogEntry | StrengthLogEntry): void {
+  assertNoView(cwd)
   const path = join(cwd, LOG_FILE)
   appendFileSync(path, lineSeparator(lastChar(path)) + JSON.stringify(entry) + '\n', 'utf-8')
 }
@@ -178,6 +180,9 @@ export function readLogForChanges(cwd: string): LogEntry[] {
  * a zmiana planu (recordedDates) czeka, aż plik zostanie poprawiony.
  */
 export function readJournal(cwd: string): { runs: LogEntry[]; strength: StrengthLogEntry[]; dropped: string[]; broken: string[] } {
+  // E4: wpisy sesji v2 jako dziennik planu biegowego (wiersze v2 waliduje readSessionLogs)
+  const view = activeView(cwd)
+  if (view) return { ...structuredClone(view.journal), dropped: [], broken: [] }
   const dropped: string[] = [], broken: string[] = []
   const all = readAll(cwd, dropped, broken)
   return { runs: all.filter((e): e is LogEntry => !isStrength(e)), strength: all.filter(isStrength), dropped, broken }

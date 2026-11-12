@@ -1,4 +1,7 @@
 import { isSportsWorkspace, sportsTemplate } from './sports-store.ts'
+import { onRunningView, runningDay } from './running-view.ts'
+import { rpeScaleLegend } from './ui/training.ts'
+import { activeView } from './view-context.ts'
 import { sportsCommand, type SportsOptions } from './sports-commands.ts'
 import { sportsSyncCommand } from './sports-sync.ts'
 import { sportMessages } from 'trainctl-core'
@@ -9,6 +12,7 @@ import { isAbsolute, join } from 'node:path'
 import {
   addDays,
   analyzeExecution,
+  runningEffort,
   BREAK_REASONS,
   notationLegend,
   CALIBRATION_WINDOW_DAYS,
@@ -920,10 +924,17 @@ function shiftImpl(cwd: string, opts: { from: string; to: string }): CmdResult {
 }
 
 export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?: string | undefined; date?: string | undefined } = {}): CmdResult {
-  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'why', opts)
+  if (isSportsWorkspace(cwd)) {
+    // E4: dzień planu biegowego objaśnia ta sama ścieżka co w planie biegowym (widok planu v2)
+    const day = runningDay(cwd, opts)
+    return (day !== undefined ? onRunningView(cwd, () => whyImpl(cwd, day)) : undefined) ?? sportsCommand(cwd, 'why', opts)
+  }
   if (sessionOptions(opts)) return fail(new Error(sportMessages().migrate))
+  return whyImpl(cwd, opts.date ?? localToday())
+}
+
+function whyImpl(cwd: string, date: string): CmdResult {
   try {
-    const date = opts.date ?? localToday()
     parseIso(date)
     const plan = loadPlan(cwd)
     const hit = findDay(plan, date)
@@ -942,6 +953,11 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     blocks.push(...compatibilityNotes(plan))
     blocks.push(b.section(ui().coach.context), b.text(explanation.purpose), b.bullets(explanation.context))
     if (explanation.dose.length) blocks.push(b.section(ui().coach.dose), b.bullets(explanation.dose))
+    // C5: planowany zakres RPE biegu (MS-6), ten sam co na karcie sesji planu v2
+    if (day.workout) {
+      const effort = runningEffort(day.workout)
+      blocks.push(b.rpe(ui().display.card.hardest, effort.min, effort.max, rpeScaleLegend()))
+    }
     // C8: pułap tętna biegu spokojnego i długiego (Z-2) albo powód, dla którego go nie ma (N-13)
     const hrRules: string[] = []
     if (day.workout && HR_CEILING_KINDS.has(day.workout.kind)) {
@@ -1283,7 +1299,7 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       // obniżyłaby cały makrocykl od startu planu zamiast dać blok powrotu (R-5, R-11)
       blocks.push(
         b.blank(),
-        b.info(volume.returnBlock ? ui().adapt.returnApplyHint : ui().adapt.applyHint(volume.suggestedWeeklyKm!)),
+        b.info(volume.returnBlock ? ui().adapt.returnApplyHint : activeView(cwd) ? ui().adapt.applyHintSports(perWeekLabel(volume.suggestedWeeklyKm!)) : ui().adapt.applyHint(volume.suggestedWeeklyKm!)),
       )
     }
     return okDoc(blocks, { proposal, execution, snapshotDate: snapshot?.pulledAt ?? null })
@@ -1293,7 +1309,12 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
 }
 
 export function cmdAdapt(cwd: string, opts: { date?: string | undefined; prepare?: boolean | undefined; apply?: string | undefined; commit?: CommitOption } = {}): CmdResult {
-  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'adapt', opts)
+  if (isSportsWorkspace(cwd)) {
+    // E4: analiza planu biegowego (P-1, P-3, kalibracja, powrót B11) na widoku planu v2;
+    // propozycja zapisuje się jako propozycja v2, a `--apply` przyjmuje ją ścieżką v2
+    const viewed = opts.apply === undefined ? onRunningView(cwd, () => adaptImpl(cwd, opts)) : undefined
+    return viewed ?? sportsCommand(cwd, 'adapt', opts)
+  }
   const result = adaptImpl(cwd, opts)
   return opts.apply ? withCommit(result, cwd, opts.commit, PLAN_FILES, ui().commit.apply(opts.apply)) : result
 }
@@ -1616,7 +1637,18 @@ export async function cmdReview(
   opts: { date?: string | undefined; days?: string | undefined; prepare?: boolean | undefined } = {},
   factory: ProviderFactory = defaultProviderFactory,
 ): Promise<CmdResult> {
-  if (isSportsWorkspace(cwd)) return sportsSyncCommand(cwd, 'review', opts, factory)
+  if (isSportsWorkspace(cwd)) {
+    // E4: przegląd planu biegowego (okrążenia, „Wobec celu”, kalibracja) na widoku planu v2
+    return (await onRunningView(cwd, () => reviewImpl(cwd, opts, factory))) ?? sportsSyncCommand(cwd, 'review', opts, factory)
+  }
+  return reviewImpl(cwd, opts, factory)
+}
+
+async function reviewImpl(
+  cwd: string,
+  opts: { date?: string | undefined; days?: string | undefined; prepare?: boolean | undefined },
+  factory: ProviderFactory,
+): Promise<CmdResult> {
   try {
     const today = opts.date ?? localToday()
     parseIso(today)

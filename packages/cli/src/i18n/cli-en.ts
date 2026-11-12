@@ -477,6 +477,9 @@ export const cliEn = {
       'The engine never rewrites the plan on its own.',
     returnApplyHint:
       'To take the return block: trainctl adapt --prepare, then trainctl adapt --apply <id>. The engine never rewrites the plan on its own.',
+    applyHintSports: (weekly: string) =>
+      `To apply: trainctl adapt --prepare, then trainctl adapt --apply <id> (new base ${weekly}). ` +
+      'The engine never rewrites the plan on its own.',
   },
 
   desk: {

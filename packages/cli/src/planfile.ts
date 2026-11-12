@@ -44,6 +44,7 @@ import { kmLabel } from './format.ts'
 import { rowsTable, runningSeasonRows, runningWeekRows, seasonTable, tableMarkdown } from './ui/rows.ts'
 import { inspectCalibration, isRoadGoal, roundVdot, zoneCalibration, type Calibration } from './calibration.ts'
 import { packageVersion } from './version.ts'
+import { activeView, assertNoView } from './view-context.ts'
 
 export const PLAN_DIR = 'plan'
 // Ścieżki jako napisy POSIX: służą i do zapisu (`join(cwd, PLAN_YAML)` normalizuje
@@ -460,6 +461,7 @@ export function scaleToBaseline(weeks: Microcycle[], opts: {
 }
 
 export function writePlan(cwd: string, plan: StoredPlan): void {
+  assertNoView(cwd)
   mkdirSync(join(cwd, PLAN_DIR), { recursive: true })
   // Bez aliasów YAML (`pace: *a1`): plan jest dokumentem, który użytkownik czyta
   // i edytuje (plan-as-code), a alias zmusza go do skakania po pliku — i sprawia,
@@ -715,6 +717,9 @@ export function readPlanDocument(cwd: string): unknown {
 }
 
 export function loadPlan(cwd: string): StoredPlan {
+  // E4: widok planu biegowego nad planem v2
+  const view = activeView(cwd)
+  if (view) return structuredClone(view.plan)
   const doc = readPlanDocument(cwd)
   if (!looksLikePlan(doc)) {
     throw new Error(ui().common.planMalformed(PLAN_YAML))
@@ -764,6 +769,8 @@ export function unusablePlanMessage(found: Extract<ExistingPlan, { status: 'unre
  * i zatwierdzona baza zginęłyby bez słowa) i nadpisuje dopiero na jawne `--fresh`.
  */
 export function readExistingPlan(cwd: string): ExistingPlan {
+  const view = activeView(cwd)
+  if (view) return { status: 'ok', plan: structuredClone(view.plan) }
   if (!existsSync(join(cwd, PLAN_YAML))) return { status: 'missing' }
   let doc: unknown
   try {

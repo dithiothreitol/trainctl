@@ -465,6 +465,9 @@ export const cliPl: CliMessages = {
     applyHint: (weeklyKm: number) =>
       `Aby zastosować: athlete.recentWeeklyKm: ${weeklyKm} w trainctl.yaml → trainctl diff → trainctl plan. ` +
       'Silnik nie przepisuje planu sam.',
+    applyHintSports: (weekly: string) =>
+      `Aby zastosować: trainctl adapt --prepare, potem trainctl adapt --apply <id> (nowa baza ${weekly}). ` +
+      'Silnik nie przepisuje planu sam.',
     returnApplyHint:
       'Aby przyjąć blok powrotu: trainctl adapt --prepare, potem trainctl adapt --apply <id>. Silnik nie przepisuje planu sam.',
   },

@@ -5,6 +5,7 @@ import { parse } from 'yaml'
 import { DEFAULT_LOCALE, getLocale, HR_MAX_BPM, isNotationStyle, isUnits, parseIso, withNotation, withUnits } from 'trainctl-core'
 import type { AthleteProfile, InferredProfile, NotationStyle, RaceGoal, Units, Weekday } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
+import { activeView } from './view-context.ts'
 
 export const CONFIG_FILE = 'trainctl.yaml'
 
@@ -167,16 +168,24 @@ const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 const ISO_RE = { test: (value: string): boolean => { try { parseIso(value); return true } catch { return false } } }
 
 export function loadConfig(cwd: string): TrainctlConfig {
+  // E4: w widoku planu biegowego nad planem v2 profil biegowy pochodzi z profilu v2
+  const view = activeView(cwd)
+  if (view) return structuredClone(view.config)
   const path = join(cwd, CONFIG_FILE)
+  if (!existsSync(path)) {
+    throw new Error(ui().common.missingConfig(CONFIG_FILE))
+  }
+  return validateConfig(parse(readFileSync(path, 'utf-8')))
+}
+
+/** Walidacja i normalizacja profilu planu biegowego — z pliku albo z widoku (E4). */
+export function validateConfig(input: unknown): TrainctlConfig {
   const t = ui()
   const v = t.configFile.validate
   const fail = (errs: string[]): never => {
     throw new Error(t.common.configErrors(CONFIG_FILE, errs.join('\n  - ')))
   }
-  if (!existsSync(path)) {
-    throw new Error(t.common.missingConfig(CONFIG_FILE))
-  }
-  const raw = parse(readFileSync(path, 'utf-8')) as Partial<TrainctlConfig> | null
+  const raw = input as Partial<TrainctlConfig> | null
   const errors: string[] = []
   const a = raw?.athlete
   const g = raw?.goal

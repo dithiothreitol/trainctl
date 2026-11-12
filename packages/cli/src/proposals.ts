@@ -10,6 +10,7 @@ import { readSnapshot } from './sync.ts'
 import { runningKmByDate } from './execution.ts'
 import { clockToday } from './clock.ts'
 import { sameResults } from './calibration.ts'
+import { activeView } from './view-context.ts'
 
 export interface PlanProposal {
   /** Actual local date of creation; historical analysis does not authorize historical writes. */
@@ -51,6 +52,9 @@ const proposalId = (proposal: Omit<PlanProposal, 'id'>): string => hash(JSON.str
 
 function saveProposal(cwd: string, body: Omit<PlanProposal, 'id'>): PlanProposal {
   if (validatePlan(body.plan).some(issue => issue.severity === 'error')) throw new Error(ui().improve.invalidProposal)
+  // E4: w katalogu v2 propozycja planu biegowego zapisuje się jako propozycja v2 (`--apply` ścieżką v2)
+  const view = activeView(cwd)
+  if (view) return { ...body, id: view.propose(body.plan, body.changes) }
   const proposal: PlanProposal = { ...body, id: proposalId(body) }
   const dir = join(cwd, 'plan', 'proposals')
   mkdirSync(dir, { recursive: true })
@@ -267,6 +271,8 @@ export type ProposalState = 'valid' | 'expired' | 'stale' | 'invalid'
  * zgubiony ID trzeba było szukać w `plan/proposals/`.
  */
 export function listProposals(cwd: string): { id: string; kind: string; createdFor: string; preparedOn: string | null; changes: number; firstDate: string | null; state: ProposalState }[] {
+  const view = activeView(cwd)
+  if (view) return view.proposals()
   const dir = join(cwd, 'plan', 'proposals')
   if (!existsSync(dir)) return []
   const base = workspaceHash(cwd)

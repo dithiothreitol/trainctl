@@ -33,10 +33,10 @@ export function runningSessions(plan: StoredPlan, cycleId: string): TrainingSess
   })))
 }
 
-export function regenerateRunning(existing: SportsPlan, config: SportsConfig, today: string, fixed: Set<string>, cycleId = existing.cycleId): { sessions: TrainingSession[]; generatorPlan: StoredPlan } | undefined {
-  if (!existing.legacy || !config.athlete.sports.run) return undefined
-  const profile = config.athlete.sports.run
-  const original = existing.legacy.config as TrainctlConfig
+/** Profil planu biegowego z profilu v2: ten sam dla regeneracji i dla widoku (E4). */
+export function runningConfig(existing: SportsPlan, config: SportsConfig): TrainctlConfig {
+  const profile = config.athlete.sports.run!
+  const original = existing.legacy!.config as TrainctlConfig
   const running: TrainctlConfig = structuredClone(original)
   running.athlete = { ...running.athlete, ...profile.running,
     results: profile.results ?? original.athlete.results,
@@ -48,6 +48,12 @@ export function regenerateRunning(existing: SportsPlan, config: SportsConfig, to
   // checked after composition with cycling/swimming (never spent twice).
   if (Object.keys(config.athlete.sports).length > 1) running.time = { weeklyMinutes: profile.weeklyMinutes + (profile.preparationMinutes ?? 15) * profile.sessionsPerWeek }
   else if (config.time) running.time = config.time
+  return running
+}
+
+export function regenerateRunning(existing: SportsPlan, config: SportsConfig, today: string, fixed: Set<string>, cycleId = existing.cycleId): { sessions: TrainingSession[]; generatorPlan: StoredPlan } | undefined {
+  if (!existing.legacy || !config.athlete.sports.run) return undefined
+  const running = runningConfig(existing, config)
   const old = (existing.legacy.generatorPlan ?? existing.legacy.plan) as StoredPlan
   const retired = new Set(existing.retiredSessionIds ?? [])
   const recorded = new Set([...existing.sessions, ...existing.archive].filter(s => fixed.has(s.id) || existing.archive.some(a => a.id === s.id && !retired.has(a.id))).map(s => {

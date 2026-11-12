@@ -14,6 +14,15 @@ change between minor versions — a regenerated plan can differ.
   kilometres. Session cards, the FIT file and the intervals.icu workout read
   these steps instead of the stored running workout, which stays for the
   running engine (PLAN-v0.7 E1).
+- A multisport workspace whose plan carries the running engine and whose
+  profile has only running now answers `why`, `status`, `review` and `adapt`
+  the way a running plan does: rule sources and calibration in `why`, the
+  workspace status screen, laps and target compliance in `review`, and the
+  running analysis in `adapt` (missed sessions, recalibration, the return
+  block after a break). `adapt --prepare` stores a session-plan proposal and
+  `adapt --apply` changes the sessions; days moved, shortened or approved in
+  the session plan stay protected (PLAN-v0.7 E4).
+- `why` shows the planned RPE range of a run, as the session card does.
 
 - The running engine lays out weeks differently, so the first `trainctl plan`
   after updating rewrites future days of an existing plan. Past, logged,

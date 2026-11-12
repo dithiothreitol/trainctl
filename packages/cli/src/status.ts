@@ -1,5 +1,7 @@
 import { isSportsWorkspace } from './sports-store.ts'
 import { sportsCommand } from './sports-commands.ts'
+import { onRunningView } from './running-view.ts'
+import { activeView } from './view-context.ts'
 /**
  * `trainctl status` — jeden ekran stanu katalogu treningowego.
  *
@@ -36,7 +38,12 @@ export interface StatusResult {
 }
 
 export function cmdStatus(cwd: string): StatusResult {
-  if (isSportsWorkspace(cwd)) return sportsCommand(cwd, 'status')
+  // E4: katalog v2 z planem biegowym ma ten sam ekran stanu co plan biegowy (widok planu v2)
+  if (isSportsWorkspace(cwd)) return onRunningView(cwd, () => statusResult(cwd)) ?? sportsCommand(cwd, 'status')
+  return statusResult(cwd)
+}
+
+function statusResult(cwd: string): StatusResult {
   try {
     return statusImpl(cwd)
   } catch (e) {
@@ -140,7 +147,8 @@ function statusImpl(cwd: string): StatusResult {
       proposals.map((p) => (p.state === 'valid' ? 'success' : 'muted')),
     ))
     const valid = proposals.find((p) => p.state === 'valid')
-    if (valid) next.push(`trainctl ${valid.kind === 'shorten' ? 'shorten' : 'adapt'} --apply ${valid.id}`)
+    // propozycje v2 (widok E4) niosą nazwę komendy: adapt, shorten, replace, reschedule, migrate
+    if (valid) next.push(`trainctl ${valid.kind === 'adaptation' ? 'adapt' : valid.kind} --apply ${valid.id}`)
   }
 
   // git
@@ -159,6 +167,7 @@ function statusImpl(cwd: string): StatusResult {
     data: {
       dir: cwd,
       today,
+      ...(activeView(cwd) ? { schemaVersion: 2 } : {}),
       config: { exists: hasConfig, valid: hasConfig && !configErrors, errors: configErrors ?? null },
       plan: plan
         ? { goal: plan.goal, generatedAt: plan.generatedAt, engineVersion: plan.engineVersion ?? null, cliVersion: current,

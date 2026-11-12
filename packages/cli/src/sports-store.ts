@@ -143,12 +143,12 @@ export function migrationCandidate(cwd: string): { plan: SportsPlan; config: Spo
   return { plan, config: validateSportsConfig(config), log: logs.map(l => JSON.stringify(l)).join('\n') + (logs.length ? '\n' : '') }
 }
 
-export function sportsProposalStatus(cwd: string): { id: string; action: string; valid: boolean }[] {
+export function sportsProposalStatus(cwd: string): { id: string; action: string; valid: boolean; date?: string; changes?: number }[] {
   const dir = join(cwd,'plan/proposals')
   if (!existsSync(dir)) return []
   const state = stateFingerprint(cwd)
   return readdirSync(dir).filter(name=>/^[a-f0-9-]{36}\.json$/.test(name)).map(name=>{
-    try { const p=JSON.parse(readFileSync(join(dir,name),'utf8')) as SportsProposal; const {digest,...body}=p; return {id:p.id,action:p.action,valid:p.schemaVersion===2&&digest===fingerprint(body)&&p.state===state} }
+    try { const p=JSON.parse(readFileSync(join(dir,name),'utf8')) as SportsProposal; const {digest,...body}=p; return {id:p.id,action:p.action,valid:p.schemaVersion===2&&digest===fingerprint(body)&&p.state===state,date:p.date,changes:p.plan.changes.at(-1)?.sessionIds.length??0} }
     catch {return {id:name.slice(0,-5),action:'?',valid:false}}
   })
 }
