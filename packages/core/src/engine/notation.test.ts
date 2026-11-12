@@ -118,6 +118,27 @@ describe('C1: notacja sesji planu v2', () => {
   })
 })
 
+describe('C9: notacja w milach', () => {
+  const mi = { locale: 'pl' as const, units: 'imperial' as const }
+  it('dystans ciągły w milach, tempo na milę, odcinki w metrach (bez „km")', () => {
+    const w = workout('quality_intervals', frame(seg('intervals', { reps: 4, repM: 1000, distanceKm: 4, pace: intervalPace, recoverySec: 120, recoveryMode: 'walk' })))
+    expect(workoutLine(w, mi)).toBe("RG 1,9 mi · 4×1000 m @7:18 p. 2' marsz · SCH 0,6 mi")
+    expect(workoutLine(workout('easy', [seg('easy', { distanceKm: 17, pace: easyPace })]), { ...mi, locale: 'en' })).toBe('10.6 mi @8:11–9:47')
+    expect(workoutLine(workout('quality_continuous', [seg('alternating', { distanceKm: 4, pace: { loSecPerKm: 265, hiSecPerKm: 305 } })]), mi)).toBe('2,5 mi: 1000 m @7:06 / 1000 m @8:11')
+    const race = workout('race', [seg('race', { distanceKm: 21.0975 })], { raceDistanceKm: 21.0975 })
+    expect(workoutLine(race, mi)).toBe('START 13,1 mi')
+    // 265 i 279 s/km × 1,609344 = 426,5 i 449,0 s/mi
+    expect(workoutStructure(w, mi)[1]).toEqual({ part: 'główna', dose: '4×1000 m', target: '7:06–7:29', recovery: "2' marsz" })
+    expect(accentLine(w, mi)).toBe('4×1000 m @7:18')
+    for (const line of [workoutLine(w, mi), accentLine(w, mi)]) expect(line).not.toContain('km')
+  })
+
+  it('pływanie zostaje na 100 m, moc w watach', () => {
+    const swim = session('swim', [{ role: 'work', durationSec: 105, distanceM: 100, repeat: 10, restSec: 20, target: { kind: 'pace', seconds: 105, perM: 100 } }])
+    expect(sessionLine(swim, mi)).toBe('10×100 m @1:45/100 m p. 20"')
+  })
+})
+
 describe('C2: część główna do siatki sezonu', () => {
   it('bez ramy, biegu spokojnego przed akcentem, przerw i przebieżek', () => {
     const intervals = workout('quality_intervals', frame(seg('intervals', { reps: 4, repM: 1000, distanceKm: 4, pace: intervalPace, recoverySec: 120, recoveryMode: 'walk' })))

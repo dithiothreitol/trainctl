@@ -56,6 +56,7 @@ export const cliPl: CliMessages = {
   },
   cmd: {
     banner: 'plan treningowy jako kod, trener jako narzędzie agenta',
+    optUnits: 'dystans i tempo w km albo milach: metric | imperial (albo units w trainctl.yaml); pliki zostają w km',
     lang: 'język interfejsu: en | pl (albo TRAINCTL_LANG / language w trainctl.yaml)',
     version: 'wypisz zainstalowaną wersję',
     init: 'utwórz profil (interaktywnie w terminalu)',
@@ -90,7 +91,7 @@ export const cliPl: CliMessages = {
     optStatus: 'done|skipped|modified',
     optBreakTo: 'ostatni dzień przerwy: każdy dzień od --date dostaje wpis skipped',
     optReason: 'przyczyna opuszczenia: illness | injury | travel | other',
-    optKm: 'przebiegnięte km',
+    optKm: 'przebiegnięty dystans w km (w milach przy units: imperial)',
     optTime: 'czas MM:SS albo HH:MM:SS',
     optRpe: 'wysiłek sesji jako liczba całkowita 1–10 (CR-10)',
     optStrength: 'zaloguj sesję siły zamiast biegu: done | skipped',
@@ -137,6 +138,7 @@ export const cliPl: CliMessages = {
 
   common: {
     dayCount: dni,
+    perWeek: (value: string, unit: string) => `${value} ${unit}/tydz.`,
     logLine: (line: number) => `wiersz ${line}`,
     logBroken: (file: string, lines: string) => `${file}: nie da się odczytać (${lines}). Popraw plik przed zmianą planu, żeby zalogowane dni zostały chronione.`,
     nextStep: (command: string) => `następny krok: ${command}`,
@@ -290,14 +292,13 @@ export const cliPl: CliMessages = {
   },
 
   week: {
-    columns: { km: 'km' },
     rest: 'wolne',
     raceThisWeek: (date: string) => `Start w tym tygodniu: ${date}`,
     taperNote: 'Taper: objętość w dół, ale intensywność i liczba sesji zostają (T-1/T-2).',
   },
 
   rows: {
-    columns: { day: 'dz', sport: 'sport', kind: 'typ', km: 'km', time: 'czas', line: 'rozpiska' },
+    columns: { day: 'dz', sport: 'sport', kind: 'typ', time: 'czas', line: 'rozpiska' },
     total: 'suma',
     rest: 'wolne',
     strength: 'siła',
@@ -305,8 +306,8 @@ export const cliPl: CliMessages = {
     today: 'dziś',
     deload: 'odciążenie',
     shortDate: (iso: string) => `${Number(iso.slice(8, 10))}.${iso.slice(5, 7)}`,
-    weekHeading: (index: number, total: number, phase: string, from: string, to: string, km: number, target: boolean, runs: number, strength: number) =>
-      `Tydzień ${index}/${total} · ${phase} · ${from}–${to} · ${target ? 'cel ' : ''}${n(km)} km · ${runs} ${pluralPl(runs, { one: 'bieg', few: 'biegi', other: 'biegów' })}` +
+    weekHeading: (index: number, total: number, phase: string, from: string, to: string, distance: number, unit: string, target: boolean, runs: number, strength: number) =>
+      `Tydzień ${index}/${total} · ${phase} · ${from}–${to} · ${target ? 'cel ' : ''}${n(distance)} ${unit} · ${runs} ${pluralPl(runs, { one: 'bieg', few: 'biegi', other: 'biegów' })}` +
       (strength ? ` · ${strength} ${pluralPl(strength, { one: 'siła', few: 'siły', other: 'sił' })}` : ''),
     sessionsHeading: (from: string, to: string, sessions: number) =>
       `Tydzień ${from}–${to} · ${sessions} ${pluralPl(sessions, { one: 'sesja', few: 'sesje', other: 'sesji' })}`,
@@ -317,10 +318,10 @@ export const cliPl: CliMessages = {
     about: (minutes: number) => `około ${n(Math.round(minutes))} min`,
     sessions: (count: number) => `${count} ${pluralPl(count, { one: 'sesja', few: 'sesje', other: 'sesji' })}`,
     season: {
-      columns: { week: 'tydz', from: 'od', phase: 'faza', km: 'km', accents: 'akcenty', long: 'długie', sessions: 'sesje', time: 'czas' },
+      columns: { week: 'tydz', from: 'od', phase: 'faza', accents: 'akcenty', long: 'długie', sessions: 'sesje', time: 'czas' },
       phase: { base: 'baza', build: 'budowanie', peak: 'szczyt', taper: 'taper', race: 'start', transition: 'przejście', deload: 'odciążenie', recovery: 'regeneracja' },
       title: (name: string) => `Sezon · ${name}`,
-      legend: (deload: string) => `${deload} odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km`,
+      legend: (deload: string, unit: string) => `${deload} odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w ${unit}`,
       legendSessions: (deload: string, accents: boolean) =>
         `${deload} odciążenie · czas z przygotowaniem${accents ? ' · akcenty bez rozgrzewki i schłodzenia' : ''}`,
     },
@@ -357,7 +358,7 @@ export const cliPl: CliMessages = {
       which: 'Który trening?',
       status: 'Status',
       statusHint: 'done / skipped / modified',
-      km: 'Kilometry',
+      distance: (unit: string) => `Dystans [${unit}]`,
       time: 'Czas',
       timeHint: 'MM:SS albo G:MM:SS, Enter pomija',
       testTime: 'Czas samego odcinka pomiarowego',
@@ -742,9 +743,13 @@ export const cliPl: CliMessages = {
     goalTarget: 'Cel czasowy',
     defaultGoalName: 'Bieg docelowy',
     yourRunning: 'Twoje bieganie',
-    recentVolume: 'Objętość z ostatnich tygodni [km]',
-    peakVolume: 'Historyczne maksimum tygodniowe [km]',
-    returningPrevious: 'Wracasz po co najmniej dwóch tygodniach bez biegania? Kilometry tygodniowo przed przerwą',
+    units: 'Dystans i tempo',
+    unitCodes: { metric: 'km', imperial: 'mi' },
+    hintUnits: 'km / mi',
+    errUnits: 'Podaj km albo mi',
+    recentVolume: (unit: string) => `Objętość z ostatnich tygodni [${unit}]`,
+    peakVolume: (unit: string) => `Historyczne maksimum tygodniowe [${unit}]`,
+    returningPrevious: (unit: string) => `Wracasz po co najmniej dwóch tygodniach bez biegania? Objętość tygodniowa przed przerwą [${unit}]`,
     returningSince: 'Pierwszy dzień biegania po przerwie',
     hintReturning: 'Enter = bez przerwy',
     hintReturningSuggested: '0 = bez przerwy',
@@ -784,7 +789,7 @@ export const cliPl: CliMessages = {
     errKm: 'Podaj liczbę kilometrów',
     errReturningFuture: 'Podaj pierwszy dzień, w którym znowu biegałeś, nie przyszły; zaplanowany powrót dopisz do profilu, gdy się zacznie (R-11)',
     errReturningOld: (earliest: string) => `Powrót trwa sześć tygodni od pierwszego dnia biegania; dzień przed ${earliest} plan by pominął, a obecna objętość już cię opisuje (R-11)`,
-    errReturningBelowRecent: (recent: number) => `Przed przerwą biegałeś co najmniej tyle, co teraz: podaj ${n(recent)} km albo więcej, albo 0, jeśli przerwy nie było (R-11)`,
+    errReturningBelowRecent: (recent: number, unit: string) => `Przed przerwą biegałeś co najmniej tyle, co teraz: podaj ${n(recent)} ${unit} albo więcej, albo 0, jeśli przerwy nie było (R-11)`,
     errHour: 'Godzina w formacie HH:MM',
     intervalsFound: 'Znalazłem klucz intervals.icu — pobrać historię i zaproponować profil?',
     intervalsFetching: 'pobieram ostatnie 16 tygodni…',
@@ -824,10 +829,10 @@ export const cliPl: CliMessages = {
   },
 
   print: {
-    columns: { day: 'Dzień', date: 'Data', kind: 'Typ', km: 'Km', time: 'Czas', workout: 'Rozpiska', done: '✓' },
+    columns: { day: 'Dzień', date: 'Data', kind: 'Typ', time: 'Czas', workout: 'Rozpiska', done: '✓' },
     weekTitle: (index: number) => `Tydzień ${index}`,
-    weekMeta: (weekStart: string, phase: string, km: number) =>
-      `od ${weekStart} · ${phase} · ${n(km)} km`,
+    weekMeta: (weekStart: string, phase: string, distance: number, unit: string) =>
+      `od ${weekStart} · ${phase} · ${n(distance)} ${unit}`,
     deload: 'odciążenie',
     subtitle: (weeks: number, peakKm: number, vdot: number, generatedAt: string) =>
       `Plan ${weeks}-tygodniowy · szczyt ${n(peakKm)} km/tydz. · VDOT ${n(vdot)} · ` +
@@ -999,12 +1004,12 @@ export const cliPl: CliMessages = {
     headingBase: (goalName: string, date: string) => `Plan: ${goalName} — budowanie bazy do ${date}`,
     heading: (goalName: string, date: string) => `Plan: ${goalName} — ${date}`,
     goalTime: (time: string) => ` · cel: ${time}`,
-    meta: (generatedAt: string, vdot: number, source: string, peakKm: number) =>
-      `Wygenerowano ${generatedAt} · VDOT ${n(vdot)} (${source}) · szczyt ${n(peakKm)} km/tydz.`,
+    meta: (generatedAt: string, vdot: number, source: string, peak: number, unit: string) =>
+      `Wygenerowano ${generatedAt} · VDOT ${n(vdot)} (${source}) · szczyt ${n(peak)} ${unit}/tydz.`,
     vdotFromResult: 'z wyniku startu',
     vdotFromGoal: 'z celu — do rekalibracji!',
-    prediction: (distanceKm: number, lo: string, hi: string, method: string) =>
-      `Predykcja na ${n(distanceKm)} km: **${lo}–${hi}** (metoda: ${method}; W-1: zawsze przedział).`,
+    prediction: (distance: number, unit: string, lo: string, hi: string, method: string) =>
+      `Predykcja na ${n(distance)} ${unit}: **${lo}–${hi}** (metoda: ${method}; W-1: zawsze przedział).`,
     weekHeading: (index: number, weekStart: string, label: string) =>
       `Tydzień ${index} — od ${weekStart} (${label})`,
     season: 'Sezon',
@@ -1061,6 +1066,7 @@ export const cliPl: CliMessages = {
       '# Uzupełnij i uruchom: trainctl plan',
     ],
     templateLanguage: 'język interfejsu i opisów planu: en | pl (domyślnie: en)',
+    templateUnits: 'dystans i tempo: metric (km) | imperial (mi); pliki zostają w km',
     templateAthlete: {
       sex: 'male | female | unspecified',
       hrMax: 'pułap tętna biegu spokojnego i długiego (Z-2, wymaga sex); measured: false = szacunek',
@@ -1127,6 +1133,7 @@ export const cliPl: CliMessages = {
       boolean: (path: string) => `${path}: true albo false`,
       hourFormat: (path: string) => `${path}: format HH:MM`,
       sex: (path: string) => `${path}: male, female albo unspecified`,
+      units: (path: string) => `${path}: metric albo imperial`,
       hrMax: (path: string, min: number, max: number) => `${path}: { bpm: liczba całkowita ${min}–${max}, measured: true albo false }`,
     },
   },

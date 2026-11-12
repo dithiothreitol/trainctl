@@ -882,6 +882,14 @@ w commicie punktu.
   --from-intervals` czyta pole `max_heartrate` nazwane jak `average_heartrate`;
   nazwy nie sprawdzono na koncie (§14). Pułap dotyczy planu biegowego; plan v2
   dostanie go z jednym modelem danych w etapie 4.
+- **C9.** Odcinki przy milach są w metrach (`4×1000 m`): dystans bieżni, bez
+  „km" w wyjściu. Pływanie zostaje na 100 m. Dane widoków (`rows`, `structure`,
+  `weeks`) liczy się w km, więc `--json` i `structuredContent` są takie same przy
+  obu jednostkach. `plan` przepisuje sam `PLAN.md`, gdy plan jest aktualny, a
+  widok nie (zmiana jednostki). Komunikaty diagnostyczne (`adapt`, werdykt
+  wykonalności, regeneracja) i pakiet startowy zostają w km: nie ma ich na
+  liście z pkt 2. Flaga `log --km` zachowuje nazwę, a wartość jest w jednostce
+  profilu. Kreator pyta o jednostkę na początku.
 
 ---
 

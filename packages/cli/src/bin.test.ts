@@ -106,6 +106,19 @@ describe('binarka CLI pod natywnym Node', () => {
     }
   })
 
+  it('C9: --units imperial zmienia tekst, nie dane; nieznana jednostka to błąd', () => {
+    run(['plan', '--date', '2026-08-05'])
+    const plain = run(['week', '--date', '2026-08-04', '--units', 'imperial', '--plain'])
+    expect(plain).toContain('tempo w min/mi')
+    expect(plain).not.toMatch(/\bkm\b/)
+    const metric = JSON.parse(run(['week', '--date', '2026-08-04', '--json']))
+    const imperial = JSON.parse(run(['week', '--date', '2026-08-04', '--json', '--units', 'imperial']))
+    expect(imperial.data).toEqual(metric.data)
+    expect(imperial.output).not.toBe(metric.output)
+    const invalid = spawnSync(process.execPath, [CLI_BIN, 'week', '--units', 'miles'], { cwd: dir, encoding: 'utf8' })
+    expect(invalid.status).not.toBe(0)
+  }, 40_000)
+
   it('C2: season, help season, --full i uzupełnianie powłoki', () => {
     run(['plan', '--date', '2026-08-05'])
     const season = run(['season', '--date', '2026-08-04', '--color', 'never'])

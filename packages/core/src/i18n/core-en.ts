@@ -113,7 +113,8 @@ export const coreEn = {
     strength: 'strength',
     /** Dłuższa przerwa w połowie serii: po którym odcinku. */
     afterRep: (rep: number) => `after rep ${rep}`,
-    legend: 'WU warm-up · CD cool-down · r. recovery · pace in min/km',
+    /** `unit`: km albo mi (C9) — tempo w notacji jest na jednostkę widoku. */
+    legend: (unit: string) => `WU warm-up · CD cool-down · r. recovery · pace in min/${unit}`,
     /** Nazwy części jednostki w widoku struktury (`today`, C2). */
     part: {
       warmup: 'warm-up', cooldown: 'cool-down', easy: 'easy', steady: 'steady', intervals: 'main set',

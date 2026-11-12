@@ -10,13 +10,13 @@ import { sportsCommand } from './sports-commands.ts'
  */
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { diffDays, messages, mondayOf } from 'trainctl-core'
+import { diffDays, mondayOf } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig, readConfigLanguage } from './config.ts'
 import { ENV_FILE, inspectEnvFile } from './env-file.ts'
 import { buildExecution } from './execution.ts'
 import { uncommitted } from './git.ts'
 import { ui } from './i18n/index.ts'
-import { logStatusText } from './format.ts'
+import { logStatusText, perWeekLabel } from './format.ts'
 import { LOG_FILE, readJournal } from './logfile.ts'
 import { cycleWeeksOf, readExistingPlan, unusablePlanMessage, PLAN_DIR, type StoredPlan } from './planfile.ts'
 import { listProposals } from './proposals.ts'
@@ -81,7 +81,7 @@ function statusImpl(cwd: string): StatusResult {
     const sessions = cycle.reduce((s, w) => s + w.days.filter((d) => d.workout).length, 0)
     const minor = (v: string) => v.split('.').slice(0, 2).join('.')
     blocks.push(b.section(t.plan), b.kv([
-      [t.goal, `${plan.goal.name} · ${plan.goal.date} · ${messages().units.kmPerWeek(plan.peakKmPlanned)}`],
+      [t.goal, `${plan.goal.name} · ${plan.goal.date} · ${perWeekLabel(plan.peakKmPlanned)}`],
       [t.toRace, t.daysToRace(diffDays(today, plan.goal.date))],
       [t.weeks, t.weeksSessions(cycle.length, sessions)],
       [t.generated, plan.generatedAt],

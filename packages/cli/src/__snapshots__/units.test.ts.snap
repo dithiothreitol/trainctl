@@ -1,0 +1,167 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`C9: widoki w milach > en · season: mile i tempo na milę, bez „km" w tekście 1`] = `
+"Season · Half · 13.11 mi · 2027-03-28 · 25 weeks of plan
+────────────────────────────────────────────────────────────────
+
+  wk    from    phase         mi  accents                                   long
+  ────  ──────  ──────────  ────  ────────────────────────────────────────  ────
+  1     Oct 19  base        26.7  4×1000 m @7:17 · hills · 1.9 mi           9.9
+                                  8:04→7:18
+▸ 2     Oct 26  base        27.3  4×1000 m @7:17 · hills · 1.9 mi           10.6
+                                  8:04→7:18
+  3     Nov 2   base        28.6  4×1000 m @7:17 · hills · 2.2 mi           11.5
+                                  8:04→7:18
+  4 ↓   Nov 9   base        19.9  4×1000 m @7:17 · 1.9 mi 8:04→7:18         6.8
+  5     Nov 16  base        27.3  4×1000 m @7:17 · 3.1 mi time trial        9.9
+  6     Nov 23  base        28.6  4×1000 m @7:17 · hills · 2.2 mi           11.5
+                                  8:04→7:18
+  7     Nov 30  base        29.2  4×1000 m @7:17 · hills · 2.2 mi           12.1
+                                  8:04→7:18
+  8 ↓   Dec 7   base        20.5  4×1000 m @7:17 · 1.9 mi 8:04→7:18         7.5
+  9     Dec 14  build       28.6  4×1000 m @7:17 · hills · 2.2 mi           11.5
+                                  8:04→7:18
+  10    Dec 21  build       29.2  4×1000 m @7:17 · hills · 2.2 mi           12.1
+                                  8:04→7:18
+  11    Dec 28  build       30.4  4×1000 m @7:17 · hills · 3.1 mi time      12.4
+                                  trial
+  12 ↓  Jan 4   build       21.1  4×1000 m @7:17 · 1.9 mi 8:04→7:18         8.1
+  13    Jan 11  build       29.2  4×1000 m @7:17 · hills · 2.2 mi           12.1
+                                  8:04→7:18
+  14    Jan 18  build       30.4  4×1000 m @7:17 · hills · 2.5 mi           13
+                                  8:04→7:18
+  15    Jan 25  build       31.1  5×1000 m @7:17 · hills · 2.8 mi           12.7
+                                  8:04→7:18
+  16 ↓  Feb 1   build       21.7  4×1000 m @7:17 · 2.2 mi 8:04→7:18         8.7
+  17    Feb 8   build       29.8  4×1000 m @7:17 · hills · 3.1 mi time      13
+                                  trial
+  18    Feb 15  peak        31.1  3×1000 m + 3×400 m + 3×200 m @6:33 ·      14.1
+                                  hills · alternating 2.8 mi
+  19    Feb 22  peak        32.3  3×1000 m + 3×400 m + 3×200 m @6:33 ·      13.8
+                                  hills · alternating 3.1 mi
+  20 ↓  Mar 1   peak        22.4  3×1000 m + 3×400 m + 3×200 m @6:33 ·      9.3
+                                  alternating 2.5 mi
+  21    Mar 8   peak        32.3  3×1000 m + 3×400 m + 3×200 m @6:33 ·      13.8
+                                  hills · alternating 3.1 mi
+  22    Mar 15  taper       22.4  4×1000 m @6:33 · alternating 2.5 mi
+  23    Mar 22  race        16.2  5×300 m @6:33                             RACE
+  24    Mar 29  transition  13.7
+  25    Apr 5   transition  27.3  3×1000 m @7:17                            9.9
+↓ deload · accents without warm-up and cool-down · long run in mi"
+`;
+
+exports[`C9: widoki w milach > en · today: mile i tempo na milę, bez „km" w tekście 1`] = `
+"Tue Oct 27 · intervals · 4.97 mi · about 66 min including preparation
+week 2/25 · base · 152 days to race
+────────────────────────────────────────────────────────────────
+
+part       dose      target     recovery
+─────────  ────────  ─────────  ────────
+warm-up    1.9 mi    8:11–9:47
+main set   4×1000 m  7:06–7:27  2' walk
+cool-down  0.6 mi    jog
+
+next: Thursday 2026-10-29 · hills · 7.46 mi
+
+→ why this session: trainctl why --date 2026-10-27"
+`;
+
+exports[`C9: widoki w milach > en · week: mile i tempo na milę, bez „km" w tekście 1`] = `
+"Week 2/25 · base · Oct 26–Nov 1 · 27.3 mi · 4 runs · 2 strength
+────────────────────────────────────────────────────────────────
+
+  day  type         mi  time  session
+  Mon  rest
+  Tue  intervals     5  1:06  WU 1.9 mi · 4×1000 m @7:17 r. 2' walk · CD 0.6 mi
+  Wed  strength         0:35  intro
+▸ Thu  hills       7.5  1:28  3.1 mi @8:11–9:47 · hills 15×200 m · CD 0.6 mi
+  Fri  strength         0:35  intro
+  Sat  long run   10.6  2:07  10.6 mi @9:47–10:36
+  Sun  tempo       4.3  0:55  WU 1.9 mi · 1.9 mi 8:04→7:18 · CD 0.6 mi
+       total      27.3  6:46
+WU warm-up · CD cool-down · r. recovery · pace in min/mi"
+`;
+
+exports[`C9: widoki w milach > pl · season: mile i tempo na milę, bez „km" w tekście 1`] = `
+"Sezon · Half · 13,11 mi · 2027-03-28 · 25 tygodni planu
+────────────────────────────────────────────────────────────────
+
+  tydz     od  faza         mi  akcenty                                   długie
+  ────  ─────  ─────────  ────  ────────────────────────────────────────  ──────
+  1     19.10  baza       26,7  4×1000 m @7:17 · podbiegi · 1,9 mi        9,9
+                                8:04→7:18
+▸ 2     26.10  baza       27,3  4×1000 m @7:17 · podbiegi · 1,9 mi        10,6
+                                8:04→7:18
+  3      2.11  baza       28,6  4×1000 m @7:17 · podbiegi · 2,2 mi        11,5
+                                8:04→7:18
+  4 ↓    9.11  baza       19,9  4×1000 m @7:17 · 1,9 mi 8:04→7:18         6,8
+  5     16.11  baza       27,3  4×1000 m @7:17 · 3,1 mi na czas           9,9
+  6     23.11  baza       28,6  4×1000 m @7:17 · podbiegi · 2,2 mi        11,5
+                                8:04→7:18
+  7     30.11  baza       29,2  4×1000 m @7:17 · podbiegi · 2,2 mi        12,1
+                                8:04→7:18
+  8 ↓    7.12  baza       20,5  4×1000 m @7:17 · 1,9 mi 8:04→7:18         7,5
+  9     14.12  budowanie  28,6  4×1000 m @7:17 · podbiegi · 2,2 mi        11,5
+                                8:04→7:18
+  10    21.12  budowanie  29,2  4×1000 m @7:17 · podbiegi · 2,2 mi        12,1
+                                8:04→7:18
+  11    28.12  budowanie  30,4  4×1000 m @7:17 · podbiegi · 3,1 mi na     12,4
+                                czas
+  12 ↓   4.01  budowanie  21,1  4×1000 m @7:17 · 1,9 mi 8:04→7:18         8,1
+  13    11.01  budowanie  29,2  4×1000 m @7:17 · podbiegi · 2,2 mi        12,1
+                                8:04→7:18
+  14    18.01  budowanie  30,4  4×1000 m @7:17 · podbiegi · 2,5 mi        13
+                                8:04→7:18
+  15    25.01  budowanie  31,1  5×1000 m @7:17 · podbiegi · 2,8 mi        12,7
+                                8:04→7:18
+  16 ↓   1.02  budowanie  21,7  4×1000 m @7:17 · 2,2 mi 8:04→7:18         8,7
+  17     8.02  budowanie  29,8  4×1000 m @7:17 · podbiegi · 3,1 mi na     13
+                                czas
+  18    15.02  szczyt     31,1  3×1000 m + 3×400 m + 3×200 m @6:33 ·      14,1
+                                podbiegi · zmienny 2,8 mi
+  19    22.02  szczyt     32,3  3×1000 m + 3×400 m + 3×200 m @6:33 ·      13,8
+                                podbiegi · zmienny 3,1 mi
+  20 ↓   1.03  szczyt     22,4  3×1000 m + 3×400 m + 3×200 m @6:33 ·      9,3
+                                zmienny 2,5 mi
+  21     8.03  szczyt     32,3  3×1000 m + 3×400 m + 3×200 m @6:33 ·      13,8
+                                podbiegi · zmienny 3,1 mi
+  22    15.03  taper      22,4  4×1000 m @6:33 · zmienny 2,5 mi
+  23    22.03  start      16,2  5×300 m @6:33                             START
+  24    29.03  przejście  13,7
+  25     5.04  przejście  27,3  3×1000 m @7:17                            9,9
+↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w mi"
+`;
+
+exports[`C9: widoki w milach > pl · today: mile i tempo na milę, bez „km" w tekście 1`] = `
+"WT 27.10 · interwały · 4,97 mi · około 66 min razem z przygotowaniem
+tydzień 2/25 · baza · do startu: 152 dni
+────────────────────────────────────────────────────────────────
+
+etap         dawka     cel        przerwa
+───────────  ────────  ─────────  ────────
+rozgrzewka   1,9 mi    8:11–9:47
+główna       4×1000 m  7:06–7:27  2' marsz
+schłodzenie  0,6 mi    trucht
+
+następny: czwartek 2026-10-29 · podbiegi · 7,46 mi
+
+→ dlaczego ten trening: trainctl why --date 2026-10-27"
+`;
+
+exports[`C9: widoki w milach > pl · week: mile i tempo na milę, bez „km" w tekście 1`] = `
+"Tydzień 2/25 · baza · 26.10–1.11 · 27,3 mi · 4 biegi · 2 siły
+────────────────────────────────────────────────────────────────
+
+  dz  typ            mi  czas  rozpiska
+  PN  wolne
+  WT  interwały       5  1:06  RG 1,9 mi · 4×1000 m @7:17 p. 2' marsz · SCH 0,6
+                               mi
+  ŚR  siła               0:35  wejście
+▸ CZ  podbiegi      7,5  1:28  3,1 mi @8:11–9:47 · podbiegi 15×200 m · SCH 0,6
+                               mi
+  PT  siła               0:35  wejście
+  SB  długie       10,6  2:07  10,6 mi @9:47–10:36
+  ND  narastające   4,3  0:55  RG 1,9 mi · 1,9 mi 8:04→7:18 · SCH 0,6 mi
+      suma         27,3  6:46
+RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/mi"
+`;

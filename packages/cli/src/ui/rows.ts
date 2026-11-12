@@ -5,7 +5,7 @@
  * w wyjściu tekstowym i MCP słowem. Handlery budują wiersze, kolory dokłada renderer.
  */
 import {
-  accentLine, addDays, estimateWorkoutMinutes, formatNumber, getLocale, HR_CEILING_KINDS, messages, mondayOf, plannedWeekKm, sessionLine,
+  accentLine, addDays, distanceIn, distanceUnit, estimateWorkoutMinutes, formatNumber, getLocale, getUnits, HR_CEILING_KINDS, messages, mondayOf, plannedWeekKm, sessionLine, withUnits,
   type Microcycle, type StructureRow, type TrainingSession, type Weekday,
 } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
@@ -41,6 +41,12 @@ export interface SessionRow {
   statusWord?: string
   accent?: ColorName
 }
+
+/**
+ * C9: dane (`--json`, `structuredContent`) zawsze w kilometrach — wiersze i struktura
+ * liczone w jednostce metrycznej, choć tekst widoku idzie w milach.
+ */
+export const metricData = <T>(fn: () => T): T => (getUnits() === 'metric' ? fn() : withUnits('metric', fn))
 
 /** C8: pułap tętna w rozpisce — „tętno ≤149", w ASCII „tętno <=149". */
 export const hrCeilingText = (bpm: number, ascii = false): string => `${messages().notation.hr} ${ascii ? '<=' : '≤'}${bpm}`
@@ -149,7 +155,8 @@ export const hoursMinutes = (minutes: number | undefined): string => {
 export function rowsTable(rows: SessionRow[], opts: { today?: string; sport?: boolean; dates?: boolean } = {}): Block {
   const t = ui().rows
   const locale = getLocale()
-  const km = (value: number | undefined) => (value ? formatNumber(locale, value) : '')
+  // C9: dystans w jednostce widoku; nagłówek kolumny to jej skrót (km albo mi)
+  const km = (value: number | undefined) => (value ? formatNumber(locale, distanceIn(value)) : '')
   // tydzień v2 bez dystansów (sesje na czas): pusta kolumna km tylko zabierałaby miejsce rozpisce
   const distance = rows.some((r) => r.km)
   const day = (r: SessionRow) => `${messages().weekdayShort[r.weekday]}${opts.dates ? ` ${t.shortDate(r.date)}` : ''}`
@@ -168,7 +175,7 @@ export function rowsTable(rows: SessionRow[], opts: { today?: string; sport?: bo
   const totalKm = rows.reduce((sum, r) => sum + (r.km ?? 0), 0)
   const totalMinutes = rows.reduce((sum, r) => sum + (r.minutes ?? 0), 0)
   return b.table(
-    [t.columns.day, ...(opts.sport ? [t.columns.sport] : []), t.columns.kind, ...(distance ? [t.columns.km] : []), t.columns.time, t.columns.line],
+    [t.columns.day, ...(opts.sport ? [t.columns.sport] : []), t.columns.kind, ...(distance ? [distanceUnit()] : []), t.columns.time, t.columns.line],
     cells,
     rows.map((r) => r.accent),
     { foot: ['', ...(opts.sport ? [''] : []), t.total, ...(distance ? [km(totalKm)] : []), hoursMinutes(totalMinutes), ''], marks },
@@ -259,13 +266,13 @@ export function seasonTable(rows: SeasonRow[], opts: { today?: string; ascii?: b
     `${row.week}${row.deload ? ` ${deload}` : ''}`, t.shortDate(row.weekStart), phaseText(row),
     ...(opts.sessions
       ? [String(row.sessions ?? 0), hoursMinutes(row.minutes), row.accents.join(sep)]
-      : [formatNumber(locale, row.plannedKm ?? 0), row.accents.join(sep), row.race ? messages().notation.race : row.longKm ? formatNumber(locale, row.longKm) : '']),
+      : [formatNumber(locale, distanceIn(row.plannedKm ?? 0)), row.accents.join(sep), row.race ? messages().notation.race : row.longKm ? formatNumber(locale, distanceIn(row.longKm)) : '']),
   ])
   const marks = rows.map((row): RowMark | undefined =>
     opts.today && opts.today >= row.weekStart && opts.today <= addDays(row.weekStart, 6) ? { kind: 'today', word: t.today } : undefined)
   const accent = rows.map((row): ColorName => (row.race ? 'race' : row.deload ? 'muted' : 'accent'))
   const c = s.columns
-  if (!opts.sessions) return b.table([c.week, c.from, c.phase, c.km, c.accents, c.long], cells, accent, { marks })
+  if (!opts.sessions) return b.table([c.week, c.from, c.phase, distanceUnit(), c.accents, c.long], cells, accent, { marks })
   // plan v2 bez akcentów (np. baza): pusta kolumna akcentów zostaje pominięta
   const accents = rows.some((row) => row.accents.length > 0)
   return b.table(

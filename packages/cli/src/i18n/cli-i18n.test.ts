@@ -81,14 +81,12 @@ describe('polski nie jest kalką', () => {
         'common.labelOk',
         'common.labelWarn',
         'plan.vdot',
-        'week.columns.km',
         'pull.columns.status',
         'desk.columns.status',
         'reschedule.none',
         'wizard.hintDistance',
         'wizard.hintTime',
         'wizard.hintHour',
-        'print.columns.km',
         'print.columns.done',
         'racePack.km',
         'planMd.rest',
@@ -103,10 +101,12 @@ describe('polski nie jest kalką', () => {
         'review.columns.status',
         // C8: skrót płci w kreatorze — „m" to mężczyzna i male
         'wizard.sexCodes.male',
+        // C9: symbole jednostek dystansu są te same w obu językach
+        'wizard.unitCodes.metric',
+        'wizard.unitCodes.imperial',
+        'wizard.hintUnits',
         // C2: kolumny wiersza jednostki i siatki sezonu; „taper" to termin w obu językach
         'rows.columns.sport',
-        'rows.columns.km',
-        'rows.season.columns.km',
         'rows.season.phase.taper',
       ].sort(),
     )

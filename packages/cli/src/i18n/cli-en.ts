@@ -47,6 +47,7 @@ export const cliEn = {
   cmd: {
     banner: 'plan as code, coach as your agent’s tool',
     lang: 'interface language: en | pl (or TRAINCTL_LANG / language in trainctl.yaml)',
+    optUnits: 'distances and pace in km or miles: metric | imperial (or units in trainctl.yaml); files stay in km',
     version: 'print the installed version',
     init: 'create your profile (interactive in a terminal)',
     initTemplate: 'write the template without asking',
@@ -80,7 +81,7 @@ export const cliEn = {
     optStatus: 'done|skipped|modified',
     optBreakTo: 'last day of a break: every day from --date gets a skipped entry',
     optReason: 'why skipped: illness | injury | travel | other',
-    optKm: 'kilometres covered',
+    optKm: 'distance covered, in km (in miles with units: imperial)',
     optTime: 'time as MM:SS or HH:MM:SS',
     optRpe: 'session effort as a whole number 1–10 (CR-10)',
     optStrength: 'log a strength session instead of a run: done | skipped',
@@ -128,6 +129,8 @@ export const cliEn = {
   common: {
     /** „N days" — liczba dni jako wartość pod etykietą (review). */
     dayCount,
+    /** C9: objętość tygodnia — `value` już sformatowana, `unit` km albo mi. */
+    perWeek: (value: string, unit: string) => `${value} ${unit}/week`,
     /** Wiersz log.jsonl, którego nie da się odczytać. */
     logLine: (line: number) => `line ${line}`,
     logBroken: (file: string, lines: string) => `${file}: cannot read ${lines}. Fix the file before changing the plan, so logged days stay protected.`,
@@ -286,7 +289,6 @@ export const cliEn = {
   },
 
   week: {
-    columns: { km: 'km' },
     rest: 'rest',
     raceThisWeek: (date: string) => `Race this week: ${date}`,
     taperNote: 'Taper: volume drops, but intensity and session count stay (T-1/T-2).',
@@ -294,7 +296,7 @@ export const cliEn = {
 
   /** PLAN-v0.7 C2: wspólny wiersz jednostki w `week`, `today` i `season` (plan biegowy i v2). */
   rows: {
-    columns: { day: 'day', sport: 'sport', kind: 'type', km: 'km', time: 'time', line: 'session' },
+    columns: { day: 'day', sport: 'sport', kind: 'type', time: 'time', line: 'session' },
     total: 'total',
     rest: 'rest',
     strength: 'strength',
@@ -305,8 +307,8 @@ export const cliEn = {
     /** Data krótko: „Oct 26". */
     shortDate: (iso: string) => `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}`,
     /** `target`: suma dni różni się od celu tygodnia — cel podpisany, suma jest pod tabelą. */
-    weekHeading: (index: number, total: number, phase: string, from: string, to: string, km: number, target: boolean, runs: number, strength: number) =>
-      `Week ${index}/${total} · ${phase} · ${from}–${to} · ${target ? 'target ' : ''}${n(km)} km · ${runs} ${runs === 1 ? 'run' : 'runs'}` +
+    weekHeading: (index: number, total: number, phase: string, from: string, to: string, distance: number, unit: string, target: boolean, runs: number, strength: number) =>
+      `Week ${index}/${total} · ${phase} · ${from}–${to} · ${target ? 'target ' : ''}${n(distance)} ${unit} · ${runs} ${runs === 1 ? 'run' : 'runs'}` +
       (strength ? ` · ${strength} strength` : ''),
     sessionsHeading: (from: string, to: string, sessions: number) =>
       `Week ${from}–${to} · ${sessions} ${sessions === 1 ? 'session' : 'sessions'}`,
@@ -321,11 +323,11 @@ export const cliEn = {
     sessions: (count: number) => `${count} ${count === 1 ? 'session' : 'sessions'}`,
     /** Siatka sezonu (`season`, `plan`): tydzień w wierszu. */
     season: {
-      columns: { week: 'wk', from: 'from', phase: 'phase', km: 'km', accents: 'accents', long: 'long', sessions: 'sessions', time: 'time' },
+      columns: { week: 'wk', from: 'from', phase: 'phase', accents: 'accents', long: 'long', sessions: 'sessions', time: 'time' },
       /** Fazy krótko: kolumna siatki zostawia miejsce akcentom. */
       phase: { base: 'base', build: 'build', peak: 'peak', taper: 'taper', race: 'race', transition: 'transition', deload: 'deload', recovery: 'recovery' },
       title: (name: string) => `Season · ${name}`,
-      legend: (deload: string) => `${deload} deload · accents without warm-up and cool-down · long run in km`,
+      legend: (deload: string, unit: string) => `${deload} deload · accents without warm-up and cool-down · long run in ${unit}`,
       legendSessions: (deload: string, accents: boolean) =>
         `${deload} deload · time including preparation${accents ? ' · accents without warm-up and cool-down' : ''}`,
     },
@@ -367,7 +369,8 @@ export const cliEn = {
       which: 'Which session?',
       status: 'Status',
       statusHint: 'done / skipped / modified',
-      km: 'Kilometres',
+      /** C9: dystans w jednostce profilu (km albo mi), zapis w km. */
+      distance: (unit: string) => `Distance [${unit}]`,
       time: 'Time',
       timeHint: 'MM:SS or H:MM:SS, Enter skips',
       testTime: 'Time of the measured segment only',
@@ -746,9 +749,14 @@ export const cliEn = {
     goalTarget: 'Target time',
     defaultGoalName: 'Target race',
     yourRunning: 'Your running',
-    recentVolume: 'Volume over recent weeks [km]',
-    peakVolume: 'All-time weekly peak [km]',
-    returningPrevious: 'Coming back after two weeks or more without running? Weekly km before the break',
+    /** C9: objętość w jednostce profilu (km albo mi), zapis w km. */
+    units: 'Distances and pace',
+    unitCodes: { metric: 'km', imperial: 'mi' },
+    hintUnits: 'km / mi',
+    errUnits: 'Give km or mi',
+    recentVolume: (unit: string) => `Volume over recent weeks [${unit}]`,
+    peakVolume: (unit: string) => `All-time weekly peak [${unit}]`,
+    returningPrevious: (unit: string) => `Coming back after two weeks or more without running? Weekly ${unit} before the break`,
     returningSince: 'First day running again',
     hintReturning: 'Enter = no break',
     hintReturningSuggested: '0 = no break',
@@ -788,7 +796,7 @@ export const cliEn = {
     errKm: 'Give a number of kilometres',
     errReturningFuture: 'Give the first day you ran again, not a future one; a planned return can go into the profile once it starts (R-11)',
     errReturningOld: (earliest: string) => `The return lasts six weeks from the first day back; a day before ${earliest} would be ignored, and your recent volume already describes you (R-11)`,
-    errReturningBelowRecent: (recent: number) => `Before the break you ran at least as much as now: give ${n(recent)} km or more, or 0 for no break (R-11)`,
+    errReturningBelowRecent: (recent: number, unit: string) => `Before the break you ran at least as much as now: give ${n(recent)} ${unit} or more, or 0 for no break (R-11)`,
     errHour: 'Time as HH:MM',
     intervalsFound: 'I found an intervals.icu key — pull your history and propose a profile?',
     intervalsFetching: 'pulling the last 16 weeks…',
@@ -827,10 +835,10 @@ export const cliEn = {
   },
 
   print: {
-    columns: { day: 'Day', date: 'Date', kind: 'Type', km: 'Km', time: 'Time', workout: 'Session', done: '✓' },
+    columns: { day: 'Day', date: 'Date', kind: 'Type', time: 'Time', workout: 'Session', done: '✓' },
     weekTitle: (index: number) => `Week ${index}`,
-    weekMeta: (weekStart: string, phase: string, km: number) =>
-      `from ${weekStart} · ${phase} · ${n(km)} km`,
+    weekMeta: (weekStart: string, phase: string, distance: number, unit: string) =>
+      `from ${weekStart} · ${phase} · ${n(distance)} ${unit}`,
     deload: 'deload',
     subtitle: (weeks: number, peakKm: number, vdot: number, generatedAt: string) =>
       `${weeks}-week plan · peak ${n(peakKm)} km/week · VDOT ${n(vdot)} · generated ${generatedAt}`,
@@ -1002,12 +1010,12 @@ export const cliEn = {
     heading: (goalName: string, date: string) => `Plan: ${goalName} — ${date}`,
     headingBase: (goalName: string, date: string) => `Plan: ${goalName} — base training until ${date}`,
     goalTime: (time: string) => ` · target ${time}`,
-    meta: (generatedAt: string, vdot: number, source: string, peakKm: number) =>
-      `Generated ${generatedAt} · VDOT ${n(vdot)} (${source}) · peak ${n(peakKm)} km/week.`,
+    meta: (generatedAt: string, vdot: number, source: string, peak: number, unit: string) =>
+      `Generated ${generatedAt} · VDOT ${n(vdot)} (${source}) · peak ${n(peak)} ${unit}/week.`,
     vdotFromResult: 'from a race result',
     vdotFromGoal: 'from the goal — recalibrate!',
-    prediction: (distanceKm: number, lo: string, hi: string, method: string) =>
-      `Predicted over ${n(distanceKm)} km: **${lo}–${hi}** (method: ${method}; W-1: always a range).`,
+    prediction: (distance: number, unit: string, lo: string, hi: string, method: string) =>
+      `Predicted over ${n(distance)} ${unit}: **${lo}–${hi}** (method: ${method}; W-1: always a range).`,
     weekHeading: (index: number, weekStart: string, label: string) =>
       `Week ${index} — from ${weekStart} (${label})`,
     /** Siatka sezonu na początku PLAN.md (C3) i sesje siły opisane raz. */
@@ -1074,6 +1082,7 @@ export const cliEn = {
       '# Fill this in and run: trainctl plan',
     ],
     templateLanguage: 'interface and plan language: en | pl (default: en)',
+    templateUnits: 'distances and pace: metric (km) | imperial (mi); files stay in km',
     templateAthlete: {
       sex: 'male | female | unspecified',
       hrMax: 'heart-rate ceiling for easy and long runs (Z-2, needs sex); measured: false = estimate',
@@ -1141,6 +1150,7 @@ export const cliEn = {
       boolean: (path: string) => `${path}: true or false`,
       hourFormat: (path: string) => `${path}: format HH:MM`,
       sex: (path: string) => `${path}: male, female or unspecified`,
+      units: (path: string) => `${path}: metric or imperial`,
       hrMax: (path: string, min: number, max: number) => `${path}: { bpm: a whole number ${min}–${max}, measured: true or false }`,
     },
   },

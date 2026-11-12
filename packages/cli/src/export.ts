@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { estimateWorkoutMinutes, formatNumber, getLocale, heatLadder, messages, plannedWeekKm, workoutLine, workoutStructure, type PlannedDay } from 'trainctl-core'
+import { distanceIn, distanceUnit, estimateWorkoutMinutes, formatNumber, getLocale, heatLadder, messages, workoutLine, workoutStructure, type PlannedDay } from 'trainctl-core'
 import {
   encodeWorkoutFit,
   fmtClock,
@@ -134,7 +134,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
     const html = toMobileHtml({
       lang: getLocale(), title: labels.mobile, date: day.date, goal: plan.goal.name,
       kind: day.workout ? kindLabel(day.workout.kind) : labels.mobileRest,
-      distance: day.workout ? messages().units.km(shownKm(day.workout)) : '',
+      distance: day.workout ? kmLabel(shownKm(day.workout)) : '',
       duration: Number.isFinite(minutes) ? labels.minuteEstimate(minutes) : labels.unknownDuration,
       ...(day.workout ? { line: workoutLine(day.workout) } : {}),
       purpose: day.workout ? kindPurpose(day.workout.kind) : ui().today.restDayBody,
@@ -238,8 +238,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
       index: weekPosition(plan, w).index,
       weekStart: w.weekStart,
       phase: core.phase[w.skeleton.phase] ?? w.skeleton.phase,
-      targetKm: plannedWeekKm(w.skeleton),
-      totalKm: w.totalKm,
+      distance: distanceIn(w.totalKm),
       deload: w.skeleton.deload,
       days: rows.map((r, i) => {
         const first = i === 0 || rows[i - 1]!.date !== r.date
@@ -247,7 +246,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
           weekday: first ? core.weekdayShort[r.weekday] : '',
           date: first ? ui().rows.shortDate(r.date) : '',
           kind: r.kind,
-          km: r.km ? formatNumber(getLocale(), r.km) : '',
+          km: r.km ? formatNumber(getLocale(), distanceIn(r.km)) : '',
           time: hoursMinutes(r.minutes),
           text: r.line,
           rest: r.sport === 'rest',
@@ -258,10 +257,10 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   const html = toPrintableHtml({
     title: `${plan.goal.name} — ${plan.goal.date}`,
     subtitle: p.subtitle(cycle.length, plan.peakKmPlanned, plan.vdot, plan.generatedAt),
-    legend: core.notation.legend,
+    legend: core.notation.legend(distanceUnit()),
     weeks,
     footer: p.footer,
-    labels: { lang: getLocale(), ...p },
+    labels: { lang: getLocale(), ...p, columns: { ...p.columns, km: distanceUnit() }, weekMeta: (weekStart: string, phase: string, distance: number) => p.weekMeta(weekStart, phase, distance, distanceUnit()) },
   })
   const file = join(dir, `${safeName(plan.goal.name)}-${safeName(t.filePrintout)}.html`)
   writeFileSync(file, html, 'utf-8')

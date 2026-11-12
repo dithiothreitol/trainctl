@@ -164,6 +164,15 @@ change between minor versions — a regenerated plan can differ.
   `init` wizard asks for HRmax, whether it was measured, and sex; `init
   --from-intervals` proposes the highest heart rate in the history as an
   estimate. The profile now rejects an unknown `sex`.
+- Miles: `units: imperial` in `trainctl.yaml` or the global `--units` flag shows
+  distances in miles and pace per mile in `week`, `today`, `season`, `plan`,
+  `status`, `PLAN.md`, the printable sheet and the mobile page; repeats are
+  written in metres (`4×1000 m`) and swimming stays per 100 m. `plan.yaml`,
+  `log.jsonl`, `--json`, MCP `structuredContent` and sync stay in kilometres.
+  `log --km` and the wizard take distances in the profile unit and store
+  kilometres; the wizard asks for the unit first. `plan` refreshes `PLAN.md`
+  when only its view changed, for example after switching units. Diagnostic
+  messages in `adapt`, `review` and the race pack still use kilometres.
 
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in

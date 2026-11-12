@@ -5,8 +5,8 @@
  * Uwaga: stdout jest kanałem protokołu — logi wyłącznie na stderr.
  */
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { resolveLocale, setLocale } from 'trainctl-core'
-import { loadEnvFile, readConfigLanguage, ui, ENV_FILE } from 'trainctl'
+import { resolveLocale, setLocale, setUnits } from 'trainctl-core'
+import { loadEnvFile, readConfigLanguage, readConfigUnits, ui, ENV_FILE } from 'trainctl'
 import { createTrainctlServer } from './server.ts'
 
 const dir = process.env.TRAINCTL_DIR || process.cwd()
@@ -24,6 +24,8 @@ const locale = resolveLocale({
   config: requireWorkspaceSelection ? undefined : readConfigLanguage(dir),
 })
 setLocale(locale)
+// C9: tekst dla agenta w jednostce z profilu; structuredContent zostaje w km
+setUnits(requireWorkspaceSelection ? 'metric' : readConfigUnits(dir) ?? 'metric')
 
 const server = createTrainctlServer(dir, undefined, {
   selectWorkspace: !!pluginRoot,
@@ -32,6 +34,7 @@ const server = createTrainctlServer(dir, undefined, {
   onWorkspaceSelected(directory) {
     const loaded=loadEnvFile(directory)
     setLocale(resolveLocale({env:process.env.TRAINCTL_LANG,config:readConfigLanguage(directory)}))
+    setUnits(readConfigUnits(directory) ?? 'metric')
     if(loaded.unprotected) console.error(`[trainctl-mcp] ${ui().envFile.unprotected(ENV_FILE,'.gitignore')}`)
   },
 })

@@ -7,10 +7,10 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Command, InvalidArgumentError, Option } from 'commander'
-import { resolveLocale, setLocale, sportMessages } from 'trainctl-core'
+import { isUnits, resolveLocale, setLocale, setUnits, sportMessages } from 'trainctl-core'
 import { runSportsPicker, runSportsWeekBrowser, runSportsWizard } from './sports-interactive.ts'
 import { isSportsWorkspace } from './sports-store.ts'
-import { readConfigLanguage } from './config.ts'
+import { readConfigLanguage, readConfigUnits } from './config.ts'
 import { loadEnvFile, ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
 import {
@@ -94,6 +94,11 @@ setLocale(
   }),
 )
 
+// C9: jednostka widoku jak język: --units > units w trainctl.yaml > metric.
+// Nieznaną wartość flagi zgłasza commander (choices); tu zostaje wtedy jednostka z profilu.
+const unitsFlag = argValue(['--units'])
+setUnits(isUnits(unitsFlag) ? unitsFlag : readConfigUnits(cwd) ?? 'metric')
+
 const colorMode = argValue(['--color']) ?? 'auto'
 const theme = new Theme(detectCapabilities(process.stdout, process.env,
   jsonMode || plainMode ? 'never' : ['auto', 'always', 'never'].includes(colorMode) ? colorMode as ColorMode : 'auto'))
@@ -175,6 +180,7 @@ program
   .description(banner)
   .version(packageVersion(), '-V, --version', ui().cmd.version)
   .option('--lang <code>', ui().cmd.lang)
+  .addOption(new Option('--units <system>', ui().cmd.optUnits).choices(['metric', 'imperial']))
   .option('-C, --dir <path>', ui().cmd.optDir)
   .option('--json', ui().cmd.optJson)
   .option('--plain', ui().cmd.optPlain)

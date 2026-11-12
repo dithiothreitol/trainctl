@@ -11,6 +11,7 @@
 import type { PlannedSegment, PlannedWorkout } from '../domain/types.ts'
 import { getLocale, messages } from '../i18n/index.ts'
 import { formatNumber, type Locale } from '../i18n/locale.ts'
+import { distanceIn, distanceUnit, getUnits, paceIn, type Units } from '../i18n/units.ts'
 import type { SessionStep, StepTarget, TrainingSession } from '../sports/types.ts'
 
 export interface NotationOptions {
@@ -18,6 +19,8 @@ export interface NotationOptions {
   locale?: Locale
   /** Bez Unicode: `x` zamiast `×`, `-` zamiast `–`, `->` zamiast `→`, ` | ` między częściami. */
   ascii?: boolean
+  /** C9: jednostka widoku; bez niej bieżąca (`getUnits`). Dane zostają w km. */
+  units?: Units
 }
 
 interface Glyphs { times: string; dash: string; arrow: string; sep: string }
@@ -28,6 +31,25 @@ const ASCII: Glyphs = { times: 'x', dash: '-', arrow: '->', sep: ' | ' }
 function pace(secPerKm: number): string {
   const total = Math.round(secPerKm)
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
+
+/**
+ * Formaty notacji w jednostce widoku (C9): dystans ciągły w km albo w milach,
+ * tempo na km albo na milę. Odcinek to dystans bieżni: metry, a przy kilometrach
+ * pełne kilometry; przy milach zawsze metry (`4×1000 m`), bez „km" w wyjściu.
+ */
+interface Format { locale: Locale; g: Glyphs; km: (km: number) => string; rep: (meters: number) => string; pace: (secPerKm: number) => string }
+function format(opts: NotationOptions): Format {
+  const locale = opts.locale ?? getLocale()
+  const units = opts.units ?? getUnits()
+  const km = (value: number) => `${formatNumber(locale, distanceIn(value, units))} ${distanceUnit(units)}`
+  return {
+    locale,
+    g: opts.ascii ? ASCII : UNICODE,
+    km,
+    rep: (meters: number) => (units === 'metric' && meters >= 1000 && meters % 100 === 0 ? km(meters / 1000) : `${meters} m`),
+    pace: (secPerKm: number) => pace(paceIn(secPerKm, units)),
+  }
 }
 
 /** Czas: `2'` minuty, `30"` sekundy, `1'30"` (spec C1). */
@@ -56,24 +78,20 @@ export function accentLine(item: PlannedWorkout | TrainingSession, opts: Notatio
     const frame = (s: PlannedSegment) => s.type === 'warmup' || s.type === 'cooldown' || (s.type === 'easy' && workout.kind !== 'easy' && workout.kind !== 'long')
     return segmentsLine(workout, workout.segments.filter((s) => !frame(s)), opts, true)
   }
-  const locale = opts.locale ?? getLocale()
-  if (item.sport === 'strength') return messages(locale).notation.strength
-  const g = opts.ascii ? ASCII : UNICODE
+  const f = format(opts)
+  if (item.sport === 'strength') return messages(f.locale).notation.strength
   // sesja v2: serie (krok z powtórzeniami); bez serii cała praca
   const work = item.steps.filter((step) => step.role === 'work' || step.role === 'drill')
   const sets = work.filter((step) => (step.repeat ?? 1) > 1)
-  return (sets.length ? sets : work).map((step) => stepLine({ ...step, restSec: 0, sendoffSec: 0 }, locale, g)).join(' + ')
+  return (sets.length ? sets : work).map((step) => stepLine({ ...step, restSec: 0, sendoffSec: 0 }, f)).join(' + ')
 }
 
 function segmentsLine(workout: PlannedWorkout, segments: PlannedSegment[], opts: NotationOptions, main: boolean): string {
-  const locale = opts.locale ?? getLocale()
+  const { locale, g, km, rep, pace: speed } = format(opts)
   const t = messages(locale).notation
-  const g = opts.ascii ? ASCII : UNICODE
-  const km = (value: number) => `${formatNumber(locale, value)} km`
-  const rep = (meters: number) => (meters >= 1000 && meters % 100 === 0 ? km(meters / 1000) : `${meters} m`)
   const range = (r: { loSecPerKm: number; hiSecPerKm: number }) =>
-    r.loSecPerKm === r.hiSecPerKm ? `@${pace(r.loSecPerKm)}` : `@${pace(r.loSecPerKm)}${g.dash}${pace(r.hiSecPerKm)}`
-  const mid = (r: { loSecPerKm: number; hiSecPerKm: number }) => `@${pace((r.loSecPerKm + r.hiSecPerKm) / 2)}`
+    r.loSecPerKm === r.hiSecPerKm ? `@${speed(r.loSecPerKm)}` : `@${speed(r.loSecPerKm)}${g.dash}${speed(r.hiSecPerKm)}`
+  const mid = (r: { loSecPerKm: number; hiSecPerKm: number }) => `@${speed((r.loSecPerKm + r.hiSecPerKm) / 2)}`
 
   const segment = (s: PlannedSegment, next: PlannedSegment | undefined): string => {
     const dist = km(s.distanceKm ?? 0)
@@ -101,11 +119,11 @@ function segmentsLine(workout: PlannedWorkout, segments: PlannedSegment[], opts:
         return main ? t.hills : `${t.hills} ${s.reps ?? 0}${g.times}${s.repM ?? 0} m`
       case 'progression':
         // od wolniejszego końca (hi) do szybszego (lo)
-        return s.pace ? `${dist} ${pace(s.pace.hiSecPerKm)}${g.arrow}${pace(s.pace.loSecPerKm)}` : dist
+        return s.pace ? `${dist} ${speed(s.pace.hiSecPerKm)}${g.arrow}${speed(s.pace.loSecPerKm)}` : dist
       case 'alternating':
-        // na zmianę 1 km szybko (lo) i 1 km spokojnie (hi)
+        // na zmianę 1 km szybko (lo) i 1 km spokojnie (hi); odcinek zmiany to dystans bieżni
         if (main) return `${t.part.alternating} ${dist}`
-        return s.pace ? `${dist}: ${km(1)} @${pace(s.pace.loSecPerKm)} / ${km(1)} @${pace(s.pace.hiSecPerKm)}` : dist
+        return s.pace ? `${dist}: ${rep(1000)} @${speed(s.pace.loSecPerKm)} / ${rep(1000)} @${speed(s.pace.hiSecPerKm)}` : dist
       case 'race':
         return workout.kind === 'race'
           ? `${t.race} ${km(workout.raceDistanceKm ?? s.distanceKm ?? 0)}`
@@ -117,18 +135,21 @@ function segmentsLine(workout: PlannedWorkout, segments: PlannedSegment[], opts:
 }
 
 /** Dawka kroku v2 na jedno powtórzenie: dystans, a bez niego czas. */
-function stepAmount(step: SessionStep, locale: Locale): string {
-  return step.distanceM !== undefined && step.distanceM > 0
-    ? (step.distanceM >= 1000 && step.distanceM % 100 === 0 ? `${formatNumber(locale, step.distanceM / 1000)} km` : `${step.distanceM} m`)
-    : duration(step.durationSec)
+function stepAmount(step: SessionStep, f: Format): string {
+  return step.distanceM !== undefined && step.distanceM > 0 ? f.rep(step.distanceM) : duration(step.durationSec)
 }
 
+/** Cel tempa kroku v2: na km w jednostce widoku, pływanie zawsze na 100 m. */
+const stepPace = (x: Extract<StepTarget, { kind: 'pace' }>, f: Format): string =>
+  x.perM === 100 ? `${pace(x.seconds)}/100 m` : f.pace(x.seconds)
+
 /** Krok sesji v2: dystans albo czas na powtórzenie, cel, przerwa po każdym powtórzeniu. */
-function stepLine(step: SessionStep, locale: Locale, g: Glyphs): string {
+function stepLine(step: SessionStep, f: Format): string {
+  const { locale, g } = f
   const t = messages(locale).notation
-  const amount = stepAmount(step, locale)
+  const amount = stepAmount(step, f)
   const target = (x: StepTarget): string =>
-    x.kind === 'pace' ? ` @${pace(x.seconds)}${x.perM === 100 ? '/100 m' : ''}`
+    x.kind === 'pace' ? ` @${stepPace(x, f)}`
       : x.kind === 'power' ? ` @${x.watts} W`
         : ''
   const reps = step.repeat !== undefined && step.repeat > 1 ? `${step.repeat}${g.times}` : ''
@@ -157,10 +178,9 @@ function stepLine(step: SessionStep, locale: Locale, g: Glyphs): string {
 export function sessionLine(item: PlannedWorkout | TrainingSession, opts: NotationOptions = {}): string {
   if ('segments' in item) return workoutLine(item, opts)
   if (item.legacyWorkout) return workoutLine(item.legacyWorkout, opts)
-  const locale = opts.locale ?? getLocale()
-  if (item.sport === 'strength') return messages(locale).notation.strength
-  const g = opts.ascii ? ASCII : UNICODE
-  return item.steps.map((step) => stepLine(step, locale, g)).join(g.sep)
+  const f = format(opts)
+  if (item.sport === 'strength') return messages(f.locale).notation.strength
+  return item.steps.map((step) => stepLine(step, f)).join(f.g.sep)
 }
 
 /** Wiersz struktury jednostki w widoku dnia (C2): część, dawka, cel, przerwa. */
@@ -173,13 +193,10 @@ const row = (part: string, dose: string, target = '', recovery = ''): StructureR
  * (w wierszu z C1 akcent ma środek zakresu, tu cały zakres do pilnowania na zegarku).
  */
 export function workoutStructure(workout: PlannedWorkout, opts: NotationOptions = {}): StructureRow[] {
-  const locale = opts.locale ?? getLocale()
+  const { locale, g, km, rep, pace: speed } = format(opts)
   const t = messages(locale).notation
-  const g = opts.ascii ? ASCII : UNICODE
-  const km = (value: number) => `${formatNumber(locale, value)} km`
-  const rep = (meters: number) => (meters >= 1000 && meters % 100 === 0 ? km(meters / 1000) : `${meters} m`)
   const band = (r: { loSecPerKm: number; hiSecPerKm: number } | undefined) =>
-    !r ? '' : r.loSecPerKm === r.hiSecPerKm ? pace(r.loSecPerKm) : `${pace(r.loSecPerKm)}${g.dash}${pace(r.hiSecPerKm)}`
+    !r ? '' : r.loSecPerKm === r.hiSecPerKm ? speed(r.loSecPerKm) : `${speed(r.loSecPerKm)}${g.dash}${speed(r.hiSecPerKm)}`
   return workout.segments.flatMap((s): StructureRow[] => {
     const dist = km(s.distanceKm ?? 0)
     switch (s.type) {
@@ -204,9 +221,9 @@ export function workoutStructure(workout: PlannedWorkout, opts: NotationOptions 
         // podbiegi bez tempa, spokojnie pod górę (opis segmentu); przerwą jest zbieg
         return [row(t.part.hills, `${s.reps ?? 0}${g.times}${s.repM ?? 0} m`, t.part.easy, t.jogDown)]
       case 'progression':
-        return [row(t.part.progression, dist, s.pace ? `${pace(s.pace.hiSecPerKm)}${g.arrow}${pace(s.pace.loSecPerKm)}` : '')]
+        return [row(t.part.progression, dist, s.pace ? `${speed(s.pace.hiSecPerKm)}${g.arrow}${speed(s.pace.loSecPerKm)}` : '')]
       case 'alternating':
-        return [row(t.part.alternating, dist, s.pace ? `${km(1)} ${pace(s.pace.loSecPerKm)} / ${km(1)} ${pace(s.pace.hiSecPerKm)}` : '')]
+        return [row(t.part.alternating, dist, s.pace ? `${rep(1000)} ${speed(s.pace.loSecPerKm)} / ${rep(1000)} ${speed(s.pace.hiSecPerKm)}` : '')]
       case 'race':
         return workout.kind === 'race'
           ? [row(t.part.race, km(workout.raceDistanceKm ?? s.distanceKm ?? 0), band(s.pace))]
@@ -224,15 +241,14 @@ export function sessionStructure(item: PlannedWorkout | TrainingSession, opts: N
   if ('segments' in item) return workoutStructure(item, opts)
   if (item.legacyWorkout) return workoutStructure(item.legacyWorkout, opts)
   if (item.sport === 'strength') return []
-  const locale = opts.locale ?? getLocale()
+  const f = format(opts), { locale, g } = f
   const t = messages(locale).notation
-  const g = opts.ascii ? ASCII : UNICODE
   return item.steps.map((step) => {
-    const target = step.target.kind === 'pace' ? `${pace(step.target.seconds)}${step.target.perM === 100 ? '/100 m' : ''}`
+    const target = step.target.kind === 'pace' ? stepPace(step.target, f)
       : step.target.kind === 'power' ? `${step.target.watts} W`
         : step.effort ? `RPE ${step.effort.min}${g.dash}${step.effort.max}` : ''
     const recovery = [step.restSec ? duration(step.restSec) : '', step.sendoffSec ? `${t.sendoff} ${duration(step.sendoffSec)}` : ''].filter(Boolean).join(', ')
     const reps = step.repeat !== undefined && step.repeat > 1 ? `${step.repeat}${g.times}` : ''
-    return row(t.part[step.role], reps + stepAmount(step, locale), target, recovery)
+    return row(t.part[step.role], reps + stepAmount(step, f), target, recovery)
   })
 }

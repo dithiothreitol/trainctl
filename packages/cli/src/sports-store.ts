@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { parse, stringify } from 'yaml'
 import {
-  ENDURANCE_SPORTS, addDays, coachingLines, sessionStepLines, estimateWorkoutMinutes, getLocale, messages, mondayOf,
+  ENDURANCE_SPORTS, addDays, coachingLines, distanceUnit, sessionStepLines, estimateWorkoutMinutes, getLocale, messages, mondayOf,
   sportMessages as msg, validateSportsConfig, validateSportsPlan,
   type EnduranceSport, type SessionLog, type SportsConfig, type SportsPlan, type TrainingSession,
 } from 'trainctl-core'
@@ -68,7 +68,7 @@ export function sportsMarkdown(p: SportsPlan): string {
   const t = msg(), m = ui().planMd, r = ui().rows
   const season = sessionsSeasonRows(p.sessions)
   const lines = ['# ' + cell(p.goal.name), '', t.engineering, '', `## ${m.season}`, '', ...tableMarkdown(seasonTable(season, { sessions: true })), '',
-    `> ${r.season.legendSessions('↓', season.some(w => w.accents.length > 0))}  `, `> ${messages().notation.legend}`]
+    `> ${r.season.legendSessions('↓', season.some(w => w.accents.length > 0))}  `, `> ${messages().notation.legend(distanceUnit())}`]
   for (const monday of [...new Set(p.sessions.map(s => mondayOf(s.date)))].sort()) {
     const week = p.sessions.filter(s => mondayOf(s.date) === monday).sort((a, z) => a.date.localeCompare(z.date) || (a.start ?? '').localeCompare(z.start ?? ''))
     lines.push('', `## ${r.sessionsHeading(r.shortDate(monday), r.shortDate(addDays(monday, 6)), week.length)}`, '', ...tableMarkdown(rowsTable(sessionRows(week), { sport: true })))

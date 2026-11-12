@@ -8,8 +8,8 @@ export interface PrintWeek {
   index: number
   weekStart: string
   phase: string
-  targetKm: number
-  totalKm: number
+  /** Objętość tygodnia w jednostce widoku (km albo mile, PLAN-v0.7 C9). */
+  distance: number
   deload: boolean
   /**
    * Wiersz jednostki z PLAN-v0.7 C2 (ta sama funkcja co `week` i PLAN.md): dzień
@@ -23,9 +23,10 @@ export interface PrintWeek {
 /** Napisy wydruku — renderer nie zna katalogu, dostaje je gotowe (jak w racepack.ts). */
 export interface PrintLabels {
   lang: string
+  /** `km`: skrót jednostki dystansu widoku (km albo mi). */
   columns: { day: string; date: string; kind: string; km: string; time: string; workout: string; done: string }
   weekTitle: (index: number) => string
-  weekMeta: (weekStart: string, phase: string, km: number) => string
+  weekMeta: (weekStart: string, phase: string, distance: number) => string
   deload: string
 }
 
@@ -65,7 +66,7 @@ export function toPrintableHtml(opts: PrintOptions): string {
     .map(
       (w) => `  <section class="week">
     <h2>${escapeHtml(L.weekTitle(w.index + 1))} <span class="meta">${escapeHtml(
-      L.weekMeta(w.weekStart, w.phase, w.totalKm),
+      L.weekMeta(w.weekStart, w.phase, w.distance),
     )}${w.deload ? ` · ${escapeHtml(L.deload)}` : ''}</span></h2>
     <table>
       <thead>

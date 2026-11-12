@@ -2,8 +2,8 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse } from 'yaml'
-import { DEFAULT_LOCALE, getLocale, HR_MAX_BPM, parseIso } from 'trainctl-core'
-import type { AthleteProfile, InferredProfile, RaceGoal, Weekday } from 'trainctl-core'
+import { DEFAULT_LOCALE, getLocale, HR_MAX_BPM, isUnits, parseIso } from 'trainctl-core'
+import type { AthleteProfile, InferredProfile, RaceGoal, Units, Weekday } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 
 export const CONFIG_FILE = 'trainctl.yaml'
@@ -49,6 +49,8 @@ export interface TrainctlConfig {
   time?: TimeConfig
   /** Język interfejsu i opisów planu: 'en' (domyślny) albo 'pl'. */
   language?: string
+  /** C9: jednostka widoku — metric (domyślnie) albo imperial; dane zostają w km. */
+  units?: Units
 }
 
 /**
@@ -56,6 +58,18 @@ export interface TrainctlConfig {
  * `trainctl init` i komunikaty błędów muszą znać język, zanim ktokolwiek sprawdzi,
  * czy `athlete.recentWeeklyKm` jest liczbą.
  */
+/** C9: jednostka widoku z trainctl.yaml, czytana jak język — bez pełnej walidacji profilu. */
+export function readConfigUnits(cwd: string): Units | undefined {
+  const path = join(cwd, CONFIG_FILE)
+  if (!existsSync(path)) return undefined
+  try {
+    const raw = parse(readFileSync(path, 'utf-8')) as { units?: unknown } | null
+    return isUnits(raw?.units) ? raw.units : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function readConfigLanguage(cwd: string): string | undefined {
   const path = join(cwd, CONFIG_FILE)
   if (!existsSync(path)) return undefined
@@ -90,6 +104,7 @@ export function configTemplate(): string {
   return [
     ...t.templateHeader,
     languageLine,
+    pad('# units: metric', t.templateUnits),
     'athlete:',
     pad('  sex: unspecified', t.templateAthlete.sex),
     pad('  # hrMax: { bpm: 190, measured: true }', t.templateAthlete.hrMax),
@@ -206,6 +221,7 @@ export function loadConfig(cwd: string): TrainctlConfig {
   } else if ((g as { kind?: unknown } | undefined)?.kind !== undefined && (g as { kind?: unknown }).kind !== 'race') {
     errors.push(v.goalKind('goal.kind'))
   }
+  if (raw?.units !== undefined && !isUnits(raw.units)) errors.push(v.units('units'))
   if (!g) errors.push(v.missingSection('goal'))
   else if (!base) {
     if (g.targetTimeSec !== undefined && (!Number.isFinite(g.targetTimeSec) || g.targetTimeSec <= 0)) errors.push(v.seconds('goal.targetTimeSec'))
@@ -263,6 +279,7 @@ export function loadConfig(cwd: string): TrainctlConfig {
     ...(strength ? { strength } : {}),
     ...(sync?.files ? { sync: { files: sync.files } } : {}),
     ...(time ? { time } : {}),
+    ...(isUnits(raw?.units) ? { units: raw.units } : {}),
   }
 }
 

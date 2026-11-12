@@ -4,7 +4,7 @@
  * wtedy zapisujemy szablon jak dotąd.
  */
 import { createInterface, type Interface } from 'node:readline/promises'
-import { addDays, HR_MAX_BPM, RETURN_WINDOW_DAYS, type InferenceOutcome, type InferredProfile } from 'trainctl-core'
+import { addDays, distanceIn, distanceUnit, getUnits, HR_MAX_BPM, kmFrom, RETURN_WINDOW_DAYS, setUnits, type InferenceOutcome, type InferredProfile, type Units } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
 import { kmLabel, parseDecimal } from '../format.ts'
 import { clockToday } from '../clock.ts'
@@ -25,6 +25,8 @@ export interface WizardAnswers {
   resultDistanceKm?: number
   resultTimeSec?: number
   desk?: { workStart: string; workEnd: string }
+  /** C9: jednostka widoku z kreatora; odpowiedzi o dystansie już przeliczone na km. */
+  units?: Units
   /** C8: tętno maksymalne i płeć — pułap biegu spokojnego i długiego (Z-2, N-13). */
   hrMax?: { bpm: number; measured: boolean }
   sex?: 'male' | 'female'
@@ -80,7 +82,8 @@ export function parseDistanceInput(text: string): number {
   const key = text.trim().toLowerCase()
   if (DISTANCES[key]) return DISTANCES[key]!
   const num = parseDecimal(key)
-  if (Number.isFinite(num) && num > 0) return num
+  // C9: liczba w jednostce profilu (km albo mi); nazwane dystanse startów zostają w km
+  if (Number.isFinite(num) && num > 0) return kmFrom(num)
   throw new Error(ui().wizard.errDistance)
 }
 
@@ -106,6 +109,20 @@ export function parseHrMaxInput(text: string): number {
   return bpm
 }
 
+/** C9: jednostka skrótem (`km`, `mi`) albo kanonicznie (`metric`, `imperial`). */
+export function parseUnitsInput(text: string): Units {
+  const key = text.trim().toLowerCase()
+  const codes = ui().wizard.unitCodes
+  if (key === 'metric' || key === codes.metric) return 'metric'
+  if (key === 'imperial' || key === codes.imperial) return 'imperial'
+  throw new Error(ui().wizard.errUnits)
+}
+
+/** C9: kilometry → wartość w jednostce profilu do podpowiedzi (jedno miejsce po przecinku). */
+const inUnit = (km: number): string => String(Math.round(distanceIn(km) * 10) / 10)
+/** C9: odpowiedź w jednostce profilu → kilometry do zapisu (jedno miejsce po przecinku). */
+const toKm = (value: number): number => Math.round(kmFrom(value) * 10) / 10
+
 /** C8: płeć skrótem w języku interfejsu albo kanonicznie (`female`, `male`). */
 export function parseSexInput(text: string): 'male' | 'female' {
   const key = text.trim().toLowerCase()
@@ -129,6 +146,7 @@ export function toYaml(a: WizardAnswers): string {
   return [
     ...ui().configFile.templateHeader.slice(0, 1),
     ui().configFile.generatedByWizard,
+    ...(a.units === 'imperial' ? ['units: imperial'] : []),
     'athlete:',
     ...(a.sex ? [`  sex: ${a.sex}`] : []),
     ...(a.hrMax ? [`  hrMax: { bpm: ${a.hrMax.bpm}, measured: ${a.hrMax.measured} }`] : []),
@@ -201,10 +219,10 @@ export async function askReturningKm(rl: Pick<Interface, 'question'>, theme: The
   const parse = (text: string): number => {
     if (parseDecimal(text) === 0) return 0
     const km = parseWeeklyKm(text)
-    if (km < recentKm) throw new Error(w.errReturningBelowRecent(recentKm))
+    if (km < recentKm) throw new Error(w.errReturningBelowRecent(recentKm, distanceUnit()))
     return km
   }
-  const km = await ask(rl as Interface, theme, w.returningPrevious, parse, {
+  const km = await ask(rl as Interface, theme, w.returningPrevious(distanceUnit()), parse, {
     hint: suggestion !== undefined ? w.hintReturningSuggested : w.hintReturning,
     optional: true,
     ...(suggestion !== undefined ? { default: String(suggestion) } : {}),
@@ -296,6 +314,10 @@ export async function runWizard(
         ? await offerHistory(rl, theme, intervals)
         : undefined
 
+    // C9: jednostka na początku — dalsze pytania o dystans są w niej, zapis w km
+    const units = (await ask(rl, theme, w.units, parseUnitsInput, { hint: w.hintUnits, default: w.unitCodes[getUnits()] }))!
+    setUnits(units)
+
     console.log(theme.bold(w.goal))
     const goalName = (await ask(rl, theme, w.goalName, (t) => t.trim() || w.defaultGoalName))!
     const goalDate = (await ask(rl, theme, w.goalDate, parseDateInput, { hint: w.hintDate }))!
@@ -308,18 +330,20 @@ export async function runWizard(
     })
 
     console.log(theme.bold(`\n${w.yourRunning}`))
-    const recentWeeklyKm = (await ask(rl, theme, w.recentVolume, parseWeeklyKm, {
-      ...(inferred ? { default: String(inferred.recentWeeklyKm) } : {}),
+    const recentWeekly = (await ask(rl, theme, w.recentVolume(distanceUnit()), parseWeeklyKm, {
+      ...(inferred ? { default: inUnit(inferred.recentWeeklyKm) } : {}),
     }))!
-    const peakWeeklyKm = await ask(rl, theme, w.peakVolume, parseWeeklyKm, {
+    const recentWeeklyKm = toKm(recentWeekly)
+    const peakWeekly = await ask(rl, theme, w.peakVolume(distanceUnit()), parseWeeklyKm, {
       hint: w.hintOptional,
       optional: true,
-      ...(inferred?.peakWeeklyKm !== undefined ? { default: String(inferred.peakWeeklyKm) } : {}),
+      ...(inferred?.peakWeeklyKm !== undefined ? { default: inUnit(inferred.peakWeeklyKm) } : {}),
     })
-    // R-11: powrót po przerwie — kilometry sprzed niej, potem dzień powrotu
-    const previousWeeklyKm = await askReturningKm(rl, theme, recentWeeklyKm, inferred?.returning?.previousWeeklyKm)
-    const returning = previousWeeklyKm
-      ? { since: await askReturningSince(rl, theme, clockToday(), inferred?.returning?.since), previousWeeklyKm }
+    const peakWeeklyKm = peakWeekly ? toKm(peakWeekly) : undefined
+    // R-11: powrót po przerwie — objętość sprzed niej (w jednostce profilu), potem dzień powrotu
+    const previousWeekly = await askReturningKm(rl, theme, recentWeekly, inferred?.returning ? Math.round(distanceIn(inferred.returning.previousWeeklyKm) * 10) / 10 : undefined)
+    const returning = previousWeekly
+      ? { since: await askReturningSince(rl, theme, clockToday(), inferred?.returning?.since), previousWeeklyKm: toKm(previousWeekly) }
       : undefined
     const daysAvailable = (await ask(rl, theme, w.trainingDays, parseDaysInput, {
       hint: w.hintDays,
@@ -383,6 +407,7 @@ export async function runWizard(
       goalName,
       goalDate,
       goalDistanceKm,
+      ...(units === 'imperial' ? { units } : {}),
       ...(targetTimeSec ? { targetTimeSec } : {}),
       recentWeeklyKm,
       ...(peakWeeklyKm ? { peakWeeklyKm } : {}),

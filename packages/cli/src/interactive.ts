@@ -5,7 +5,7 @@
  */
 import { emitKeypressEvents } from 'node:readline'
 import { createInterface } from 'node:readline/promises'
-import { addDays, formatNumber, getLocale, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
+import { addDays, distanceIn, distanceUnit, formatNumber, getLocale, kmFrom, messages, type Microcycle, type PlannedDay } from 'trainctl-core'
 import { cmdLog, cmdShift, cmdWeek, kindLabel } from './commands.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel, logStatusText, parseDecimal, shownKm, workoutKm } from './format.ts'
@@ -115,7 +115,8 @@ export function parseLogStatus(text: string): 'done' | 'skipped' | 'modified' {
 
 export const parseKmText = (text: string): string => {
   const value = parseDecimal(text)
-  if (!LOG_LIMITS.km(value)) throw new Error(ui().improve.badDistance)
+  // C9: wpis w jednostce profilu; granica dziennika dotyczy kilometrów
+  if (!LOG_LIMITS.km(kmFrom(value))) throw new Error(ui().improve.badDistance)
   // tekst, nie String(value): bardzo mała liczba dałaby „1e-7", którego parser nie przyjmie
   return text.trim()
 }
@@ -136,7 +137,7 @@ export const parseRpeText = (text: string): string => {
  * zaplanowaną wartość — parseDecimal przyjmuje przecinek.
  */
 export const plannedKmDefault = (day: PlannedDay): string | undefined =>
-  day.workout ? formatNumber(getLocale(), shownKm(day.workout), 4) : undefined
+  day.workout ? formatNumber(getLocale(), distanceIn(shownKm(day.workout)), 4) : undefined
 
 /**
  * `trainctl log` bez flag w terminalu: wybierz trening z ostatniego tygodnia
@@ -165,7 +166,7 @@ export async function runLogPrompt(cwd: string, today: string, theme = new Theme
     opts.status = status ?? 'done'
     if (opts.status !== 'skipped') {
       const planned = plannedKmDefault(day)
-      opts.km = await ask(rl, theme, q.km, parseKmText, planned ? { default: planned } : { optional: true })
+      opts.km = await ask(rl, theme, q.distance(distanceUnit()), parseKmText, planned ? { default: planned } : { optional: true })
       opts.time = await ask(rl, theme, q.time, parseTimeText, { hint: q.timeHint, optional: true })
       if (['test', 'race'].includes(day.workout?.kind ?? '')) {
         opts.testTime = await ask(rl, theme, q.testTime, parseTimeText, { hint: q.timeHint, optional: true })

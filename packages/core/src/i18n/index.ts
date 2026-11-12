@@ -9,6 +9,7 @@ import { corePl } from './core-pl.ts'
 import { DEFAULT_LOCALE, type Locale } from './locale.ts'
 
 export * from './locale.ts'
+export * from './units.ts'
 export type { CoreMessages } from './core-en.ts'
 
 const CATALOGS: Record<Locale, CoreMessages> = { en: coreEn, pl: corePl }

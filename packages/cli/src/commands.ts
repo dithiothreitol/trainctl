@@ -11,6 +11,9 @@ import {
   analyzeExecution,
   BREAK_REASONS,
   diffDays,
+  distanceIn,
+  kmFrom,
+  distanceUnit,
   getLocale,
   inferProfile,
   estimateWorkoutMinutes,
@@ -44,7 +47,7 @@ import {
 import { AGENTS_FILE, agentsTemplate } from './agents-md.ts'
 import { ENV_FILE } from './env-file.ts'
 import { ui } from './i18n/index.ts'
-import { kmLabel, logStatusText, parseDecimal, shownKm, workoutKm } from './format.ts'
+import { kmLabel, logStatusText, parseDecimal, perWeekLabel, shownKm, workoutKm } from './format.ts'
 import { inferredConfigYaml, loadConfig, writeConfigTemplate, CONFIG_FILE } from './config.ts'
 import { appendLog, latestByDate, LOG_LIMITS, parseBreakReason, parseTime, readJournal, readLog, readLogForChanges, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import {
@@ -60,6 +63,7 @@ import {
   planEnd,
   readExistingPlan,
   readPlanDocument,
+  refreshPlanMarkdown,
   shiftWorkout,
   unusablePlanMessage,
   workoutText,
@@ -97,7 +101,7 @@ const OUR_EXTERNAL_ID_PREFIX = 'trainctl-'
 /** Nowe selektory nie mogą zostać po cichu zignorowane przez zapis v1. */
 const sessionOptions = (opts: object): boolean => ['session','sport','actualSport','meters','activity','sets'].some(key=>Reflect.get(opts,key)!==undefined)
 
-import { KIND_COLOR, asciiOutput, dayHeading, hrCeilingText, rowsTable, runningSeasonRows, runningWeekRows, seasonTable, structureTable } from './ui/rows.ts'
+import { KIND_COLOR, asciiOutput, dayHeading, hrCeilingText, metricData, rowsTable, runningSeasonRows, runningWeekRows, seasonTable, structureTable } from './ui/rows.ts'
 export { KIND_COLOR }
 
 /** Etykiety jednostek i faz pochodzą z katalogu — zmieniają się razem z językiem. */
@@ -121,7 +125,7 @@ import {
 
 // dla MCP (importuje wyłącznie z trainctl = commands.ts)
 export { defaultProviderFactory, hasApiKey, type ProviderFactory } from './sync.ts'
-export { readConfigLanguage } from './config.ts'
+export { readConfigLanguage, readConfigUnits } from './config.ts'
 export { loadEnvFile, ENV_FILE, type EnvFileOutcome } from './env-file.ts'
 // serwer MCP opisuje narzędzia tym samym katalogiem, co CLI
 export { ui, type CliMessages } from './i18n/index.ts'
@@ -237,9 +241,9 @@ export async function cmdInitFromIntervals(
       b.success(ui().init.fromIntervals(CONFIG_FILE)),
       b.kv([
         [ui().init.window, `${p.window.oldest} → ${p.window.newest}`],
-        [ui().init.currentVolume, `${messages().units.kmPerWeek(p.recentWeeklyKm)} (${p.recentBasis})`],
+        [ui().init.currentVolume, `${perWeekLabel(p.recentWeeklyKm)} (${p.recentBasis})`],
         ...(p.peakWeeklyKm !== undefined
-          ? ([[ui().init.windowPeak, messages().units.kmPerWeek(p.peakWeeklyKm)]] as [string, string][])
+          ? ([[ui().init.windowPeak, perWeekLabel(p.peakWeeklyKm)]] as [string, string][])
           : []),
         [ui().init.trainingDays, p.daysAvailable.join(', ')],
         ...(p.longRunDay ? ([[ui().init.longRunDay, p.longRunDay]] as [string, string][]) : []),
@@ -391,6 +395,8 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
     const issues = validatePlan(plan)
     if (issues.some(issue => issue.severity === 'error')) throw new Error(issues.map(describeIssue).join('\n'))
     if (rebuild?.upToDate !== true) writePlan(cwd, plan)
+    // plan aktualny, a widok PLAN.md nieaktualny (np. inna jednostka, C9): sam PLAN.md
+    const markdownRefreshed = rebuild?.upToDate === true && refreshPlanMarkdown(cwd, plan)
 
     const cycle = cycleWeeksOf(plan)
     const weeksToRace = cycle.length
@@ -400,8 +406,8 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
         `${plan.goal.kind === 'base' ? ui().plan.baseUntil(plan.goal.date) : plan.goal.date} · ${ui().plan.weeksOfPlan(weeksToRace)}`,
       ),
       b.kv([
-        [ui().plan.volumePeak, messages().units.kmPerWeek(plan.peakKmPlanned)],
-        ...(plan.peakKmRecommended > 0 ? ([[ui().plan.recommendedForDistance, messages().units.kmPerWeek(plan.peakKmRecommended)]] as [string, string][]) : []),
+        [ui().plan.volumePeak, perWeekLabel(plan.peakKmPlanned)],
+        ...(plan.peakKmRecommended > 0 ? ([[ui().plan.recommendedForDistance, perWeekLabel(plan.peakKmRecommended)]] as [string, string][]) : []),
         [
           ui().plan.vdot,
           `${formatNumber(getLocale(), plan.vdot)} (${plan.vdotSource === 'result' ? ui().plan.vdotFromResult : ui().plan.vdotFromGoal})`,
@@ -454,7 +460,7 @@ function planImpl(cwd: string, opts: { date?: string | undefined; fresh?: boolea
     for (const issue of issues) blocks.push(b.warn(describeIssue(issue)))
     blocks.push(
       b.blank(),
-      rebuild?.upToDate ? b.success(ui().plan.upToDate) : b.success(ui().common.saved(`${PLAN_YAML} + ${PLAN_MD}`)),
+      rebuild?.upToDate ? b.success(markdownRefreshed ? ui().common.saved(PLAN_MD) : ui().plan.upToDate) : b.success(ui().common.saved(`${PLAN_YAML} + ${PLAN_MD}`)),
       b.hint('trainctl today · trainctl week · trainctl why'),
     )
     return okDoc(blocks, { plan, issues, regeneration: rebuild ? regenerationData(rebuild) : null })
@@ -543,8 +549,9 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
     if (!day.workout && !day.strength) blocks.push(b.text(ui().today.restDayBody, 'muted'))
     // C8: pułap tętna przy biegu spokojnym i długim — w celu części spokojnej i jednym zdaniem pod strukturą
     const ceiling = day.workout && plan.hrCeiling && HR_CEILING_KINDS.has(day.workout.kind) ? plan.hrCeiling : undefined
-    const structure = day.workout ? workoutStructure(day.workout, { ascii: asciiOutput() }).map((part) =>
+    const structureOf = () => day.workout ? workoutStructure(day.workout, { ascii: asciiOutput() }).map((part) =>
       ceiling && part.part === messages().notation.part.easy ? { ...part, target: [part.target, hrCeilingText(ceiling.bpm, asciiOutput())].filter(Boolean).join(', ') } : part) : []
+    const structure = structureOf()
     if (day.workout) {
       const w = day.workout
       blocks.push(structureTable(structure, KIND_COLOR[w.kind] ?? 'accent'))
@@ -592,7 +599,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
     return okDoc(blocks, {
       date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null,
       estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : null,
-      structure, hrCeiling: ceiling ?? null,
+      structure: metricData(structureOf), hrCeiling: ceiling ?? null,
       next: next ? { date: next.date, kind: next.workout!.kind, distanceKm: shownKm(next.workout!) } : null,
     })
   } catch (e) {
@@ -627,10 +634,10 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     const blocks: Block[] = [
       // cel tygodnia; gdy suma dni (wiersz sumy) się od niego różni, cel jest podpisany
       b.title(t.weekHeading(position.index + 1, position.total, phase, t.shortDate(week.weekStart), t.shortDate(addDays(week.weekStart, 6)),
-        plannedWeekKm(sk), kmDiffers(week.totalKm, plannedWeekKm(sk)), rows.filter((r) => r.sport === 'run').length, rows.filter((r) => r.sport === 'strength').length)),
+        distanceIn(plannedWeekKm(sk)), distanceUnit(), kmDiffers(week.totalKm, plannedWeekKm(sk)), rows.filter((r) => r.sport === 'run').length, rows.filter((r) => r.sport === 'strength').length)),
       ...compatibilityNotes(plan),
       rowsTable(rows, { today: localToday() }),
-      b.text(messages().notation.legend, 'muted'),
+      b.text(messages().notation.legend(distanceUnit()), 'muted'),
       // C8, Z-5: pułap z szacowanego HRmax — ostrzeżenie raz na widok
       ...(hrCeilingEstimated(plan, week.days) ? [b.warn(ui().today.hrEstimated)] : []),
     ]
@@ -646,7 +653,8 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     if (sk.keepIntensity) {
       blocks.push(b.info(ui().week.taperNote))
     }
-    return okDoc(blocks, { week, rows, execution: buildExecution(plan, readSnapshot(cwd)?.activities ?? [], journal.runs, date).filter((e) => week.days.some((d) => d.date === e.date)) })
+    const dataRows = metricData(() => runningWeekRows(week, { preparationMinutes: plan.preparationMinutes ?? 15, runs: latestByDate(journal.runs), strength: latestByDate(journal.strength), ascii: asciiOutput(), hrCeiling: plan.hrCeiling?.bpm }))
+    return okDoc(blocks, { week, rows: dataRows, execution: buildExecution(plan, readSnapshot(cwd)?.activities ?? [], journal.runs, date).filter((e) => week.days.some((d) => d.date === e.date)) })
   } catch (e) {
     return fail(e)
   }
@@ -673,7 +681,7 @@ export function cmdSeason(cwd: string, opts: { date?: string | undefined } = {})
       ...compatibilityNotes(plan),
       ...seasonBlocks(plan, opts.date ?? localToday()),
     ]
-    return okDoc(blocks, { weeks: runningSeasonRows(cycleWeeksOf(plan)) })
+    return okDoc(blocks, { weeks: metricData(() => runningSeasonRows(cycleWeeksOf(plan))) })
   } catch (e) {
     return fail(e)
   }
@@ -684,7 +692,7 @@ function seasonBlocks(plan: StoredPlan, today: string): Block[] {
   const ascii = asciiOutput()
   return [
     seasonTable(runningSeasonRows(cycleWeeksOf(plan), { ascii }), { today, ascii }),
-    b.text(ui().rows.season.legend(ascii ? 'v' : '↓'), 'muted'),
+    b.text(ui().rows.season.legend(ascii ? 'v' : '↓', distanceUnit()), 'muted'),
   ]
 }
 
@@ -751,7 +759,8 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     // przecinek jak w polskim wyjściu („8,5"); ta sama reguła co kreator i odczyt log.jsonl
     const typed = opts.km === undefined ? undefined : parseDecimal(String(opts.km))
     // zapis z dokładnością 0,1 m (4 miejsca); wartość dodatnia, która by przy tym znikła, to błąd
-    const km = typed === undefined ? undefined : Math.round(typed * 1e4) / 1e4
+    // C9: wpis w jednostce profilu (km albo mile), zapis zawsze w km
+    const km = typed === undefined ? undefined : Math.round(kmFrom(typed) * 1e4) / 1e4
     if (km !== undefined && !LOG_LIMITS.km(km)) throw new Error(ui().improve.badDistance)
     if (typed !== undefined && typed > 0 && km === 0) throw new Error(ui().improve.distanceTooSmall)
     // opuszczona sesja nie ma ani dystansu, ani czasu — ten komunikat przed oceną zapisu czasu
@@ -1297,7 +1306,7 @@ function proposalBlocks(saved: PlanProposal): Block[] {
     b.kv([[ui().plan.vdot, `${formatNumber(getLocale(), saved.vdotBefore)} → ${formatNumber(getLocale(), saved.plan.vdot)}`]]),
     b.table([ui().improve.date, ui().improve.before, ui().improve.after], saved.changes.map((c) => [c.date, c.before, c.after])),
     b.info(ui().improve.protected), b.info(ui().improve.changedConfig),
-    b.table([ui().improve.date, ui().week.columns.km], saved.plan.weeks.filter((w) => w.days.some((d) => saved.changes.some((c) => c.date === d.date))).map((w) => [w.weekStart, formatNumber(getLocale(), w.totalKm)])),
+    b.table([ui().improve.date, distanceUnit()], saved.plan.weeks.filter((w) => w.days.some((d) => saved.changes.some((c) => c.date === d.date))).map((w) => [w.weekStart, formatNumber(getLocale(), distanceIn(w.totalKm))])),
     ...validatePlan(saved.plan).map((issue) => b.warn(describeIssue(issue))),
     ...(saved.replacesBaselineKm !== undefined ? [b.warn(ui().improve.returnReplacesBaseline(saved.replacesBaselineKm))] : []),
     b.hint(ui().coach.applyHint(saved.id)),

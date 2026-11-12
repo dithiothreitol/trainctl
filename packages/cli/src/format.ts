@@ -1,5 +1,5 @@
 /** Drobne formaty wyjścia wspólne dla komend (bez kolorów, ADR-013). */
-import { formatNumber, getLocale } from 'trainctl-core'
+import { distanceIn, distanceUnit, formatNumber, getLocale } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 
 /**
@@ -12,11 +12,15 @@ import { ui } from './i18n/index.ts'
  * Wpis biegacza (`decimals` 4, jak podpowiedź kreatora)
  * wraca tak, jak go zapisano: „21,0975 km".
  * Ręcznie edytowany log.jsonl normalizuje readAll — tu trafiają już liczby.
+ * C9: przy `units: imperial` ta sama wartość w milach („13,11 mi"); dane zostają w km.
  */
 export const kmLabel = (km: number, decimals = 2): string => {
   const scale = 10 ** decimals
-  return `${formatNumber(getLocale(), Math.round((km + 1e-9) * scale) / scale, decimals)} km`
+  return `${formatNumber(getLocale(), Math.round((distanceIn(km) + 1e-9) * scale) / scale, decimals)} ${distanceUnit()}`
 }
+
+/** C9: objętość tygodnia w jednostce widoku („52 km/tydz.", „32,3 mi/week"). */
+export const perWeekLabel = (km: number): string => ui().common.perWeek(formatNumber(getLocale(), distanceIn(km)), distanceUnit())
 
 /**
  * Liczba wpisana przez człowieka: „8", „8.5", „8,5", „.5" albo „5." (przecinek jak

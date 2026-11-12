@@ -5,6 +5,8 @@ import { join } from 'node:path'
 import { parse, stringify } from 'yaml'
 import {
   diffDays,
+  distanceIn,
+  distanceUnit,
   easyHrCeiling,
   mondayOf,
   estimateWorkoutMinutes,
@@ -465,6 +467,19 @@ export function writePlan(cwd: string, plan: StoredPlan): void {
   writeFileSync(join(cwd, PLAN_MD), renderMarkdown(plan), 'utf-8')
 }
 
+/**
+ * C9: PLAN.md to widok planu — po zmianie jednostki (albo ręcznej edycji pliku) plan
+ * bez zmian w dniach i tak dostaje aktualny widok. Zwraca, czy plik zapisano.
+ */
+export function refreshPlanMarkdown(cwd: string, plan: StoredPlan): boolean {
+  const path = join(cwd, PLAN_MD)
+  const text = renderMarkdown(plan)
+  if (existsSync(path) && readFileSync(path, 'utf-8') === text) return false
+  mkdirSync(join(cwd, PLAN_DIR), { recursive: true })
+  writeFileSync(path, text, 'utf-8')
+  return true
+}
+
 /** Przygotowanie wliczone w budżet czasu — to samo domyślne 15 minut co w E-1. */
 const PREPARATION_MINUTES = 15
 
@@ -828,13 +843,15 @@ export function renderMarkdown(plan: StoredPlan): string {
       plan.generatedAt,
       plan.vdot,
       plan.vdotSource === 'result' ? m.vdotFromResult : m.vdotFromGoal,
-      plan.peakKmPlanned,
+      distanceIn(plan.peakKmPlanned),
+      distanceUnit(),
     ),
   )
   if (plan.prediction) {
     lines.push(
       m.prediction(
-        plan.goal.distanceKm,
+        distanceIn(plan.goal.distanceKm),
+        distanceUnit(),
         fmtTime(plan.prediction.loSec),
         fmtTime(plan.prediction.hiSec),
         plan.prediction.method,
@@ -845,7 +862,7 @@ export function renderMarkdown(plan: StoredPlan): string {
   // C3: na górze siatka sezonu (ta sama co `trainctl season`), niżej tygodnie
   // w układzie wiersza z C2; opis słowny jednostek zostaje w plan.yaml i w `why`
   lines.push('', `## ${m.season}`, '', ...tableMarkdown(seasonTable(runningSeasonRows(cycleWeeksOf(plan)))), '')
-  lines.push(`> ${ui().rows.season.legend('↓')}  `, `> ${core.notation.legend}`)
+  lines.push(`> ${ui().rows.season.legend('↓', distanceUnit())}  `, `> ${core.notation.legend(distanceUnit())}`)
   // C8: pułap tętna z szacowanego HRmax — ostrzeżenie Z-5 raz, przy legendzie
   if (plan.hrCeiling) lines.push('', `> ${ui().today.hrCeiling(plan.hrCeiling.bpm, plan.hrCeiling.share)}`, ...(plan.hrCeiling.measured ? [] : [`> ⚠ ${ui().today.hrEstimated}`]))
   // sesje siły opisane raz: w tabelach tygodni wiersz siły ma tylko wariant
