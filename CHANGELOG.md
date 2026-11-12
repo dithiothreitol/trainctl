@@ -17,7 +17,9 @@ change between minor versions — a regenerated plan can differ.
   another run (S-11), instead of one 15–17 km easy day. With two running days
   the long run takes at most 80% of the week (the corpus P90 for two runs), so
   the other day keeps a run, and an accent takes at most half of the week, so
-  the long run stays the longest; with one running day the long run is the week.
+  the long run stays the longest; the long-run track gives way to the accent
+  or the time trial instead of dropping the accent or going over the week.
+  With one running day the long run is the week.
   The peak is capped at what the available days can
   hold, so deloads and the taper stay lighter than loading weeks, and `plan`
   says when the days limit the peak. The peak that `plan`, `status` and
@@ -92,8 +94,9 @@ change between minor versions — a regenerated plan can differ.
   budget too small for even a 3 km week keeps 3 km weeks and lists the weeks
   over the budget.
 - When the plan stays below the distance's thresholds, `plan` gives one verdict
-  instead of two warnings: the plan peak, the recommended peak and the longest
-  run, with the ways out — a later race date when the profile allows it
+  instead of two warnings, naming only the thresholds it misses (the plan peak
+  against the recommended peak, the longest run against the distance's
+  threshold), with the ways out — a later race date when the profile allows it
   (counted from today, or from the return after a break),
   `peakWeeklyKm` or `returning` if you have run more before, or a base goal.
 

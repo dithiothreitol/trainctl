@@ -975,9 +975,12 @@ export const cliEn = {
      * B8: werdykt wykonalności — trzy liczby (szczyt, próg, najdłuższe) i wyjścia. `atLeast`
      * = próg włącznie (maraton ≥25 km); `reachableFrom` — data startu, od której plan zdąży urosnąć.
      */
-    verdict: (v: { distanceKm: number; peakKm: number; recommendedKm: number; longest?: { km: number; thresholdKm: number; atLeast: boolean; rules: string }; reachableFrom?: string; afterReturn?: boolean }) =>
-      `This plan stays below the thresholds for ${n(v.distanceKm)} km: ${v.afterReturn ? 'after the return it' : 'it'} peaks at ${n(v.peakKm)} km/week against ${n(v.recommendedKm)} km/week (P-7/P-8)` +
-      (v.longest ? `, and its longest run is ${n(v.longest.km)} km against ${v.longest.atLeast ? 'at least' : 'more than'} ${n(v.longest.thresholdKm)} km (${v.longest.rules})` : '') +
+    verdict: (v: { distanceKm: number; peak?: { km: number; recommendedKm: number }; longest?: { km: number; thresholdKm: number; atLeast: boolean; rules: string }; reachableFrom?: string; afterReturn?: boolean }) =>
+      `This plan stays below the thresholds for ${n(v.distanceKm)} km: ` +
+      [
+        ...(v.peak ? [`${v.afterReturn ? 'after the return it' : 'it'} peaks at ${n(v.peak.km)} km/week against ${n(v.peak.recommendedKm)} km/week (P-7/P-8)`] : []),
+        ...(v.longest ? [`${v.afterReturn && !v.peak ? 'after the return its' : 'its'} longest run is ${n(v.longest.km)} km against ${v.longest.atLeast ? 'at least' : 'more than'} ${n(v.longest.thresholdKm)} km (${v.longest.rules})`] : []),
+      ].join(', and ') +
       '. Ways out: ' +
       [
         ...(v.reachableFrom ? [`a race on or after ${v.reachableFrom}, which leaves time to build up`] : []),

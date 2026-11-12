@@ -977,9 +977,12 @@ export const cliPl: CliMessages = {
       `Najdłuższe wybieganie ma ${n(v.km)} km wobec ${v.atLeast ? 'co najmniej' : 'ponad'} ${n(v.thresholdKm)} km dla tego dystansu (${v.rules}): trzyma je budżet czasu. Urośnie przy większej liczbie minut, przede wszystkim w dni długiego (E-2).`,
     tuneUpInReturn: (date: string, rule: string) =>
       `Start kontrolny ${date} wypada w spokojnym bloku powrotu (${rule}): pobiegnij go spokojnie albo z niego zrezygnuj.`,
-    verdict: (v: { distanceKm: number; peakKm: number; recommendedKm: number; longest?: { km: number; thresholdKm: number; atLeast: boolean; rules: string }; reachableFrom?: string; afterReturn?: boolean }) =>
-      `Ten plan nie dochodzi do progów dla ${n(v.distanceKm)} km: szczyt${v.afterReturn ? ' po powrocie' : ''} ${n(v.peakKm)} km/tydz. wobec ${n(v.recommendedKm)} km/tydz. (P-7/P-8)` +
-      (v.longest ? `, najdłuższe wybieganie ${n(v.longest.km)} km wobec ${v.longest.atLeast ? 'co najmniej' : 'ponad'} ${n(v.longest.thresholdKm)} km (${v.longest.rules})` : '') +
+    verdict: (v: { distanceKm: number; peak?: { km: number; recommendedKm: number }; longest?: { km: number; thresholdKm: number; atLeast: boolean; rules: string }; reachableFrom?: string; afterReturn?: boolean }) =>
+      `Ten plan nie dochodzi do progów dla ${n(v.distanceKm)} km: ` +
+      [
+        ...(v.peak ? [`szczyt${v.afterReturn ? ' po powrocie' : ''} ${n(v.peak.km)} km/tydz. wobec ${n(v.peak.recommendedKm)} km/tydz. (P-7/P-8)`] : []),
+        ...(v.longest ? [`najdłuższe wybieganie${v.afterReturn && !v.peak ? ' po powrocie' : ''} ${n(v.longest.km)} km wobec ${v.longest.atLeast ? 'co najmniej' : 'ponad'} ${n(v.longest.thresholdKm)} km (${v.longest.rules})`] : []),
+      ].join(', ') +
       '. Wyjścia: ' +
       [
         ...(v.reachableFrom ? [`start nie wcześniej niż ${v.reachableFrom} — wtedy plan zdąży urosnąć`] : []),

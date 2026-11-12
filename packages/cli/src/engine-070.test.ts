@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { earliestFeasibleRaceDate, estimateWorkoutMinutes, plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
+import { earliestFeasibleRaceDate, estimateWorkoutMinutes, longRunThreshold, plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
 import { kmLabel } from './format.ts'
 import { matrixPlan } from './plan-shape.fixture.ts'
 import { applyProposal, prepareProposal } from './proposals.ts'
@@ -704,6 +704,19 @@ describe('B1: tydzień mieszany (regeneracja, propozycja)', () => {
     week.notes = [{ code: 'volumeShort', targetKm: total, plannedKm: total - 3 }]
     writePlan(dir, plan)
     expect(cmdWhy(dir, { date: day.date }).output).not.toContain('This week has')
+  })
+
+  it('werdykt wymienia tylko progi, do których plan nie dochodzi (B8)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(25, 'sat, sun').replace('distanceKm: 21.0975', 'distanceKm: 42.195'), 'utf-8')
+    const cfg = loadConfig(dir)
+    const plan = computePlan(cfg, '2026-10-22')
+    const verdict = plan.feasibilityWarnings.find((w) => /stays below the thresholds/.test(w))!
+    expect(verdict).toMatch(/peaks at [\d.]+ km\/week against/)
+    // najdłuższe wybieganie spełnia próg maratonu, więc nie ma go w zdaniu o brakach
+    const threshold = longRunThreshold(cfg.goal)!
+    const longest = Math.max(...cycleWeeksOf(plan).filter((w) => ['base', 'build', 'peak'].includes(w.skeleton.phase)).flatMap((w) => w.days).filter((d) => d.workout?.kind === 'long').map((d) => d.workout!.distanceKm))
+    expect(longest).toBeGreaterThanOrEqual(threshold.km)
+    expect(verdict).not.toMatch(/longest run/)
   })
 
   it('plan: szczyt planu to najwyższy rozpisany tydzień, także gdy dni nie mieszczą celu (B1)', () => {

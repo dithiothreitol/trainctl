@@ -22,6 +22,7 @@ import {
   planMacrocycle,
   planStrengthWeek,
   predictRace,
+  qualitySessionsFor,
   testDistanceKm,
   type Microcycle,
   type PlannedDay,
@@ -306,12 +307,13 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     const reachableFrom = ret
       ? earliestFeasibleRaceDate({ ...athlete, recentWeeklyKm: Math.round(RETURN_RESTART_SHARE * ret.previousWeeklyKm), returning: { since: ret.since, previousWeeklyKm: ret.previousWeeklyKm } }, goal, ret.since)
       : earliestFeasibleRaceDate(athlete, goal, calibrationDate)
+    // w werdykcie tylko progi, do których plan nie dochodzi — spełniony próg w zdaniu
+    // „nie dochodzi do progów” czytałby się jak brak
     plan.feasibilityWarnings.push(ui().planMd.verdict({
       distanceKm: goal.distanceKm,
-      peakKm: verdictPeak,
+      ...(peakShort ? { peak: { km: verdictPeak, recommendedKm: plan.peakKmRecommended } } : {}),
       ...(plannedAhead.length ? { afterReturn: true } : {}),
-      recommendedKm: plan.peakKmRecommended,
-      ...(threshold && longest > 0 ? { longest: { km: longest, thresholdKm: threshold.km, atLeast: threshold.inclusive, rules: threshold.ruleRefs.join(', ') } } : {}),
+      ...(longShort && threshold ? { longest: { km: longest, thresholdKm: threshold.km, atLeast: threshold.inclusive, rules: threshold.ruleRefs.join(', ') } } : {}),
       ...(reachableFrom && reachableFrom > goal.date ? { reachableFrom } : {}),
     }))
   }
@@ -538,7 +540,7 @@ function fitTimeBudget(
  */
 function weeklyBudgetPeakKm(config: TrainctlConfig, zones: ReturnType<typeof paceZones>, upToKm: number): number {
   const minutes = config.time!.weeklyMinutes!
-  const qualitySessions = config.athlete.daysAvailable.length >= 4 ? 2 : 1
+  const qualitySessions = qualitySessionsFor(config.athlete)
   const fits = (km: number) => (['pyramidal', 'polarized'] as const).every((model) => {
     const week = generateMicrocycle({
       skeleton: {

@@ -755,6 +755,10 @@ function planNormalWeek(
       remaining = Math.max(0, remaining - km)
     }
     let long = longKm
+    // Dwa biegi: tor długiego (B4) ustępuje drugiej jednostce tygodnia — akcentowi albo
+    // sprawdzianowi — zamiast zwalniać akcent w `fits()` albo przekraczać zamiar tygodnia.
+    // Akcent ma najwyżej pół tygodnia (shareCap), więc długie zostaje najdłuższe (J-1, S-2).
+    if (!shares && longWd && long + sumKm(plan) > target + 0.05) long = Math.max(longFloor, round1(target - sumKm(plan)))
     // Reszta, której dni spokojne nie mieszczą, wydłuża długie (do `longRoom`), a reszta
     // krótsza niż bieg (E-3: MIN_EASY_KM) dolicza się do długiego także ponad sufit udziału
     // (B2: krótsza reszta idzie do innego biegu); twardy sufit 35 km zostaje.

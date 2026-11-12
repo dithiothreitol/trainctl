@@ -285,7 +285,7 @@ export function earliestFeasibleRaceDate(athlete: AthleteProfile, goal: RaceGoal
   const recommended = recommendedPeakKm(goal)
   const { start, level } = volumeBase(athlete, today)
   const historyCap = Math.min(athlete.peakWeeklyKm ?? level * 1.4, SANITY_CAP_KM)
-  const qualityPerWeek = athlete.daysAvailable.length >= 4 ? 2 : 1
+  const qualityPerWeek = qualitySessionsFor(athlete)
   if (historyCap < recommended || weekCapacityKm(athlete, qualityPerWeek, recommended) < recommended) return undefined
   // szczyt planu jest zaokrąglany do kilometra, więc próg osiąga już trend o 0,5 km niższy
   const loading = Math.max(1, Math.ceil(Math.log((recommended - 0.5) / Math.max(1, start)) / Math.log(RAMP_PER_LOAD_WEEK)) + 1)
@@ -295,6 +295,12 @@ export function earliestFeasibleRaceDate(athlete: AthleteProfile, goal: RaceGoal
   weeks += taperWeeksFor(goal).weeks
   return addDays(mondayOf(today), 7 * (weeks - 1) + 6)
 }
+
+/**
+ * I-8: akcenty w tygodniu ładowania — dwa przy co najmniej czterech dniach, inaczej jeden.
+ * Jedno źródło dla makrocyklu, daty osiągalności i skanów pojemności (dni, budżet).
+ */
+export const qualitySessionsFor = (athlete: Pick<AthleteProfile, 'daysAvailable'>): number => (athlete.daysAvailable.length >= 4 ? 2 : 1)
 
 /** R-5, R-11 (inż.): powrót w trakcie planu startuje z ~55% objętości sprzed przerwy (środek 50–60%). */
 export const RETURN_RESTART_SHARE = 0.55
@@ -428,7 +434,7 @@ export function planMacrocycle(input: MacrocycleInput): MacrocyclePlan {
     )
   }
 
-  const qualityPerWeek = athlete.daysAvailable.length >= 4 ? 2 : 1 // I-8
+  const qualityPerWeek = qualitySessionsFor(athlete)
 
   // Objętość: ramp od recentWeeklyKm do osiągalnego szczytu (P-3), sufit z historii.
   // Po przerwie start i poziom formy według R-11 (volumeBase).

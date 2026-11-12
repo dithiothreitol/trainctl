@@ -324,6 +324,20 @@ describe('B2: rama i minimalna dawka przy małej objętości', () => {
     expect(runs).toHaveLength(2)
     for (const w of runs) expect(w.distanceKm).toBeLessThanOrEqual(long.distanceKm)
   })
+  // dwa dni: tor długiego (B4) nie wypycha jedynego akcentu i nie przekracza tygodnia ze sprawdzianem
+  it('dwa dni, szczyt z torem długiego 30 km w tygodniu 34 km: akcent zostaje, tydzień w zamiarze (B4, J-1)', () => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ phase: 'peak', intensityModel: 'polarized', targetKm: 34, longKm: 30, qualitySessions: 1 }), athlete: { ...athlete, daysAvailable: ['sat', 'sun'] }, zones })
+    const runs = mc.days.filter((d) => d.workout).map((d) => d.workout!)
+    expect(runs.some((w) => ['quality_intervals', 'quality_continuous'].includes(w.kind))).toBe(true)
+    expect(mc.totalKm).toBeLessThanOrEqual(34 + 0.5)
+    const long = runs.find((w) => w.kind === 'long')!
+    for (const w of runs) expect(w.distanceKm).toBeLessThanOrEqual(long.distanceKm)
+  })
+  it('dwa dni, tydzień sprawdzianu z torem długiego: tydzień nie przekracza zamiaru (B4, T-10)', () => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ targetKm: 31, longKm: 24, qualitySessions: 1, testPlanned: true }), athlete: { ...athlete, daysAvailable: ['sat', 'sun'] }, zones, testDistanceKm: 5 })
+    expect(mc.days.some((d) => d.workout?.kind === 'test')).toBe(true)
+    expect(mc.totalKm).toBeLessThanOrEqual(31 + 0.5)
+  })
   it('szkielet ze starszego silnika (bez firstAfterRace): pierwszy tydzień po starcie nadal bez długiego (R-8)', () => {
     const mc = generateMicrocycle({ skeleton: skeleton({ phase: 'transition', targetKm: 20, qualitySessions: 0 }), athlete, zones })
     expect(mc.days.some((d) => d.workout?.kind === 'long')).toBe(false)
