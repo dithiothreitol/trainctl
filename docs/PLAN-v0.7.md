@@ -224,6 +224,23 @@ przypadki brzegowe, głównie w B11 (przerwa i powrót w `adapt`), w rundach
 pozostałe zgłoszenia i sugestie porządkowe są w §14. Odstępstwa od tekstu
 punktów opisuje „Realizacja w etapie 2” pod DoD pakietu B.
 
+**Stan etapu 3 (2026-11-12):** punkty C1–C10, D1–D5 i F3 zrealizowane na gałęzi
+`plan-0.7/etap-3` w kolejności z planu, razem z pozycjami rejestru §14
+przypisanymi do etapu 3: sześć naprawionych, dwie przeniesione do etapu 4,
+jedna zamknięta bez zmian. Bramka: `pnpm check` 1641 testów, `pnpm build`,
+`verify:distribution` (tarballe bez dostępu do rejestru, 128 plików FIT,
+8 kalendarzy, 11 wywołań MCP), `plugin:build` i `verify:plugin` (23 narzędzia),
+`render-skills --check`, `simulate:coaching`, `simulate:multisport`,
+`benchmark:multisport`: wszystko PASS. Backtest lokalnie w progach. Najbardziej
+ryzykowną część etapu, dopasowanie okrążeń do odcinków (D2), od startu pokrywa
+macierz scenariuszy w `core/src/engine/laps.test.ts`; nowe testy sprawdzone
+mutacją. Przegląd `/code-review high` w dwóch rundach (§0, krok 5). Runda 1 na
+całej gałęzi: 10 kandydatów, sześć błędów poprawionych z testem, który bez
+poprawki zawodzi, cztery sugestie w §14. Runda 2 na poprawkach z rundy 1:
+8 pozycji, poprawione regresja rozpoznania autolapu w TCX, utrata `units`
+i `notation` przy migracji do v2 oraz komentarz, pięć sugestii w §14.
+Odstępstwa od tekstu punktów opisuje „Realizacja w etapie 3” pod DoD pakietu C.
+
 **Etap 1** nie zmienia żadnej liczby w silniku ani zapisanych planów. Pierwszy
 commit tworzy migawkę macierzy na silniku z 0.6.0. Linty kształtu działają
 w tym etapie tylko w teście macierzy. Do `check` trafiają w etapie 2, żeby
