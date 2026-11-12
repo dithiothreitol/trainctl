@@ -117,10 +117,11 @@ describe('parseTcxActivity', () => {
     expect(a.startTime).toBe('2026-09-20T07:00:00.000Z')
   })
 
-  it('okrążenia (D1): dystans, czas, tętno, Intensity i TriggerMethod z poziomu Lap', () => {
+  it('okrążenia (D1): dystans, czas, tętno i TriggerMethod z poziomu Lap; Active bez roli', () => {
+    // Active obejmuje też rozgrzewkę i schłodzenie, więc nie znaczy „praca” (runda 1 przeglądu etapu 3)
     expect(parseTcxActivity(runningTcx())!.laps).toEqual([
-      { distanceM: 3000, movingTimeSec: 1000, avgHr: 140, intensity: 'work', trigger: 'manual' },
-      { distanceM: 1600, movingTimeSec: 500, avgHr: 170, intensity: 'work', trigger: 'manual' },
+      { distanceM: 3000, movingTimeSec: 1000, avgHr: 140, trigger: 'manual' },
+      { distanceM: 1600, movingTimeSec: 500, avgHr: 170, trigger: 'manual' },
     ])
   })
 
@@ -135,7 +136,7 @@ describe('parseTcxActivity', () => {
       ${lap('2026-09-15T05:12:31Z', '<TotalTimeSeconds>0</TotalTimeSeconds><DistanceMeters>5</DistanceMeters>')}
     </Activity></Activities></TrainingCenterDatabase>`
     expect(parseTcxActivity(tcx)!.laps).toEqual([
-      { distanceM: 1000, movingTimeSec: 240, intensity: 'work', trigger: 'distance' },
+      { distanceM: 1000, movingTimeSec: 240, trigger: 'distance' },
       // przerwa w miejscu: 0 m, ale 90 s — zostaje, oddziela odcinki
       { distanceM: 0, movingTimeSec: 90, intensity: 'rest', trigger: 'time' },
       { distanceM: 1000, movingTimeSec: 241, trigger: 'other' },

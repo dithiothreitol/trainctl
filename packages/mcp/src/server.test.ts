@@ -8,7 +8,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { addDays, mondayOf, type SyncProvider, type SyncedActivity } from 'trainctl-core'
 import { cmdSeason, cmdToday, cmdWeek, localToday } from 'trainctl'
 import { createTrainctlServer } from './server.ts'
-import { setLocale } from 'trainctl-core'
+import { setLocale, setUnits } from 'trainctl-core'
 
 // Scenariusze agentowe czytamy po polsku — tak brzmią też opisy w planie
 // użytkownika, gdy ma language: pl. Wybór języka testuje i18n.test.ts.
@@ -339,3 +339,18 @@ describe('trainctl_init fromIntervals — profil z historii przez agenta', () =>
 // Historical fixtures use a controlled wall clock; production writes protect the real past.
 beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-08-01T12:00:00Z')) })
 afterAll(() => vi.useRealTimers())
+
+describe('C9: dystans w trainctl_log (runda 1 przeglądu etapu 3)', () => {
+  it('profil w milach: km z narzędzia to kilometry, jak dane w structuredContent', async () => {
+    await call('trainctl_plan', { date: '2026-08-05' })
+    const previous = setUnits('imperial')
+    try {
+      const result = await call('trainctl_log', { date: '2026-08-09', km: '8' })
+      expect(result.isError).toBe(false)
+      const entries = readFileSync(join(dir, 'log.jsonl'), 'utf-8').trim().split('\n').map((line) => JSON.parse(line) as { date: string; km?: number })
+      expect(entries.filter((e) => e.date === '2026-08-09').at(-1)!.km).toBe(8)
+    } finally {
+      setUnits(previous)
+    }
+  })
+})

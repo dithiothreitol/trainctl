@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PaceRange, PlannedWorkout } from '../domain/types.ts'
 import type { ActivityLap } from '../ports/sync.ts'
-import { PACE_TOLERANCE_SEC, easyBand, easyPace, fasterThanTarget, matchReps, paceVerdict, plannedReps, type RepTarget } from './laps.ts'
+import { PACE_TOLERANCE_SEC, easyBand, easyPace, fasterThanTarget, matchReps, matchRunsReps, paceVerdict, plannedReps, type RepTarget } from './laps.ts'
 
 /** Strefa spokojna 5:30–6:10/km, cel odcinków 4:00–4:08/km. */
 const EASY: PaceRange = { loSecPerKm: 330, hiSecPerKm: 370 }
@@ -93,6 +93,19 @@ describe('matchReps: macierz scenariuszy (D2)', () => {
       reps: [...reps(1, 1000), ...reps(1, 400)],
       laps: [warmup(), work(0.4, 235), rest(), work(1, 243), cooldown()],
       expect: { matched: 1, repMs: [1000] },
+    },
+    {
+      name: 'TCX: rozgrzewka co kilometr bez roli, odcinki i przerwy „Resting”: rozgrzewka odpada po tempie',
+      reps: reps(3),
+      laps: [lap(1, 360), lap(1, 355), lap(1, 350), lap(1, 242), rest(), lap(1, 244), rest(), lap(1, 243), lap(1.5, 370)],
+      expect: { matched: 3, inRange: 3, extra: 0, verdicts: ['within', 'within', 'within'] },
+    },
+    {
+      name: 'TCX z treningu strukturalnego: każde okrążenie zamknięte po dystansie, przerwy „Resting” (runda 2)',
+      reps: reps(3),
+      laps: [lap(2, 360), lap(1, 242), lap(0.4, 600, { intensity: 'rest' }), lap(1, 244), lap(0.4, 600, { intensity: 'rest' }), lap(1, 243), lap(1.5, 370)]
+        .map((l) => ({ ...l, trigger: 'distance' as const })),
+      expect: { matched: 3, inRange: 3 },
     },
     {
       name: 'hub: interwały WORK i RECOVERY bez sposobu zamknięcia',
@@ -286,5 +299,26 @@ describe('fasterThanTarget (D5)', () => {
     expect(fasterThanTarget([session('2026-08-04', [F, F]), session('2026-08-11', [F, F]), noMatch, session('2026-08-19', [undefined, undefined])]))
       .toEqual(['2026-08-04', '2026-08-11'])
     expect(fasterThanTarget([{ date: '2026-08-04' }, session('2026-08-11', [F, F])])).toEqual([])
+  })
+})
+
+describe('matchRunsReps: kilka biegów jednego dnia (runda 1 przeglądu etapu 3)', () => {
+  it('rano bieg spokojny z okrążeniami co kilometr, wieczorem akcent z rolami: odcinki tylko z akcentu', () => {
+    // FIT bez treningu strukturalnego: każde okrążenie „active”, czyli praca
+    const morning = [380, 375, 300, 290, 370].map((p) => lap(1, p, { intensity: 'work', trigger: 'distance' as const }))
+    const evening = structured([243, 244, 245])
+    const result = matchRunsReps(reps(3), [morning, evening], EASY)
+    expect(result.matched.map((r) => r.paceSecPerKm)).toEqual([243, 244, 245])
+    expect(result).toMatchObject({ inRange: 3, extra: 0 })
+  })
+
+  it('akcent w dwóch plikach: seria z obu biegów po kolei', () => {
+    const first = [warmup(), work(1, 242), rest(), work(1, 243), rest()]
+    const second = [work(1, 244), rest(), work(1, 245), cooldown()]
+    expect(matchRunsReps(reps(4), [first, second], EASY).matched).toHaveLength(4)
+  })
+
+  it('żaden bieg bez okrążeń: brak okrążeń w danych', () => {
+    expect(matchRunsReps(reps(3), [undefined, []], EASY).reason).toBe('no-laps')
   })
 })

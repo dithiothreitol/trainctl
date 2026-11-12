@@ -38,7 +38,7 @@ import {
   type WeekNote,
   type WeekSkeleton,
 } from 'trainctl-core'
-import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
+import { CONFIG_FILE, inProfileView, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel } from './format.ts'
 import { rowsTable, runningSeasonRows, runningWeekRows, seasonTable, tableMarkdown } from './ui/rows.ts'
@@ -465,7 +465,7 @@ export function writePlan(cwd: string, plan: StoredPlan): void {
   // i edytuje (plan-as-code), a alias zmusza go do skakania po pliku — i sprawia,
   // że edycja jednego miejsca po cichu zmienia inne.
   writeFileSync(join(cwd, PLAN_YAML), stringify(plan, { aliasDuplicateObjects: false }), 'utf-8')
-  writeFileSync(join(cwd, PLAN_MD), renderMarkdown(plan), 'utf-8')
+  writeFileSync(join(cwd, PLAN_MD), inProfileView(cwd, () => renderMarkdown(plan)), 'utf-8')
 }
 
 /**
@@ -474,7 +474,7 @@ export function writePlan(cwd: string, plan: StoredPlan): void {
  */
 export function refreshPlanMarkdown(cwd: string, plan: StoredPlan): boolean {
   const path = join(cwd, PLAN_MD)
-  const text = renderMarkdown(plan)
+  const text = inProfileView(cwd, () => renderMarkdown(plan))
   if (existsSync(path) && readFileSync(path, 'utf-8') === text) return false
   mkdirSync(join(cwd, PLAN_DIR), { recursive: true })
   writeFileSync(path, text, 'utf-8')

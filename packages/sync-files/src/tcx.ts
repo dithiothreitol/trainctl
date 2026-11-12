@@ -12,8 +12,9 @@
  * - Tętno: średnia `AverageHeartRateBpm/Value` okrążeń ważona ich czasem.
  * - Podejścia: TCX ich nie podsumowuje — liczymy z `AltitudeMeters` punktów.
  * - Multisport (`MultiSportSession`): części biegowe sumowane (jak w FIT).
- * - Okrążenia (D1): każde `Lap` z dystansem i czasem; `Intensity` Active/Resting
- *   i `TriggerMethod` Manual/Distance/Time (Location i HeartRate to „other").
+ * - Okrążenia (D1): każde `Lap` z dystansem i czasem; `Intensity` Resting to przerwa,
+ *   a Active zostaje bez roli — schemat nie odróżnia nim rozgrzewki i schłodzenia od
+ *   odcinka. `TriggerMethod` Manual/Distance/Time (Location i HeartRate to „other").
  */
 import { combineParts, toParsed, type ActivityPart, type ActivityType, type ParsedActivity, type ParsedLap } from './activity.ts'
 import { localDateFromIso, parseIsoMs } from './dates.ts'
@@ -22,7 +23,7 @@ import { attr, childNumber, childText, element, elements, stripComments, without
 
 const SPORTS: Record<string, ActivityType> = { running: 'Run', biking: 'Ride', swimming: 'Swim', transition: 'Transition' }
 /** Schemat TCX v2: `Intensity_t` i `TriggerMethod_t`. */
-const LAP_INTENSITY: Record<string, ParsedLap['intensity']> = { Active: 'work', Resting: 'rest' }
+const LAP_INTENSITY: Record<string, ParsedLap['intensity']> = { Resting: 'rest' }
 const LAP_TRIGGER: Record<string, ParsedLap['trigger']> = { Manual: 'manual', Distance: 'distance', Time: 'time' }
 
 interface TcxPart {

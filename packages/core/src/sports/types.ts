@@ -42,6 +42,10 @@ export interface SportGoal {
 export interface SportsConfig {
   schemaVersion: 2
   language?: string
+  /** C9: jednostka widoku, jak w profilu planu biegowego; dane zostają w km. */
+  units?: 'metric' | 'imperial'
+  /** C10: zapis notacji, jak w profilu planu biegowego. */
+  notation?: 'neutral' | 'club'
   athlete: { sports: Partial<Record<EnduranceSport, SportProfile>> }
   goal: SportGoal
   tuneUpGoals?: (SportGoal & { priority: 'B' | 'C' })[]

@@ -13,6 +13,7 @@ import { getLocale, messages } from '../i18n/index.ts'
 import { formatNumber, type Locale } from '../i18n/locale.ts'
 import { distanceIn, distanceUnit, getUnits, paceIn, type Units } from '../i18n/units.ts'
 import type { SessionStep, StepTarget, TrainingSession } from '../sports/types.ts'
+import { splitsSeries } from './duration.ts'
 
 /**
  * C10: zapis notacji — `neutral` (skróty RG, SCH, p.; domyślnie) albo `club`: kody znane
@@ -164,7 +165,8 @@ function segmentsLine(workout: PlannedWorkout, segments: PlannedSegment[], opts:
         const work = code(clubRepCode(s.repM ?? 0), `${s.reps ?? 1}${g.times}${rep(s.repM ?? 0)}${s.pace && !shared ? ` ${mid(s.pace)}` : ''}`)
         if (main) return work
         const recovery = s.recoverySec ? ` ${t.recovery} ${duration(s.recoverySec)}${s.recoveryMode ? ` ${t[s.recoveryMode]}` : ''}` : ''
-        const setBreak = s.setBreak ? `, ${t.afterRep(s.setBreak.afterRep)} ${duration(s.setBreak.sec)} ${t[s.setBreak.mode]}` : ''
+        // przerwa w połowie serii tylko wtedy, gdy dzieli serię — jak na zegarku i w szacunku czasu
+        const setBreak = splitsSeries(s) ? `, ${t.afterRep(s.setBreak.afterRep)} ${duration(s.setBreak.sec)} ${t[s.setBreak.mode]}` : ''
         return `${work}${recovery}${setBreak}`
       }
       case 'hills': {
@@ -278,7 +280,7 @@ export function workoutStructure(workout: PlannedWorkout, opts: NotationOptions 
         return [row(t.part.steady, dist, band(s.pace))]
       case 'intervals': {
         const recovery = s.recoverySec ? `${duration(s.recoverySec)}${s.recoveryMode ? ` ${t[s.recoveryMode]}` : ''}` : ''
-        const setBreak = s.setBreak ? `${recovery ? ', ' : ''}${t.afterRep(s.setBreak.afterRep)} ${duration(s.setBreak.sec)} ${t[s.setBreak.mode]}` : ''
+        const setBreak = splitsSeries(s) ? `${recovery ? ', ' : ''}${t.afterRep(s.setBreak.afterRep)} ${duration(s.setBreak.sec)} ${t[s.setBreak.mode]}` : ''
         return [row(t.part.intervals, `${s.reps ?? 1}${g.times}${rep(s.repM ?? 0)}`, band(s.pace), recovery + setBreak)]
       }
       case 'hills':

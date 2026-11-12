@@ -100,6 +100,9 @@ const fits = (lap: ActivityLap, rep: RepTarget): boolean =>
 function autoLaps(laps: ActivityLap[]): boolean {
   const full = laps.slice(0, -1)
   if (full.length < AUTOLAP_MIN_LAPS) return false
+  // przerwa oznaczona w pliku (TCX „Resting”) to struktura, nie same okrążenia co kilometr —
+  // także wtedy, gdy trening strukturalny zamyka każde okrążenie po dystansie
+  if (laps.some((l) => l.intensity !== undefined && l.intensity !== 'work')) return false
   if (full.every((l) => l.trigger !== undefined)) return full.every((l) => l.trigger === 'distance')
   const sorted = full.map((l) => l.distanceKm).sort((a, b) => a - b)
   const median = sorted[Math.floor(sorted.length / 2)]!
@@ -137,6 +140,32 @@ function align(candidates: ActivityLap[], reps: RepTarget[]): { rep: number; can
   return pairs
 }
 
+interface Candidate {
+  lap: ActivityLap
+  /** Który bieg dnia i które jego okrążenie — sąsiedztwo liczy się w obrębie biegu. */
+  run: number
+  index: number
+  roles: boolean
+}
+
+/**
+ * Kandydaci na odcinki z jednego biegu. Role liczą się osobno w każdym biegu (rano bieg
+ * spokojny z okrążeniami co kilometr, wieczorem akcent z treningu strukturalnego).
+ * Tryb ról wymaga w tym samym biegu okrążeń „praca” i okrążeń innej roli: TCX zna tylko
+ * przerwę, więc rozgrzewka wygląda w nim jak odcinek i jego okrążenia idą ścieżką bez roli.
+ */
+function runCandidates(laps: ActivityLap[], run: number, easy: PaceRange): Candidate[] {
+  const roles = laps.some((l) => l.intensity === 'work') && laps.some((l) => l.intensity !== undefined && l.intensity !== 'work')
+  if (!roles && autoLaps(laps)) return []
+  return laps.flatMap((lap, index): Candidate[] => {
+    if (!(lap.distanceKm > 0)) return []
+    const candidate = roles
+      ? lap.intensity === 'work'
+      : (lap.intensity === undefined || lap.intensity === 'work') && lapPace(lap) < easy.loSecPerKm
+    return candidate ? [{ lap, run, index, roles }] : []
+  })
+}
+
 /**
  * D2: okrążenia biegu wobec powtórzeń planu.
  *
@@ -147,19 +176,28 @@ function align(candidates: ActivityLap[], reps: RepTarget[]): { rep: number; can
  *   Okrążenia automatyczne (wszystkie tej samej długości) nie pasują do struktury.
  */
 export function matchReps(reps: RepTarget[], laps: ActivityLap[] | undefined, easy: PaceRange): IntervalsExecution {
+  return matchRunsReps(reps, [laps], easy)
+}
+
+/**
+ * D2: okrążenia kilku biegów jednego dnia, w kolejności startu (np. akcent zapisany w dwóch
+ * plikach). Kandydaci każdego biegu według jego ról, wyrównanie wspólne dla całej serii.
+ */
+export function matchRunsReps(reps: RepTarget[], runs: (ActivityLap[] | undefined)[], easy: PaceRange): IntervalsExecution {
   const none = (reason: 'no-laps' | 'no-match'): IntervalsExecution => ({ planned: reps.length, matched: [], inRange: 0, extra: 0, reason })
-  const usable = (laps ?? []).filter((l) => l.distanceKm >= 0 && l.movingTimeSec > 0)
-  if (!usable.length) return none('no-laps')
-  const roles = usable.some((l) => l.intensity !== undefined && l.intensity !== 'work')
-  if (!roles && autoLaps(usable)) return none('no-match')
-  const indexed = usable
-    .map((lap, index) => ({ lap, index }))
-    .filter(({ lap }) => lap.distanceKm > 0 && (roles ? lap.intensity === 'work' : lapPace(lap) < easy.loSecPerKm))
+  const usable = runs.map((laps) => (laps ?? []).filter((l) => l.distanceKm >= 0 && l.movingTimeSec > 0))
+  if (!usable.some((laps) => laps.length)) return none('no-laps')
+  const indexed = usable.flatMap((laps, run) => runCandidates(laps, run, easy))
   const pairs = align(indexed.map((c) => c.lap), reps)
   if (!pairs.length) return none('no-match')
-  if (!roles && pairs.some((p, k) => k > 0 && indexed[p.candidate]!.index - indexed[pairs[k - 1]!.candidate]!.index === 1)) {
-    return none('no-match')
-  }
+  // bez roli: dwa dopasowane sąsiednie okrążenia jednego biegu to nie struktura planu
+  const adjacent = pairs.some((p, k) => {
+    if (k === 0) return false
+    const previous = indexed[pairs[k - 1]!.candidate]!
+    const current = indexed[p.candidate]!
+    return !current.roles && previous.run === current.run && current.index - previous.index === 1
+  })
+  if (adjacent) return none('no-match')
   const used = new Set(pairs.map((p) => p.candidate))
   const extra = indexed.filter((c, k) => !used.has(k) && reps.some((r) => fits(c.lap, r))).length
   const matched = pairs.map(({ rep, candidate }): MatchedRep => {

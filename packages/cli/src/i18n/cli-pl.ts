@@ -847,8 +847,9 @@ export const cliPl: CliMessages = {
     weekMeta: (weekStart: string, phase: string, distance: number, unit: string) =>
       `od ${weekStart} · ${phase} · ${n(distance)} ${unit}`,
     deload: 'odciążenie',
-    subtitle: (weeks: number, peakKm: number, vdot: number, generatedAt: string) =>
-      `Plan ${weeks}-tygodniowy · szczyt ${n(peakKm)} km/tydz. · VDOT ${n(vdot)} · ` +
+    /** C9: szczyt w jednostce widoku, gotowy napis („52 km/tydz.”, „32,3 mi/tydz.”). */
+    subtitle: (weeks: number, peak: string, vdot: number, generatedAt: string) =>
+      `Plan ${weeks}-tygodniowy · szczyt ${peak} · VDOT ${n(vdot)} · ` +
       `wygenerowano ${generatedAt}`,
     footer: 'Wygenerowane przez trainctl. Uzasadnienia jednostek: trainctl why --date <data>.',
   },

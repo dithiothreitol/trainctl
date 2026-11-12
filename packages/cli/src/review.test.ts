@@ -211,6 +211,16 @@ describe('trainctl review — wykonanie wobec celu (D2, D3)', () => {
     expect(r.output).toContain('4 z 4 odcinków, 3 w zakresie 4:11–4:23/km (4:15, 4:18, 4:22, 4:30/km)')
   })
 
+  it('rano bieg spokojny z autolapem, wieczorem akcent: odcinki tylko z akcentu (runda 1 przeglądu etapu 3)', async () => {
+    // FIT bez treningu strukturalnego: okrążenia „active” co kilometr, czyli praca bez innych ról
+    const morning = [380, 375, 370].map((p) => lap(1, p, { intensity: 'work' as const, trigger: 'distance' as const }))
+    const r = await review([
+      run('2026-08-11', 3, { externalId: 'am', startTime: '2026-08-11T06:30:00', laps: morning }),
+      run('2026-08-11', 8, { externalId: 'pm', startTime: '2026-08-11T18:00:00', laps: accent([255, 258, 262, 260]) }),
+    ])
+    expect(r.output).toContain('4 z 4 odcinków, 4 w zakresie 4:11–4:23/km (4:15, 4:18, 4:22, 4:20/km)')
+  })
+
   it('część odcinków: trzy z czterech', async () => {
     const r = await review([run('2026-08-11', 7, { laps: accent([255, 258, 262]) })])
     expect(r.output).toContain('3 z 4 odcinków, 3 w zakresie 4:11–4:23/km')

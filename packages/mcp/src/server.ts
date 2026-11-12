@@ -181,7 +181,8 @@ export function createTrainctlServer(
         commit: commitParam(),
       },
     },
-    async (args) => toTool(cmdLog(trainingDir(), args)),
+    // C9: dystans w km, jak dane w structuredContent — bez przeliczania z jednostki profilu
+    async (args) => toTool(cmdLog(trainingDir(), { ...args, metricKm: true })),
   )
 
   server.registerTool(

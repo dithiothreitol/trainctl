@@ -31,6 +31,14 @@ describe('C1: notacja jednostki biegowej ze struktury', () => {
     expect(workoutLine(w, en)).toBe("6×1 km @4:04 r. 3' jog, after rep 3 4' walk")
   })
 
+  it('przerwa w połowie serii poza serią (po ostatnim odcinku) nie trafia do notacji, jak na zegarek (runda 1 przeglądu etapu 3)', () => {
+    const at = (afterRep: number) => workout('quality_intervals', [seg('intervals', { reps: 4, repM: 1000, distanceKm: 4, pace: intervalPace, recoverySec: 120, recoveryMode: 'walk', setBreak: { afterRep, sec: 180, mode: 'walk' } })])
+    expect(workoutLine(at(2), pl)).toBe("4×1 km @4:32 p. 2' marsz, po 2. odcinku 3' marsz")
+    expect(workoutLine(at(4), pl)).toBe("4×1 km @4:32 p. 2' marsz")
+    expect(workoutStructure(at(4), pl)[0]!.recovery).toBe("2' marsz")
+    expect(workoutStructure(at(2), pl)[0]!.recovery).toBe("2' marsz, po 2. odcinku 3' marsz")
+  })
+
   it('plan sprzed C1 bez rodzaju przerwy: notacja go pomija', () => {
     const w = workout('quality_intervals', [seg('intervals', { reps: 4, repM: 1000, distanceKm: 4, pace: intervalPace, recoverySec: 120 })])
     expect(workoutLine(w, pl)).toBe("4×1 km @4:32 p. 2'")

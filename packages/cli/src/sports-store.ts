@@ -4,13 +4,13 @@ import { join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { parse, stringify } from 'yaml'
 import {
-  ENDURANCE_SPORTS, addDays, coachingLines, distanceUnit, sessionStepLines, estimateWorkoutMinutes, getLocale, messages, mondayOf, notationLegend,
+  ENDURANCE_SPORTS, addDays, coachingLines, distanceUnit, sessionStepLines, estimateWorkoutMinutes, getLocale, isNotationStyle, isUnits, messages, mondayOf, notationLegend,
   sportMessages as msg, validateSportsConfig, validateSportsPlan,
   type EnduranceSport, type SessionLog, type SportsConfig, type SportsPlan, type TrainingSession,
 } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 import { rowsTable, seasonTable, sessionRows, sessionsSeasonRows, tableMarkdown } from './ui/rows.ts'
-import { CONFIG_FILE, loadConfig } from './config.ts'
+import { CONFIG_FILE, inProfileView, loadConfig } from './config.ts'
 import { PLAN_YAML, PLAN_MD, loadPlan, workoutText } from './planfile.ts'
 import { LOG_FILE } from './logfile.ts'
 import { SYNC_FILE } from './sync.ts'
@@ -78,11 +78,13 @@ export function sportsMarkdown(p: SportsPlan): string {
   if (p.replacements.length) lines.push('', `## ${m.changes}`, '', ...p.replacements.map(x => '- ' + x.sourceId + ' → ' + x.targetId + ': ' + x.tradeoffs.join(' ')))
   return lines.join('\n') + '\n'
 }
-export const planFiles = (p: SportsPlan): Record<string, string> => ({ [PLAN_YAML]: stringify(p), [PLAN_MD]: sportsMarkdown(p) })
+/** PLAN.md w jednostce i zapisie z profilu katalogu (C9, C10), nie z flagi jednego wywołania. */
+export const planFiles = (p: SportsPlan, cwd: string): Record<string, string> =>
+  ({ [PLAN_YAML]: stringify(p), [PLAN_MD]: inProfileView(cwd, () => sportsMarkdown(p)) })
 export function writeSportsPlan(cwd: string, p: SportsPlan): void {
   const issues = validateSportsPlan(p)
   if (issues.length) throw new Error(issues.join('\n'))
-  writeTransaction(cwd, planFiles(p))
+  writeTransaction(cwd, planFiles(p, cwd))
 }
 const INPUTS = [CONFIG_FILE, PLAN_YAML, LOG_FILE, SYNC_FILE]
 export const stateFingerprint = (cwd: string): string => fingerprint([clockToday(), ...INPUTS.map(p => [p, readOptional(cwd, p)])])
@@ -102,7 +104,7 @@ export function applySportsProposal(cwd: string, id: string, action: string): Sp
   if (p.action !== action || p.schemaVersion !== 2 || digest !== fingerprint(body) || p.state !== stateFingerprint(cwd)) throw new Error(msg().stale)
   const errors = validateSportsPlan(p.plan)
   if (errors.length) throw new Error(errors.join('\n'))
-  const files = planFiles(p.plan)
+  const files = planFiles(p.plan, cwd)
   if (p.config) files[CONFIG_FILE] = stringify(validateSportsConfig(p.config))
   if (p.log !== undefined) files[LOG_FILE] = p.log
   if (action === 'migrate') for (const path of [...INPUTS, PLAN_MD]) {
@@ -128,7 +130,9 @@ export function migrationCandidate(cwd: string): { plan: SportsPlan; config: Spo
   plan.sessions = runningSessions(old, cycleId)
   plan.generatedSessions = Object.fromEntries(plan.sessions.map(s => [s.id, fingerprint(s)]))
   const weekly = old.weeks.map(w => plan.sessions.filter(s => s.sport === 'run' && mondayOf(s.date) === w.weekStart).reduce((n, s) => n + s.durationSec / 60, 0)).filter(n => n > 0)
-  const config: SportsConfig = { schemaVersion: 2, ...(rawConfig.language ? { language: rawConfig.language } : {}), athlete: { sports: { run: { weeklyMinutes: Math.max(10, Math.round(weekly[0] ?? configV1.athlete.recentWeeklyKm * 6)), sessionsPerWeek: configV1.athlete.daysAvailable.length, daysAvailable: configV1.athlete.daysAvailable, results: configV1.athlete.results, running: { recentWeeklyKm: configV1.athlete.recentWeeklyKm, ...(configV1.athlete.peakWeeklyKm !== undefined ? {peakWeeklyKm: configV1.athlete.peakWeeklyKm} : {}), ...(configV1.athlete.longRunDay ? {longRunDay: configV1.athlete.longRunDay} : {}), ...(configV1.athlete.tuneUpRaces ? {tuneUpRaces: configV1.athlete.tuneUpRaces} : {}) }, preparationMinutes: old.preparationMinutes ?? 15 } } }, goal,
+  // C9, C10: jednostka i zapis notacji przechodzą z profilu — bez nich widoki v2 wróciłyby do km i skrótów neutralnych
+  const config: SportsConfig = { schemaVersion: 2, ...(rawConfig.language ? { language: rawConfig.language } : {}),
+    ...(isUnits(rawConfig.units) ? { units: rawConfig.units } : {}), ...(isNotationStyle(rawConfig.notation) ? { notation: rawConfig.notation } : {}), athlete: { sports: { run: { weeklyMinutes: Math.max(10, Math.round(weekly[0] ?? configV1.athlete.recentWeeklyKm * 6)), sessionsPerWeek: configV1.athlete.daysAvailable.length, daysAvailable: configV1.athlete.daysAvailable, results: configV1.athlete.results, running: { recentWeeklyKm: configV1.athlete.recentWeeklyKm, ...(configV1.athlete.peakWeeklyKm !== undefined ? {peakWeeklyKm: configV1.athlete.peakWeeklyKm} : {}), ...(configV1.athlete.longRunDay ? {longRunDay: configV1.athlete.longRunDay} : {}), ...(configV1.athlete.tuneUpRaces ? {tuneUpRaces: configV1.athlete.tuneUpRaces} : {}) }, preparationMinutes: old.preparationMinutes ?? 15 } } }, goal,
     ...(rawConfig.time ? { time: rawConfig.time } : {}), ...(rawConfig.sync ? { sync: rawConfig.sync } : {}), ...(rawConfig.desk ? { desk: rawConfig.desk } : {}) }
   const logs = (readOptional(cwd, LOG_FILE) ?? '').split('\n').filter(l => l.trim()).map(l => {
     const oldLog = JSON.parse(l)

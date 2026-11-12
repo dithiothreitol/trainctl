@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse } from 'yaml'
-import { DEFAULT_LOCALE, getLocale, HR_MAX_BPM, isNotationStyle, isUnits, parseIso } from 'trainctl-core'
+import { DEFAULT_LOCALE, getLocale, HR_MAX_BPM, isNotationStyle, isUnits, parseIso, withNotation, withUnits } from 'trainctl-core'
 import type { AthleteProfile, InferredProfile, NotationStyle, RaceGoal, Units, Weekday } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 
@@ -71,6 +71,13 @@ export function readConfigUnits(cwd: string): Units | undefined {
     return undefined
   }
 }
+
+/**
+ * C9, C10: plik widoku (PLAN.md) w jednostce i zapisie z profilu, nie z flagi jednego
+ * wywołania — `trainctl --units imperial plan` na podgląd nie przestawia trwałego pliku.
+ */
+export const inProfileView = <T>(cwd: string, fn: () => T): T =>
+  withUnits(readConfigUnits(cwd) ?? 'metric', () => withNotation(readConfigNotation(cwd) ?? 'neutral', fn))
 
 /** C10: zapis notacji z trainctl.yaml, czytany jak jednostka — bez pełnej walidacji profilu. */
 export function readConfigNotation(cwd: string): NotationStyle | undefined {

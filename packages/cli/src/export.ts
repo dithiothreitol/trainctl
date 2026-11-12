@@ -19,7 +19,7 @@ import {
   type RaceScenario,
 } from 'trainctl-export'
 import { ui } from './i18n/index.ts'
-import { kmLabel, shownKm, workoutKm } from './format.ts'
+import { kmLabel, perWeekLabel, shownKm, workoutKm } from './format.ts'
 import { cycleWeeksOf, findDay, loadPlan, weekPosition, workoutText, type StoredPlan } from './planfile.ts'
 import { kindPurpose, ruleExplain, ruleEvidence } from './rules-explain.ts'
 import { hoursMinutes, runningWeekRows } from './ui/rows.ts'
@@ -256,7 +256,8 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   })
   const html = toPrintableHtml({
     title: `${plan.goal.name} — ${plan.goal.date}`,
-    subtitle: p.subtitle(cycle.length, plan.peakKmPlanned, plan.vdot, plan.generatedAt),
+    // C9: szczyt w jednostce widoku, jak kolumny, nagłówki tygodni i legenda
+    subtitle: p.subtitle(cycle.length, perWeekLabel(plan.peakKmPlanned), plan.vdot, plan.generatedAt),
     legend: notationLegend(distanceUnit()),
     weeks,
     footer: p.footer,

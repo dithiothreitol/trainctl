@@ -191,8 +191,11 @@ change between minor versions — a regenerated plan can differ.
   written in metres (`4×1000 m`) and swimming stays per 100 m. `plan.yaml`,
   `log.jsonl`, `--json`, MCP `structuredContent` and sync stay in kilometres.
   `log --km` and the wizard take distances in the profile unit and store
-  kilometres; the wizard asks for the unit first. `plan` refreshes `PLAN.md`
-  when only its view changed, for example after switching units. Diagnostic
+  kilometres; the wizard asks for the unit first. The MCP `trainctl_log` tool
+  takes kilometres, like the data it returns. In the running plan, `plan`
+  refreshes `PLAN.md` when only its view changed, for example after switching
+  units; `PLAN.md` follows the profile, so a one-off `--units` flag does not
+  convert it. Migrating to the multisport schema keeps `units` and `notation`. Diagnostic
   messages in `adapt`, `review` and the race pack still use kilometres.
 - The plugin's session start tells the agent how old the execution data is: the
   last pull date from `sync.json` (as in `trainctl status`) and its age in days,
@@ -220,7 +223,10 @@ change between minor versions — a regenerated plan can differ.
   repetitions by order and length: how many of the planned reps were found,
   their paces and how many fell within the target range, plus reps beyond the
   plan. Auto laps every kilometre do not fit the structure and read "no laps
-  matching the plan"; a run without laps reads "no laps in the data". Easy and
+  matching the plan"; a run without laps reads "no laps in the data". Lap roles
+  are read per run, so an easy run with auto laps on the same day lends the
+  session nothing; TCX marks only rests, so its warm-up laps are told apart from
+  the reps by pace. Easy and
   long runs get their average pace against the easy range (the long run's
   slower range included). A 3 s/km margin covers measurement error. Heart rate
   is not judged (Z-3, Z-6), the plan does not change, and the facts are in

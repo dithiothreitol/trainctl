@@ -7,8 +7,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { parse } from 'yaml'
 import { setLocale, setNotation } from 'trainctl-core'
-import { cmdPlan, cmdSeason, cmdToday, cmdWeek, type CmdResult } from './commands.ts'
+import { cmdMigrate, cmdPlan, cmdSeason, cmdToday, cmdWeek, type CmdResult } from './commands.ts'
 import { configTemplate, loadConfig, readConfigNotation } from './config.ts'
 import { loadPlan } from './planfile.ts'
 import { workoutsToPush } from './sync.ts'
@@ -110,5 +111,18 @@ describe('C10: notacja klubowa', () => {
     expect(r.code).toBe(1)
     expect(r.output).toContain('notation: neutral albo club')
     expect(configTemplate()).toContain('# notation: neutral')
+  })
+})
+
+describe('C9, C10: migracja do v2 (runda 2 przeglądu etapu 3)', () => {
+  it('nowy profil v2 zachowuje jednostkę i zapis notacji', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), PROFILE('language: pl\nunits: imperial\nnotation: club\n'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    const prepared = cmdMigrate(dir)
+    expect(prepared.code, prepared.output).toBe(0)
+    const applied = cmdMigrate(dir, { apply: (prepared.data!['proposal'] as { id: string }).id })
+    expect(applied.code, applied.output).toBe(0)
+    expect(parse(readFileSync(join(dir, 'trainctl.yaml'), 'utf-8'))).toMatchObject({ schemaVersion: 2, units: 'imperial', notation: 'club' })
+    expect(readConfigNotation(dir)).toBe('club')
   })
 })

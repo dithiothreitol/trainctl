@@ -1,4 +1,4 @@
-import { easyBand, easyPace, matchReps, mondayOf, paceZones, plannedReps, type ExecutionRecord, type PaceRange, type PlannedWorkout, type SyncedActivity } from 'trainctl-core'
+import { easyBand, easyPace, matchRunsReps, mondayOf, paceZones, plannedReps, type ExecutionRecord, type PaceRange, type PlannedWorkout, type SyncedActivity } from 'trainctl-core'
 import type { StoredPlan } from './planfile.ts'
 import type { LogEntry } from './logfile.ts'
 import { localDateOf } from './clock.ts'
@@ -35,7 +35,8 @@ function executionFacts(workout: PlannedWorkout | undefined, runs: SyncedActivit
   const facts: Pick<ExecutionRecord, 'paceSecPerKm' | 'intervals' | 'easyPace'> = pace !== undefined ? { paceSecPerKm: Math.round(pace) } : {}
   if (!workout) return facts
   const reps = plannedReps(workout)
-  if (reps.length) facts.intervals = matchReps(reps, runs.flatMap((r) => r.laps ?? []), easyZone)
+  // role okrążeń liczą się w każdym biegu osobno: bieg spokojny z autolapem obok akcentu nie daje odcinków
+  if (reps.length) facts.intervals = matchRunsReps(reps, runs.map((r) => r.laps), easyZone)
   else if ((workout.kind === 'easy' || workout.kind === 'long') && pace !== undefined) facts.easyPace = easyPace(pace, easyBand(workout, easyZone))
   return facts
 }

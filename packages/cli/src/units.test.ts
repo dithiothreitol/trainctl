@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLocale, setUnits, withUnits, type Units } from 'trainctl-core'
-import { cmdLog, cmdPlan, cmdSeason, cmdToday, cmdWeek, type CmdResult } from './commands.ts'
+import { cmdExport, cmdLog, cmdPlan, cmdSeason, cmdToday, cmdWeek, type CmdResult } from './commands.ts'
 import { loadConfig, readConfigUnits } from './config.ts'
 import { readLog } from './logfile.ts'
 import { renderAnsi, type Block } from './ui/blocks.ts'
@@ -91,6 +91,37 @@ describe('C9: widoki w milach', () => {
     expect(md).toContain('tempo w min/mi')
     expect(md).toMatch(/Predykcja na 13,1 mi/)
     expect(readFileSync(join(dir, 'plan', 'plan.yaml'), 'utf-8')).toBe(before)
+  })
+
+  it('PLAN.md idzie za profilem, nie za flagą jednego wywołania (runda 1 przeglądu etapu 3)', () => {
+    setLocale('pl')
+    const md = () => readFileSync(join(dir, 'plan', 'PLAN.md'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0) // PLAN.md po polsku, w km z profilu
+    const metric = md()
+    // profil metryczny, podgląd z --units imperial: plan aktualny, PLAN.md bez zmian
+    const peek = withUnits('imperial', () => cmdPlan(dir))
+    expect(peek.code, peek.output).toBe(0)
+    expect(md()).toBe(metric)
+    expect(peek.output).not.toContain('PLAN.md')
+    // zapis planu pod tą samą flagą (plan od nowa) też zostawia PLAN.md w km z profilu
+    expect(withUnits('imperial', () => cmdPlan(dir, { fresh: true })).code).toBe(0)
+    expect(md()).not.toContain('min/mi')
+    expect(md()).toContain('tempo w min/km')
+    // profil w milach: PLAN.md w milach także wtedy, gdy wywołanie idzie w km
+    writeFileSync(join(dir, 'trainctl.yaml'), PROFILE('units: imperial\n'), 'utf-8')
+    withUnits('metric', () => cmdPlan(dir))
+    expect(md()).toContain('tempo w min/mi')
+  })
+})
+
+describe('C9: wydruk w milach (runda 1 przeglądu etapu 3)', () => {
+  it('nagłówek wydruku podaje szczyt w milach, jak kolumny i tygodnie', () => {
+    setLocale('pl')
+    const r = withUnits('imperial', () => cmdExport(dir, { what: 'print' }))
+    expect(r.code, r.output).toBe(0)
+    const html = readFileSync(join(dir, 'export', 'half-rozpiska.html'), 'utf-8')
+    expect(html).toMatch(/szczyt \d+(,\d+)? mi\/tydz\./)
+    expect(html).not.toMatch(/szczyt \d+(,\d+)? km/)
   })
 })
 

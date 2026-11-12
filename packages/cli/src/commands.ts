@@ -718,6 +718,11 @@ type LogOptions = {
   to?: string | undefined
   /** B11: przyczyna przerwy — illness | injury | travel | other. */
   reason?: string | undefined
+  /**
+   * C9: `km` w kilometrach bez względu na jednostkę profilu. Tak pisze serwer MCP: agent
+   * czyta dane (`structuredContent`) w km i podaje dystans w km, jak mówi opis narzędzia.
+   */
+  metricKm?: boolean | undefined
 }
 
 /** E-3 (inż.): przerwa zapisywana jednym poleceniem najwyżej 60 dni — dłuższa to nowy plan, nie przerwa. */
@@ -766,7 +771,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
     const typed = opts.km === undefined ? undefined : parseDecimal(String(opts.km))
     // zapis z dokładnością 0,1 m (4 miejsca); wartość dodatnia, która by przy tym znikła, to błąd
     // C9: wpis w jednostce profilu (km albo mile), zapis zawsze w km
-    const km = typed === undefined ? undefined : Math.round(kmFrom(typed) * 1e4) / 1e4
+    const km = typed === undefined ? undefined : Math.round((opts.metricKm ? typed : kmFrom(typed)) * 1e4) / 1e4
     if (km !== undefined && !LOG_LIMITS.km(km)) throw new Error(ui().improve.badDistance)
     if (typed !== undefined && typed > 0 && km === 0) throw new Error(ui().improve.distanceTooSmall)
     // opuszczona sesja nie ma ani dystansu, ani czasu — ten komunikat przed oceną zapisu czasu
