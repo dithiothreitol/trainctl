@@ -651,8 +651,10 @@ function planNormalWeek(
   const longKm = longWd ? Math.max(longFloor, Math.min(longCeil, Math.max(skeleton.longKm ?? 0, Math.min(Math.round(style.longRunShare * target), style.longRunCapKm)))) : 0
   // udział jednej jednostki liczony od objętości tygodnia — od zamiaru, a gdy dni go nie
   // mieszczą, od tego, co rozpisano (tak liczy lint), w drugim przebiegu niżej. Tylko obok
-  // długiego, jak lint `sessionShareHigh`: w taperze (bez długiego) akcent zostaje (T-1)
-  let shareCap = shares && longWd ? floor1(SESSION_SHARE_MAX * target) : Infinity
+  // długiego, jak lint `sessionShareHigh`: w taperze (bez długiego) akcent zostaje (T-1).
+  // Przy dwóch biegach udziału 35% nie ma, ale akcent nie jest dłuższy od długiego (J-1,
+  // S-2): co najwyżej połowa tygodnia, potem mniejsza rama albo przebieżki (B2)
+  let shareCap = !longWd ? Infinity : shares ? floor1(SESSION_SHARE_MAX * target) : floor1(0.5 * target)
   // sufit biegu spokojnego: 18 km (E-3) i pod długim (S-10)
   const easyCap = Math.min(EASY_RUN_CAP_KM, longKm > 0 ? floor1(EASY_TO_LONG_MAX * longKm) : Infinity)
   // Taper i tydzień startowy trzymają liczbę biegów z ostatniego tygodnia ładowania (T-2):

@@ -451,6 +451,16 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
     expect(weeks.at(-1)).toEqual(plan.weeks.at(-1))
   })
 
+  it('odciążenie w bloku powrotu to ułamek ostatniego tygodnia ładowania krzywej (P-2)', () => {
+    const weeks = applyReturnBlock(plan.weeks, { since, previousWeeklyKm: 50, illness: false })
+    const deload = weeks.findIndex((w, i) => i > at && w.deload)
+    const loadingBefore = weeks.slice(at, deload).filter((w) => !w.deload && ['base', 'build', 'peak'].includes(w.phase)).length
+    // przypadek ma sens tylko wtedy, gdy przed odciążeniem jest kilka tygodni ładowania krzywej
+    expect(loadingBefore).toBeGreaterThanOrEqual(2)
+    const lastCurve = 0.55 * 50 * Math.pow(1.08, loadingBefore - 1)
+    expect(weeks[deload]!.targetKm).toBe(Math.min(plan.weeks[deload]!.targetKm, Math.round(0.7 * lastCurve)))
+  })
+
   it('po innej przerwie: pierwszy blok z odciążeniem spokojnie, bez sprawdzianu (R-11)', () => {
     const weeks = applyReturnBlock(plan.weeks, { since, previousWeeklyKm: 50, illness: false })
     const deload = weeks.findIndex((w, i) => i >= at && w.deload)

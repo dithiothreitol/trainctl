@@ -16,7 +16,8 @@ change between minor versions — a regenerated plan can differ.
   fit, the long run takes it up to the corpus P90 share, then a free day gets
   another run (S-11), instead of one 15–17 km easy day. With two running days
   the long run takes at most 80% of the week (the corpus P90 for two runs), so
-  the other day keeps a run; with one running day the long run is the week.
+  the other day keeps a run, and an accent takes at most half of the week, so
+  the long run stays the longest; with one running day the long run is the week.
   The peak is capped at what the available days can
   hold, so deloads and the taper stay lighter than loading weeks, and `plan`
   says when the days limit the peak. The peak that `plan`, `status` and
@@ -75,7 +76,8 @@ change between minor versions — a regenerated plan can differ.
   is found whatever its case.
 - `check` and the MCP `trainctl_check` tool report the season shape checks as
   warnings: a long run shorter than another run, a deload no lighter than its
-  loading weeks, one session over 35% of a week beside the long run, a heavy
+  loading weeks (a time-trial or tune-up week, lighter by design, is not
+  compared), one session over 35% of a week beside the long run, a heavy
   accent after the race and a block that repeats the previous one (ADR-047).
   `check --strict` fails on them; a plan from an earlier engine shows them
   until `trainctl plan` regenerates it.
@@ -113,7 +115,8 @@ change between minor versions — a regenerated plan can differ.
   about 55% of the earlier volume, at least 7 days easy after illness (R-5) or
   the loading weeks of the first block easy after any other break (R-11; the
   taper keeps its intensity), the long run shrinking with the week, growth
-  within P-3 until the plan catches up, and
+  within P-3 until the plan catches up, a deload at 0.7 of the return's last
+  loading week (P-2), and
   no time trial in the return block (the accent it replaced comes back). The
   earlier volume is the plan's last loading week up to your last run, not a
   deload or taper week and not the plan's target during the break, so it stays
@@ -139,7 +142,8 @@ change between minor versions — a regenerated plan can differ.
   `trainctl plan` and keeps it for the rest of the cycle. A plan with no deload
   before the taper keeps the first half of its loading weeks easy, so accents
   come back before the taper. `init` asks for it, and `init --from-intervals` proposes it when
-  the history ends with two weeks off.
+  the history ends with two weeks off (in the wizard Enter accepts the proposal
+  and 0 declines it).
 - `trainctl rules E-3` lists the engine's fixed values that have no source
   (easy-run cap, accent share, phase split, recoveries, race-week sessions),
   each marked in code for review.

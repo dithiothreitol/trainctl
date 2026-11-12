@@ -690,6 +690,7 @@ export const cliEn = {
     returningPrevious: 'Coming back after two weeks or more without running? Weekly km before the break',
     returningSince: 'First day running again',
     hintReturning: 'Enter = no break',
+    hintReturningSuggested: '0 = no break',
     trainingDays: 'Training days',
     resultHeader: 'Race result for zone calibration',
     resultWhy: 'We compute zones from a race result — threshold readings from a watch run too fast.',

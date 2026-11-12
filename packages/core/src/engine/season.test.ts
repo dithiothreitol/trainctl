@@ -258,6 +258,18 @@ describe('etap 2: linty kształtu na syntetycznych tygodniach', () => {
     expect(seasonShapeIssues({ goal: half, weeks }).filter((i) => i.code === 'deloadNotLighter').map((i) => i.values)).toEqual([[26, 24]])
   })
 
+  it('deloadNotLighter: tydzień sprawdzianu i startu kontrolnego nie jest odniesieniem (T-9, T-10)', () => {
+    const deload = week('2027-01-11', { tue: easy(10), sat: long(16) })
+    deload.skeleton.deload = true
+    // po odciążeniu tydzień sprawdzianu, lżejszy z założenia; dalej zwykły tydzień ładowania
+    const test = week('2027-01-18', { tue: easy(8), sat: long(14) })
+    test.skeleton.testPlanned = true
+    const tuneUp = week('2027-01-04', { tue: easy(6), sat: long(12) })
+    tuneUp.skeleton.tuneUp = { date: '2027-01-10', distanceKm: 10, priority: 'B' }
+    const weeks = [tuneUp, deload, test, week('2027-01-25', { tue: easy(12), sat: long(18) })]
+    expect(seasonShapeIssues({ goal: half, weeks }).filter((i) => i.code === 'deloadNotLighter')).toEqual([])
+  })
+
   it('staleProgression: dwa bloki budowania kończą się tą samą dawką i tym samym długim (P-1)', () => {
     const block = (start: string, km: number) => week(start, { tue: quality(4), sat: long(km) })
     const deload = week('2027-01-25', { tue: quality(3), sat: long(12) })

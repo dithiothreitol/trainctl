@@ -168,11 +168,13 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
     }
   }
 
-  // P-2: odciążenie lżejsze od sąsiednich tygodni ładowania
+  // P-2: odciążenie lżejsze od sąsiednich tygodni ładowania. Tydzień sprawdzianu albo startu
+  // kontrolnego nie jest porównywalny (jak w P-1 niżej): jest lżejszy z założenia (T-9, T-10)
+  const comparable = (w: Microcycle) => isLoading(w) && !w.skeleton.testPlanned && !w.skeleton.tuneUp
   weeks.forEach((week, i) => {
     if (!week.skeleton.deload) return
-    const prev = weeks.slice(0, i).reverse().find(isLoading)
-    const next = weeks.slice(i + 1).find(isLoading)
+    const prev = weeks.slice(0, i).reverse().find(comparable)
+    const next = weeks.slice(i + 1).find(comparable)
     const neighbours = [prev, next].filter((w): w is Microcycle => !!w).map((w) => w.totalKm)
     if (neighbours.length && week.totalKm >= Math.min(...neighbours)) {
       issues.push({ code: 'deloadNotLighter', date: week.weekStart, ruleRefs: ['P-2'], values: [round1(week.totalKm), round1(Math.min(...neighbours))] })

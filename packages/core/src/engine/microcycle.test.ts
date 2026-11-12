@@ -316,6 +316,14 @@ describe('B2: rama i minimalna dawka przy małej objętości', () => {
     expect(long.distanceKm).toBeLessThanOrEqual(Math.max(0.8 * targetKm, targetKm - 3) + 0.05)
     for (const d of runs) expect(d.workout!.distanceKm).toBeGreaterThanOrEqual(3)
   })
+  // dwa dni z akcentem przy małej objętości: akcent z pełną ramą (7 km) był dłuższy od długiego
+  it.each([['peak', 13], ['build', 12], ['build', 14]] as const)('dwa dni, %s, tydzień %i km: akcent nie dłuższy od długiego (J-1, S-2)', (phase, targetKm) => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ phase, intensityModel: phase === 'peak' ? 'polarized' : 'pyramidal', targetKm, qualitySessions: 1 }), athlete: { ...athlete, daysAvailable: ['tue', 'wed'] }, zones })
+    const runs = mc.days.filter((d) => d.workout).map((d) => d.workout!)
+    const long = runs.find((w) => w.kind === 'long')!
+    expect(runs).toHaveLength(2)
+    for (const w of runs) expect(w.distanceKm).toBeLessThanOrEqual(long.distanceKm)
+  })
   it('szkielet ze starszego silnika (bez firstAfterRace): pierwszy tydzień po starcie nadal bez długiego (R-8)', () => {
     const mc = generateMicrocycle({ skeleton: skeleton({ phase: 'transition', targetKm: 20, qualitySessions: 0 }), athlete, zones })
     expect(mc.days.some((d) => d.workout?.kind === 'long')).toBe(false)

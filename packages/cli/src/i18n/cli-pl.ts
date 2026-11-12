@@ -698,6 +698,7 @@ export const cliPl: CliMessages = {
     returningPrevious: 'Wracasz po co najmniej dwóch tygodniach bez biegania? Kilometry tygodniowo przed przerwą',
     returningSince: 'Pierwszy dzień biegania po przerwie',
     hintReturning: 'Enter = bez przerwy',
+    hintReturningSuggested: '0 = bez przerwy',
     trainingDays: 'Dni treningowe',
     resultHeader: 'Wynik startu do kalibracji stref',
     resultWhy:

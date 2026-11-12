@@ -161,6 +161,28 @@ export async function ask<T>(
   }
 }
 
+/** Kilometry tygodniowo: liczba dodatnia, przecinek dziesiętny przyjęty. */
+function parseWeeklyKm(text: string): number {
+  const n = parseDecimal(text)
+  if (!Number.isFinite(n) || n <= 0) throw new Error(ui().wizard.errKm)
+  return n
+}
+
+/**
+ * R-11: kilometry tygodniowo sprzed przerwy. Bez podpowiedzi Enter znaczy „bez przerwy”;
+ * gdy historia podpowiada powrót, Enter go przyjmuje, a „0” odmawia — inaczej nie dałoby
+ * się z niego zrezygnować.
+ */
+export async function askReturningKm(rl: Pick<Interface, 'question'>, theme: Theme, suggestedKm?: number): Promise<number | undefined> {
+  const w = ui().wizard
+  const km = await ask(rl as Interface, theme, w.returningPrevious, (t) => (parseDecimal(t) === 0 ? 0 : parseWeeklyKm(t)), {
+    hint: suggestedKm !== undefined ? w.hintReturningSuggested : w.hintReturning,
+    optional: true,
+    ...(suggestedKm !== undefined ? { default: String(suggestedKm) } : {}),
+  })
+  return km || undefined
+}
+
 async function askYesNo(rl: Interface, theme: Theme, question: string): Promise<boolean> {
   const answer = (
     await rl.question(
@@ -240,25 +262,16 @@ export async function runWizard(
     })
 
     console.log(theme.bold(`\n${w.yourRunning}`))
-    const parseKm = (t: string) => {
-      const n = parseDecimal(t)
-      if (!Number.isFinite(n) || n <= 0) throw new Error(w.errKm)
-      return n
-    }
-    const recentWeeklyKm = (await ask(rl, theme, w.recentVolume, parseKm, {
+    const recentWeeklyKm = (await ask(rl, theme, w.recentVolume, parseWeeklyKm, {
       ...(inferred ? { default: String(inferred.recentWeeklyKm) } : {}),
     }))!
-    const peakWeeklyKm = await ask(rl, theme, w.peakVolume, parseKm, {
+    const peakWeeklyKm = await ask(rl, theme, w.peakVolume, parseWeeklyKm, {
       hint: w.hintOptional,
       optional: true,
       ...(inferred?.peakWeeklyKm !== undefined ? { default: String(inferred.peakWeeklyKm) } : {}),
     })
-    // R-11: powrót po przerwie — kilometry sprzed niej (Enter = bez przerwy), potem dzień powrotu
-    const previousWeeklyKm = await ask(rl, theme, w.returningPrevious, parseKm, {
-      hint: w.hintReturning,
-      optional: true,
-      ...(inferred?.returning ? { default: String(inferred.returning.previousWeeklyKm) } : {}),
-    })
+    // R-11: powrót po przerwie — kilometry sprzed niej, potem dzień powrotu
+    const previousWeeklyKm = await askReturningKm(rl, theme, inferred?.returning?.previousWeeklyKm)
     const returning = previousWeeklyKm
       ? { since: (await ask(rl, theme, w.returningSince, parseDateInput, { hint: w.hintDate, default: inferred?.returning?.since ?? clockToday() }))!, previousWeeklyKm }
       : undefined

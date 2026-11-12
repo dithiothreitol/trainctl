@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { setLocale } from 'trainctl-core'
 import { b, renderAnsi, renderPlain, wrap } from './blocks.ts'
 import { Theme, detectCapabilities, stripAnsi, visibleLength } from './theme.ts'
-import { parseDaysInput, parseDistanceInput, parseTimeInput, toYaml } from './wizard.ts'
+import { askReturningKm, parseDaysInput, parseDistanceInput, parseTimeInput, toYaml } from './wizard.ts'
 
 // Parsery kreatora przyjmują skróty dni w języku interfejsu — tu testujemy polskie.
 setLocale('pl')
@@ -157,6 +157,23 @@ describe('kreator init — parsery', () => {
       returning: { since: '2026-10-19', previousWeeklyKm: 45 }, daysAvailable: ['tue', 'thu', 'sat'],
     })
     expect(yaml).toContain('returning: { since: "2026-10-19", previousWeeklyKm: 45 }')
+  })
+
+  it('pytanie o powrót: przy podpowiedzi z historii Enter ją przyjmuje, a 0 odmawia (R-11)', async () => {
+    const answers = (...list: string[]) => {
+      const asked: string[] = []
+      return { asked, rl: { question: async (q: string) => { asked.push(stripAnsi(q)); return list.shift() ?? '' } } }
+    }
+    const theme = new Theme()
+    const declined = answers('0')
+    expect(await askReturningKm(declined.rl, theme, 45)).toBeUndefined()
+    expect(declined.asked[0]).toContain('0 = bez przerwy')
+    expect(await askReturningKm(answers('').rl, theme, 45)).toBe(45)
+    expect(await askReturningKm(answers('30').rl, theme, 45)).toBe(30)
+    // bez podpowiedzi Enter znaczy „bez przerwy”
+    const plain = answers('')
+    expect(await askReturningKm(plain.rl, theme)).toBeUndefined()
+    expect(plain.asked[0]).toContain('Enter = bez przerwy')
   })
 
   it('bez wyniku startu zostawia czytelną podpowiedź zamiast pustej listy', () => {

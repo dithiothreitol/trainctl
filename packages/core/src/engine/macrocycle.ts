@@ -326,10 +326,13 @@ export function applyReturnBlock(weeks: WeekSkeleton[], ret: ReturnBlock): WeekS
   let loading = 0
   // ostatni tydzień ładowania: krzywa i cel planu — od nich taper, start i blok po starcie
   let last: { curve: number; planKm: number } | undefined
+  const level = (loadingWeeks: number) => RETURN_RESTART_SHARE * ret.previousWeeklyKm * Math.pow(RAMP_PER_LOAD_WEEK, loadingWeeks)
   return weeks.map((w, i) => {
     if (i < start) return w
-    const curve = RETURN_RESTART_SHARE * ret.previousWeeklyKm * Math.pow(RAMP_PER_LOAD_WEEK, loading)
-    let cap = w.deload ? curve * DELOAD_FACTOR : curve
+    const curve = level(loading)
+    // P-2: odciążenie to ułamek poziomu bloku przed nim — ostatniego tygodnia ładowania
+    // krzywej, nie następnego (jak w volumeSchedule)
+    let cap = w.deload ? level(Math.max(0, loading - 1)) * DELOAD_FACTOR : curve
     if (!w.deload && ['base', 'build', 'peak'].includes(w.phase)) {
       // tydzień startu kontrolnego ma cel obniżony mini-taperem (T-9) — nie jest poziomem,
       // od którego liczy się taper
