@@ -728,6 +728,8 @@ export const cliPl: CliMessages = {
     errDate: 'Data w formacie RRRR-MM-DD',
     errBadDate: 'Nieprawidłowa data',
     errKm: 'Podaj liczbę kilometrów',
+    errReturningFuture: 'Podaj pierwszy dzień, w którym znowu biegałeś, nie przyszły; zaplanowany powrót dopisz do profilu, gdy się zacznie (R-11)',
+    errReturningOld: (earliest: string) => `Powrót trwa sześć tygodni od pierwszego dnia biegania; dzień przed ${earliest} plan by pominął, a obecna objętość już cię opisuje (R-11)`,
     errReturningBelowRecent: (recent: number) => `Przed przerwą biegałeś co najmniej tyle, co teraz: podaj ${n(recent)} km albo więcej, albo 0, jeśli przerwy nie było (R-11)`,
     errHour: 'Godzina w formacie HH:MM',
     intervalsFound: 'Znalazłem klucz intervals.icu — pobrać historię i zaproponować profil?',

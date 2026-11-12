@@ -431,6 +431,32 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(loadPlan(dir).returnState).toMatchObject({ since: '2026-11-16', illness: true })
   })
 
+  it('adapt po przyjętym powrocie w taperze (tydzień, którego krzywa nie obniża): bez ponownego restartu', () => {
+    setup()
+    const weeks = loadPlan(dir).weeks
+    const taperAt = weeks.findIndex((w) => w.skeleton.phase === 'taper')
+    const lastLoading = weeks[taperAt - 1]!
+    // tydzień od taperu z celem poniżej krzywej powrotu (55% tygodnia ładowania sprzed przerwy)
+    const taper = weeks.find((w, i) => i >= taperAt && w.skeleton.targetKm < 0.55 * plannedWeekKm(lastLoading.skeleton))!
+    const today = addDays(taper.weekStart, 1)
+    process.env['TRAINCTL_TODAY'] = today
+    // pełne dane: sesje wykonane do przerwy, potem wyjazd (R-11) do dziś
+    for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= addDays(today, -20) && x.date < addDays(today, -12))) {
+      expect(cmdLog(dir, { date: d.date, status: 'done' }).code).toBe(0)
+    }
+    expect(cmdLog(dir, { date: addDays(today, -12), to: today, reason: 'travel' }).code).toBe(0)
+    const prepared = cmdAdapt(dir, { prepare: true })
+    expect(prepared.code, prepared.output).toBe(0)
+    expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
+    // dwa dni później, nadal bez biegania, a tydzień taperu nie ma reguły powrotu
+    const later = addDays(today, 2)
+    process.env['TRAINCTL_TODAY'] = later
+    expect(cmdLog(dir, { date: addDays(today, 1), to: later, reason: 'travel' }).code).toBe(0)
+    const week = loadPlan(dir).weeks.find((w) => w.weekStart === taper.weekStart)!
+    expect(week.skeleton.ruleRefs.some((r) => r === 'R-5' || r === 'R-11')).toBe(false)
+    expect(restartOf(cmdAdapt(dir, {}))).toBeUndefined()
+  })
+
   it('adapt po przyjęciu powrotu, który zacznie się po przerwie zapisanej z góry: bez drugiego restartu', () => {
     breakUntilToday('illness')
     expect(cmdLog(dir, { date: '2026-11-13', to: '2026-11-15', reason: 'illness' }).code).toBe(0)
@@ -480,6 +506,19 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(week.skeleton.ruleRefs).toContain('R-11')
     // sumy tygodnia jak w tygodniu mieszanym: bez fałszywego rozjazdu z zamiarem
     expect(JSON.stringify(cmdCheck(dir, {}).data)).not.toContain('targetKmMismatch')
+  })
+
+  it('adapt --apply powrotu: tydzień z dniami bez zmian bierze uwagę tygodnia z nowego zamiaru, nie starą', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(20, 'tue, thu, sat'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    // stara uwaga o krótszym tygodniu z zamiarem sprzed powrotu
+    const plan = loadPlan(dir)
+    plan.weeks.find((w) => w.weekStart === '2026-11-09')!.notes = [{ code: 'volumeShort', targetKm: 99, plannedKm: 10 }]
+    writePlan(dir, plan)
+    process.env['TRAINCTL_TODAY'] = '2026-11-12'
+    applyProposal(dir, prepareProposal(dir, '2026-11-12', restartAnalysis(false)).id)
+    const notes = loadPlan(dir).weeks.find((w) => w.weekStart === '2026-11-09')!.notes ?? []
+    expect(notes.some((n) => n.code === 'volumeShort' && n.targetKm === 99)).toBe(false)
   })
 
   it('adapt po pierwszym biegu po przerwie: objętość sprzed przerwy z tygodnia przed nią, a przyjęty powrót się nie składa', () => {
@@ -629,8 +668,13 @@ describe('B11: przerwa w trakcie planu', () => {
     const first = restartOf(cmdAdapt(dir, {}))!.returnBlock!
     const prepared = cmdAdapt(dir, { prepare: true })
     expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
+    // dwa dni później, nadal chory: powrót od jutra wypadłby w tym samym tygodniu — blok już jest
     process.env['TRAINCTL_TODAY'] = '2026-11-21'
     expect(cmdLog(dir, { date: '2026-11-20', to: '2026-11-21', status: 'skipped', reason: 'illness' }).code).toBe(0)
+    expect(restartOf(cmdAdapt(dir, {}))).toBeUndefined()
+    // w następnym tygodniu nadal bez biegania: blok przesuwa się, od tej samej objętości
+    process.env['TRAINCTL_TODAY'] = '2026-11-23'
+    expect(cmdLog(dir, { date: '2026-11-22', to: '2026-11-23', status: 'skipped', reason: 'illness' }).code).toBe(0)
     expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toEqual(first)
   })
 
@@ -643,8 +687,9 @@ describe('B11: przerwa w trakcie planu', () => {
     const first = restartOf(cmdAdapt(dir, {}))!.returnBlock!
     const prepared = cmdAdapt(dir, { prepare: true })
     expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
-    process.env['TRAINCTL_TODAY'] = '2026-11-21'
-    expect(cmdLog(dir, { date: '2026-11-20', to: '2026-11-21', status: 'skipped', reason: 'illness' }).code).toBe(0)
+    // w następnym tygodniu nadal bez biegania: blok przesuwa się, od tej samej objętości
+    process.env['TRAINCTL_TODAY'] = '2026-11-23'
+    expect(cmdLog(dir, { date: '2026-11-20', to: '2026-11-23', status: 'skipped', reason: 'illness' }).code).toBe(0)
     expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toEqual(first)
   })
 
@@ -679,9 +724,9 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(first.previousWeeklyKm).toBe(plannedWeekKm(lastRunWeek))
     const prepared = cmdAdapt(dir, { prepare: true })
     expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
-    // dwa dni później nadal bez biegania: nowa analiza liczy od tej samej objętości
-    process.env['TRAINCTL_TODAY'] = '2026-11-21'
-    expect(cmdLog(dir, { date: '2026-11-20', to: '2026-11-21', status: 'skipped', reason: 'illness' }).code).toBe(0)
+    // w następnym tygodniu nadal bez biegania: nowa analiza liczy od tej samej objętości
+    process.env['TRAINCTL_TODAY'] = '2026-11-23'
+    expect(cmdLog(dir, { date: '2026-11-20', to: '2026-11-23', status: 'skipped', reason: 'illness' }).code).toBe(0)
     expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toEqual(first)
   })
 

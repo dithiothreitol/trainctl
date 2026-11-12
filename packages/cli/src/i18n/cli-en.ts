@@ -719,6 +719,8 @@ export const cliEn = {
     errDate: 'Date as YYYY-MM-DD',
     errBadDate: 'Invalid date',
     errKm: 'Give a number of kilometres',
+    errReturningFuture: 'Give the first day you ran again, not a future one; a planned return can go into the profile once it starts (R-11)',
+    errReturningOld: (earliest: string) => `The return lasts six weeks from the first day back; a day before ${earliest} would be ignored, and your recent volume already describes you (R-11)`,
     errReturningBelowRecent: (recent: number) => `Before the break you ran at least as much as now: give ${n(recent)} km or more, or 0 for no break (R-11)`,
     errHour: 'Time as HH:MM',
     intervalsFound: 'I found an intervals.icu key — pull your history and propose a profile?',

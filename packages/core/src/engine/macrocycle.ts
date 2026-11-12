@@ -105,7 +105,7 @@ const firstRunOffset = (cls: GoalClass) => (cls === 'marathon' || cls === 'ultra
  */
 const BASE_GROWTH = 1.15
 /** R-11 (inż.): powrót po przerwie liczy się do 6 tygodni od `since`; później bieżąca objętość mówi sama. */
-const RETURN_WINDOW_DAYS = 42
+export const RETURN_WINDOW_DAYS = 42
 /** R-11 (inż.): plan po przerwie startuje z 50–60% objętości sprzed niej. */
 const RETURN_START_SHARE = { min: 0.5, max: 0.6 }
 

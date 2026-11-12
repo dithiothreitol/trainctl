@@ -223,6 +223,11 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
       // już nowa baza albo krzywa powrotu — z niej „bez budżetu" w ostrzeżeniu (E-2), a z reguł
       // R-5/R-11 `adapt` wie, że powrót trwa (B11). Sumy jak w tygodniu mieszanym regeneracji.
       week.skeleton = structuredClone(candidateWeek.skeleton)
+      // uwagi dni zostają przy dniach (bez zmian), uwaga tygodnia (`volumeShort`) — z nowego
+      // zamiaru, jak w gałęzi zmienionych dni
+      const notes = mergeWeekNotes(week.notes, candidateWeek.notes, new Set())
+      if (notes) week.notes = notes
+      else delete week.notes
       settleMixedWeek(week)
     }
   }

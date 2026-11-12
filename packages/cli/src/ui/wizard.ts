@@ -4,7 +4,7 @@
  * wtedy zapisujemy szablon jak dotąd.
  */
 import { createInterface, type Interface } from 'node:readline/promises'
-import type { InferenceOutcome, InferredProfile } from 'trainctl-core'
+import { addDays, RETURN_WINDOW_DAYS, type InferenceOutcome, type InferredProfile } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
 import { kmLabel, parseDecimal } from '../format.ts'
 import { clockToday } from '../clock.ts'
@@ -191,6 +191,23 @@ export async function askReturningKm(rl: Pick<Interface, 'question'>, theme: The
   return km || undefined
 }
 
+/**
+ * R-11: pierwszy dzień biegania po przerwie — nie w przyszłości i nie dawniej niż okno
+ * powrotu (6 tygodni). Poza nim plan pominąłby powrót bez słowa.
+ */
+export async function askReturningSince(rl: Pick<Interface, 'question'>, theme: Theme, today: string, suggested?: string): Promise<string> {
+  const w = ui().wizard
+  const earliest = addDays(today, -RETURN_WINDOW_DAYS)
+  const parse = (text: string): string => {
+    const date = parseDateInput(text)
+    if (date > today) throw new Error(w.errReturningFuture)
+    if (date < earliest) throw new Error(w.errReturningOld(earliest))
+    return date
+  }
+  const fallback = suggested !== undefined && suggested >= earliest && suggested <= today ? suggested : today
+  return (await ask(rl as Interface, theme, w.returningSince, parse, { hint: w.hintDate, default: fallback }))!
+}
+
 async function askYesNo(rl: Interface, theme: Theme, question: string): Promise<boolean> {
   const answer = (
     await rl.question(
@@ -281,7 +298,7 @@ export async function runWizard(
     // R-11: powrót po przerwie — kilometry sprzed niej, potem dzień powrotu
     const previousWeeklyKm = await askReturningKm(rl, theme, recentWeeklyKm, inferred?.returning?.previousWeeklyKm)
     const returning = previousWeeklyKm
-      ? { since: (await ask(rl, theme, w.returningSince, parseDateInput, { hint: w.hintDate, default: inferred?.returning?.since ?? clockToday() }))!, previousWeeklyKm }
+      ? { since: await askReturningSince(rl, theme, clockToday(), inferred?.returning?.since), previousWeeklyKm }
       : undefined
     const daysAvailable = (await ask(rl, theme, w.trainingDays, parseDaysInput, {
       hint: w.hintDays,

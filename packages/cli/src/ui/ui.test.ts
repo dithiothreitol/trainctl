@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { setLocale } from 'trainctl-core'
 import { b, renderAnsi, renderPlain, wrap } from './blocks.ts'
 import { Theme, detectCapabilities, stripAnsi, visibleLength } from './theme.ts'
-import { askReturningKm, parseDaysInput, parseDistanceInput, parseTimeInput, toYaml } from './wizard.ts'
+import { askReturningKm, askReturningSince, parseDaysInput, parseDistanceInput, parseTimeInput, toYaml } from './wizard.ts'
 
 // Parsery kreatora przyjmują skróty dni w języku interfejsu — tu testujemy polskie.
 setLocale('pl')
@@ -174,6 +174,25 @@ describe('kreator init — parsery', () => {
     const plain = answers('')
     expect(await askReturningKm(plain.rl, theme, 30)).toBeUndefined()
     expect(plain.asked[0]).toContain('Enter = bez przerwy')
+  })
+
+  it('data powrotu: nie w przyszłości i nie dawniej niż 6 tygodni — plan by ją pominął (R-11)', async () => {
+    const asked: string[] = []
+    const list = ['2026-11-20', '2026-09-01', '2026-11-01']
+    const rl = { question: async (q: string) => { asked.push(stripAnsi(q)); return list.shift() ?? '' } }
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    try {
+      expect(await askReturningSince(rl, new Theme(), '2026-11-12')).toBe('2026-11-01')
+      // dwie odpowiedzi odrzucone z wyjaśnieniem
+      expect(asked).toHaveLength(3)
+      const errors = stripAnsi(log.mock.calls.map((c) => String(c[0])).join(' '))
+      expect(errors).toContain('nie przyszły')
+      expect(errors).toContain('2026-10-01')
+      // podpowiedź z historii spoza okna nie jest domyślna — domyślnie dziś
+      expect(await askReturningSince({ question: async () => '' }, new Theme(), '2026-11-12', '2026-08-01')).toBe('2026-11-12')
+    } finally {
+      log.mockRestore()
+    }
   })
 
   it('pytanie o powrót: objętość sprzed przerwy niższa niż obecna nie przechodzi — plan by ją pominął (R-11)', async () => {

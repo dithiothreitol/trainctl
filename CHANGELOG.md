@@ -124,8 +124,10 @@ change between minor versions — a regenerated plan can differ.
   counted from your last run (also one before the plan or the 21-day window),
   `adapt` proposes a return block you can approve with `--prepare` and
   `--apply`, also in the morning before
-  today's session and during the first week back (not while an approved
-  return block is running or about to start); when the break is logged
+  today's session and during the first week back (not when the break already
+  has an approved return block, running or about to start; a break that lasts
+  into a later week gets a proposal that moves the block, from the same earlier
+  volume); when the break is logged
   ahead, with or without a reason, the block starts the day after its last day:
   about 55% of the earlier volume, at least 7 days easy after illness (R-5) or
   the loading weeks of the first block easy after any other break (R-11; the
@@ -167,8 +169,9 @@ change between minor versions — a regenerated plan can differ.
   before the taper keeps the first half of its loading weeks easy, so accents
   come back before the taper. `init` asks for it, and `init --from-intervals` proposes it when
   the history ends with two weeks off (in the wizard Enter accepts the proposal
-  and 0 declines it; the volume before the break is at least the current one,
-  otherwise the plan would ignore the return).
+  and 0 declines it; the volume before the break is at least the current one
+  and the first day back is within the last six weeks, otherwise the plan would
+  ignore the return).
 - `trainctl rules E-3` lists the engine's fixed values that have no source
   (easy-run cap, accent share, phase split, recoveries, race-week sessions),
   each marked in code for review.

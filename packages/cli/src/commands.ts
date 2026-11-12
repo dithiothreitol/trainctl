@@ -1120,17 +1120,19 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
 
     // B11: wpisy przerwy z przyczyną — o bieżącej przerwie decyduje analiza (po ostatnim biegu)
     // najnowszy wpis dnia: poprawiona przyczyna (albo jej usunięcie) zastępuje wcześniejszą
-    const breakLog = [...latestByDate(logs).values()].flatMap((l) => (l.reason ? [{ date: l.date, reason: l.reason }] : []))
+    const latestLogs = [...latestByDate(logs).values()]
+    const breakLog = latestLogs.flatMap((l) => (l.reason ? [{ date: l.date, reason: l.reason }] : []))
     // dni po dziś zapisane z góry jako opuszczone, z przyczyną albo bez — blok powrotu zaczyna
     // się po ich końcu
-    const skippedAhead = [...latestByDate(logs).values()].filter((l) => l.date > today && l.status === 'skipped').map((l) => l.date)
+    const skippedAhead = latestLogs.filter((l) => l.date > today && l.status === 'skipped').map((l) => l.date)
     // B11: objętość sprzed przerwy to ostatni tydzień ładowania do tygodnia ostatniego biegu —
     // nie cel planu z czasu przerwy, którego biegacz nie biegał. Odciążenie, taper, tydzień
     // ze startem kontrolnym i blok po starcie mają cel niższy niż poziom bloku. Przyjęty
     // powrót bez nowego biegania nie zmienia odniesienia, więc kolejne `adapt` nie składa redukcji.
     // ostatni bieg przed przerwą — bieżącą albo zakończoną w ostatnim tygodniu (tę samą widzi
     // analiza); bez przerwy po prostu ostatni bieg
-    const lastRun = recentBreak(execution, today).before
+    const brk = recentBreak(execution, today)
+    const lastRun = brk.before
     const breakWeek = lastRun ? mondayOf(lastRun) : currentWeek?.weekStart ?? today
     const loadingWeek = plan.weeks
       .filter((w) => w.weekStart <= breakWeek && !w.skeleton.deload && !w.skeleton.tuneUp && ['base', 'build', 'peak'].includes(w.skeleton.phase))
@@ -1155,8 +1157,12 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       ...(skippedAhead.length ? { skippedAhead } : {}),
       ...(preBreakWeeklyKm !== undefined ? { preBreakWeeklyKm } : {}),
       ...(returnInProgress ? { returnInProgress } : {}),
-      // przyjęty powrót od jutra albo po przerwie zapisanej z góry: bez drugiego restartu
-      ...(ret !== undefined && ret.since > today ? { returnPending: true } : {}),
+      // przyjęty powrót zaczyna się po ostatnim biegu przed przerwą: ta przerwa ma już swój
+      // blok (od jutra, po przerwie zapisanej z góry albo w tygodniu, którego krzywa nie obniża).
+      // Gdy przerwa trwa dalej, a powrót od jutra wypadłby w późniejszym tygodniu, nowa
+      // propozycja przesuwa blok (ta sama objętość sprzed przerwy, bez składania redukcji)
+      ...(ret !== undefined && (lastRun === undefined || ret.since > lastRun) &&
+        (brk.returnedOn !== undefined || mondayOf(addDays(today, 1)) <= mondayOf(ret.since)) ? { breakHasReturn: true } : {}),
       // B7, B1: tydzień przycięty budżetem czasu (sufit szczytu z B7 obniża już sam cel —
       // wtedy jest `uncappedKm`) albo pojemnością dni — nadwyżka mówi o czasie, nie o bazie
       ...(currentWeek && (currentWeek.skeleton.uncappedKm !== undefined || plannedWeekKm(currentWeek.skeleton) < currentWeek.skeleton.targetKm - WEEK_KM_TOLERANCE) ? { volumeLimited: true } : {}),
