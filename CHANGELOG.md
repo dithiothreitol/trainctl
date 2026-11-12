@@ -123,7 +123,7 @@ change between minor versions — a regenerated plan can differ.
   `adapt` proposes a return block you can approve, also in the morning before
   today's session and during the first week back (not while an approved
   return block is already running); when the break is logged
-  ahead, the block starts the day after its last day:
+  ahead, with or without a reason, the block starts the day after its last day:
   about 55% of the earlier volume, at least 7 days easy after illness (R-5) or
   the loading weeks of the first block easy after any other break (R-11; the
   taper keeps its intensity), the long run shrinking with the week, growth
@@ -142,8 +142,8 @@ change between minor versions — a regenerated plan can differ.
   change at all, not even a recalibration (R-6, R-7). An approved return survives
   `trainctl plan` like an approved baseline (ADR-033) and replaces it; the
   proposal says so when it replaces one. During a return, approved or from
-  `athlete.returning`, `adapt` does not raise the baseline: the return curve
-  grows on its own. A tune-up race in the
+  `athlete.returning`, `adapt` does not raise the baseline, from the first
+  (partial) week on: the return curve grows on its own. A tune-up race in the
   easy part of a return stays in the plan, and `plan` says the return rule
   does not expect it; a B race week stays lighter than the curve by the
   mini-taper (T-9). After the A race only the first week is without a long

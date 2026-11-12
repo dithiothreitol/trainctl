@@ -406,6 +406,30 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(loadPlan(dir).returnState).toMatchObject({ since: '2026-11-16', illness: true })
   })
 
+  it('adapt po przerwie zapisanej z góry bez przyczyny: blok powrotu od dnia po jej końcu', () => {
+    breakUntilToday('illness')
+    // kolejne trzy dni opuszczone z góry, bez przyczyny
+    expect(cmdLog(dir, { date: '2026-11-13', to: '2026-11-15', status: 'skipped' }).code).toBe(0)
+    const prepared = cmdAdapt(dir, { prepare: true })
+    expect(prepared.code, prepared.output).toBe(0)
+    expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
+    expect(loadPlan(dir).returnState).toMatchObject({ since: '2026-11-16' })
+  })
+
+  it('adapt --apply powrotu: tydzień powrotu z resztą dni bez zmian dostaje szkielet bloku powrotu (R-11)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(20, 'tue, thu, sat'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    const original = loadPlan(dir).weeks.find((w) => w.weekStart === '2026-11-09')!
+    process.env['TRAINCTL_TODAY'] = '2026-11-12'
+    applyProposal(dir, prepareProposal(dir, '2026-11-12', restartAnalysis(false)).id)
+    const week = loadPlan(dir).weeks.find((w) => w.weekStart === '2026-11-09')!
+    // przypadek ma sens tylko wtedy, gdy dni tygodnia powrotu zostały takie same
+    expect(JSON.stringify(week.days)).toBe(JSON.stringify(original.days))
+    expect(week.skeleton.ruleRefs).toContain('R-11')
+    // sumy tygodnia jak w tygodniu mieszanym: bez fałszywego rozjazdu z zamiarem
+    expect(JSON.stringify(cmdCheck(dir, {}).data)).not.toContain('targetKmMismatch')
+  })
+
   it('adapt po pierwszym biegu po przerwie: objętość sprzed przerwy z tygodnia przed nią, a przyjęty powrót się nie składa', () => {
     breakUntilToday('illness')
     // pierwszy bieg po przerwie nazajutrz, bez przyjętego powrotu

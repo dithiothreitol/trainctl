@@ -216,11 +216,14 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
         else delete week.notes
       }
       settleMixedWeek(week)
-    } else if (volume && candidateWeek && week.weekStart >= mondayOf(today) &&
-      week.days.every((d) => { const after = candidateDays.get(d.date); return after !== undefined && dayFingerprint(d) === dayFingerprint(after) })) {
-      // Dni bez zmian (budżet czasu tnie stary i nowy zamiar do tych samych dni), ale
-      // zamiarem tygodnia jest już nowa baza — z niej „bez budżetu" w ostrzeżeniu (E-2).
+    } else if ((volume || returnFrom) && candidateWeek && week.weekStart >= mondayOf(today) &&
+      JSON.stringify(candidateWeek.skeleton) !== JSON.stringify(week.skeleton)) {
+      // Dni do zmiany wychodzą takie same (budżet czasu tnie stary i nowy zamiar do tych
+      // samych dni albo tydzień powrotu ma resztę dni bez zmian), ale zamiarem tygodnia jest
+      // już nowa baza albo krzywa powrotu — z niej „bez budżetu" w ostrzeżeniu (E-2), a z reguł
+      // R-5/R-11 `adapt` wie, że powrót trwa (B11). Sumy jak w tygodniu mieszanym regeneracji.
       week.skeleton = structuredClone(candidateWeek.skeleton)
+      settleMixedWeek(week)
     }
   }
   next.calibration = candidate.calibration!

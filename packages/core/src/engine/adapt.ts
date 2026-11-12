@@ -97,6 +97,11 @@ export interface AdaptationInput {
    */
   breakLog?: { date: string; reason: BreakReason }[]
   /**
+   * B11: dni po dziś zapisane z góry jako opuszczone — z przyczyną albo bez. Przerwa ciągnąca
+   * się w nie kończy się później niż dziś, więc blok powrotu zaczyna się po niej.
+   */
+  skippedAhead?: string[]
+  /**
    * B11: objętość sprzed przerwy, od której liczy się blok powrotu — tydzień ładowania
    * planu, nie odciążenie ani taper. Bez niej: `currentWeeklyKm`.
    */
@@ -190,7 +195,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
     .sort((a, z) => a.date.localeCompare(z.date))
   // przerwa trwająca, zapisana także na kolejne dni (z góry, bez luki): blok powrotu zaczyna
   // się po jej końcu, a nie jutro — inaczej spokojne dni R-5/R-11 mijałyby w czasie przerwy
-  const logged = new Set((input.breakLog ?? []).map((l) => l.date))
+  const logged = new Set([...(input.breakLog ?? []).map((l) => l.date), ...(input.skippedAhead ?? [])])
   let until = input.today
   while (!ended && logged.has(addDays(until, 1))) until = addDays(until, 1)
   const breakUntil = until > input.today ? until : undefined

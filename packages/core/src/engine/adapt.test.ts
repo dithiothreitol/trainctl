@@ -106,6 +106,10 @@ describe('przerwa w treningu', () => {
     const p = analyzeExecution({ today: TODAY, execution: exec, currentWeeklyKm: 60, breakLog: trip.map((date) => ({ date, reason: 'travel' as const })) })
     expect(p.complianceKm).toBeGreaterThan(1.2)
   })
+  it('B11: przerwa zapisana z góry bez przyczyny też przesuwa koniec przerwy', () => {
+    const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-20', reason: 'illness' }], skippedAhead: ['2026-09-01', '2026-09-02'] })
+    expect(p.layoff?.until).toBe('2026-09-02')
+  })
   it('B11: przerwa zapisana także na kolejne dni — powrót po jej końcu', () => {
     const ahead = ['2026-09-01', '2026-09-02', '2026-09-03'].map((date) => ({ date, reason: 'illness' as const }))
     const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-20', reason: 'illness' }, ...ahead, { date: '2026-09-20', reason: 'travel' }] })
