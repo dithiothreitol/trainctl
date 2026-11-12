@@ -134,12 +134,14 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const lastRun = runDays.at(-1)
   const observedDays = window.length ? Math.min(WINDOW_DAYS, diffDays(window[0]!.date, input.today) + 1) : 0
   const layoff = lastRun ? diffDays(lastRun, input.today) : observedDays
-  // B11: przyczyna bieżącej przerwy — wpisy po ostatnim biegu w całym wykonaniu, nie tylko
-  // w oknie (przerwa bywa dłuższa niż okno). Kontuzja w którejkolwiek części przerwy wygrywa
-  // (R-6, R-7: powrót ustala specjalista), potem choroba (R-5), potem najnowszy wpis.
+  // B11: przyczyna bieżącej przerwy — wpisy od dnia ostatniego biegu w całym wykonaniu, nie
+  // tylko w oknie (przerwa bywa dłuższa niż okno). Wpis z dnia ostatniego biegu też: kontuzja
+  // albo choroba w trakcie biegu zaczyna przerwę tego samego dnia. Kontuzja w którejkolwiek
+  // części przerwy wygrywa (R-6, R-7: powrót ustala specjalista), potem choroba (R-5), potem
+  // najnowszy wpis.
   const lastRunEver = input.execution.filter((e) => e.date <= input.today && (e.actualKm ?? 0) > 0).map((e) => e.date).sort().at(-1)
   const breakEntries = (input.breakLog ?? [])
-    .filter((l) => l.date <= input.today && (lastRunEver === undefined || l.date > lastRunEver))
+    .filter((l) => l.date <= input.today && (lastRunEver === undefined || l.date >= lastRunEver))
     .sort((a, z) => a.date.localeCompare(z.date))
   const reasons = breakEntries.map((l) => l.reason)
   const breakReason = (['injury', 'illness'] as const).find((r) => reasons.includes(r)) ?? reasons.at(-1)

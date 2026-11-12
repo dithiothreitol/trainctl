@@ -32,7 +32,9 @@ change between minor versions — a regenerated plan can differ.
   2 km strides days become one 4 km day, and the long run beside easy runs is
   at least 3.4 km. A time trial is planned only when the whole session with
   warm-up and cool-down fits the same share; with one accent a week, the time
-  trial replaces it instead of adding a second hard day.
+  trial replaces it instead of adding a second hard day. In a week under about
+  8.6 km (a small tune-up week) the 35% share is below 3 km, so the easy run
+  keeps 3 km and the shape check accepts it.
 - The I-5 check (at least 75% easy) runs after the rest of the week is
   distributed, so accents are no longer trimmed for distance that easy runs
   carry.
@@ -88,7 +90,8 @@ change between minor versions — a regenerated plan can differ.
   budget with that week's strength, and deloads and the taper are counted from
   it, so a deload is lighter than a loading week and the taper keeps falling.
   When the budget holds the plan back, `plan` says so even above the distance's
-  recommendation, and with strength on it leaves the choice to you: one strength
+  recommendation (for a base goal without the distance's threshold), and with
+  strength on it leaves the choice to you: one strength
   session a week (F-14) or more minutes. When the budget also keeps the longest
   run below the distance's threshold, `plan` gives the long-run numbers too. A
   budget too small for even a 3 km week keeps 3 km weeks and lists the weeks
@@ -126,7 +129,8 @@ change between minor versions — a regenerated plan can differ.
   deload or taper week and not the plan's target during the break, so it stays
   the same when you run `adapt` again, also when your last run was before the
   plan; the taper inside a return block keeps falling, also after a tune-up
-  race in the last loading week. An injury logged anywhere in the break decides, also before the
+  race in the last loading week. An injury logged anywhere in the break
+  (also on the day of the last run) decides, also before the
   21-day analysis window and also in a break shorter than 10 days: `adapt`
   proposes no volume change and `adapt --prepare` prepares no plan
   change at all, not even a recalibration (R-6, R-7). An approved return survives

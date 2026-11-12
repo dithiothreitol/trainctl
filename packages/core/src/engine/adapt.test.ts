@@ -126,6 +126,13 @@ describe('przerwa w treningu', () => {
     expect(p.layoff?.reason).toBe('injury')
     expect(p.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
   })
+  it('B11: kontuzja zapisana w dniu ostatniego biegu (bieg z synchronizacji) zaczyna przerwę (R-6, R-7)', () => {
+    // ostatni bieg 2026-08-16, kontuzja tego samego dnia, potem 15 dni bez biegania
+    const injured = history(30, 1).map((e) => (e.date > '2026-08-16' ? omitActual(e) : e))
+    const p = analyzeExecution({ today: TODAY, execution: injured, currentWeeklyKm: 60, breakLog: [{ date: '2026-08-16', reason: 'injury' }] })
+    expect(p.layoff?.reason).toBe('injury')
+    expect(p.actions.some((a) => a.suggestedWeeklyKm !== undefined)).toBe(false)
+  })
   it('B11: kontuzja, a potem wyjazd w tej samej przerwie — decyduje kontuzja', () => {
     const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-20', reason: 'injury' }, { date: '2026-08-25', reason: 'travel' }] })
     expect(p.layoff?.reason).toBe('injury')

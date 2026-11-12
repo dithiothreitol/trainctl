@@ -451,7 +451,7 @@ export function generateMicrocycle(input: MicrocycleInput): Microcycle {
   // Dni mieszczą mniej niż zamiar (B1): zapis obok `targetKm`, z nim lint porównuje sumy.
   // Wartość z poprzedniego przebiegu (regeneracja z zapisanego szkieletu) nie przechodzi.
   const { layoutKm: _previous, ...base } = skeleton
-  const short = !skeleton.raceDate && totals.totalKm < skeleton.targetKm - 0.5
+  const short = !skeleton.raceDate && totals.totalKm < skeleton.targetKm - WEEK_KM_TOLERANCE
   return {
     weekStart: skeleton.weekStart,
     skeleton: short ? { ...base, layoutKm: round1(totals.totalKm) } : base,
@@ -481,11 +481,19 @@ export function weekCapacityKm(athlete: AthleteProfile, qualitySessions: number,
       zones,
       style,
     })
-    return week.totalKm >= km - 0.5
+    return week.totalKm >= km - WEEK_KM_TOLERANCE
   })
   for (let km = Math.round(upToKm); km > 0; km--) if (fits(km)) return km
   return 0
 }
+
+/**
+ * E-3 (inż.): tolerancja sumy tygodnia wobec zamiaru — pół kilometra, bo dni są zaokrąglane
+ * do 0,1 km, a tydzień w widokach do kilometra. Jedna wartość dla tygodnia krótszego
+ * (`layoutKm`, uwaga `volumeShort`, pojemność dni), lintu `targetKmMismatch` (P-3), `why`
+ * i blokady podniesienia bazy w `adapt`.
+ */
+export const WEEK_KM_TOLERANCE = 0.5
 
 /**
  * Objętość tygodnia, którą biegacz faktycznie ma: po budżecie czasu z profilu
@@ -752,8 +760,11 @@ function planNormalWeek(
     // W tygodniu z długim i co najmniej trzema biegami żaden spokojny nie przekracza udziału
     // jednej jednostki. Bez długiego (taper, pierwszy tydzień po starcie) jego rolę ma
     // najdłuższy bieg spokojny, a przy dwóch biegach jeden ma połowę tygodnia z definicji —
-    // tak samo liczy lint `sessionShareHigh`.
-    const runCap = longWd && plan.size + 1 + slots.length >= 3 ? perRunCap : easyCap
+    // tak samo liczy lint `sessionShareHigh`. W tygodniu poniżej ~8,6 km udział 35% schodzi
+    // pod najkrótszy bieg: wtedy bieg ma MIN_EASY_KM (E-3), a lint go nie zgłasza; sufit S-10
+    // (0,9 długiego) zostaje. Taper ze stałą liczbą biegów (T-2) ma własny próg (niżej).
+    const shareRunCap = fixedCount ? perRunCap : Math.min(easyCap, Math.max(MIN_EASY_KM, shareCap))
+    const runCap = longWd && plan.size + 1 + slots.length >= 3 ? shareRunCap : easyCap
     for (const [i, wd] of slots.entries()) {
       const km = Math.min(runCap, round1(remaining / (slots.length - i)))
       // Taper trzyma liczbę biegów (T-2), ale bieg poniżej kilometra to nie bieg (E-3, inż.):
@@ -828,14 +839,14 @@ function planNormalWeek(
   // Przebieg rusza, gdy któraś jednostka poza długim, startem i sprawdzianem ma więcej
   // niż SESSION_SHARE_MAX rozpisanej sumy — tak samo liczy lint `sessionShareHigh`.
   const overShare = () => [...plan].some(([wd, w]) =>
-    wd !== longWd && w.kind !== 'race' && w.kind !== 'test' && w.distanceKm > SESSION_SHARE_MAX * sumKm(plan) + 1e-9)
+    wd !== longWd && w.kind !== 'race' && w.kind !== 'test' && w.distanceKm > Math.max(MIN_EASY_KM, SESSION_SHARE_MAX * sumKm(plan)) + 1e-9)
   for (let pass = 0; pass < 12 && shares && longWd && overShare(); pass++) {
     const next = floor1(SESSION_SHARE_MAX * sumKm(plan))
     if (next >= shareCap) break
     shareCap = next
     left = settle(qualityMainKm)
   }
-  if (left > 0.5) notes.push({ code: 'volumeShort', targetKm: target, plannedKm: round1(sumKm(plan)) })
+  if (left > WEEK_KM_TOLERANCE) notes.push({ code: 'volumeShort', targetKm: target, plannedKm: round1(sumKm(plan)) })
   return notes
 }
 

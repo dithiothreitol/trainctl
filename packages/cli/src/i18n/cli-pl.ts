@@ -965,9 +965,11 @@ export const cliPl: CliMessages = {
       (strength
         ? 'Wybór należy do ciebie: jedna sesja siły tygodniowo zamiast dwóch utrzymuje efekt (F-14) i zwalnia czas na bieganie, albo więcej minut, albo bliższy cel (E-2).'
         : 'Zmieni to więcej minut albo bliższy cel (E-2).'),
-    timeHoldsVolume: (peak: number, withoutBudget: number, strength: boolean) =>
+    timeHoldsVolume: (peak: number, withoutBudget: number, strength: boolean, race: boolean) =>
       `Budżet czasu trzyma plan na ${n(peak)} km/tydz.; bez niego plan doszedłby do ${n(withoutBudget)} km/tydz. ` +
-      'To wystarcza dla tego dystansu (P-7/P-8), więc tygodnie stoją blisko tego poziomu, a progresję niosą długie i akcenty. ' +
+      (race
+        ? 'To wystarcza dla tego dystansu (P-7/P-8), więc tygodnie stoją blisko tego poziomu, a progresję niosą długie i akcenty. '
+        : 'Tygodnie stoją blisko tego poziomu, a progresję niosą długie i akcenty. ') +
       (strength
         ? 'Więcej biegania da jedna sesja siły tygodniowo zamiast dwóch, która utrzymuje efekt (F-14), albo więcej minut (E-2).'
         : 'Objętość urośnie przy większej liczbie minut (E-2).'),

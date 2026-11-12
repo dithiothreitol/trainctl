@@ -338,6 +338,14 @@ describe('B2: rama i minimalna dawka przy małej objętości', () => {
     expect(mc.days.some((d) => d.workout?.kind === 'test')).toBe(true)
     expect(mc.totalKm).toBeLessThanOrEqual(31 + 0.5)
   })
+  // tydzień ze startem kontrolnym obniżony mini-taperem (T-9): sufit udziału 35% schodzi pod 3 km
+  it.each([8, 7])('tydzień %i km ze startem kontrolnym (3 dni): bieg poza długim nie krótszy niż 3 km (E-3)', (targetKm) => {
+    const mc = generateMicrocycle({ skeleton: skeleton({ targetKm, qualitySessions: 1, tuneUp: { date: '2026-08-08', distanceKm: 10, priority: 'B' } }), athlete: { ...athlete, daysAvailable: ['tue', 'thu', 'sat'] }, zones })
+    expect(mc.days.find((d) => d.date === '2026-08-08')?.workout?.kind).toBe('race')
+    const others = mc.days.filter((d) => d.workout && !['long', 'race', 'test'].includes(d.workout.kind))
+    expect(others.length).toBeGreaterThan(0)
+    for (const d of others) expect(d.workout!.distanceKm).toBeGreaterThanOrEqual(3)
+  })
   it('szkielet ze starszego silnika (bez firstAfterRace): pierwszy tydzień po starcie nadal bez długiego (R-8)', () => {
     const mc = generateMicrocycle({ skeleton: skeleton({ phase: 'transition', targetKm: 20, qualitySessions: 0 }), athlete, zones })
     expect(mc.days.some((d) => d.workout?.kind === 'long')).toBe(false)

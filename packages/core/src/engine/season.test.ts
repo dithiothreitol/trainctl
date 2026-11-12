@@ -258,6 +258,14 @@ describe('etap 2: linty kształtu na syntetycznych tygodniach', () => {
     expect(seasonShapeIssues({ goal: half, weeks }).filter((i) => i.code === 'deloadNotLighter').map((i) => i.values)).toEqual([[26, 24]])
   })
 
+  it('sessionShareHigh: bieg o długości najkrótszego biegu (3 km) w tygodniu poniżej 8,6 km nie jest za duży (E-3)', () => {
+    const small = week('2027-01-04', { tue: easy(3), thu: long(5) })
+    expect(seasonShapeIssues({ goal: half, weeks: [{ ...small, days: small.days.map((d) => d.weekday === 'sat' ? { ...d, workout: { kind: 'race', distanceKm: 0, ruleRefs: [], segments: [] } } : d) }] }).filter((i) => i.code === 'sessionShareHigh')).toEqual([])
+    // dłuższy bieg nadal tak
+    const heavy = week('2027-01-04', { tue: easy(3.5), thu: long(4.5) })
+    expect(seasonShapeIssues({ goal: half, weeks: [{ ...heavy, days: heavy.days.map((d) => d.weekday === 'sat' ? { ...d, workout: { kind: 'race', distanceKm: 0, ruleRefs: [], segments: [] } } : d) }] }).filter((i) => i.code === 'sessionShareHigh')).toHaveLength(1)
+  })
+
   it('deloadNotLighter: tydzień sprawdzianu i startu kontrolnego nie jest odniesieniem (T-9, T-10)', () => {
     const deload = week('2027-01-11', { tue: easy(10), sat: long(16) })
     deload.skeleton.deload = true

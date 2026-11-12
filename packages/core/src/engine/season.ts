@@ -9,7 +9,7 @@
 import type { MacroPhase, Microcycle, PlannedWorkout, RaceGoal } from '../domain/types.ts'
 import { goalClass } from '../domain/goal-class.ts'
 import { median } from '../util/stats.ts'
-import { fmtPace, hardKmOf, paceMid, SESSION_SHARE_MAX } from './microcycle.ts'
+import { fmtPace, hardKmOf, MIN_EASY_KM, paceMid, SESSION_SHARE_MAX } from './microcycle.ts'
 
 export interface SeasonAccent {
   kind: PlannedWorkout['kind']
@@ -163,7 +163,9 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
       for (const r of runs) {
         if (['long', 'race', 'test'].includes(r.w.kind)) continue
         // równo 35% mieści się w progu — tolerancja na zapis zmiennoprzecinkowy (0,35 × 48)
-        if (r.w.distanceKm > SESSION_SHARE_MAX * week.totalKm + 1e-9) issues.push({ code: 'sessionShareHigh', date: r.date, ruleRefs: ['E-3'], values: [r.w.distanceKm, round1(week.totalKm)] })
+        // bieg o długości najkrótszego biegu (MIN_EASY_KM, E-3) nie jest za duży — w tygodniu
+        // poniżej ~8,6 km udział 35% schodzi pod niego
+        if (r.w.distanceKm > Math.max(MIN_EASY_KM, SESSION_SHARE_MAX * week.totalKm) + 1e-9) issues.push({ code: 'sessionShareHigh', date: r.date, ruleRefs: ['E-3'], values: [r.w.distanceKm, round1(week.totalKm)] })
       }
     }
   }

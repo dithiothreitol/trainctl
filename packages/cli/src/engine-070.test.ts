@@ -719,6 +719,15 @@ describe('B1: tydzień mieszany (regeneracja, propozycja)', () => {
     expect(cmdWhy(dir, { date: day.date }).output).not.toContain('This week has')
   })
 
+  it('budżet przy celu bazowym: bez zdania o progu dystansu, którego plan nie ma (E-2, P-11)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun') + 'time:\n  weeklyMinutes: 240\n', 'utf-8')
+    const cfg = loadConfig(dir)
+    const plan = computePlan({ ...cfg, goal: { ...cfg.goal, kind: 'base', distanceKm: 0 } }, '2026-10-22')
+    const text = plan.feasibilityWarnings.join(' ')
+    expect(text).toMatch(/time budget holds the plan/)
+    expect(text).not.toMatch(/this distance/)
+  })
+
   it('werdykt przy budżecie: szczyt profilu bez budżetu, nie obcięty budżetem (E-2, B8)', () => {
     writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun') + 'time:\n  weeklyMinutes: 150\n', 'utf-8')
     const cfg = loadConfig(dir)

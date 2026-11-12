@@ -957,9 +957,11 @@ export const cliEn = {
         ? 'The choice is yours: one strength session a week instead of two keeps the gains (F-14) and frees time for running, or more minutes, or a closer goal (E-2).'
         : 'More minutes, or a closer goal, changes that (E-2).'),
     /** B7: budżet trzyma plan poniżej zamiaru, ale nad rekomendacją dystansu. */
-    timeHoldsVolume: (peak: number, withoutBudget: number, strength: boolean) =>
+    timeHoldsVolume: (peak: number, withoutBudget: number, strength: boolean, race: boolean) =>
       `Your time budget holds the plan at ${n(peak)} km/week; without it the plan would reach ${n(withoutBudget)} km/week. ` +
-      'That is enough for this distance (P-7/P-8), so the weeks stay near that level and the long run and accents carry the progression. ' +
+      (race
+        ? 'That is enough for this distance (P-7/P-8), so the weeks stay near that level and the long run and accents carry the progression. '
+        : 'The weeks stay near that level, and the long run and accents carry the progression. ') +
       (strength
         ? 'For more running: one strength session a week instead of two keeps the gains (F-14), or more minutes (E-2).'
         : 'More minutes would let the volume grow (E-2).'),

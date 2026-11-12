@@ -24,6 +24,7 @@ import {
   seasonShapeIssues,
   validatePlan,
   weekTotals,
+  WEEK_KM_TOLERANCE,
   COACH_STYLE,
   INFER_WINDOW_WEEKS,
   type BreakReason,
@@ -1145,7 +1146,7 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       ...(returnInProgress ? { returnInProgress } : {}),
       // B7, B1: tydzień przycięty budżetem czasu (sufit szczytu z B7 obniża już sam cel —
       // wtedy jest `uncappedKm`) albo pojemnością dni — nadwyżka mówi o czasie, nie o bazie
-      ...(currentWeek && (currentWeek.skeleton.uncappedKm !== undefined || plannedWeekKm(currentWeek.skeleton) < currentWeek.skeleton.targetKm - 0.5) ? { volumeLimited: true } : {}),
+      ...(currentWeek && (currentWeek.skeleton.uncappedKm !== undefined || plannedWeekKm(currentWeek.skeleton) < currentWeek.skeleton.targetKm - WEEK_KM_TOLERANCE) ? { volumeLimited: true } : {}),
       ...(newResults.length ? { newResults } : {}),
       calibrationChanged: plan.calibration !== undefined && !sameResults(config.athlete.results, plan.calibration.results),
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: tuneUpByDate.get(lastRaceDay.date) ?? plan.goal.distanceKm } } : {}),

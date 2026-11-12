@@ -602,7 +602,8 @@ export function budgetWarnings(plan: StoredPlan, config: TrainctlConfig, from: s
     ...(tooLong.length ? [ui().planMd.timeDayTooShort(tooLong.join(', '))] : []),
     ...(overWeek.length ? [ui().planMd.timeWeekOver(overWeek.join(', '))] : []),
     ...(capsVolume ? [ui().planMd.timeCapsVolume(peak, withoutBudget, plan.peakKmRecommended, strength)] : []),
-    ...(holdsVolume ? [ui().planMd.timeHoldsVolume(peak, withoutBudget, strength)] : []),
+    // plan bazowy nie ma dystansu, więc i progu P-7/P-8, który budżet by spełniał
+    ...(holdsVolume ? [ui().planMd.timeHoldsVolume(peak, withoutBudget, strength, plan.goal.kind !== 'base')] : []),
   ]
 }
 
