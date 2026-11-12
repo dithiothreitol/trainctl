@@ -136,3 +136,36 @@ describe('B2: bieg z przebieżkami przy skracaniu', () => {
     expect(segment.description).toContain('6 strides of about 80 m')
   })
 })
+
+describe('rejestr §14: przerwa w połowie serii i przebieżki w szacunku czasu', () => {
+  const vo2 = (setBreak?: { afterRep: number; sec: number; mode: 'walk' | 'jog' }): PlannedWorkout => ({
+    kind: 'quality_intervals', distanceKm: 10, ruleRefs: [],
+    segments: [
+      { type: 'warmup', distanceKm: 3, pace: { loSecPerKm: 300, hiSecPerKm: 360 }, description: '' },
+      { type: 'intervals', reps: 6, repM: 1000, distanceKm: 6, pace: { loSecPerKm: 240, hiSecPerKm: 250 }, recoverySec: 180, recoveryMode: 'jog', ...(setBreak ? { setBreak } : {}), description: '' },
+      { type: 'cooldown', distanceKm: 1, description: '' },
+    ],
+  })
+
+  it('4\u2032 marszu po połowie serii wydłuża szacunek o 4 minuty; przerwa poza serią nic nie dodaje', () => {
+    const base = estimateWorkoutMinutes(vo2(), 15)
+    expect(estimateWorkoutMinutes(vo2({ afterRep: 3, sec: 240, mode: 'walk' }), 15)).toBe(base + 4)
+    expect(estimateWorkoutMinutes(vo2({ afterRep: 6, sec: 240, mode: 'walk' }), 15)).toBe(base)
+    expect(estimateWorkoutMinutes(vo2({ afterRep: 0, sec: 240, mode: 'walk' }), 15)).toBe(base)
+  })
+
+  it('przebieżki: 0,2 s na metr i minuta powrotu na przebieżkę', () => {
+    const plain = easy(8)
+    const strides = easy(8)
+    strides.segments[0] = { ...strides.segments[0]!, strides: { count: 6, meters: 80 } }
+    // 6 × (80 m × 0,2 s + 60 s) = 456 s; szacunek w pełnych minutach w górę
+    expect(estimateWorkoutMinutes(strides, 15) - estimateWorkoutMinutes(plain, 15)).toBe(Math.ceil((8 * 360 + 456) / 60) - Math.ceil((8 * 360) / 60))
+  })
+
+  it('opis po skróceniu (E-1) zachowuje przerwę w połowie serii', () => {
+    const result = shortenWorkout(vo2({ afterRep: 3, sec: 240, mode: 'walk' }), 75)
+    expect(result.status).toBe('shortened')
+    const main = result.workout!.segments.find((s) => s.type === 'intervals')!
+    expect(main.description).toContain(`after repetition ${main.setBreak!.afterRep} an extra 240 s walking`)
+  })
+})

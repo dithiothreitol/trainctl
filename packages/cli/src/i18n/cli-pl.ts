@@ -908,7 +908,7 @@ export const cliPl: CliMessages = {
     plan: 'Plan',
     goal: 'Cel',
     toRace: 'Do startu',
-    daysToRace: (days: number) => (days >= 0 ? dni(days) : `${dni(-days)} temu`),
+    daysToRace: (days: number) => dni(days),
     weeks: 'Bieżący cykl',
     weeksSessions: (weeks: number, sessions: number) => `${tygodnie(weeks)}, ${sesje(sessions)}`,
     generated: 'Fazy zakotwiczone w',

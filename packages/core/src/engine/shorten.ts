@@ -1,6 +1,6 @@
 import type { PlannedSegment, PlannedWorkout } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
-import { estimateWorkoutMinutes } from './duration.ts'
+import { estimateWorkoutMinutes, splitsSeries } from './duration.ts'
 import { fmtPace } from './microcycle.ts'
 
 export interface ShortenedWorkout {
@@ -27,7 +27,11 @@ function describe(s: PlannedSegment, kind: PlannedWorkout['kind']): string {
     return s.strides ? m.workout.easyStrides(km, s.strides.count, s.strides.meters) : m.workout.easy(km)
   }
   if (s.type === 'hills') return m.workout.hills(s.reps!, s.repM!)
-  if (s.type === 'intervals') return m.shorten.repeats(s.reps!, s.repM!, s.pace ? `${fmtPace(s.pace.loSecPerKm)}–${fmtPace(s.pace.hiSecPerKm)}` : '—', s.recoverySec ?? 0)
+  if (s.type === 'intervals') {
+    const text = m.shorten.repeats(s.reps!, s.repM!, s.pace ? `${fmtPace(s.pace.loSecPerKm)}–${fmtPace(s.pace.hiSecPerKm)}` : '—', s.recoverySec ?? 0)
+    // przerwa w połowie serii zostaje w opisie, jak w notacji (C1) i na zegarku
+    return splitsSeries(s) ? `${text}; ${m.shorten.setBreak(s.setBreak.afterRep, s.setBreak.sec, s.setBreak.mode)}` : text
+  }
   if (s.type === 'progression' && s.pace) return m.workout.progression(km, fmtPace(s.pace.hiSecPerKm), fmtPace(s.pace.loSecPerKm))
   if (s.type === 'alternating' && s.pace) return m.workout.alternating(km, fmtPace(s.pace.loSecPerKm), fmtPace(s.pace.hiSecPerKm))
   return s.description

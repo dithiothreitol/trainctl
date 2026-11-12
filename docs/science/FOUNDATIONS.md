@@ -1889,6 +1889,7 @@ w kodzie komentarzem „E-3 (inż.)". Lista służy przeglądowi trenerskiemu
 | kilometry poza Z1 | najwyżej 25% tygodnia | `microcycle.ts` |
 | przerwy w interwałach | 2' marsz (@T, 1 km), 3' trucht (@T 3 km, @I) | `microcycle.ts` |
 | akcent tygodnia startowego | 5×300 m @I, p. 1' | `microcycle.ts` |
+| przebieżki w szacunku czasu i na zegarku | ~3:20/km (0,2 s na metr) i minuta powrotu na przebieżkę; ta sama minuta w FIT i składni intervals.icu | `duration.ts` (`STRIDE_SEC_PER_M`, `STRIDE_RECOVERY_SEC`) |
 | tydzień startowy | 4 sesje bez danych ze szkieletu, biegi po 5 km | `microcycle.ts` |
 | udział jednej jednostki | najwyżej 35% tygodnia z długim i co najmniej trzema biegami; ten sam próg w generatorze, w lincie kształtu i w warunku sprawdzianu (cała jednostka z ramą). Bieg o długości najkrótszego biegu (3 km) nie przekracza udziału także w tygodniu poniżej ~8,6 km; przy dwóch biegach akcent najwyżej pół tygodnia (z J-1: długie zostaje najdłuższe) | `microcycle.ts` (`SESSION_SHARE_MAX`) |
 | tolerancja sumy tygodnia | 0,5 km wobec zamiaru: tydzień krótszy (`layoutKm`, uwaga w `why`), pojemność dni, lint `targetKmMismatch` (P-3) i blokada podniesienia bazy w `adapt` | `microcycle.ts` (`WEEK_KM_TOLERANCE`) |

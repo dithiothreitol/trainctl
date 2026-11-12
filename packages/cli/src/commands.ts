@@ -105,7 +105,7 @@ const OUR_EXTERNAL_ID_PREFIX = 'trainctl-'
 /** Nowe selektory nie mogą zostać po cichu zignorowane przez zapis v1. */
 const sessionOptions = (opts: object): boolean => ['session','sport','actualSport','meters','activity','sets'].some(key=>Reflect.get(opts,key)!==undefined)
 
-import { KIND_COLOR, asciiOutput, dayHeading, executionTable, hrCeilingText, metricData, rowsTable, runningSeasonRows, runningWeekRows, seasonTable, structureTable } from './ui/rows.ts'
+import { KIND_COLOR, asciiOutput, dayHeading, executionTable, hrCeilingText, metricData, rowsTable, runningSeasonRows, runningWeekRows, seasonTable, structureTable, weekKm } from './ui/rows.ts'
 export { KIND_COLOR }
 
 /** Etykiety jednostek i faz pochodzą z katalogu — zmieniają się razem z językiem. */
@@ -635,10 +635,12 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     const position = weekPosition(plan, week)
     const t = ui().rows
     const phase = phaseLabel(sk.phase) + (sk.deload ? ` (${t.deload})` : '')
+    // cel tygodnia; gdy suma dni (wiersz sumy) się od niego różni, cel jest podpisany.
+    // Tydzień startu: trening rozpisany obok startu (rejestr §14)
+    const shown = weekKm(week)
     const blocks: Block[] = [
-      // cel tygodnia; gdy suma dni (wiersz sumy) się od niego różni, cel jest podpisany
       b.title(t.weekHeading(position.index + 1, position.total, phase, t.shortDate(week.weekStart), t.shortDate(addDays(week.weekStart, 6)),
-        distanceIn(plannedWeekKm(sk)), distanceUnit(), kmDiffers(week.totalKm, plannedWeekKm(sk)), rows.filter((r) => r.sport === 'run').length, rows.filter((r) => r.sport === 'strength').length)),
+        distanceIn(shown.km), distanceUnit(), shown.target, rows.filter((r) => r.sport === 'run').length, rows.filter((r) => r.sport === 'strength').length)),
       ...compatibilityNotes(plan),
       rowsTable(rows, { today: localToday() }),
       b.text(notationLegend(distanceUnit()), 'muted'),
@@ -1237,7 +1239,8 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
         (brk.returnedOn !== undefined || mondayOf(addDays(today, 1)) <= mondayOf(coveringSince)) ? { breakHasReturn: true } : {}),
       // B7, B1: tydzień przycięty budżetem czasu (sufit szczytu z B7 obniża już sam cel —
       // wtedy jest `uncappedKm`) albo pojemnością dni — nadwyżka mówi o czasie, nie o bazie
-      ...(currentWeek && (currentWeek.skeleton.uncappedKm !== undefined || plannedWeekKm(currentWeek.skeleton) < currentWeek.skeleton.targetKm - WEEK_KM_TOLERANCE) ? { volumeLimited: true } : {}),
+      ...(currentWeek && (currentWeek.skeleton.uncappedKm !== undefined || plannedWeekKm(currentWeek.skeleton) < currentWeek.skeleton.targetKm - WEEK_KM_TOLERANCE)
+        ? { volumeLimited: true, limitedWeeklyKm: plannedWeekKm(currentWeek.skeleton) } : {}),
       ...(newResults.length ? { newResults } : {}),
       calibrationChanged: plan.calibration !== undefined && !sameResults(config.athlete.results, plan.calibration.results),
       ...(lastRaceDay ? { lastRace: { date: lastRaceDay.date, distanceKm: tuneUpByDate.get(lastRaceDay.date) ?? plan.goal.distanceKm } } : {}),

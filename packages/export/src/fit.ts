@@ -10,7 +10,7 @@
  * w mm/s (m/s × 1000), zamieniając s/km na m/s. Szybsze tempo = wyższa prędkość,
  * więc granice zakresu zamieniają się miejscami.
  */
-import { effortText, messages, sportMessages } from 'trainctl-core'
+import { effortText, messages, splitsSeries, sportMessages, STRIDE_RECOVERY_SEC } from 'trainctl-core'
 import type { PlannedWorkout, PaceRange, TrainingSession } from 'trainctl-core'
 
 // ---------------------------------------------------------------- prymitywy
@@ -183,6 +183,17 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
     }
   }
 
+  const repeatStep = (loopStart: number, reps: number): FitStep => ({
+    name: f.repeat(reps),
+    durationType: 6,
+    durationValue: loopStart,
+    targetType: 2,
+    targetValue: reps,
+    low: 0,
+    high: 0,
+    intensity: 0,
+  })
+
   const f = messages().fitStep
   for (const seg of workout.segments) {
     switch (seg.type) {
@@ -194,32 +205,30 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
         break
       case 'intervals':
       case 'hills': {
-        const reps = seg.reps ?? 1
-        const loopStart = steps.length
         const isHills = seg.type === 'hills'
-        if (seg.repM) {
-          steps.push(
-            distanceStep(isHills ? f.hillRep : f.rep, seg.repM / 1000, isHills ? undefined : seg.pace, 0),
-          )
+        const series = (reps: number) => {
+          const loopStart = steps.length
+          if (seg.repM) {
+            steps.push(
+              distanceStep(isHills ? f.hillRep : f.rep, seg.repM / 1000, isHills ? undefined : seg.pace, 0),
+            )
+          } else {
+            steps.push(timeStep(f.rep, 180, seg.pace, 0))
+          }
+          if (seg.recoverySec) {
+            steps.push(timeStep(f.recovery, seg.recoverySec, RECOVERY_PACE, 1))
+          } else if (isHills) {
+            steps.push(distanceStep(f.hillDown, (seg.repM ?? 200) / 1000, undefined, 1))
+          }
+          if (reps > 1) steps.push(repeatStep(loopStart, reps))
+        }
+        // przerwa w połowie serii (C1): dwie pętle i krok przerwy bez celu między nimi
+        if (splitsSeries(seg)) {
+          series(seg.setBreak.afterRep)
+          steps.push(timeStep(f[seg.setBreak.mode], seg.setBreak.sec, undefined, 1))
+          series((seg.reps ?? 1) - seg.setBreak.afterRep)
         } else {
-          steps.push(timeStep(f.rep, 180, seg.pace, 0))
-        }
-        if (seg.recoverySec) {
-          steps.push(timeStep(f.recovery, seg.recoverySec, RECOVERY_PACE, 1))
-        } else if (isHills) {
-          steps.push(distanceStep(f.hillDown, (seg.repM ?? 200) / 1000, undefined, 1))
-        }
-        if (reps > 1) {
-          steps.push({
-            name: f.repeat(reps),
-            durationType: 6,
-            durationValue: loopStart,
-            targetType: 2,
-            targetValue: reps,
-            low: 0,
-            high: 0,
-            intensity: 0,
-          })
+          series(seg.reps ?? 1)
         }
         break
       }
@@ -276,6 +285,13 @@ export function toFitSteps(workout: PlannedWorkout): FitStep[] {
         steps.push(
           distanceStep(seg.type === 'easy' ? f.easy : f.steady, seg.distanceKm ?? 0, seg.pace, 0),
         )
+        // przebieżki po biegu spokojnym (J-6): odcinek bez celu tempa i minuta powrotu
+        if (seg.type === 'easy' && seg.strides) {
+          const loopStart = steps.length
+          steps.push(distanceStep(f.stride, seg.strides.meters / 1000, undefined, 0))
+          steps.push(timeStep(f.recovery, STRIDE_RECOVERY_SEC, undefined, 1))
+          if (seg.strides.count > 1) steps.push(repeatStep(loopStart, seg.strides.count))
+        }
         break
       case 'race':
         // Sprawdzian: krok na dystans BEZ celu tempa (ADR-020) — zegarek ma mierzyć,

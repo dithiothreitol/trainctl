@@ -93,6 +93,8 @@ export interface AdaptationInput {
    * rozpisana poniżej celu). Nadwyżka mówi wtedy o czasie, a nie o bazie — bez podniesienia.
    */
   volumeLimited?: boolean
+  /** Rejestr §14: ile mieszczą budżet czasu i dni w bieżącym tygodniu (km rozpisane) — do diagnozy. */
+  limitedWeeklyKm?: number
   /**
    * B11: trwa przyjęty blok powrotu. Podniesienie bazy liczyłoby się wtedy od tygodni
    * obniżonych przez krzywą powrotu i zastąpiło ją na stałe — krzywa sama rośnie (P-3).
@@ -307,6 +309,11 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
         suggestedWeeklyKm: realistic,
         ruleRefs: ['P-1', 'P-3'],
       })
+    } else if (compliance > 1.2 && missedSessions === 0 && !actions.some(a => a.type === 'post-race-recovery') && input.volumeLimited && input.limitedWeeklyKm !== undefined) {
+      // nadwyżka przy tygodniu przyciętym budżetem albo dniami mówi o czasie: bez podniesienia
+      // bazy, ale z liczbą, którą budżet i dni mieszczą, i z tym, co zmienić (E-2, B1)
+      diagnosis.push(m.adapt.complianceLimited(Math.round(compliance * 100), Math.round(input.limitedWeeklyKm * 10) / 10))
+      actions.push({ type: 'hold-course', detail: m.adapt.holdCourse, ruleRefs: ['E-2'] })
     } else if (compliance > 1.2 && missedSessions === 0 && !actions.some(a => a.type === 'post-race-recovery') && !input.volumeLimited) {
       const raised = Math.round(input.currentWeeklyKm * 1.1)
       diagnosis.push(m.adapt.complianceHigh(Math.round(compliance * 100)))

@@ -115,6 +115,22 @@ describe('toWorkoutSyntax', () => {
   })
 })
 
+describe('rejestr §14: przerwa w połowie serii i przebieżki na zegarku', () => {
+  it('seria dzieli się na dwa bloki z krokiem przerwy bez celu', () => {
+    const text = toWorkoutSyntax([
+      { type: 'intervals', reps: 6, repM: 1000, distanceKm: 6, pace: { loSecPerKm: 240, hiSecPerKm: 248 }, recoverySec: 180, recoveryMode: 'jog', setBreak: { afterRep: 3, sec: 240, mode: 'walk' }, description: '' },
+    ])
+    expect(text).toBe(['3x', '- 1km 4:04/km Pace', '- 3m 6:30/km Pace', '', '- 4m', '', '3x', '- 1km 4:04/km Pace', '- 3m 6:30/km Pace'].join('\n'))
+  })
+
+  it('przebieżki: blok po biegu spokojnym, odcinek bez celu i minuta powrotu', () => {
+    const text = toWorkoutSyntax([
+      { type: 'easy', distanceKm: 8, pace: { loSecPerKm: 300, hiSecPerKm: 360 }, strides: { count: 6, meters: 80 }, description: '' },
+    ])
+    expect(text.split('\n')).toEqual([expect.stringMatching(/^- 8km /), '', '6x', '- 80mtr', '- 1m'])
+  })
+})
+
 describe('toPushableWorkout', () => {
   const zones = paceZones(51)
   const athlete: AthleteProfile = {

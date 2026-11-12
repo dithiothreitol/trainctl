@@ -26,6 +26,7 @@ export const corePl: CoreMessages = {
   shorten: {
     badBudget: 'Podaj pełne minuty: budżet i siła 0–1440, przygotowanie 0–120.',
     repeats: (reps: number, meters: number, pace: string, recovery: number) => `${reps} × ${meters} m po ${pace}/km; ${recovery} s przerwy po każdym powtórzeniu`,
+    setBreak: (afterRep: number, sec: number, mode: 'walk' | 'jog') => `po ${afterRep}. powtórzeniu dodatkowo ${sec} s ${mode === 'walk' ? 'marszu' : 'truchtu'}`,
   },
   units: {
     km,
@@ -250,6 +251,9 @@ export const corePl: CoreMessages = {
     easy: 'Spokojnie',
     steady: 'Tempo',
     timed: 'Na czas',
+    walk: 'Marsz',
+    jog: 'Trucht',
+    stride: 'Przebieżka',
   },
 
   syncName: {
@@ -394,6 +398,9 @@ export const corePl: CoreMessages = {
       `≈${realistic} km/tydz. (średnia z ostatnich 3 tyg.) i progresuj od niej. ` +
       'Plan wykonywany w 100% bije ambitniejszy plan wykonywany w 60%.',
     complianceHigh: (pct: number) => `Regularnie przekraczasz plan (${pct}% objętości).`,
+    complianceLimited: (pct: number, km: number) =>
+      `Biegasz więcej, niż mieści plan (${pct}% objętości), ale budżet czasu albo dni mieszczą w tym tygodniu ≈${n(km)} km. ` +
+      'Nadwyżka mówi o czasie, nie o bazie: żeby plan ją uwzględnił, zwiększ budżet w sekcji `time` albo dodaj dzień w `daysAvailable`.',
     raiseVolume: (raised: number) =>
       `Podnieś bazę w trainctl.yaml do ≈${raised} km/tydz. — ale kolejny cykl i tak ` +
       'ograniczy wzrost do ~10%/tydz.; skoki objętości nie kupują formy szybciej.',

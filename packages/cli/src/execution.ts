@@ -1,4 +1,4 @@
-import { easyBand, easyPace, matchReps, paceZones, plannedReps, type ExecutionRecord, type PaceRange, type PlannedWorkout, type SyncedActivity } from 'trainctl-core'
+import { easyBand, easyPace, matchReps, mondayOf, paceZones, plannedReps, type ExecutionRecord, type PaceRange, type PlannedWorkout, type SyncedActivity } from 'trainctl-core'
 import type { StoredPlan } from './planfile.ts'
 import type { LogEntry } from './logfile.ts'
 import { localDateOf } from './clock.ts'
@@ -52,10 +52,15 @@ export function buildExecution(plan: StoredPlan, activities: SyncedActivity[], l
   // dni z wpisem innym niż „skipped” — późniejsze „skipped” jest tam korektą biegacza
   const reported = new Set(logs.filter((entry) => entry.status !== 'skipped').map((entry) => entry.date))
   const planned = new Map(plan.weeks.flatMap((week) => week.days).map((day) => [day.date, day]))
+  // Rejestr §14: tydzień, w którym plan powstał, ma jednostki także na dni sprzed jego
+  // zakotwiczenia (`generatedAt`). Bez zapisu i bez biegu taki dzień nie jest
+  // „niepotwierdzony” — planu wtedy nie było, więc to dzień poza planem, nie luka w danych.
+  const anchor = plan.generatedAt
+  const beforePlan = (date: string) => date < anchor && date >= mondayOf(anchor)
   const dates = [...new Set([...planned.keys(), ...runs.keys(), ...journal.keys()])].sort()
   return dates.filter((date) => date <= today).map((date): ExecutionRecord => {
-    const day = planned.get(date)
     const log = journal.get(date)
+    const day = beforePlan(date) && !log && !runs.has(date) ? undefined : planned.get(date)
     const plannedKm = day?.workout?.kind === 'race'
       ? day.workout.raceDistanceKm ?? (plan.goal.date === date ? plan.goal.distanceKm : plan.weeks.find(w => w.skeleton.tuneUp?.date === date)?.skeleton.tuneUp?.distanceKm ?? 0)
       : day?.workout?.distanceKm ?? 0

@@ -40,11 +40,27 @@ change between minor versions — a regenerated plan can differ.
   where synced runs carry their time (`execution[].paceSecPerKm`), and status.
   A run outside the plan has no type and no plan. Distances and pace follow
   `units`.
+- The time estimate of a session counts the mid-series walk of @I repetitions
+  and the strides after an easy run (about 0.2 s per metre and a minute back), so
+  day and week budgets see the session as it is run. The watch gets both as
+  steps: two loops with the walk between them, and a strides loop after the easy
+  run (FIT and intervals.icu). A shortened session keeps the mid-series walk in
+  its description.
+- The race week shows the training planned around the race, without the race
+  distance, in the `week` header, the season grid and the table's total, with or
+  without a time budget.
+- `adapt`, on a week trimmed by the time budget or the days, says how much they
+  hold and what to change (`time`, `daysAvailable`) instead of only holding course.
+- Days of the plan's first week before it was made, with no log and no run, no
+  longer count as unconfirmed sessions in `adapt`, `review` and `status`.
+- `status` after the race says "Since the race: N days" (and the end of a base
+  plan), as `review` does.
 - The I-5 check (at least 75% easy) runs after the rest of the week is
   distributed, so accents are no longer trimmed for distance that easy runs
   carry.
 - `why` explains these layout decisions: a hills day turned into an easy run,
-  an accent turned into strides, a week shorter than its target (how much the
+  an accent turned into strides, an accent released to an easy run under the
+  hard-kilometre ceiling, a week shorter than its target (how much the
   days cannot hold under the easy-run ceiling, shown while the week is still
   short). The
   explanation follows the session when `shift` or `reschedule` moves it, also

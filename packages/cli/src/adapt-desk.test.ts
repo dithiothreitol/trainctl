@@ -73,11 +73,32 @@ describe('buildExecution', () => {
     const plan = loadPlan(dir)
     const exec = buildExecution(
       plan,
-      [{ externalId: 'b', date: '2026-08-04', type: 'Ride', distanceKm: 40 }],
+      [{ externalId: 'b', date: '2026-08-06', type: 'Ride', distanceKm: 40 }],
       [],
       '2026-08-09',
     )
-    expect(exec.find((e) => e.date === '2026-08-04')!.status).toBe('unknown')
+    expect(exec.find((e) => e.date === '2026-08-06')!.status).toBe('unknown')
+  })
+
+  it('dni pierwszego tygodnia sprzed powstania planu bez zapisu są poza planem, nie „niepotwierdzone” (rejestr §14)', () => {
+    // plan z 5.08: jednostka 4.08 stoi w planie, choć plan wtedy nie istniał
+    const plan = loadPlan(dir)
+    expect(plan.weeks[0]!.days.find((d) => d.date === '2026-08-04')!.workout).toBeDefined()
+    const empty = buildExecution(plan, [], [], '2026-08-09')
+    expect(empty.find((e) => e.date === '2026-08-04')).toMatchObject({ status: 'rest', plannedKm: 0 })
+    expect(empty.find((e) => e.date === '2026-08-04')).not.toHaveProperty('kind')
+    // dzień planu (od 5.08) bez zapisu dalej jest niepotwierdzony
+    expect(empty.find((e) => e.date === '2026-08-06')!.status).toBe('unknown')
+    // bieg albo wpis z tego dnia: zwykłe wykonanie wobec jednostki z planu
+    const run = buildExecution(plan, [{ externalId: 'r', date: '2026-08-04', type: 'Run', distanceKm: 8 }], [], '2026-08-09')
+    expect(run.find((e) => e.date === '2026-08-04')).toMatchObject({ status: 'done', kind: 'quality_intervals' })
+    const logged = buildExecution(plan, [], [{ date: '2026-08-04', status: 'skipped', loggedAt: '2026-08-04T20:00:00Z' }], '2026-08-09')
+    expect(logged.find((e) => e.date === '2026-08-04')!.status).toBe('missed')
+    // kotwica później (nowy cykl od środy kolejnego tygodnia): poza planem tylko dni tamtego
+    // tygodnia sprzed kotwicy, wcześniejsze tygodnie to zwykłe dni planu
+    const moved = buildExecution({ ...plan, generatedAt: '2026-08-12' }, [], [], '2026-08-16')
+    expect(moved.find((e) => e.date === '2026-08-11')!.status).toBe('rest')
+    expect(moved.find((e) => e.date === '2026-08-06')!.status).toBe('unknown')
   })
 })
 

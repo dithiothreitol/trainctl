@@ -721,8 +721,11 @@ function planNormalWeek(
     qualityWds.forEach((wd, i) => {
       const w = released.has(wd) ? undefined : accent(i, mainKm)
       if (w) plan.set(wd, w)
-      else if (released.has(wd)) easy.push(wd)
-      else {
+      else if (released.has(wd)) {
+        // rejestr §14: zwolniony akcent zostawia uwagę w `why`, jak podbiegi i przebieżki
+        easy.push(wd)
+        notes.push({ code: 'accentReleased', date: addDays(skeleton.weekStart, idxOf(wd)) })
+      } else {
         strides.push(wd)
         notes.push({ code: 'accentAsStrides', date: addDays(skeleton.weekStart, idxOf(wd)) })
       }

@@ -37,6 +37,8 @@ export interface SessionRow {
   minutes?: number
   /** Rozpiska ze struktury (C1); pusta dla siły i dnia wolnego. */
   line: string
+  /** Start: dystans w wierszu, ale poza sumą — dystans startu nie jest objętością tygodnia. */
+  race?: boolean
   status?: RowMark['kind']
   statusWord?: string
   accent?: ColorName
@@ -98,6 +100,7 @@ export function runningWeekRows(week: Microcycle, opts: {
         date: day.date, weekday: day.weekday, sport: 'run',
         kind: kindText(day.workout),
         km: shownKm(day.workout),
+        ...(day.workout.kind === 'race' ? { race: true } : {}),
         ...(Number.isFinite(minutes) ? { minutes } : {}),
         line: sessionLine(day.workout, { ascii: opts.ascii ?? false }) +
           (opts.hrCeiling !== undefined && HR_CEILING_KINDS.has(day.workout.kind) ? `, ${hrCeilingText(opts.hrCeiling, opts.ascii ?? false)}` : ''),
@@ -174,7 +177,8 @@ export function rowsTable(rows: SessionRow[], opts: { today?: string; sport?: bo
     r.status && r.statusWord ? { kind: r.status, word: r.statusWord }
       : r.date === opts.today && (i === 0 || rows[i - 1]!.date !== r.date) ? { kind: 'today', word: t.today }
         : undefined)
-  const totalKm = rows.reduce((sum, r) => sum + (r.km ?? 0), 0)
+  // suma to objętość tygodnia: start ma swój dystans w wierszu, ale się nie wlicza (rejestr §14)
+  const totalKm = rows.reduce((sum, r) => sum + (r.race ? 0 : r.km ?? 0), 0)
   const totalMinutes = rows.reduce((sum, r) => sum + (r.minutes ?? 0), 0)
   return b.table(
     [t.columns.day, ...(opts.sport ? [t.columns.sport] : []), t.columns.kind, ...(distance ? [distanceUnit()] : []), t.columns.time, t.columns.line],
@@ -228,6 +232,17 @@ export function structureTable(parts: StructureRow[], accent?: ColorName): Block
   )
 }
 
+/**
+ * Kilometry tygodnia w widoku (rejestr §14). Tydzień ze startem pokazuje trening rozpisany
+ * obok startu, bez dystansu startu, przy budżecie czasu i bez niego: jego cel nie jest
+ * objętością do wypełnienia. Inny tydzień — cel, podpisany, gdy suma dni się od niego różni.
+ */
+export function weekKm(week: Microcycle): { km: number; target: boolean } {
+  if (week.days.some((d) => d.workout?.kind === 'race')) return { km: week.totalKm, target: false }
+  const planned = plannedWeekKm(week.skeleton)
+  return { km: planned, target: Math.abs(week.totalKm - planned) > 0.05 }
+}
+
 /** Tydzień siatki sezonu (C2) — te same dane w tabeli i w `structuredContent`. */
 export interface SeasonRow {
   week: number
@@ -252,7 +267,7 @@ export function runningSeasonRows(weeks: Microcycle[], opts: { ascii?: boolean }
     const long = workouts.find((w) => w.kind === 'long')
     return {
       week: i + 1, weekStart: week.weekStart, phase: week.skeleton.phase, deload: week.skeleton.deload === true,
-      plannedKm: plannedWeekKm(week.skeleton),
+      plannedKm: weekKm(week).km,
       accents: workouts.filter((w) => ACCENT_KINDS.has(w.kind)).map((w) => accentLine(w, { ascii: opts.ascii ?? false })),
       ...(long ? { longKm: shownKm(long) } : {}),
       race: workouts.some((w) => w.kind === 'race'),

@@ -65,6 +65,18 @@ describe.each(['pl', 'en'] as const)('B1, B2 w komendach · %s', (lang) => {
     expect(out).toContain(lang === 'pl' ? 'przy dwóch biegach ponad połowę' : 'over half with two runs')
   })
 
+  it('why: akcent zwolniony przez sufit mocnych kilometrów mówi dlaczego (rejestr §14)', () => {
+    // dwa dni przy 16 km/tydz.: w taperze tydzień nie mieści akcentu pod sufitem mocnych kilometrów
+    const { plan } = planFor(16, 'tue, sat')
+    const date = noteDay(plan, 'accentReleased')!
+    expect(date).toBeDefined()
+    const day = plan.weeks.flatMap((w) => w.days).find((d) => d.date === date)!
+    expect(day.workout?.kind).toBe('easy')
+    const out = cmdWhy(dir, { date }).output
+    expect(out).toContain(lang === 'pl' ? 'Akcent zaplanowany na ten dzień jest w tym tygodniu biegiem spokojnym' : 'The accent planned for this day is an easy run this week')
+    expect(out).toContain('I-5')
+  })
+
   it('why: dzień podbiegów zamieniony na bieg spokojny — tylko przy tym dniu', () => {
     const { plan } = planFor(45, 'tue, thu, sat')
     const date = noteDay(plan, 'hillsDropped')!
@@ -705,8 +717,12 @@ describe('B11: przerwa w trakcie planu', () => {
     for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-10-30' && x.date <= '2026-11-19')) {
       expect(cmdLog(dir, { date: d.date, status: 'done', km: String(Math.round(d.workout!.distanceKm * 13) / 10) }).code).toBe(0)
     }
-    const actions = (cmdAdapt(dir, {}).data as { proposal: { actions: { type: string }[] } }).proposal.actions.map((a) => a.type)
+    const adapt = cmdAdapt(dir, {})
+    const actions = (adapt.data as { proposal: { actions: { type: string }[] } }).proposal.actions.map((a) => a.type)
     expect(actions).not.toContain('raise-baseline')
+    // rejestr §14: diagnoza mówi, ile mieszczą budżet i dni, i co zmienić
+    expect(adapt.output).toContain(`hold about ${Math.round(plannedWeekKm(current.skeleton) * 10) / 10} km this week`)
+    expect(adapt.output).toContain('raise the budget under `time` or add a day to `daysAvailable`')
   })
 
   it('adapt przy budżecie tygodnia (sufit szczytu z B7): nadwyżka nie podnosi bazy', () => {

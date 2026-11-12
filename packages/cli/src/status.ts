@@ -80,9 +80,13 @@ function statusImpl(cwd: string): StatusResult {
     const cycle = cycleWeeksOf(plan)
     const sessions = cycle.reduce((s, w) => s + w.days.filter((d) => d.workout).length, 0)
     const minor = (v: string) => v.split('.').slice(0, 2).join('.')
+    // po starcie „Od startu: 5 dni”, a plan bazowy ma koniec bazy — etykiety jak w `review`
+    const toRace = diffDays(today, plan.goal.date)
+    const countdown: [string, string] = plan.goal.kind === 'base' ? [ui().review.baseEnd, plan.goal.date]
+      : toRace >= 0 ? [t.toRace, t.daysToRace(toRace)] : [ui().review.sinceRace, t.daysToRace(-toRace)]
     blocks.push(b.section(t.plan), b.kv([
       [t.goal, `${plan.goal.name} · ${plan.goal.date} · ${perWeekLabel(plan.peakKmPlanned)}`],
-      [t.toRace, t.daysToRace(diffDays(today, plan.goal.date))],
+      countdown,
       [t.weeks, t.weeksSessions(cycle.length, sessions)],
       [t.generated, plan.generatedAt],
       [t.engine, plan.engineVersion

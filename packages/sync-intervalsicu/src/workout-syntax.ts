@@ -13,7 +13,7 @@
  * — trzymamy się formy pewnej, żeby nie wygenerować treningu, którego serwis
  * nie sparsuje.
  */
-import { HR_CEILING_KINDS, messages } from 'trainctl-core'
+import { HR_CEILING_KINDS, messages, splitsSeries, STRIDE_RECOVERY_SEC } from 'trainctl-core'
 import type { PaceRange, PlannedDay, PlannedSegment, PushableWorkout } from 'trainctl-core'
 
 /** s/km → `M:SS/km Pace`. */
@@ -52,14 +52,18 @@ function segmentSteps(seg: PlannedSegment, easyPace?: PaceRange): string[] {
       return [`- ${distance(seg.distanceKm ?? 1)} ${paceTarget(RECOVERY_PACE)} Cooldown`]
 
     case 'intervals': {
-      const reps = seg.reps ?? 1
       const work = seg.repM ? distance(seg.repM / 1000) : duration(180)
-      const lines = ['', `${reps}x`, `- ${work} ${target}`]
-      if (seg.recoverySec) {
-        lines.push(`- ${duration(seg.recoverySec)} ${paceTarget(RECOVERY_PACE)}`)
+      const block = (reps: number) => {
+        const lines = ['', `${reps}x`, `- ${work} ${target}`]
+        if (seg.recoverySec) {
+          lines.push(`- ${duration(seg.recoverySec)} ${paceTarget(RECOVERY_PACE)}`)
+        }
+        lines.push('')
+        return lines
       }
-      lines.push('')
-      return lines
+      // przerwa w połowie serii (C1): dwa bloki i krok przerwy bez celu między nimi, jak w FIT
+      if (splitsSeries(seg)) return [...block(seg.setBreak.afterRep), `- ${duration(seg.setBreak.sec)}`, ...block((seg.reps ?? 1) - seg.setBreak.afterRep)]
+      return block(seg.reps ?? 1)
     }
 
     case 'hills': {
@@ -102,8 +106,14 @@ function segmentSteps(seg: PlannedSegment, easyPace?: PaceRange): string[] {
     }
 
     case 'easy':
-    case 'steady':
-      return [`- ${distance(seg.distanceKm ?? 0)} ${target}`]
+    case 'steady': {
+      const lines = [`- ${distance(seg.distanceKm ?? 0)} ${target}`]
+      // przebieżki po biegu spokojnym (J-6): odcinek bez celu tempa i minuta powrotu, jak w FIT
+      if (seg.type === 'easy' && seg.strides) {
+        lines.push('', `${seg.strides.count}x`, `- ${distance(seg.strides.meters / 1000)}`, `- ${duration(STRIDE_RECOVERY_SEC)}`, '')
+      }
+      return lines
+    }
 
     case 'race':
       // Sprawdzian: krok BEZ celu tempa (ADR-020) — to pomiar, a nie realizacja

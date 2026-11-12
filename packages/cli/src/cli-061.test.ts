@@ -104,6 +104,32 @@ describe.each(['pl', 'en'] as const)('pakiet A · %s', (lang) => {
     if (lang === 'pl') expect(cmdWeek(dir).output).not.toMatch(/\| done$/m)
   })
 
+  it('tydzień startu: nagłówek i suma to trening obok startu, przy budżecie i bez (rejestr §14)', () => {
+    for (const budget of ['', 'time:\n  weeklyMinutes: 240\n']) {
+      writeFileSync(join(dir, 'trainctl.yaml'), CONFIG + budget, 'utf-8')
+      process.env['TRAINCTL_TODAY'] = '2026-10-22'
+      expect(cmdPlan(dir, { fresh: true }).code).toBe(0)
+      const week = loadPlan(dir).weeks.find((w) => w.weekStart === '2027-03-22')!
+      const km = kmLabel(week.totalKm).replace(/ km$/, '')
+      const out = cmdWeek(dir, { date: '2027-03-26' }).output
+      // nagłówek bez „cel”: trening rozpisany obok startu, nie cel tygodnia startowego
+      expect(out, budget).toContain(`· ${km} km ·`)
+      expect(out, budget).not.toMatch(/· (cel|target) /)
+      // suma bez dystansu startu, który zostaje w swoim wierszu
+      expect(out, budget).toMatch(new RegExp(`^(suma|total) \\| ${km.replace('.', '\\.')}( \\|.*)?$`, 'm'))
+      expect(out, budget).toMatch(/(START|RACE) \| 21[,.]1 \|/)
+    }
+  })
+
+  it('status po starcie: „Od startu: N dni”, jak w review, bez „N dni temu” (rejestr §14)', () => {
+    process.env['TRAINCTL_TODAY'] = '2027-04-02'
+    const out = cmdStatus(dir).output
+    expect(out).toContain(lang === 'pl' ? 'Od startu: 5 dni' : 'Since the race: 5 days')
+    expect(out).not.toMatch(/Do startu|To race day|temu|ago/)
+    process.env['TRAINCTL_TODAY'] = '2027-03-23'
+    expect(cmdStatus(dir).output).toContain(lang === 'pl' ? 'Do startu: 5 dni' : 'To race day: 5 days')
+  })
+
   it('A7: wiek wyniku w why liczony od dziś, data kalibracji osobno', () => {
     process.env['TRAINCTL_TODAY'] = '2026-10-29'
     const out = cmdWhy(dir, { date: '2026-10-27' }).output

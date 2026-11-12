@@ -33,6 +33,7 @@ export const coachPl: typeof coachEn = {
   weekNote: {
     hillsDropped: 'Dzień podbiegów jest w tym tygodniu biegiem spokojnym: tydzień nie mieści go w swoich granicach — reszta kilometrów, sufit mocnych kilometrów 25% albo udział jednej jednostki (S-11, E-3).',
     accentAsStrides: 'Akcent zamieniony na bieg spokojny z przebieżkami: z rozgrzewką i schłodzeniem miałby za dużą część tak małego tygodnia — ponad 35%, a przy dwóch biegach ponad połowę, bo długie zostaje najdłuższe (J-6, E-3, J-1).',
+    accentReleased: 'Akcent zaplanowany na ten dzień jest w tym tygodniu biegiem spokojnym: tydzień nie mieści go pod sufitem mocnych kilometrów 25% albo w zamiarze objętości, a dodatkowy akcent nigdy nie podnosi tygodnia (I-5, E-3).',
     volumeShort: (missing: string, target: string) => `Dostępne dni nie mieszczą ${missing} z ${target} tego tygodnia pod sufitem biegu spokojnego (S-10).`,
   },
   taper: 'Zapisany taper zmniejsza objętość przy założeniu utrzymania intensywności i częstotliwości sesji.',

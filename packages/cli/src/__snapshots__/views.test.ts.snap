@@ -630,7 +630,7 @@ exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i
                                 · alternating 5 km
   22    Mar 15  taper       36  4×1 km @4:04 ·
                                 alternating 4 km
-  23    Mar 22  race        26  5×300 m @4:04           RACE
+  23    Mar 22  race        16  5×300 m @4:04           RACE
   24    Mar 29  transition  22
   25    Apr 5   transition  44  3×1 km @4:32            16
 ↓ deload · accents without warm-up and cool-down · long run
@@ -669,7 +669,7 @@ exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i
   21    Mar 8   peak        52  3×1 km + 3×400 m + 3×200 m @4:04 · hills ·  22.2
                                 alternating 5 km
   22    Mar 15  taper       36  4×1 km @4:04 · alternating 4 km
-  23    Mar 22  race        26  5×300 m @4:04                               RACE
+  23    Mar 22  race        16  5×300 m @4:04                               RACE
   24    Mar 29  transition  22
   25    Apr 5   transition  44  3×1 km @4:32                                16
 ↓ deload · accents without warm-up and cool-down · long run in km"
@@ -703,7 +703,7 @@ exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i
   20 ↓  Mar 1   peak        36  3×1 km + 3×400 m + 3×200 m @4:04 · alternating 4 km            15
   21    Mar 8   peak        52  3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 5 km    22.2
   22    Mar 15  taper       36  4×1 km @4:04 · alternating 4 km
-  23    Mar 22  race        26  5×300 m @4:04                                                  RACE
+  23    Mar 22  race        16  5×300 m @4:04                                                  RACE
   24    Mar 29  transition  22
   25    Apr 5   transition  44  3×1 km @4:32                                                   16
 ↓ deload · accents without warm-up and cool-down · long run in km"
@@ -737,7 +737,7 @@ exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i
   20 ↓  Mar 1   peak        36  3×1 km + 3×400 m + 3×200 m @4:04 · alternating 4 km            15
   21    Mar 8   peak        52  3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 5 km    22.2
   22    Mar 15  taper       36  4×1 km @4:04 · alternating 4 km
-  23    Mar 22  race        26  5×300 m @4:04                                                  RACE
+  23    Mar 22  race        16  5×300 m @4:04                                                  RACE
   24    Mar 29  transition  22
   25    Apr 5   transition  44  3×1 km @4:32                                                   16
 ↓ deload · accents without warm-up and cool-down · long run in km"
@@ -775,7 +775,7 @@ exports[`C2: migawki widoków > run · en · season: 60–120 kolumn, NO_COLOR i
   21    Mar 8   peak        52  3x1 km + 3x400 m + 3x200 m @4:04 | hills |  22.2
                                 alternating 5 km
   22    Mar 15  taper       36  4x1 km @4:04 | alternating 4 km
-  23    Mar 22  race        26  5x300 m @4:04                               RACE
+  23    Mar 22  race        16  5x300 m @4:04                               RACE
   24    Mar 29  transition  22
   25    Apr 5   transition  44  3x1 km @4:32                                16
 v deload · accents without warm-up and cool-down · long run in km"
@@ -806,7 +806,7 @@ wk | from | phase | km | accents | long
 20 ↓ | Mar 1 | peak | 36 | 3×1 km + 3×400 m + 3×200 m @4:04 · alternating 4 km | 15
 21 | Mar 8 | peak | 52 | 3×1 km + 3×400 m + 3×200 m @4:04 · hills · alternating 5 km | 22.2
 22 | Mar 15 | taper | 36 | 4×1 km @4:04 · alternating 4 km
-23 | Mar 22 | race | 26 | 5×300 m @4:04 | RACE
+23 | Mar 22 | race | 16 | 5×300 m @4:04 | RACE
 24 | Mar 29 | transition | 22
 25 | Apr 5 | transition | 44 | 3×1 km @4:32 | 16
 ↓ deload · accents without warm-up and cool-down · long run in km"
@@ -1072,7 +1072,7 @@ exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i
                               km
   22    15.03  taper      36  4×1 km @4:04 · zmienny
                               4 km
-  23    22.03  start      26  5×300 m @4:04           START
+  23    22.03  start      16  5×300 m @4:04           START
   24    29.03  przejście  22
   25     5.04  przejście  44  3×1 km @4:32            16
 ↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie
@@ -1111,7 +1111,7 @@ exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i
   21     8.03  szczyt     52  3×1 km + 3×400 m + 3×200 m @4:04 ·          22,2
                               podbiegi · zmienny 5 km
   22    15.03  taper      36  4×1 km @4:04 · zmienny 4 km
-  23    22.03  start      26  5×300 m @4:04                               START
+  23    22.03  start      16  5×300 m @4:04                               START
   24    29.03  przejście  22
   25     5.04  przejście  44  3×1 km @4:32                                16
 ↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km"
@@ -1145,7 +1145,7 @@ exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i
   20 ↓   1.03  szczyt     36  3×1 km + 3×400 m + 3×200 m @4:04 · zmienny 4 km               15
   21     8.03  szczyt     52  3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 5 km    22,2
   22    15.03  taper      36  4×1 km @4:04 · zmienny 4 km
-  23    22.03  start      26  5×300 m @4:04                                                 START
+  23    22.03  start      16  5×300 m @4:04                                                 START
   24    29.03  przejście  22
   25     5.04  przejście  44  3×1 km @4:32                                                  16
 ↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km"
@@ -1179,7 +1179,7 @@ exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i
   20 ↓   1.03  szczyt     36  3×1 km + 3×400 m + 3×200 m @4:04 · zmienny 4 km               15
   21     8.03  szczyt     52  3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 5 km    22,2
   22    15.03  taper      36  4×1 km @4:04 · zmienny 4 km
-  23    22.03  start      26  5×300 m @4:04                                                 START
+  23    22.03  start      16  5×300 m @4:04                                                 START
   24    29.03  przejście  22
   25     5.04  przejście  44  3×1 km @4:32                                                  16
 ↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km"
@@ -1224,7 +1224,7 @@ exports[`C2: migawki widoków > run · pl · season: 60–120 kolumn, NO_COLOR i
   21     8.03  szczyt     52  3x1 km + 3x400 m + 3x200 m @4:04 |          22,2
                               podbiegi | zmienny 5 km
   22    15.03  taper      36  4x1 km @4:04 | zmienny 4 km
-  23    22.03  start      26  5x300 m @4:04                               START
+  23    22.03  start      16  5x300 m @4:04                               START
   24    29.03  przejście  22
   25     5.04  przejście  44  3x1 km @4:32                                16
 v odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km"
@@ -1255,7 +1255,7 @@ tydz | od | faza | km | akcenty | długie
 20 ↓ | 1.03 | szczyt | 36 | 3×1 km + 3×400 m + 3×200 m @4:04 · zmienny 4 km | 15
 21 | 8.03 | szczyt | 52 | 3×1 km + 3×400 m + 3×200 m @4:04 · podbiegi · zmienny 5 km | 22,2
 22 | 15.03 | taper | 36 | 4×1 km @4:04 · zmienny 4 km
-23 | 22.03 | start | 26 | 5×300 m @4:04 | START
+23 | 22.03 | start | 16 | 5×300 m @4:04 | START
 24 | 29.03 | przejście | 22
 25 | 5.04 | przejście | 44 | 3×1 km @4:32 | 16
 ↓ odciążenie · akcenty bez rozgrzewki i schłodzenia · długie w km"

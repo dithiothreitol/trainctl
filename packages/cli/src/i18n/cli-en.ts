@@ -915,7 +915,7 @@ export const cliEn = {
     plan: 'Plan',
     goal: 'Goal',
     toRace: 'To race day',
-    daysToRace: (days: number) => (days >= 0 ? dayCount(days) : `${dayCount(-days)} ago`),
+    daysToRace: (days: number) => dayCount(days),
     weeks: 'This cycle',
     weeksSessions: (weeks: number, sessions: number) => `${weeks} ${pluralEn(weeks, { one: 'week', other: 'weeks' })}, ${sessions} ${pluralEn(sessions, { one: 'session', other: 'sessions' })}`,
     generated: 'Phases anchored to',

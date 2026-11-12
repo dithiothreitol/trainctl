@@ -16,6 +16,7 @@ export const coreEn = {
   shorten: {
     badBudget: 'Use whole minutes: budget and strength 0–1440, preparation 0–120.',
     repeats: (reps: number, meters: number, pace: string, recovery: number) => `${reps} × ${meters} m at ${pace}/km; ${recovery} s recovery after each repetition`,
+    setBreak: (afterRep: number, sec: number, mode: 'walk' | 'jog') => `after repetition ${afterRep} an extra ${sec} s ${mode === 'walk' ? 'walking' : 'jogging'}`,
   },
   units: {
     km,
@@ -266,6 +267,9 @@ export const coreEn = {
     easy: 'Easy',
     steady: 'Steady',
     timed: 'All out',
+    walk: 'Walk',
+    jog: 'Jog',
+    stride: 'Stride',
   },
 
   /** Tytuły treningów wypychanych do intervals.icu (widoczne w kalendarzu i na zegarku). */
@@ -405,6 +409,9 @@ export const coreEn = {
       `≈${realistic} km/week (your average of the last 3 weeks) and progress from there. ` +
       'A plan you complete fully beats a bolder plan you complete 60% of.',
     complianceHigh: (pct: number) => `You consistently exceed the plan (${pct}% of volume).`,
+    complianceLimited: (pct: number, km: number) =>
+      `You run more than the plan (${pct}% of volume), but the time budget or the days hold about ${km} km this week. ` +
+      'The surplus is about time, not the baseline: to let the plan use it, raise the budget under `time` or add a day to `daysAvailable`.',
     raiseVolume: (raised: number) =>
       `Raise the base in trainctl.yaml to ≈${raised} km/week — but the next cycle will still ` +
       'cap growth at ~10%/week; volume jumps do not buy fitness any faster.',

@@ -256,6 +256,8 @@ export type WeekNote =
   | { code: 'hillsDropped'; date: string }
   /** Akcent zastąpiony biegiem spokojnym z przebieżkami: z ramą przekroczyłby udział jednej jednostki (J-6, E-3). */
   | { code: 'accentAsStrides'; date: string }
+  /** Akcent zwolniony do biegu spokojnego: tydzień nie mieścił go pod sufitem mocnych kilometrów albo w zamiarze objętości. */
+  | { code: 'accentReleased'; date: string }
   /** Reszta kilometrów nie mieści się w dostępnych dniach pod sufitem biegu spokojnego (S-10). */
   | { code: 'volumeShort'; targetKm: number; plannedKm: number }
 

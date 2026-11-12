@@ -171,6 +171,33 @@ describe('rozwijanie treningu na kroki', () => {
     expect(steps[2]!.durationValue).toBe(120_000) // 120 s
   })
 
+  it('przerwa w połowie serii: dwie pętle i krok marszu bez celu między nimi (rejestr §14)', () => {
+    const vo2: PlannedWorkout = {
+      kind: 'quality_intervals', distanceKm: 6, ruleRefs: [],
+      segments: [{ type: 'intervals', reps: 6, repM: 1000, distanceKm: 6, pace: { loSecPerKm: 240, hiSecPerKm: 248 }, recoverySec: 180, recoveryMode: 'jog', setBreak: { afterRep: 3, sec: 240, mode: 'walk' }, description: '' }],
+    }
+    const steps = toFitSteps(vo2)
+    expect(steps.map((s) => s.name)).toEqual(['Odcinek', 'Przerwa', 'Powtórz 3x', 'Marsz', 'Odcinek', 'Przerwa', 'Powtórz 3x'])
+    expect(steps[2]!.durationValue).toBe(0) // pierwsza pętla wraca do kroku 0
+    expect(steps[6]!.durationValue).toBe(4) // druga do kroku 4
+    expect(steps[3]).toMatchObject({ durationType: 0, durationValue: 240_000, targetType: 2, intensity: 1 })
+    // przerwa poza serią (po ostatnim odcinku) nie dzieli pętli
+    vo2.segments[0]!.setBreak = { afterRep: 6, sec: 240, mode: 'walk' }
+    expect(toFitSteps(vo2).map((s) => s.name)).toEqual(['Odcinek', 'Przerwa', 'Powtórz 6x'])
+  })
+
+  it('przebieżki po biegu spokojnym: odcinek bez celu, minuta powrotu, pętla (rejestr §14)', () => {
+    const easy: PlannedWorkout = {
+      kind: 'easy', distanceKm: 8, ruleRefs: [],
+      segments: [{ type: 'easy', distanceKm: 8, pace: { loSecPerKm: 300, hiSecPerKm: 360 }, strides: { count: 6, meters: 80 }, description: '' }],
+    }
+    const steps = toFitSteps(easy)
+    expect(steps.map((s) => s.name)).toEqual(['Spokojnie', 'Przebieżka', 'Przerwa', 'Powtórz 6x'])
+    expect(steps[1]).toMatchObject({ durationType: 1, durationValue: 8_000, targetType: 2, intensity: 0 })
+    expect(steps[2]).toMatchObject({ durationType: 0, durationValue: 60_000, intensity: 1 })
+    expect(steps[3]).toMatchObject({ durationValue: 1, targetValue: 6 })
+  })
+
   it('podbiegi bez celu tempa (ADR-010) mają target_type = open', () => {
     const hills: PlannedWorkout = {
       kind: 'easy_hills',
