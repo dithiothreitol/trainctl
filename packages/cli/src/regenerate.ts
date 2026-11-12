@@ -33,7 +33,7 @@ import {
 } from 'trainctl-core'
 import type { TrainctlConfig } from './config.ts'
 import { sameResults, sameSelection } from './calibration.ts'
-import { budgetWarnings, computePlan, dayFingerprint, mergeWeekNotes, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
+import { budgetWarnings, computePlan, dayFingerprint, goalKey, mergeWeekNotes, scaleToBaseline, settleMixedWeek, type StoredPlan } from './planfile.ts'
 import { clockToday } from './clock.ts'
 
 export type ProtectionReason = 'past' | 'recorded' | 'pinned' | 'baseline' | 'return' | 'approved' | 'edited' | 'budget'
@@ -246,7 +246,7 @@ export function rebuildPlan(
     sameSelection(plan.calibration?.selected, existing.calibration?.selected) &&
     // nowy wynik bez zmiany wyboru: lista wyników w `why` też ma być aktualna
     sameResults(plan.calibration?.results, existing.calibration?.results) &&
-    JSON.stringify(plan.goal) === JSON.stringify(existing.goal) &&
+    goalKey(plan.goal) === goalKey(existing.goal) &&
     // C8: zmiana HRmax albo płci w profilu zmienia pułap tętna w widokach i PLAN.md
     JSON.stringify(plan.hrCeiling ?? null) === JSON.stringify(existing.hrCeiling ?? null) &&
     plan.locale === existing.locale &&

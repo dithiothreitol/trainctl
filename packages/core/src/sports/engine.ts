@@ -12,6 +12,7 @@ import { shortenWorkout } from '../engine/shorten.ts'
 import { estimateWorkoutMinutes } from '../engine/duration.ts'
 import { planDeskDay } from '../engine/desk.ts'
 import { attachRunningCoaching } from './coaching.ts'
+import { runningSteps } from './running-steps.ts'
 export { sportsTotals, intensityMinutes } from './metrics.ts'
 
 const DAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
@@ -431,7 +432,8 @@ export function shortenSportSession(source: TrainingSession, minutes: number): T
     const shortened:TrainingSession = { ...source, legacyWorkout: workout, description: workout.segments.map(s => s.description).join('; '),
       durationSec, distanceM: workout.distanceKm * 1000, ruleRefs: workout.ruleRefs, approved: true,
       purpose: result.status === 'easy-alternative' ? 'easy' : source.purpose,
-      steps: [{ role: 'work', durationSec, target: { kind: 'open' } }],
+      // E1: skrócony bieg zachowuje strukturę w krokach (karta, FIT, intervals.icu)
+      steps: runningSteps(workout, durationSec),
     }
     const updated=attachRunningCoaching(shortened,{phase:source.phase})
     if(source.coaching)updated.coaching!.rationale=source.coaching.rationale

@@ -20,7 +20,7 @@ import { PLAN_MD, PLAN_YAML, type StoredPlan } from './planfile.ts'
 import { runningPlanSummary } from './running-summary.ts'
 import { commitFiles } from './git.ts'
 import { readSnapshot, SYNC_FILE } from './sync.ts'
-import { applySportsProposal, fingerprint, loadSportsConfig, loadSportsPlan, migrationCandidate, prepareSportsProposal, readOptional, readSessionLogs, sessionStepsText, sessionText, sportsMarkdown, sportsProposalStatus, writeSportsPlan, writeTransaction } from './sports-store.ts'
+import { applySportsProposal, upgradeRunningSteps, fingerprint, loadSportsConfig, loadSportsPlan, migrationCandidate, prepareSportsProposal, readOptional, readSessionLogs, sessionStepsText, sessionText, sportsMarkdown, sportsProposalStatus, writeSportsPlan, writeTransaction } from './sports-store.ts'
 import { initialRunning, regenerateRunning, sportsProfilePaths } from './sports-running.ts'
 import { recoverSportsTransaction } from './sports-transaction.ts'
 import { exportSportsPlan } from './sports-export.ts'
@@ -380,6 +380,8 @@ export function sportsCommand(cwd: string, action: string, o: SportsOptions = {}
       if (o.plan) {
         const other = parse(readFileSync(resolve(cwd,o.plan),'utf8')) as SportsPlan
         const issues = validateSportsPlan(other); if(issues.length)throw new Error(issues.join('\n'))
+        // ten sam odczyt co bieżący plan: bieg sprzed E1 dostaje kroki ze struktury
+        upgradeRunningSteps(other)
         const differences = sessionDifferences(plan.sessions, other.sessions)
         return sportsResult([sessionDifferencesTable(differences)],{changed:!!differences.length||fingerprint(plan.goal)!==fingerprint(other.goal),differences,goals:{before:plan.goal,after:other.goal},totals:{before:sportsTotals(plan.sessions),after:sportsTotals(other.sessions)}})
       }

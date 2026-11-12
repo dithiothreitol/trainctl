@@ -13,7 +13,9 @@ change between minor versions — a regenerated plan can differ.
   strides, hills with the jog down, progression thirds and alternating
   kilometres. Session cards, the FIT file and the intervals.icu workout read
   these steps instead of the stored running workout, which stays for the
-  running engine (PLAN-v0.7 E1).
+  running engine (PLAN-v0.7 E1). Each work step carries the RPE range of its
+  own segment, a shortened run keeps its structure, and runs saved by earlier
+  versions get their steps when the plan is read.
 - A multisport workspace whose plan carries the running engine and whose
   profile has only running now answers `why`, `status`, `review` and `adapt`
   the way a running plan does: rule sources and calibration in `why`, the

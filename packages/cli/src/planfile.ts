@@ -784,6 +784,13 @@ export function readExistingPlan(cwd: string): ExistingPlan {
 }
 
 /** Ostatni dzień planu — po starcie plan trwa dalej blokiem przejściowym (R-8). */
+/**
+ * Klucz celu do porównań: bez kolejności pól i z domyślnym `kind: race`. Profil v2 składa
+ * cel planu biegowego w innym porządku niż profil z pliku (E3, E4), a to ten sam cel.
+ */
+export const goalKey = (goal: StoredPlan['goal']): string =>
+  JSON.stringify(Object.entries({ kind: 'race', ...goal }).sort(([a], [z]) => a.localeCompare(z)))
+
 export const planEnd = (plan: StoredPlan): string => plan.weeks.at(-1)?.days.at(-1)?.date ?? plan.goal.date
 
 /** Tygodnie bieżącego cyklu — bez historii poprzedniego, która została w pliku. */

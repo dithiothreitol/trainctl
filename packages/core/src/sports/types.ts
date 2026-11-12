@@ -190,7 +190,11 @@ export interface SportsPlan {
   baselines?: Partial<Record<EnduranceSport, { weeklyMinutes: number; profileWeeklyMinutes: number }>>
   warnings: string[]
   /** Oryginalny dokument pozostaje audytowalny; nie jest drugim aktywnym planem. */
-  legacy?: { plan: unknown; config: unknown; cycleId?: string; generatorPlan?: unknown }
+  /**
+   * `profileInV2`: profil v2 niesie wszystkie pola profilu biegowego (migracja od E3, pierwszy
+   * plan z profilu v2), więc `config` nie uzupełnia pól, które użytkownik z profilu v2 usunął.
+   */
+  legacy?: { plan: unknown; config: unknown; cycleId?: string; generatorPlan?: unknown; profileInV2?: true }
 }
 export interface SessionLog {
   schemaVersion: 2

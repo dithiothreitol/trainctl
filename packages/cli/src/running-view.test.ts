@@ -213,6 +213,10 @@ describe('E4: plan v2 z silnikiem biegowym idzie ścieżką planu biegowego', ()
     expect(v2.code, v2.output).toBe(0)
     const shortened = (v2.data!['proposal'] as { plan: SportsPlan }).plan.sessions.find((s) => s.id === session.id)!
     expect(shortened.legacyWorkout).toEqual(v1Workout)
+    // E1: skrócony bieg zachowuje strukturę w krokach (dystans i tempo, nie jeden otwarty krok)
+    expect(shortened.steps.every((s) => s.distanceM !== undefined)).toBe(true)
+    expect(shortened.steps.some((s) => s.target.kind === 'pace')).toBe(true)
+    expect(shortened.steps.reduce((n, s) => n + (s.repeat ?? 1) * (s.durationSec + (s.restSec ?? 0)), 0)).toBe(shortened.durationSec)
     // przesunięcie tygodnia z zablokowanym dniem: sesja schodzi z tego dnia
     const reschedule = cmdReschedule(dir, { date: '2026-11-16', block: [long.date] })
     expect(reschedule.code, reschedule.output).toBe(0)

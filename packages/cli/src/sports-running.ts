@@ -1,5 +1,5 @@
 /** Adapter: the established running engine remains authoritative after migration. */
-import { attachRunningCoaching, estimateWorkoutMinutes, predictTimeSec, runningEffort, runningSteps, type AthleteProfile, type PlannedWorkout, type SportsConfig, type SportsPlan, type TrainingSession, type Weekday } from 'trainctl-core'
+import { attachRunningCoaching, estimateWorkoutMinutes, predictTimeSec, runningSteps, type AthleteProfile, type PlannedWorkout, type SportsConfig, type SportsPlan, type TrainingSession, type Weekday } from 'trainctl-core'
 import { computePlan, dayFingerprint, workoutText, type StoredPlan } from './planfile.ts'
 import type { TrainctlConfig } from './config.ts'
 import { rebuildPlan } from './regenerate.ts'
@@ -23,8 +23,8 @@ export function runningSessions(plan: StoredPlan, cycleId: string): TrainingSess
     return [attachRunningCoaching({ id: `${cycleId}-${d.date}-${sport}`, date: d.date, sport,
       purpose: sport === 'strength' ? 'strength' : workout!.kind === 'race' ? 'race' : workout!.kind === 'long' ? 'long' : workout!.kind.includes('quality') || workout!.kind === 'test' ? 'intervals' : 'easy',
       durationSec: seconds, preparationSec: sport === 'run' ? (plan.preparationMinutes ?? 15) * 60 : 0,
-      // E1: kroki ze struktury biegu (tempo jako zakres), z planowanym RPE na krokach pracy (C5, MS-6)
-      steps: sport === 'run' ? runningSteps(workout!, seconds, runningEffort(workout!)) : [{ role: 'work', durationSec: seconds, target: { kind: 'open' } }],
+      // E1: kroki ze struktury biegu (tempo jako zakres), z planowanym RPE segmentu na krokach pracy (C5, MS-6)
+      steps: sport === 'run' ? runningSteps(workout!, seconds) : [{ role: 'work', durationSec: seconds, target: { kind: 'open' } }],
       ruleRefs: sport === 'run' ? workout!.ruleRefs : strength!.ruleRefs,
       ...(sport === 'run' && !Number.isFinite(estimateWorkoutMinutes(workout!,0)) ? {durationSource:'running-prediction'} : {}),
       ...(approved ? { approved: true } : {}), ...(d.pinned ? { pinned: true } : {}),
@@ -42,6 +42,14 @@ export function sportsProfilePaths(text: string): string {
     .replace(/\bathlete\.(results|daysAvailable)\b/g, 'athlete.sports.run.$1')
     .replace(/\bathlete\.(recentWeeklyKm|peakWeeklyKm|longRunDay|tuneUpRaces|returning|hrMax|sex)\b/g, 'athlete.sports.run.running.$1')
 }
+
+/**
+ * Profil sprzed migracji, który uzupełnia profil v2 — tylko w planie zmigrowanym przed E3,
+ * gdy profil v2 nie miał jeszcze płci, HRmax, powrotu, siły ani czasu docelowego. Od E3
+ * profil v2 ma wszystkie pola, więc pole usunięte z profilu v2 nie wraca z `legacy`.
+ */
+export const legacyProfile = (plan: SportsPlan): TrainctlConfig | undefined =>
+  plan.legacy && !plan.legacy.profileInV2 ? plan.legacy.config as TrainctlConfig : undefined
 
 /** Dni bez `daysAvailable` w profilu v2 — jak dotąd w pierwszym planie z profilu v2 (E-3, inż.). */
 const DEFAULT_RUNNING_DAYS: Weekday[] = ['mon', 'wed', 'fri', 'sun']
@@ -79,7 +87,7 @@ export function runningConfig(config: SportsConfig, legacy?: TrainctlConfig): Tr
 
 export function regenerateRunning(existing: SportsPlan, config: SportsConfig, today: string, fixed: Set<string>, cycleId = existing.cycleId): { sessions: TrainingSession[]; generatorPlan: StoredPlan } | undefined {
   if (!existing.legacy || !config.athlete.sports.run) return undefined
-  const running = runningConfig(config, existing.legacy.config as TrainctlConfig)
+  const running = runningConfig(config, legacyProfile(existing))
   const old = (existing.legacy.generatorPlan ?? existing.legacy.plan) as StoredPlan
   const retired = new Set(existing.retiredSessionIds ?? [])
   const recorded = new Set([...existing.sessions, ...existing.archive].filter(s => fixed.has(s.id) || existing.archive.some(a => a.id === s.id && !retired.has(a.id))).map(s => {
@@ -99,5 +107,5 @@ export function initialRunning(config: SportsConfig, from: string, cycleId: stri
   if (!p?.running) return undefined
   const running = runningConfig(config)
   const plan=computePlan(running,from,from)
-  return {sessions:runningSessions(plan,cycleId),legacy:{plan,config:running,cycleId,generatorPlan:plan}}
+  return {sessions:runningSessions(plan,cycleId),legacy:{plan,config:running,cycleId,generatorPlan:plan,profileInV2:true}}
 }

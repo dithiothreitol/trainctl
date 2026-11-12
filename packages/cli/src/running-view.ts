@@ -7,11 +7,11 @@
  */
 import { BREAK_REASONS, validateSportsPlan, weekTotals, type BreakReason, type SessionLog, type TrainingSession } from 'trainctl-core'
 import { clockToday } from './clock.ts'
-import { validateConfig, type TrainctlConfig } from './config.ts'
-import { lineSeparator, LOG_FILE, type LogEntry, type StrengthLogEntry } from './logfile.ts'
+import { validateConfig } from './config.ts'
+import { appendJsonLine, type LogEntry, type StrengthLogEntry } from './logfile.ts'
 import { cycleWeeksOf, dayFingerprint, settleMixedWeek, type StoredPlan } from './planfile.ts'
-import { runningConfig, runningSessions, sportsProfilePaths } from './sports-running.ts'
-import { fingerprint, isSportsWorkspace, loadSportsConfig, loadSportsPlan, prepareSportsProposal, readOptional, readSessionLogs, sportsProposalStatus, writeTransaction } from './sports-store.ts'
+import { legacyProfile, runningConfig, runningSessions, sportsProfilePaths } from './sports-running.ts'
+import { fingerprint, isSportsWorkspace, loadSportsConfig, loadSportsPlan, prepareSportsProposal, readSessionLogs, sportsProposalStatus } from './sports-store.ts'
 import { activeView, inRunningView, type RunningView } from './view-context.ts'
 
 /** Dzień zmieniony w v2 (przesunięcie, skrócenie, zamiana, zatwierdzenie): odcisk, którego nie ma żaden dzień. */
@@ -31,7 +31,7 @@ export function runningView(cwd: string): RunningView | undefined {
   const generator = (sports.legacy?.generatorPlan ?? sports.legacy?.plan) as StoredPlan | undefined
   const kinds = Object.keys(sportsConfig.athlete.sports)
   if (!generator?.weeks || kinds.length !== 1 || kinds[0] !== 'run') return undefined
-  const config = validateConfig({ ...runningConfig(sportsConfig, sports.legacy!.config as TrainctlConfig),
+  const config = validateConfig({ ...runningConfig(sportsConfig, legacyProfile(sports)),
     ...(sportsConfig.units ? { units: sportsConfig.units } : {}), ...(sportsConfig.notation ? { notation: sportsConfig.notation } : {}) })
   const generatorDays = new Map(generator.weeks.flatMap((w) => w.days).map((d) => [d.date, d]))
   const sessions = sports.sessions.filter(isRunningEngine)
@@ -93,7 +93,7 @@ export function runningView(cwd: string): RunningView | undefined {
       })
       if (restored) settleMixedWeek(week)
     }
-    stored.generatedDays = { ...generator.generatedDays, ...Object.fromEntries([...changed].map((d) => [d, next.generatedDays![d]!])) }
+    stored.generatedDays = { ...generator.generatedDays, ...Object.fromEntries([...changed].flatMap((d) => (next.generatedDays?.[d] ? [[d, next.generatedDays[d]]] : []))) }
     if (generator.timeBudgets) stored.timeBudgets = generator.timeBudgets
     else delete stored.timeBudgets
     if (generator.engineVersion) stored.engineVersion = generator.engineVersion
@@ -132,8 +132,9 @@ export function runningView(cwd: string): RunningView | undefined {
       ...(run?.testTimeSec !== undefined ? { testTimeSec: run.testTimeSec } : {}), ...(run?.rpe !== undefined ? { rpe: run.rpe } : {}),
       ...(entry.note ? { note: entry.note } : {}), ...(run?.reason ? { reason: run.reason } : {}),
     }
-    const before = readOptional(cwd, LOG_FILE) ?? ''
-    writeTransaction(cwd, { [LOG_FILE]: before + lineSeparator(before) + JSON.stringify(line) + '\n' })
+    // dopisanie wiersza jak w dzienniku planu biegowego: przerwa 60 dni to 60 krótkich zapisów,
+    // nie 60 przepisań całego pliku (transakcję przerwaną wcześniej odzyskał isSportsWorkspace)
+    appendJsonLine(cwd, line)
     if (strength) journal.strength.push(entry)
     else journal.runs.push(entry)
   }

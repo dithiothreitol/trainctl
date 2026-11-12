@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { addDays, estimateWorkoutMinutes, mondayOf, validatePlan, weekTotals, withLocale, paceZones, recalibrateWorkout, parseIso, shortenWorkout, type ShortenedWorkout, type AdaptationProposal, type PlannedDay } from 'trainctl-core'
 import { CONFIG_FILE, loadConfig } from './config.ts'
 import { logFor, readLogForChanges, LOG_FILE } from './logfile.ts'
-import { budgetWarnings, computePlan, cycleWeeksOf, dayFingerprint, loadPlan, mergeWeekNotes, planEnd, scaleToBaseline, settleMixedWeek, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
+import { budgetWarnings, computePlan, cycleWeeksOf, dayFingerprint, goalKey, loadPlan, mergeWeekNotes, planEnd, scaleToBaseline, settleMixedWeek, PLAN_YAML, writePlan, workoutText, type StoredPlan } from './planfile.ts'
 import { ui } from './i18n/index.ts'
 import { readSnapshot } from './sync.ts'
 import { runningKmByDate } from './execution.ts'
@@ -140,7 +140,7 @@ export function prepareProposal(cwd: string, today: string, analysis: Adaptation
   const recalibrate = analysis.actions.some((a) => a.type === 'recalibrate-zones')
   if (!volume && !recalibrate && !returnFrom) throw new Error(ui().improve.noPatch)
   const config = loadConfig(cwd)
-  if (JSON.stringify(config.goal) !== JSON.stringify(plan.goal)) throw new Error(ui().improve.changedGoal)
+  if (goalKey(config.goal) !== goalKey(plan.goal)) throw new Error(ui().improve.changedGoal)
   // A completed time trial with no result in the profile is a request for data,
   // not permission to rewrite calibration timestamps and call that a plan change.
   if (!volume && !returnFrom && sameResults(config.athlete.results, plan.calibration.results))

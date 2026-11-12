@@ -51,8 +51,13 @@ export function appendLog(cwd: string, entry: LogEntry | StrengthLogEntry): void
   // E4: w widoku planu biegowego nad planem v2 wpis trafia do dziennika sesji v2
   const view = activeView(cwd)
   if (view) return view.record(entry)
+  appendJsonLine(cwd, entry)
+}
+
+/** Jeden wiersz JSON na końcu log.jsonl, z separatorem po ręcznej edycji bez końcowej nowej linii. */
+export function appendJsonLine(cwd: string, value: unknown): void {
   const path = join(cwd, LOG_FILE)
-  appendFileSync(path, lineSeparator(lastChar(path)) + JSON.stringify(entry) + '\n', 'utf-8')
+  appendFileSync(path, lineSeparator(lastChar(path)) + JSON.stringify(value) + '\n', 'utf-8')
 }
 
 /** Ostatni znak pliku bez czytania całości (dziennik rośnie); brak pliku to ''. */

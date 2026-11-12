@@ -6,6 +6,30 @@ import type { SessionStep } from './types.ts'
 
 setLocale('pl')
 
+describe('E1, runda 1 przeglądu etapu 4', () => {
+  const w = (kind: PlannedWorkout['kind'], segments: PlannedWorkout['segments']): PlannedWorkout =>
+    ({ kind, segments, ruleRefs: [], distanceKm: segments.reduce((n, s) => n + (s.distanceKm ?? 0), 0) })
+  const total = (steps: SessionStep[]) => steps.reduce((n, s) => n + (s.repeat ?? 1) * (s.durationSec + (s.restSec ?? 0)), 0)
+
+  it('metry bez resztek zmiennoprzecinkowych (16,1 km to 16100 m)', () => {
+    const steps = runningSteps(w('long', [{ type: 'easy', distanceKm: 16.1, description: '' }]), 5800)
+    expect(steps[0]!.distanceM).toBe(16100)
+  })
+
+  it('same powtórzenia: suma czasu równa czasowi sesji co do sekundy', () => {
+    const reps = { type: 'intervals' as const, reps: 6, repM: 1000, distanceKm: 6, pace: { loSecPerKm: 265, hiSecPerKm: 279 }, recoverySec: 120, description: '' }
+    for (const totalSec of [2700, 2701, 2705, 2759]) {
+      expect(total(runningSteps(w('quality_intervals', [reps]), totalSec)), String(totalSec)).toBe(totalSec)
+      expect(total(runningSteps(w('quality_intervals', [{ ...reps, setBreak: { afterRep: 3, sec: 240, mode: 'walk' } }]), totalSec)), String(totalSec)).toBe(totalSec)
+    }
+  })
+
+  it('RPE kroku według jego segmentu: spokojna część nie dostaje zakresu tempa ciągłego', () => {
+    const steps = runningSteps(w('long', [{ type: 'easy', distanceKm: 12, description: '' }, { type: 'steady', distanceKm: 4, description: '' }]), 6000)
+    expect(steps.map((s) => [s.effort?.min, s.effort?.max])).toEqual([[3, 4], [5, 6]])
+  })
+})
+
 describe('E1: kroki v2 ze struktury biegu', () => {
   const easyPace = { loSecPerKm: 305, hiSecPerKm: 365 }
   const target = { loSecPerKm: 265, hiSecPerKm: 279 }

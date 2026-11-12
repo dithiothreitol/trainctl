@@ -23,6 +23,12 @@ const RUN_SEGMENT_RPE: Record<PlannedSegment['type'], [number, number]> = {
 const TIME_TRIAL_RPE: [number, number] = [9, 10]
 
 /** Najmocniejszy segment jednostki biegowej wyznacza jej planowany zakres RPE. */
+/** Zakres RPE jednego segmentu biegu (MS-6, inż.): krok pracy niesie zakres swojego segmentu (E1). */
+export function segmentEffort(segment: PlannedSegment, workout: PlannedWorkout): EffortGuide {
+  const [min, max] = segment.type === 'race' && workout.kind === 'test' ? TIME_TRIAL_RPE : RUN_SEGMENT_RPE[segment.type]
+  return effortGuide(min, max)
+}
+
 export function runningEffort(workout: PlannedWorkout): EffortGuide {
   const ranges = workout.segments.map((s) => (s.type === 'race' && workout.kind === 'test' ? TIME_TRIAL_RPE : RUN_SEGMENT_RPE[s.type]))
   const [min, max] = ranges.reduce((hardest, r) => (r[1] > hardest[1] ? r : hardest), [1, 2] as [number, number])

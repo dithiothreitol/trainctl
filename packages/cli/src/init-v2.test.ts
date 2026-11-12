@@ -8,12 +8,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parse, stringify } from 'yaml'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { setLocale, type SportsConfig } from 'trainctl-core'
+import { setLocale, type SportsConfig, type TrainingSession } from 'trainctl-core'
 import { cmdDiff, cmdInit, cmdMigrate, cmdPlan, cmdWhy } from './commands.ts'
 import { computePlan } from './planfile.ts'
 import type { TrainctlConfig } from './config.ts'
 import { runningView } from './running-view.ts'
-import { isSportsWorkspace, loadSportsPlan, sportsYamlFromRunning } from './sports-store.ts'
+import { fingerprint, isSportsWorkspace, loadSportsPlan, sportsYamlFromRunning } from './sports-store.ts'
+import { pushableSession } from './sports-sync.ts'
 import { cmdStatus } from './status.ts'
 import { toYaml } from './ui/wizard.ts'
 
@@ -161,5 +162,56 @@ describe('rejestr §14 przypisany do etapu 4', () => {
     const refreshed = cmdPlan(dir)
     expect(refreshed.output).toContain('PLAN.md')
     expect(readFileSync(join(dir, 'plan/PLAN.md'), 'utf8')).toMatch(/\bmi\b/)
+  })
+})
+
+describe('runda 1 przeglądu etapu 4', () => {
+  it('bieg zapisany przed E1 (jeden otwarty krok) dostaje kroki przy odczycie i zostaje nietknięty', () => {
+    expect(cmdInit(dir).code).toBe(0)
+    expect(cmdPlan(dir).code).toBe(0)
+    const plan = loadSportsPlan(dir)
+    const quality = plan.sessions.find((s) => s.legacyWorkout?.kind === 'quality_intervals')!
+    const approved = plan.sessions.find((s) => s.sport === 'run' && s.id !== quality.id && s.legacyWorkout?.segments.length)!
+    // zapis sprzed E1: jeden otwarty krok z RPE całej sesji; jedna sesja nietknięta, druga zatwierdzona
+    const old = (s: TrainingSession): TrainingSession => ({ ...s, steps: [{ role: 'work', durationSec: s.durationSec, target: { kind: 'open' } }] })
+    const stored = structuredClone(plan)
+    stored.sessions = stored.sessions.map((s) => s.id === quality.id ? old(s) : s.id === approved.id ? { ...old(s), approved: true } : s)
+    stored.generatedSessions[quality.id] = fingerprint(stored.sessions.find((s) => s.id === quality.id))
+    writeFileSync(join(dir, 'plan/plan.yaml'), stringify(stored))
+    const loaded = loadSportsPlan(dir)
+    for (const id of [quality.id, approved.id]) {
+      const s = loaded.sessions.find((x) => x.id === id)!
+      expect(s.steps.length, id).toBeGreaterThan(1)
+    }
+    // nietknięta zostaje nietknięta: regeneracja może ją dalej aktualizować
+    expect(loaded.generatedSessions[quality.id]).toBe(fingerprint(loaded.sessions.find((s) => s.id === quality.id)))
+    expect(pushableSession(loaded, loaded.sessions.find((s) => s.id === approved.id)!).description).toMatch(/mtr/)
+  })
+
+  it('pole usunięte z profilu v2 nie wraca z profilu sprzed migracji', () => {
+    expect(cmdInit(dir, `athlete:
+  sex: female
+  hrMax: { bpm: 190, measured: true }
+  recentWeeklyKm: 35
+  daysAvailable: [tue, thu, sat, sun]
+  results:
+    - { date: "2026-06-01", distanceKm: 10, timeSec: 2900 }
+goal:
+  name: Półmaraton
+  date: "2026-11-29"
+  distanceKm: 21.0975
+  targetTimeSec: 6300
+`).code).toBe(0)
+    expect(cmdPlan(dir).code).toBe(0)
+    const id = (cmdMigrate(dir).data!['proposal'] as { id: string }).id
+    expect(cmdMigrate(dir, { apply: id }).code).toBe(0)
+    const c = config()
+    delete c.goal.targetTimeSec
+    delete c.athlete.sports.run!.running!.hrMax
+    writeFileSync(join(dir, 'trainctl.yaml'), stringify(c))
+    const view = runningView(dir)!.config
+    expect(view.goal.targetTimeSec).toBeUndefined()
+    expect(view.athlete.hrMax).toBeUndefined()
+    expect(view.athlete.sex).toBe('female')
   })
 })

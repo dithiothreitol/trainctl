@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { parse, stringify } from 'yaml'
 import {
-  ENDURANCE_SPORTS, addDays, coachingLines, distanceUnit, sessionStepLines, estimateWorkoutMinutes, getLocale, isNotationStyle, isUnits, messages, mondayOf, notationLegend,
+  ENDURANCE_SPORTS, addDays, coachingLines, distanceUnit, runningSteps, sessionStepLines, estimateWorkoutMinutes, getLocale, isNotationStyle, isUnits, messages, mondayOf, notationLegend,
   sportMessages as msg, validateSportsConfig, validateSportsPlan,
   type EnduranceSport, type SessionLog, type SportsConfig, type SportsPlan, type TrainingSession,
 } from 'trainctl-core'
@@ -47,6 +47,25 @@ export function loadSportsPlan(cwd: string): SportsPlan {
   if (p?.schemaVersion !== 2) throw new Error(msg().migrate)
   const issues = validateSportsPlan(p)
   if (issues.length) throw new Error(issues.join('\n'))
+  return upgradeRunningSteps(p)
+}
+
+/**
+ * E1: bieg zapisany przed E1 ma jeden otwarty krok, a eksporty nie czytają już `legacyWorkout`.
+ * Kroki ze struktury biegu liczą się przy odczycie (także sesji zatwierdzonych, których
+ * regeneracja nie przepisuje); sesja nietknięta zostaje nietknięta (`generatedSessions`).
+ */
+export function upgradeRunningSteps(p: SportsPlan): SportsPlan {
+  for (const list of [p.sessions, p.archive]) {
+    for (let i = 0; i < list.length; i++) {
+      const s = list[i]!
+      const step = s.steps[0]
+      if (s.sport !== 'run' || !s.legacyWorkout || s.steps.length !== 1 || !step || step.role !== 'work' || step.target.kind !== 'open' || step.distanceM !== undefined || (step.repeat ?? 1) !== 1) continue
+      const upgraded = { ...s, steps: runningSteps(s.legacyWorkout, s.durationSec) }
+      if (p.generatedSessions[s.id] === fingerprint(s)) p.generatedSessions[s.id] = fingerprint(upgraded)
+      list[i] = upgraded
+    }
+  }
   return p
 }
 export function readSessionLogs(cwd: string): SessionLog[] {
@@ -171,7 +190,7 @@ export function migrationCandidate(cwd: string): { plan: SportsPlan; config: Spo
   const old = loadPlan(cwd), configV1 = loadConfig(cwd), rawConfig = parse(readFileSync(join(cwd, CONFIG_FILE), 'utf8'))
   const id = randomUUID(), cycleId = `c-${id.slice(0, 8)}`
   const goal = old.goal.kind === 'base' ? { kind: 'base' as const, date: old.goal.date, name: old.goal.name } : { kind: 'race' as const, date: old.goal.date, name: old.goal.name, sport: 'run' as const, distanceM: old.goal.distanceKm * 1000, estimatedMinutes: old.weeks.flatMap(w => w.days).filter(d => d.workout?.kind === 'race' && d.date === old.goal.date).map(d => runningDurationMinutes(old,d.workout!,d.date))[0] ?? ((old.goal.targetTimeSec ?? 0) / 60) }
-  const plan: SportsPlan = { schemaVersion: 2, id, cycleId, engineVersion: packageVersion(), generatedAt: old.generatedAt, goal, sessions: [], archive: [], groups: [], replacements: [], changes: [], generatedSessions: {}, warnings: [...old.feasibilityWarnings], legacy: { plan: old, config: rawConfig, cycleId }, ...(old.timeBudgets ? { timeBudgets: old.timeBudgets } : {}) }
+  const plan: SportsPlan = { schemaVersion: 2, id, cycleId, engineVersion: packageVersion(), generatedAt: old.generatedAt, goal, sessions: [], archive: [], groups: [], replacements: [], changes: [], generatedSessions: {}, warnings: [...old.feasibilityWarnings], legacy: { plan: old, config: rawConfig, cycleId, profileInV2: true }, ...(old.timeBudgets ? { timeBudgets: old.timeBudgets } : {}) }
   plan.sessions = runningSessions(old, cycleId)
   plan.generatedSessions = Object.fromEntries(plan.sessions.map(s => [s.id, fingerprint(s)]))
   const weekly = old.weeks.map(w => plan.sessions.filter(s => s.sport === 'run' && mondayOf(s.date) === w.weekStart).reduce((n, s) => n + s.durationSec / 60, 0)).filter(n => n > 0)
