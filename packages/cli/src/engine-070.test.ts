@@ -14,7 +14,7 @@ import { localDateOf } from './clock.ts'
 import { latestByDate, readLog } from './logfile.ts'
 import { writeSnapshot } from './sync.ts'
 import { buildExecution } from './execution.ts'
-import { blockLevelOf, computePlan, cycleWeeksOf, loadPlan, mergeWeekNotes, settleMixedWeek, writePlan } from './planfile.ts'
+import { blockLevelOf, computePlan, cycleWeeksOf, followNotes, loadPlan, mergeWeekNotes, settleMixedWeek, shiftWorkout, writePlan } from './planfile.ts'
 import { inferredConfigYaml, loadConfig } from './config.ts'
 import { parse, stringify } from 'yaml'
 
@@ -251,6 +251,25 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(execution.find((e) => e.date === '2026-10-28')?.status).not.toBe('missed')
   })
 
+  it('log pod symulowaną datą: znacznik zapisu z zegara symulacji, „skipped” po dniu sesji zostaje decyzją', () => {
+    setup()
+    const day = loadPlan(dir).weeks.flatMap((w) => w.days).find((d) => d.date >= '2026-10-26' && d.date < '2026-10-29' && d.workout)!
+    // prawdziwy zegar tydzień przed symulowanym „dziś”
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(new Date('2026-10-22T09:00:00'))
+      process.env['TRAINCTL_TODAY'] = '2026-10-29'
+      expect(cmdLog(dir, { date: day.date, status: 'skipped' }).code).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+    expect(localDateOf(readLog(dir).find((e) => e.date === day.date)!.loggedAt!)).toBe('2026-10-29')
+    // bieg z synchronizacji tego dnia nie odwraca decyzji zapisanej po sesji
+    const run = { externalId: 'watch', date: day.date, type: 'Run', distanceKm: 6 }
+    const execution = buildExecution(loadPlan(dir), [run], readLog(dir), '2026-10-29')
+    expect(execution.find((e) => e.date === day.date)?.status).toBe('missed')
+  })
+
   it('przerwa zapisana z góry: bieg zsynchronizowany potem w dniu przerwy się liczy', () => {
     setup()
     process.env['TRAINCTL_TODAY'] = '2026-10-24'
@@ -469,6 +488,20 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toEqual(first)
   })
 
+  it('adapt po przyjętym powrocie, gdy ostatni bieg był przed planem: redukcja się nie składa', () => {
+    setup()
+    // jedyny bieg w danych: z synchronizacji, tydzień przed pierwszym tygodniem planu
+    writeSnapshot(dir, { pulledAt: '2026-10-22', activities: [{ externalId: 'run-0', date: '2026-10-15', type: 'Run', distanceKm: 8 }], wellness: [] })
+    process.env['TRAINCTL_TODAY'] = '2026-11-19'
+    expect(cmdLog(dir, { date: '2026-10-22', to: '2026-11-19', status: 'skipped', reason: 'illness' }).code).toBe(0)
+    const first = restartOf(cmdAdapt(dir, {}))!.returnBlock!
+    const prepared = cmdAdapt(dir, { prepare: true })
+    expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
+    process.env['TRAINCTL_TODAY'] = '2026-11-21'
+    expect(cmdLog(dir, { date: '2026-11-20', to: '2026-11-21', status: 'skipped', reason: 'illness' }).code).toBe(0)
+    expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toEqual(first)
+  })
+
   it('adapt w tygodniu odciążenia: podniesienie bazy liczy się od poziomu bloku, nie od odciążenia (B3)', () => {
     setup()
     process.env['TRAINCTL_TODAY'] = '2026-11-12'
@@ -618,6 +651,32 @@ describe('B1: tydzień mieszany (regeneracja, propozycja)', () => {
     week.days.find((d) => d.workout)!.workout!.distanceKm += 1
     settleMixedWeek(week)
     expect(week.skeleton.layoutKm).toBe(week.totalKm)
+  })
+
+  /** Tydzień bez startu z uwagą na dniu z jednostką i taką samą jednostką w poniedziałek. */
+  const twinWeek = () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun'), 'utf-8')
+    const plan = computePlan(loadConfig(dir), '2026-10-22')
+    const week = plan.weeks.find((w) => w.weekStart > '2026-10-26' && !w.skeleton.raceDate && !w.days[0]!.workout &&
+      w.days.some((d, i) => i > 0 && d.workout?.kind === 'easy') && w.days.some((d, i) => i > 1 && !d.workout))!
+    const noted = week.days.find((d, i) => i > 0 && d.workout?.kind === 'easy')!
+    week.days[0]!.workout = structuredClone(noted.workout!)
+    week.notes = [{ code: 'hillsDropped', date: noted.date }]
+    const free = week.days.find((d, i) => i > 1 && !d.workout)!
+    return { plan, week, noted, free }
+  }
+
+  it('shift: uwaga idzie za przesuniętą jednostką, także gdy wcześniej w tygodniu jest taka sama', () => {
+    const { plan, week, noted, free } = twinWeek()
+    shiftWorkout(plan, noted.date, free.date)
+    expect(week.notes).toEqual([{ code: 'hillsDropped', date: free.date }])
+  })
+
+  it('followNotes po reschedule: jednostka, która została na swoim dniu, zatrzymuje uwagę mimo takiej samej wcześniej', () => {
+    const { week, noted } = twinWeek()
+    const before = structuredClone(week.days)
+    followNotes(week, before)
+    expect(week.notes).toEqual([{ code: 'hillsDropped', date: noted.date }])
   })
 
   it('mergeWeekNotes: uwaga dnia z planu, z którego pochodzi dzień; uwaga tygodnia z nowego', () => {

@@ -66,7 +66,7 @@ import {
 } from './planfile.ts'
 import { foundationsUrl, kindPurpose, ruleExplain, ruleEvidence, ruleSourceUrl } from './rules-explain.ts'
 import { packageVersion } from './version.ts'
-import { clockToday } from './clock.ts'
+import { clockStamp, clockToday } from './clock.ts'
 import { rebuildPlan, type Regeneration } from './regenerate.ts'
 import { commitFiles, uncommitted, type CommitOutcome } from './git.ts'
 import { LOG_FILE } from './logfile.ts'
@@ -739,7 +739,7 @@ function logImpl(cwd: string, opts: LogOptions): CmdResult {
       ...(rpe !== undefined ? { rpe } : {}),
       ...(opts.note ? { note: opts.note } : {}),
       ...(reason !== undefined ? { reason: reason as BreakReason } : {}),
-      loggedAt: new Date().toISOString(),
+      loggedAt: clockStamp(),
     }
     appendLog(cwd, entry)
     // Odpowiedź odbija plan obok zapisu: samo „zalogowano" nie mówi, że w planie
@@ -796,7 +796,7 @@ function logBreak(cwd: string, plan: StoredPlan, from: string, toInput: string, 
   const latest = latestByDate(readLog(cwd))
   const synced = runningKmByDate(readSnapshot(cwd)?.activities ?? [])
   const kept = dates.filter((d) => ['done', 'modified'].includes(latest.get(d)?.status ?? '') || (synced.get(d) ?? 0) > 0)
-  const loggedAt = new Date().toISOString()
+  const loggedAt = clockStamp()
   const entries: LogEntry[] = dates.filter((date) => !kept.includes(date)).map((date) => ({
     date, status: 'skipped', ...(reason ? { reason } : {}), ...(opts.note ? { note: opts.note } : {}), loggedAt,
   }))
@@ -822,7 +822,7 @@ function logStrength(cwd: string, plan: StoredPlan, date: string, opts: LogOptio
     status: opts.strength,
     ...(minutes !== undefined ? { minutes } : {}),
     ...(opts.note ? { note: opts.note } : {}),
-    loggedAt: new Date().toISOString(),
+    loggedAt: clockStamp(),
   }
   appendLog(cwd, entry)
   const planned = findDay(plan, date)!.day.strength
@@ -1128,10 +1128,11 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     const loadingWeek = plan.weeks
       .filter((w) => w.weekStart <= breakWeek && !w.skeleton.deload && !w.skeleton.tuneUp && ['base', 'build', 'peak'].includes(w.skeleton.phase))
       .at(-1)
-    // Bez żadnego biegu w wykonaniu (plan zaczęty w trakcie przerwy) bieżący tydzień może być
-    // już obniżony przez przyjęty powrót — wtedy odniesieniem zostaje objętość z tamtej decyzji
+    // Bez biegu w planie (plan zaczęty w trakcie przerwy, ostatni bieg sprzed planu albo żaden)
+    // bieżący tydzień może być już obniżony przez przyjęty powrót — wtedy odniesieniem zostaje
+    // objętość z tamtej decyzji
     const ret = plan.returnState
-    const preBreakWeeklyKm = !lastRun && ret ? ret.previousWeeklyKm : loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
+    const preBreakWeeklyKm = (!lastRun || !loadingWeek) && ret ? ret.previousWeeklyKm : loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
     // B11: bieżący tydzień w przyjętym bloku powrotu (obniżony przez krzywą R-5/R-11)
     const returnInProgress = ret !== undefined && currentWeek !== undefined && currentWeek.weekStart >= mondayOf(ret.since) &&
       currentWeek.skeleton.ruleRefs.some((r) => r === 'R-5' || r === 'R-11')

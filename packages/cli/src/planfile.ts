@@ -139,16 +139,21 @@ export function settleMixedWeek(week: Microcycle): void {
 
 /**
  * B1: uwagi generatora (`why`) idą za jednostką, gdy `shift` albo `reschedule` przestawia dni
- * tygodnia; uwaga jednostki, której już nie ma w tygodniu, wypada.
+ * tygodnia; uwaga jednostki, której już nie ma w tygodniu, wypada. `moves` to znane
+ * przesunięcia (shift: zamiana dwóch dni); bez nich jednostkę szukamy po treści, najpierw
+ * na jej dawnym dniu — dwie takie same jednostki nie zamieniają się uwagami.
  */
-export function followNotes(week: Microcycle, before: PlannedDay[]): void {
+export function followNotes(week: Microcycle, before: PlannedDay[], moves?: Record<string, string>): void {
   if (!week.notes?.length) return
   const keyOf = (d: PlannedDay | undefined) => (d?.workout ? JSON.stringify(d.workout) : undefined)
   const notes = week.notes.flatMap((n): WeekNote[] => {
     if (!('date' in n)) return [n]
+    if (moves) return [{ ...n, date: moves[n.date] ?? n.date }]
     const key = keyOf(before.find((d) => d.date === n.date))
-    const now = key === undefined ? undefined : week.days.find((d) => keyOf(d) === key)
-    return now ? [{ ...n, date: now.date }] : []
+    if (key === undefined) return []
+    const stays = keyOf(week.days.find((d) => d.date === n.date)) === key
+    const now = stays ? n.date : week.days.find((d) => keyOf(d) === key)?.date
+    return now ? [{ ...n, date: now }] : []
   })
   if (notes.length) week.notes = notes
   else delete week.notes
@@ -876,7 +881,7 @@ export function shiftWorkout(
   else delete from.day.timeAdjustment
   if (adjustment) to.day.timeAdjustment = adjustment
   else delete to.day.timeAdjustment
-  followNotes(from.week, before)
+  followNotes(from.week, before, { [fromDate]: toDate, [toDate]: fromDate })
 
   const warnings: string[] = []
   const qualityDays = from.week.days

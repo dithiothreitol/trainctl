@@ -32,7 +32,8 @@ change between minor versions — a regenerated plan can differ.
   carry.
 - `why` explains these layout decisions: a hills day turned into an easy run,
   an accent turned into strides, a week shorter than its target. The
-  explanation follows the session when `shift` or `reschedule` moves it.
+  explanation follows the session when `shift` or `reschedule` moves it, also
+  when the week has an identical session on another day.
 - Weekly volume grows across the loading blocks so that the peak falls in the
   last block before the taper (T-7, P-12) instead of in the second week, at most
   8% a week (P-3). When the growth is slow, or the runner is already at the
@@ -95,7 +96,8 @@ change between minor versions — a regenerated plan can differ.
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in
   advance (`--to` or `--reason` alone already means skipped); a run synced
-  later on a day logged in advance still counts, days with a recorded run (logged or
+  later on a day logged in advance still counts (with `TRAINCTL_TODAY` "in
+  advance" is judged by the simulated date), days with a recorded run (logged or
   synced) stay as they are, a day
   logged again replaces its earlier reason, rest days in the range stay rest
   days, the reason is case-insensitive, `--commit` names the whole range, and a
@@ -111,9 +113,11 @@ change between minor versions — a regenerated plan can differ.
   no time trial in the return block (the accent it replaced comes back). The
   earlier volume is the plan's last loading week up to your last run, not a
   deload or taper week and not the plan's target during the break, so it stays
-  the same when you run `adapt` again; the taper inside a return block keeps
-  falling. An injury logged anywhere in the break decides, also before the
-  21-day analysis window, and after it `adapt --prepare` prepares no plan
+  the same when you run `adapt` again, also when your last run was before the
+  plan; the taper inside a return block keeps falling, also after a tune-up
+  race in the last loading week. An injury logged anywhere in the break decides, also before the
+  21-day analysis window and also in a break shorter than 10 days: `adapt`
+  proposes no volume change and `adapt --prepare` prepares no plan
   change at all, not even a recalibration (R-6, R-7). An approved return survives
   `trainctl plan` like an approved baseline (ADR-033) and replaces it; the
   proposal says so when it replaces one. During an approved return `adapt`

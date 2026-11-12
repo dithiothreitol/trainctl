@@ -4,6 +4,7 @@ import { messages } from '../i18n/index.ts'
 import { applyReturnBlock, earliestFeasibleRaceDate, longGoalKm, planMacrocycle, recommendedPeakKm, taperWeeksFor, volumeBase } from './macrocycle.ts'
 import { generateMicrocycle } from './microcycle.ts'
 import { paceZones } from '../zones/daniels.ts'
+import { addDays } from '../util/dates.ts'
 
 const athlete: AthleteProfile = {
   recentWeeklyKm: 50,
@@ -522,6 +523,24 @@ describe('B11: blok powrotu po przerwie w trakcie planu', () => {
     const w = weeks[late]!
     expect(w.targetKm).toBeLessThan(base.weeks[late]!.targetKm)
     expect(w.longKm! / w.targetKm).toBeCloseTo(base.weeks[late]!.longKm! / base.weeks[late]!.targetKm, 1)
+  })
+
+  it('start kontrolny w ostatnim tygodniu ładowania nie jest odniesieniem taperu w bloku powrotu (T-9, T-5)', () => {
+    const base = planMacrocycle({ today: '2026-10-22', goal: half, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [] } })
+    const taperAt = base.weeks.findIndex((w) => w.phase === 'taper')
+    const lastLoading = base.weeks[taperAt - 1]!
+    // start B w ostatnim tygodniu ładowania: mini-taper obniża cel tego tygodnia (T-9)
+    const withTuneUp = planMacrocycle({ today: '2026-10-22', goal: half, athlete: { recentWeeklyKm: 45, daysAvailable: ['tue', 'wed', 'thu', 'sat', 'sun'], results: [], tuneUpRaces: [{ date: addDays(lastLoading.weekStart, 6), distanceKm: 10, priority: 'B' }] } })
+    expect(withTuneUp.weeks[taperAt - 1]!.tuneUp).toBeDefined()
+    const since = withTuneUp.weeks[taperAt - 4]!.weekStart
+    const plain = applyReturnBlock(base.weeks, { since, previousWeeklyKm: 30, illness: false })
+    const tuned = applyReturnBlock(withTuneUp.weeks, { since, previousWeeklyKm: 30, illness: false })
+    // odniesieniem taperu jest ostatni pełny tydzień ładowania bloku, nie tydzień z mini-taperem
+    const full = tuned.map((w, i) => (i < taperAt && !w.deload && !w.tuneUp && ['base', 'build', 'peak'].includes(w.phase) ? i : -1)).filter((i) => i >= 0)
+    const ref = full.at(-1)!
+    // taper lżejszy niż ten tydzień (T-4) i nie cięższy niż w tym samym planie bez startu
+    expect(tuned[taperAt]!.targetKm).toBeLessThan(tuned[ref]!.targetKm)
+    expect(tuned[taperAt]!.targetKm).toBeLessThanOrEqual(plain[taperAt]!.targetKm)
   })
 
   it('choroba w drugim tygodniu po starcie: tydzień spokojny (R-5), ale długie wybieganie zostaje (R-8)', () => {

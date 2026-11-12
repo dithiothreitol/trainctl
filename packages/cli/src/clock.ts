@@ -25,7 +25,6 @@ export function simulatedToday(): string | undefined {
   return raw
 }
 
-/** „Dziś" dla wszystkich komend: symulacja, a bez niej lokalna data kalendarzowa. */
 /** Lokalna data kalendarzowa znacznika czasu ISO (np. `loggedAt`), a nie data w UTC. */
 export function localDateOf(iso: string): string {
   const d = new Date(iso)
@@ -33,12 +32,19 @@ export function localDateOf(iso: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
+/** „Dziś" dla wszystkich komend: symulacja, a bez niej lokalna data kalendarzowa. */
 export function clockToday(): string {
+  return simulatedToday() ?? localDateOf(new Date().toISOString())
+}
+
+/**
+ * Znacznik czasu zapisu (`loggedAt`) z tego samego zegara co „dziś”: przy symulacji
+ * (ADR-034) południe dnia symulowanego, bez niej chwila obecna. Inaczej porównanie
+ * daty zapisu z datą sesji (wpis z wyprzedzeniem, B11) mieszałoby dwa zegary.
+ */
+export function clockStamp(): string {
   const simulated = simulatedToday()
-  if (simulated) return simulated
-  const d = new Date()
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  return simulated ? new Date(`${simulated}T12:00:00`).toISOString() : new Date().toISOString()
 }
 
 /** Ostrzeżenie do dołożenia przed każdym wyjściem; undefined, gdy zegar jest prawdziwy. */

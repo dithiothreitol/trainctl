@@ -53,8 +53,9 @@ export interface AdaptationProposal {
   actions: AdaptationAction[]
   warnings: string[]
   /**
-   * B11: rozpoznana przerwa (≥ LAYOFF_DAYS) z przyczyną z dziennika. Po kontuzji
-   * propozycja zmiany planu nie powstaje — powrót ustala specjalista (R-6, R-7).
+   * B11: rozpoznana przerwa (≥ LAYOFF_DAYS) z przyczyną z dziennika, a także bieżąca
+   * przerwa z kontuzją dowolnej długości. Po kontuzji propozycja zmiany planu nie
+   * powstaje — powrót ustala specjalista (R-6, R-7).
    */
   layoff?: { days: number; reason?: BreakReason }
 }
@@ -143,12 +144,13 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const reasons = breakEntries.map((l) => l.reason)
   const breakReason = (['injury', 'illness'] as const).find((r) => reasons.includes(r)) ?? reasons.at(-1)
   const layoffFound = dataStatus === 'complete' && layoff >= LAYOFF_DAYS
+  // R-6, R-7: kontuzja w bieżącej przerwie — każdej długości — to brak propozycji objętości;
+  // powrót ustala specjalista
+  const injury = breakReason === 'injury'
+  if (injury) warnings.push(m.adapt.injuryReturn)
   if (layoffFound) {
     diagnosis.push(m.adapt.layoffDiagnosis(layoff))
-    if (breakReason === 'injury') {
-      // R-6, R-7: po kontuzji silnik nie proponuje objętości — powrót ustala specjalista
-      warnings.push(m.adapt.injuryReturn)
-    } else {
+    if (!injury) {
       // B11: restart do przyjęcia jako blok powrotu — po chorobie R-5, po innej przerwie R-11
       const illness = breakReason === 'illness'
       const previousWeeklyKm = input.preBreakWeeklyKm ?? input.currentWeeklyKm
@@ -211,7 +213,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   }
 
   // 4) Zgodność objętości
-  if (dataStatus === 'complete' && plannedKm > 0 && layoff < LAYOFF_DAYS) {
+  if (dataStatus === 'complete' && plannedKm > 0 && layoff < LAYOFF_DAYS && !injury) {
     if (compliance < 0.7) {
       const realistic = Math.max(10, Math.round((actualKm / Math.max(1, observedDays)) * 7))
       diagnosis.push(
@@ -255,6 +257,6 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
     diagnosis,
     actions,
     warnings,
-    ...(layoffFound ? { layoff: { days: layoff, ...(breakReason ? { reason: breakReason } : {}) } } : {}),
+    ...(layoffFound || injury ? { layoff: { days: layoff, ...(breakReason ? { reason: breakReason } : {}) } } : {}),
   }
 }
