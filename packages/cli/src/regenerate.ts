@@ -247,6 +247,8 @@ export function rebuildPlan(
     // nowy wynik bez zmiany wyboru: lista wyników w `why` też ma być aktualna
     sameResults(plan.calibration?.results, existing.calibration?.results) &&
     JSON.stringify(plan.goal) === JSON.stringify(existing.goal) &&
+    // C8: zmiana HRmax albo płci w profilu zmienia pułap tętna w widokach i PLAN.md
+    JSON.stringify(plan.hrCeiling ?? null) === JSON.stringify(existing.hrCeiling ?? null) &&
     plan.locale === existing.locale &&
     plan.engineVersion === existing.engineVersion &&
     JSON.stringify(plan.loadState ?? null) === JSON.stringify(existing.loadState ?? null) &&

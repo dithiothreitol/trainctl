@@ -873,6 +873,15 @@ w commicie punktu.
   z tej samej pary pl/en co `coaching.ts`. Wyjaśnienie MS-6 jest w katalogu
   sportowym obok MS-1–MS-5, bo katalog reguł CLI przyjmuje tylko ID z
   FOUNDATIONS. Selektor katalogu sportowego wybiera język z mapy.
+- **C8.** Pułap liczy `plan` i zapisuje w `plan.yaml` (`hrCeiling`), tak jak
+  kalibrację tempa; regeneracja porównuje go z profilem. Pułap jest zaokrąglony
+  w dół, żeby nie wejść ponad LT1. Kreator pyta też o płeć, bo bez niej pułapu
+  nie ma (N-13), a profil odrzuca nieznaną wartość `sex`. Pkt 5: intervals.icu
+  dostaje pułap jako tekst nad krokami, bo łączenie celów HR i tempa jest tam
+  niedopracowane (`docs/integrations/intervalsicu.md` §1.4). `init
+  --from-intervals` czyta pole `max_heartrate` nazwane jak `average_heartrate`;
+  nazwy nie sprawdzono na koncie (§14). Pułap dotyczy planu biegowego; plan v2
+  dostanie go z jednym modelem danych w etapie 4.
 
 ---
 
@@ -1133,3 +1142,4 @@ Wypełniany w trakcie realizacji przez krok 6 zamknięcia etapu.
 | 2026-11-12 | 2 | `macrocycle.ts` (`applyReturnBlock`) | sprawdzian zostaje w tygodniu po spokojnym bloku powrotu, gdy krzywa nie obniża tygodnia (plan niżej niż krzywa) | do przeglądu trenerskiego (F1, runda 29): tydzień nieobniżony to zwykły tydzień planu, a spokojny blok już odsunął pomiar od przerwy; czy pomiar ma czekać dłużej po chorobie (W-11, W-12) |
 | 2026-11-12 | 2 | `execution.ts`, `adapt.ts` (pierwszy tydzień planu) | dni pierwszego tygodnia sprzed daty startu planu mają sesje, które `adapt` przez trzy tygodnie liczy jako niezapisane (dane niepełne), dopóki biegacz ich nie zaloguje | zauważone w sondzie rundy 27; układ pierwszego tygodnia bez zmian w etapie 2, więc najpewniej stan z 0.6.0 — do potwierdzenia i rozstrzygnięcia w etapie 3 (dni sprzed startu jako odpoczynek albo poza oknem) |
 | 2026-11-12 | 3 | `sports-commands.ts` (`diff` bez `--plan`) | podgląd regeneracji v2 pisze „Zapisano:” przy zmianie, choć niczego nie zapisuje; `plan` od C4 podaje zapisane pliki | poza zakresem C4 (`diff`): komunikat podglądu do poprawy razem z `diff` v2 w etapie 4 |
+| 2026-11-12 | 3 | `sync-intervalsicu/src/provider.ts` (`max_heartrate`) | C8: szczyt tętna aktywności czytany z pola nazwanego jak `average_heartrate`; nazwy pola nie sprawdzono na koncie intervals.icu. Bez pola propozycji HRmax po prostu nie ma | do sprawdzenia przy F3 albo pierwszym `init --from-intervals` na koncie z tętnem |

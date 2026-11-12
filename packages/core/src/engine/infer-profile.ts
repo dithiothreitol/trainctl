@@ -10,6 +10,7 @@ import type { SyncedActivity } from '../ports/sync.ts'
 import { messages } from '../i18n/index.ts'
 import { addDays, diffDays, mondayOf, parseIso } from '../util/dates.ts'
 import { median } from '../util/stats.ts'
+import { HR_MAX_BPM } from '../zones/hr-ceiling.ts'
 
 /** Okno analizy w pełnych tygodniach (wartość inżynierska — ~3 miesiące formy). */
 export const INFER_WINDOW_WEEKS = 16
@@ -44,6 +45,11 @@ export interface InferredProfile {
   window: { oldest: string; newest: string }
   /** Opis pochodzenia recentWeeklyKm — trafia do komentarza w YAML. */
   recentBasis: string
+  /**
+   * C8: najwyższe tętno biegu w oknie — propozycja HRmax jako szacunku (`measured: false`,
+   * widok ostrzega, Z-5); data biegu trafia do komentarza w YAML.
+   */
+  hrMax?: { bpm: number; date: string }
 }
 
 export type InferenceOutcome =
@@ -210,6 +216,12 @@ export function inferProfile(activities: SyncedActivity[], today: string): Infer
   const longRunDay = longTop && longTop[1] >= 3 ? longTop[0] : undefined
   if (!longRunDay) caveats.push(m.infer.noFixedLongRunDay)
 
+  // C8: szczyt tętna z biegów okna jako szacunek HRmax; odczyt spoza granic wiarygodności
+  // (HR_MAX_BPM) to artefakt czujnika. Przy remisie najnowszy bieg.
+  const hrPeak = runs
+    .filter((r) => r.maxHr !== undefined && r.maxHr >= HR_MAX_BPM[0] && r.maxHr <= HR_MAX_BPM[1])
+    .sort((a, b) => b.maxHr! - a.maxHr! || b.date.localeCompare(a.date))[0]
+
   return {
     ok: true,
     profile: {
@@ -224,6 +236,7 @@ export function inferProfile(activities: SyncedActivity[], today: string): Infer
       caveats,
       window: { oldest: oldestMonday, newest },
       recentBasis,
+      ...(hrPeak ? { hrMax: { bpm: Math.round(hrPeak.maxHr!), date: hrPeak.date } } : {}),
     },
   }
 }

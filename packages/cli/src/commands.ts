@@ -15,6 +15,7 @@ import {
   inferProfile,
   estimateWorkoutMinutes,
   formatNumber,
+  HR_CEILING_KINDS,
   messages,
   mondayOf,
   parseIso,
@@ -35,6 +36,7 @@ import {
   type InferenceOutcome,
   type PlanIssue,
   type ShapeIssue,
+  type PlannedDay,
   type PlannedWorkout,
   type SyncedActivity,
   type Weekday,
@@ -95,7 +97,7 @@ const OUR_EXTERNAL_ID_PREFIX = 'trainctl-'
 /** Nowe selektory nie mogą zostać po cichu zignorowane przez zapis v1. */
 const sessionOptions = (opts: object): boolean => ['session','sport','actualSport','meters','activity','sets'].some(key=>Reflect.get(opts,key)!==undefined)
 
-import { KIND_COLOR, asciiOutput, dayHeading, rowsTable, runningSeasonRows, runningWeekRows, seasonTable, structureTable } from './ui/rows.ts'
+import { KIND_COLOR, asciiOutput, dayHeading, hrCeilingText, rowsTable, runningSeasonRows, runningWeekRows, seasonTable, structureTable } from './ui/rows.ts'
 export { KIND_COLOR }
 
 /** Etykiety jednostek i faz pochodzą z katalogu — zmieniają się razem z językiem. */
@@ -539,9 +541,14 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
     ]
 
     if (!day.workout && !day.strength) blocks.push(b.text(ui().today.restDayBody, 'muted'))
+    // C8: pułap tętna przy biegu spokojnym i długim — w celu części spokojnej i jednym zdaniem pod strukturą
+    const ceiling = day.workout && plan.hrCeiling && HR_CEILING_KINDS.has(day.workout.kind) ? plan.hrCeiling : undefined
+    const structure = day.workout ? workoutStructure(day.workout, { ascii: asciiOutput() }).map((part) =>
+      ceiling && part.part === messages().notation.part.easy ? { ...part, target: [part.target, hrCeilingText(ceiling.bpm, asciiOutput())].filter(Boolean).join(', ') } : part) : []
     if (day.workout) {
       const w = day.workout
-      blocks.push(structureTable(workoutStructure(w, { ascii: asciiOutput() }), KIND_COLOR[w.kind] ?? 'accent'))
+      blocks.push(structureTable(structure, KIND_COLOR[w.kind] ?? 'accent'))
+      if (ceiling) blocks.push(b.text(ui().today.hrCeiling(ceiling.bpm, ceiling.share), 'muted'), ...(ceiling.measured ? [] : [b.warn(ui().today.hrEstimated)]))
       // pełna karta (--full): opis słowny jednostki, jak w plan.yaml
       if (opts.full === true) blocks.push(b.panel(`${kindLabel(w.kind)} · ${workoutKm(w)}`, [workoutText(day)], KIND_COLOR[w.kind] ?? 'accent'))
     }
@@ -585,7 +592,7 @@ export function cmdToday(cwd: string, opts: { session?: string | undefined; spor
     return okDoc(blocks, {
       date, day, week: { weekStart: week.weekStart, phase: sk.phase }, log: entry ?? null, calibration: plan.calibration ?? null,
       estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : null,
-      structure: day.workout ? workoutStructure(day.workout) : [],
+      structure, hrCeiling: ceiling ?? null,
       next: next ? { date: next.date, kind: next.workout!.kind, distanceKm: shownKm(next.workout!) } : null,
     })
   } catch (e) {
@@ -612,6 +619,7 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
       runs: latestByDate(journal.runs),
       strength: latestByDate(journal.strength),
       ascii: asciiOutput(),
+      hrCeiling: plan.hrCeiling?.bpm,
     })
     const position = weekPosition(plan, week)
     const t = ui().rows
@@ -623,6 +631,8 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
       ...compatibilityNotes(plan),
       rowsTable(rows, { today: localToday() }),
       b.text(messages().notation.legend, 'muted'),
+      // C8, Z-5: pułap z szacowanego HRmax — ostrzeżenie raz na widok
+      ...(hrCeilingEstimated(plan, week.days) ? [b.warn(ui().today.hrEstimated)] : []),
     ]
     // pełne karty (--full): opis słowny każdej jednostki i siły, jak w plan.yaml
     if (opts.full === true) {
@@ -641,6 +651,10 @@ export function cmdWeek(cwd: string, opts: { session?: string | undefined; sport
     return fail(e)
   }
 }
+
+/** C8: czy dni mają bieg z pułapem tętna (spokojny, długi) liczonym z szacowanego HRmax (Z-5). */
+const hrCeilingEstimated = (plan: StoredPlan, days: PlannedDay[]): boolean =>
+  plan.hrCeiling !== undefined && !plan.hrCeiling.measured && days.some((d) => d.workout && HR_CEILING_KINDS.has(d.workout.kind))
 
 /**
  * Siatka sezonu (C2, decyzja 3 z PLAN-v0.7 §10): tydzień w wierszu — faza, plan km,
@@ -908,6 +922,21 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
     blocks.push(...compatibilityNotes(plan))
     blocks.push(b.section(ui().coach.context), b.text(explanation.purpose), b.bullets(explanation.context))
     if (explanation.dose.length) blocks.push(b.section(ui().coach.dose), b.bullets(explanation.dose))
+    // C8: pułap tętna biegu spokojnego i długiego (Z-2) albo powód, dla którego go nie ma (N-13)
+    const hrRules: string[] = []
+    if (day.workout && HR_CEILING_KINDS.has(day.workout.kind)) {
+      if (plan.hrCeiling) {
+        blocks.push(b.info(ui().today.hrCeiling(plan.hrCeiling.bpm, plan.hrCeiling.share)))
+        if (!plan.hrCeiling.measured) blocks.push(b.warn(ui().today.hrEstimated))
+        hrRules.push('Z-2', 'Z-3', ...(plan.hrCeiling.measured ? [] : ['Z-5']))
+      } else {
+        const athlete = (() => { try { return loadConfig(cwd).athlete } catch { return undefined } })()
+        if (athlete?.hrMax && athlete.sex !== 'male' && athlete.sex !== 'female') {
+          blocks.push(b.info(ui().today.hrNoSex))
+          hrRules.push('Z-2', 'N-13')
+        }
+      }
+    }
     // Szacunek czasu ma sens tylko wtedy, gdy jest co szacować — dzień wolny to nie „0 minut".
     if (day.workout || day.strength) {
       blocks.push(Number.isFinite(explanation.estimatedMinutes) && explanation.estimatedMinutes !== null
@@ -940,7 +969,7 @@ export function cmdWhy(cwd: string, opts: { session?: string | undefined; sport?
           : recalibration.source === 'goal-target' ? ui().improve.recalibrateGoal(fmtTime(config!.goal.targetTimeSec!)) : ui().improve.recalibrateNone))
       }
     } else blocks.push(b.info(ui().improve.calibrationMissing))
-    const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...explanation.ruleRefs, ...(day.strength?.ruleRefs ?? [])])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
+    const evidence = [...new Set([...(day.workout?.ruleRefs ?? []), ...sk.ruleRefs, ...explanation.ruleRefs, ...(day.strength?.ruleRefs ?? []), ...hrRules])].map((id) => ({ id, origin: ruleEvidence(id), explanation: ruleExplain(id) ?? id }))
     // Jedna lista reguł: ID, treść i pochodzenie razem. Wcześniej te same ID stały
     // w dwóch sekcjach — raz z klasyfikacją, raz z treścią — a cel jednostki dwa razy.
     if (evidence.length) {

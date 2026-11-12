@@ -233,7 +233,7 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   // C3: wiersze z tej samej funkcji co `week` i PLAN.md (rozpiska w notacji C1)
   const cycle = cycleWeeksOf(plan)
   const weeks: PrintWeek[] = cycle.map((w) => {
-    const rows = runningWeekRows(w, { preparationMinutes: plan.preparationMinutes ?? 15, runs: new Map(), strength: new Map() })
+    const rows = runningWeekRows(w, { preparationMinutes: plan.preparationMinutes ?? 15, runs: new Map(), strength: new Map(), hrCeiling: plan.hrCeiling?.bpm })
     return {
       index: weekPosition(plan, w).index,
       weekStart: w.weekStart,

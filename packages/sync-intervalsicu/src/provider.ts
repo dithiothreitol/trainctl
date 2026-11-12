@@ -33,6 +33,8 @@ interface RawActivity {
   elapsed_time?: number
   total_elevation_gain?: number
   average_heartrate?: number
+  /** C8: szczyt tętna aktywności — pole tak nazwane jak `average_heartrate`. */
+  max_heartrate?: number
   average_speed?: number
   average_watts?: number
   average_cadence?: number
@@ -100,6 +102,7 @@ export class IntervalsIcuProvider implements SyncProvider {
       if (a.elapsed_time !== undefined) activity.elapsedTimeSec = a.elapsed_time
       if (a.total_elevation_gain !== undefined) activity.elevationGainM = a.total_elevation_gain
       if (a.average_heartrate !== undefined) activity.avgHr = Math.round(a.average_heartrate)
+      if (a.max_heartrate !== undefined) activity.maxHr = Math.round(a.max_heartrate)
       if (distanceKm && movingTimeSec) {
         activity.avgPaceSecPerKm = Math.round(movingTimeSec / distanceKm)
       }

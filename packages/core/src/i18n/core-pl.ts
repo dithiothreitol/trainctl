@@ -125,6 +125,8 @@ export const corePl: CoreMessages = {
       timeTrial: 'na czas', strides: 'przebieżki', work: 'praca', drill: 'technika', rest: 'przerwa',
     },
     jogDown: 'zbieg',
+    hr: 'tętno',
+    hrNote: (bpm: number) => `Tętno ≤${bpm} ud./min (Z-2): pułap biegu spokojnego; celem zostaje tempo.`,
   },
 
   coaching: {

@@ -103,7 +103,7 @@ export function workoutsToPush(plan: StoredPlan, from: string, to: string): Push
   for (const week of plan.weeks) {
     for (const d of week.days) {
       if (d.date < from || d.date > to) continue
-      const run = toPushableWorkout(d, plan.goal.name)
+      const run = toPushableWorkout(d, plan.goal.name, plan.hrCeiling?.bpm)
       if (run) out.push(run)
       if (d.workout?.kind === 'race') {
         // cel A albo start kontrolny B/C z tygodnia — nazwa i ranga z planu

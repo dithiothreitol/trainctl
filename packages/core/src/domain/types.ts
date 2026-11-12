@@ -66,6 +66,11 @@ export interface TuneUpRace {
 
 export interface AthleteProfile {
   sex?: Sex
+  /**
+   * Tętno maksymalne (PLAN-v0.7 C8): druga miara celu biegów spokojnych i długich.
+   * `measured: false` = szacunek (np. najwyższe tętno z historii) — widok ostrzega (Z-5).
+   */
+  hrMax?: { bpm: number; measured: boolean }
   /** Średnia objętość z ostatnich ~4 tygodni — punkt startowy progresji. */
   recentWeeklyKm: number
   /** Historycznie utrzymywalne maksimum tygodniowe (sufit progresji). */

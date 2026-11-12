@@ -4,7 +4,7 @@
  * wtedy zapisujemy szablon jak dotąd.
  */
 import { createInterface, type Interface } from 'node:readline/promises'
-import { addDays, RETURN_WINDOW_DAYS, type InferenceOutcome, type InferredProfile } from 'trainctl-core'
+import { addDays, HR_MAX_BPM, RETURN_WINDOW_DAYS, type InferenceOutcome, type InferredProfile } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
 import { kmLabel, parseDecimal } from '../format.ts'
 import { clockToday } from '../clock.ts'
@@ -25,6 +25,9 @@ export interface WizardAnswers {
   resultDistanceKm?: number
   resultTimeSec?: number
   desk?: { workStart: string; workEnd: string }
+  /** C8: tętno maksymalne i płeć — pułap biegu spokojnego i długiego (Z-2, N-13). */
+  hrMax?: { bpm: number; measured: boolean }
+  sex?: 'male' | 'female'
 }
 
 /** Historia z intervals.icu jako źródło domyślnych odpowiedzi kreatora. */
@@ -96,6 +99,22 @@ export function parseDaysInput(text: string): string[] {
   return [...new Set(days)]
 }
 
+/** C8: HRmax jako liczba całkowita w granicach wiarygodności (E-3, jak walidacja profilu). */
+export function parseHrMaxInput(text: string): number {
+  const bpm = Number(text.trim())
+  if (!Number.isInteger(bpm) || bpm < HR_MAX_BPM[0] || bpm > HR_MAX_BPM[1]) throw new Error(ui().wizard.errHrMax(HR_MAX_BPM[0], HR_MAX_BPM[1]))
+  return bpm
+}
+
+/** C8: płeć skrótem w języku interfejsu albo kanonicznie (`female`, `male`). */
+export function parseSexInput(text: string): 'male' | 'female' {
+  const key = text.trim().toLowerCase()
+  const codes = ui().wizard.sexCodes
+  if (key === 'female' || key === codes.female) return 'female'
+  if (key === 'male' || key === codes.male) return 'male'
+  throw new Error(ui().wizard.errSex(codes.female, codes.male))
+}
+
 export function parseDateInput(text: string): string {
   const t = text.trim()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) throw new Error(ui().wizard.errDate)
@@ -111,6 +130,8 @@ export function toYaml(a: WizardAnswers): string {
     ...ui().configFile.templateHeader.slice(0, 1),
     ui().configFile.generatedByWizard,
     'athlete:',
+    ...(a.sex ? [`  sex: ${a.sex}`] : []),
+    ...(a.hrMax ? [`  hrMax: { bpm: ${a.hrMax.bpm}, measured: ${a.hrMax.measured} }`] : []),
     `  recentWeeklyKm: ${a.recentWeeklyKm}`,
     ...(a.peakWeeklyKm ? [`  peakWeeklyKm: ${a.peakWeeklyKm}`] : []),
     ...(a.returning ? [`  returning: { since: "${a.returning.since}", previousWeeklyKm: ${a.returning.previousWeeklyKm} }`] : []),
@@ -306,6 +327,14 @@ export async function runWizard(
         ? { default: inferred.daysAvailable.map(toLocalDay).join(' ') }
         : {}),
     }))!
+    // C8: tętno jako druga miara biegu spokojnego i długiego; z historii tylko szacunek (Z-5)
+    const hrBpm = await ask(rl, theme, w.hrMax, parseHrMaxInput, {
+      hint: w.hintOptional,
+      optional: true,
+      ...(inferred?.hrMax ? { default: String(inferred.hrMax.bpm) } : {}),
+    })
+    const hrMax = hrBpm ? { bpm: hrBpm, measured: !(inferred?.hrMax?.bpm === hrBpm) && await askYesNo(rl, theme, w.hrMeasured) } : undefined
+    const sex = hrMax ? await ask(rl, theme, w.sex, parseSexInput, { hint: w.hintSex(ui().wizard.sexCodes.female, ui().wizard.sexCodes.male), optional: true }) : undefined
 
     console.log(theme.bold(`\n${w.resultHeader}`))
     console.log(theme.dim(`  ${w.resultWhy}`))
@@ -364,6 +393,8 @@ export async function runWizard(
       ...(resultDistanceKm ? { resultDistanceKm } : {}),
       ...(resultTimeSec ? { resultTimeSec } : {}),
       ...(desk ? { desk } : {}),
+      ...(hrMax ? { hrMax } : {}),
+      ...(sex ? { sex } : {}),
     }
   } finally {
     rl.close()

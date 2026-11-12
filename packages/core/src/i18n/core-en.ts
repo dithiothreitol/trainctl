@@ -122,6 +122,10 @@ export const coreEn = {
     },
     /** Zbieg po podbiegu jako przerwa. */
     jogDown: 'jog down',
+    /** C8: pułap tętna dopisany do biegu spokojnego i długiego („HR ≤149"). */
+    hr: 'HR',
+    /** C8: pułap tętna w opisie treningu wypychanego do kalendarza (tekst nad krokami). */
+    hrNote: (bpm: number) => `HR ≤${bpm} bpm (Z-2): ceiling for easy running; pace stays the target.`,
   },
 
   /**

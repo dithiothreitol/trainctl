@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse } from 'yaml'
-import { DEFAULT_LOCALE, getLocale, parseIso } from 'trainctl-core'
+import { DEFAULT_LOCALE, getLocale, HR_MAX_BPM, parseIso } from 'trainctl-core'
 import type { AthleteProfile, InferredProfile, RaceGoal, Weekday } from 'trainctl-core'
 import { ui } from './i18n/index.ts'
 
@@ -92,6 +92,7 @@ export function configTemplate(): string {
     languageLine,
     'athlete:',
     pad('  sex: unspecified', t.templateAthlete.sex),
+    pad('  # hrMax: { bpm: 190, measured: true }', t.templateAthlete.hrMax),
     pad('  recentWeeklyKm: 45', t.templateAthlete.recentWeeklyKm),
     pad('  peakWeeklyKm: 65', t.templateAthlete.peakWeeklyKm),
     pad('  # returning: { since: "2026-10-01", previousWeeklyKm: 45 }', t.templateAthlete.returning),
@@ -148,6 +149,13 @@ export function loadConfig(cwd: string): TrainctlConfig {
     if (typeof a.recentWeeklyKm !== 'number' || !Number.isFinite(a.recentWeeklyKm) || a.recentWeeklyKm <= 0)
       errors.push(v.numberGtZero('athlete.recentWeeklyKm'))
     if (a.peakWeeklyKm !== undefined && (!Number.isFinite(a.peakWeeklyKm) || a.peakWeeklyKm <= 0)) errors.push(v.numberGtZero('athlete.peakWeeklyKm'))
+    // C8: płeć wybiera próg LT1 z Z-2; literówka cicho wyłączałaby pułap tętna
+    if (a.sex !== undefined && !['male', 'female', 'unspecified'].includes(String(a.sex))) errors.push(v.sex('athlete.sex'))
+    if (a.hrMax !== undefined) {
+      const h = a.hrMax as Partial<NonNullable<AthleteProfile['hrMax']>> | null
+      if (!h || typeof h !== 'object' || !Number.isInteger(h.bpm) || h.bpm! < HR_MAX_BPM[0] || h.bpm! > HR_MAX_BPM[1] || typeof h.measured !== 'boolean')
+        errors.push(v.hrMax('athlete.hrMax', HR_MAX_BPM[0], HR_MAX_BPM[1]))
+    }
     if (a.returning !== undefined) {
       const r = a.returning as Partial<NonNullable<AthleteProfile['returning']>> | null
       if (!r || typeof r !== 'object') errors.push(v.required('athlete.returning'))
@@ -295,6 +303,8 @@ export function inferredConfigYaml(p: InferredProfile): string {
       : []),
     pad(`  daysAvailable: [${p.daysAvailable.join(', ')}]`, t.inferredDays),
     ...(p.longRunDay ? [pad(`  longRunDay: ${p.longRunDay}`, t.inferredLongRun)] : []),
+    // C8: najwyższe tętno z historii jako szacunek HRmax — pułap wymaga też płci (N-13)
+    ...(p.hrMax ? [pad(`  hrMax: { bpm: ${p.hrMax.bpm}, measured: false }`, t.inferredHrMax(p.hrMax.date)), pad('  sex: unspecified', t.templateAthlete.sex)] : []),
     pad('  results:', t.inferredResults),
     pad('    []', t.inferredResultsWhy),
     pad('goal:', t.inferredGoal),

@@ -5,7 +5,7 @@
  * w wyjściu tekstowym i MCP słowem. Handlery budują wiersze, kolory dokłada renderer.
  */
 import {
-  accentLine, addDays, estimateWorkoutMinutes, formatNumber, getLocale, messages, mondayOf, plannedWeekKm, sessionLine, sportMessages,
+  accentLine, addDays, estimateWorkoutMinutes, formatNumber, getLocale, HR_CEILING_KINDS, messages, mondayOf, plannedWeekKm, sessionLine,
   type Microcycle, type StructureRow, type TrainingSession, type Weekday,
 } from 'trainctl-core'
 import { ui } from '../i18n/index.ts'
@@ -42,6 +42,9 @@ export interface SessionRow {
   accent?: ColorName
 }
 
+/** C8: pułap tętna w rozpisce — „tętno ≤149", w ASCII „tętno <=149". */
+export const hrCeilingText = (bpm: number, ascii = false): string => `${messages().notation.hr} ${ascii ? '<=' : '≤'}${bpm}`
+
 /** Status wpisu jako znacznik wiersza; wartość spoza listy (ręczna edycja dziennika) to „nieznany". */
 export const markKind = (status: unknown): RowMark['kind'] =>
   status === 'done' || status === 'skipped' || status === 'modified' ? status : 'unknown'
@@ -74,6 +77,8 @@ export function runningWeekRows(week: Microcycle, opts: {
   runs: Map<string, LogEntry>
   strength: Map<string, StrengthLogEntry>
   ascii?: boolean
+  /** C8: pułap tętna biegu spokojnego i długiego (Z-2), dopisany do rozpiski po tempie. */
+  hrCeiling?: number | undefined
 }): SessionRow[] {
   const t = ui().rows
   return week.days.flatMap((day): SessionRow[] => {
@@ -86,7 +91,8 @@ export function runningWeekRows(week: Microcycle, opts: {
         kind: kindText(day.workout),
         km: shownKm(day.workout),
         ...(Number.isFinite(minutes) ? { minutes } : {}),
-        line: sessionLine(day.workout, { ascii: opts.ascii ?? false }),
+        line: sessionLine(day.workout, { ascii: opts.ascii ?? false }) +
+          (opts.hrCeiling !== undefined && HR_CEILING_KINDS.has(day.workout.kind) ? `, ${hrCeilingText(opts.hrCeiling, opts.ascii ?? false)}` : ''),
         ...(run ? { status: markKind(run.status), statusWord: logStatusText(run.status) } : {}),
         accent: KIND_COLOR[day.workout.kind] ?? 'accent',
       })

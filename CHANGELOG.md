@@ -153,6 +153,17 @@ change between minor versions — a regenerated plan can differ.
 - `--full` on `today` and `week` (and `full` on the MCP tools) prints the full
   session cards: the worded description of a running session, the purpose and
   guidance of a multisport one.
+- Heart rate as a second target: with `athlete.hrMax: { bpm, measured }` and
+  `athlete.sex` in the profile, easy and long runs get a heart-rate ceiling at
+  LT1 (78.9% of HRmax for men, 83.6% for women, Z-2), shown after the pace in
+  `week`, `today`, `PLAN.md` and the printable sheet, explained in `why`, and
+  written above the steps of the workout pushed to intervals.icu. Pace stays
+  the target (Z-3); accents keep pace only; `review` and `adapt` do not judge
+  heart rate. Without `sex` there is no ceiling and `why` says why (N-13). An
+  estimated HRmax (`measured: false`) brings one warning per view (Z-5). The
+  `init` wizard asks for HRmax, whether it was measured, and sex; `init
+  --from-intervals` proposes the highest heart rate in the history as an
+  estimate. The profile now rejects an unknown `sex`.
 
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in

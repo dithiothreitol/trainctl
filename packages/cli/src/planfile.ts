@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { parse, stringify } from 'yaml'
 import {
   diffDays,
+  easyHrCeiling,
   mondayOf,
   estimateWorkoutMinutes,
   generateMicrocycle,
@@ -25,6 +26,7 @@ import {
   qualitySessionsFor,
   testDistanceKm,
   volumeBase,
+  type HrCeiling,
   type Microcycle,
   type PlannedDay,
   type RaceGoal,
@@ -73,6 +75,8 @@ export interface StoredPlan {
   schemaVersion?: number
   engineVersion?: string
   calibration?: Calibration
+  /** C8: pułap tętna biegu spokojnego i długiego (Z-2) z HRmax i płci profilu; bez płci brak (N-13). */
+  hrCeiling?: HrCeiling
   /** Checksums of generated days, used to preserve arbitrary manual edits. */
   generatedDays?: Record<string, string>
   timeBudgets?: Record<string, number>
@@ -251,6 +255,10 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     changes: [],
     weeks,
   }
+  // C8: pułap tętna biegu spokojnego i długiego z profilu (Z-2), zapisany w planie jak
+  // kalibracja tempa: widoki, PLAN.md i eksport czytają ten sam plan
+  const hrCeiling = easyHrCeiling(config.athlete)
+  if (hrCeiling) plan.hrCeiling = hrCeiling
 
   // plan bazowy nie ma dystansu docelowego, więc i predykcji (P-11)
   if (usable.length > 0 && goal.kind !== 'base') {
@@ -838,6 +846,8 @@ export function renderMarkdown(plan: StoredPlan): string {
   // w układzie wiersza z C2; opis słowny jednostek zostaje w plan.yaml i w `why`
   lines.push('', `## ${m.season}`, '', ...tableMarkdown(seasonTable(runningSeasonRows(cycleWeeksOf(plan)))), '')
   lines.push(`> ${ui().rows.season.legend('↓')}  `, `> ${core.notation.legend}`)
+  // C8: pułap tętna z szacowanego HRmax — ostrzeżenie Z-5 raz, przy legendzie
+  if (plan.hrCeiling) lines.push('', `> ${ui().today.hrCeiling(plan.hrCeiling.bpm, plan.hrCeiling.share)}`, ...(plan.hrCeiling.measured ? [] : [`> ⚠ ${ui().today.hrEstimated}`]))
   // sesje siły opisane raz: w tabelach tygodni wiersz siły ma tylko wariant
   const strength = new Map<string, NonNullable<PlannedDay['strength']>>()
   for (const day of plan.weeks.flatMap((w) => w.days)) {
@@ -856,7 +866,7 @@ export function renderMarkdown(plan: StoredPlan): string {
       ...(sk.deload ? [m.deload] : []),
     ].join(' · ')
     lines.push('', `## ${m.weekHeading(weekPosition(plan, week).index + 1, week.weekStart, label)}`, '')
-    const rows = runningWeekRows(week, { preparationMinutes: plan.preparationMinutes ?? 15, runs: new Map(), strength: new Map() })
+    const rows = runningWeekRows(week, { preparationMinutes: plan.preparationMinutes ?? 15, runs: new Map(), strength: new Map(), hrCeiling: plan.hrCeiling?.bpm })
     lines.push(...tableMarkdown(rowsTable(rows)))
     for (const note of week.strengthNotes ?? []) lines.push('', `> ${note}`)
   }

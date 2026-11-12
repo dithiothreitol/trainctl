@@ -13,7 +13,7 @@
  * — trzymamy się formy pewnej, żeby nie wygenerować treningu, którego serwis
  * nie sparsuje.
  */
-import { messages } from 'trainctl-core'
+import { HR_CEILING_KINDS, messages } from 'trainctl-core'
 import type { PaceRange, PlannedDay, PlannedSegment, PushableWorkout } from 'trainctl-core'
 
 /** s/km → `M:SS/km Pace`. */
@@ -161,12 +161,18 @@ export function toPushableStrength(day: PlannedDay, goalName: string): PushableW
   }
 }
 
-/** Dzień planu → event do wypchnięcia. Dni wolne i starty pomijamy (undefined). */
-export function toPushableWorkout(day: PlannedDay, goalName: string): PushableWorkout | undefined {
+/**
+ * Dzień planu → event do wypchnięcia. Dni wolne i starty pomijamy (undefined).
+ * C8: pułap tętna biegu spokojnego i długiego trafia do opisu jako tekst nad krokami,
+ * nie jako drugi cel kroku — łączenie celów HR i tempa w intervals.icu jest
+ * niedopracowane (docs/integrations/intervalsicu.md §1.4), a tempo zostaje celem (Z-3).
+ */
+export function toPushableWorkout(day: PlannedDay, goalName: string, hrCeiling?: number): PushableWorkout | undefined {
   const w = day.workout
   if (!w || w.kind === 'race') return undefined
-  const description = toWorkoutSyntax(w.segments)
-  if (!description) return undefined
+  const steps = toWorkoutSyntax(w.segments)
+  if (!steps) return undefined
+  const description = hrCeiling !== undefined && HR_CEILING_KINDS.has(w.kind) ? `${messages().notation.hrNote(hrCeiling)}\n\n${steps}` : steps
   return {
     externalId: `trainctl-${day.date}`,
     date: day.date,

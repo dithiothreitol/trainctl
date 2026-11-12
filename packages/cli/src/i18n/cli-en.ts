@@ -265,6 +265,11 @@ export const cliEn = {
     whyHint: (date: string) => `why this session: trainctl why --date ${date}`,
     strengthLogged: (status: string) => `Strength logged: ${status}`,
     estimate: (minutes: number) => `about ${n(Math.round(minutes))} min including preparation`,
+    /** C8: pułap tętna biegu spokojnego i długiego (Z-2); tempo zostaje celem (Z-3). */
+    hrCeiling: (bpm: number, share: number) =>
+      `Heart-rate ceiling ${bpm} bpm: LT1 at ${n(Math.round(share * 1000) / 10)}% of HRmax for your sex (Z-2). Pace stays the target (Z-3).`,
+    hrEstimated: 'HRmax in the profile is an estimate, not a measurement: the heart-rate ceiling may be off by several beats (Z-5).',
+    hrNoSex: 'No heart-rate ceiling without athlete.sex: the LT1 share of HRmax differs between women and men (Z-2, N-13).',
     /** `distance` już sformatowany (workoutKm): ta sama dokładność co w panelu dnia. */
     next: (date: string, weekday: string, kind: string, distance: string) => `next: ${weekday} ${date} · ${kind} · ${distance}`,
     strengthTitle: (minutes: number) => `Strength · ~${n(minutes)} min`,
@@ -748,6 +753,14 @@ export const cliEn = {
     hintReturning: 'Enter = no break',
     hintReturningSuggested: '0 = no break',
     trainingDays: 'Training days',
+    /** C8: tętno jako druga miara biegu spokojnego i długiego (Z-2, Z-5, N-13). */
+    hrMax: 'Maximum heart rate [bpm], for an easy-run ceiling',
+    hrMeasured: 'Measured in a max test or a race (not estimated)?',
+    sex: 'Sex, for the heart-rate threshold (Z-2 differs for women and men)',
+    sexCodes: { female: 'f', male: 'm' },
+    hintSex: (female: string, male: string) => `${female} / ${male}, optional`,
+    errHrMax: (min: number, max: number) => `Give a whole number of beats ${min}–${max}`,
+    errSex: (female: string, male: string) => `Give ${female} (female) or ${male} (male)`,
     resultHeader: 'Race result for zone calibration',
     resultWhy: 'We compute zones from a race result — threshold readings from a watch run too fast.',
     resultDistance: 'Distance of your last race',
@@ -1063,6 +1076,7 @@ export const cliEn = {
     templateLanguage: 'interface and plan language: en | pl (default: en)',
     templateAthlete: {
       sex: 'male | female | unspecified',
+      hrMax: 'heart-rate ceiling for easy and long runs (Z-2, needs sex); measured: false = estimate',
       recentWeeklyKm: 'average of the last ~4 weeks',
       peakWeeklyKm: 'highest volume you have held (optional)',
       returning: 'after 2+ weeks without running: the plan restarts at about half (R-11)',
@@ -1102,6 +1116,8 @@ export const cliEn = {
     inferredReturning: 'no running for 2+ weeks at the end of the window: the plan restarts at about half (R-11)',
     inferredDays: 'days holding ≥10% of the window’s runs',
     inferredLongRun: 'dominant day of your longest runs',
+    /** C8: HRmax z historii to szacunek — pułap tętna wymaga jeszcze płci (Z-2, N-13). */
+    inferredHrMax: (date: string) => `highest heart rate in the history (${date}): an ESTIMATE (Z-5); set sex for the ceiling`,
     inferredResults: 'add a race result once you have confirmed the candidates printed by the command',
     inferredResultsWhy: '(zones come from race results, not from watch readings — Z-6)',
     inferredGoal: 'FILL THIS IN — without a goal `trainctl plan` refuses (by design)',
@@ -1124,6 +1140,8 @@ export const cliEn = {
       required: (path: string) => `${path}: required`,
       boolean: (path: string) => `${path}: true or false`,
       hourFormat: (path: string) => `${path}: format HH:MM`,
+      sex: (path: string) => `${path}: male, female or unspecified`,
+      hrMax: (path: string, min: number, max: number) => `${path}: { bpm: a whole number ${min}–${max}, measured: true or false }`,
     },
   },
 

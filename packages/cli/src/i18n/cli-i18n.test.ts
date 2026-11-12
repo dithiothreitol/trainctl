@@ -101,6 +101,8 @@ describe('polski nie jest kalką', () => {
         'status.plan',
         'review.columns.planned',
         'review.columns.status',
+        // C8: skrót płci w kreatorze — „m" to mężczyzna i male
+        'wizard.sexCodes.male',
         // C2: kolumny wiersza jednostki i siatki sezonu; „taper" to termin w obu językach
         'rows.columns.sport',
         'rows.columns.km',

@@ -26,6 +26,8 @@ export interface SyncedActivity {
   elapsedTimeSec?: number
   elevationGainM?: number
   avgHr?: number
+  /** Najwyższe tętno aktywności — C8: szacunek HRmax w `init --from-intervals` (Z-5). */
+  maxHr?: number
   avgPaceSecPerKm?: number
   /** Odczuwana ciężkość sesji (RPE) — jeśli użytkownik ją wprowadził. */
   rpe?: number
