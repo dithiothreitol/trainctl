@@ -82,7 +82,8 @@ change between minor versions — a regenerated plan can differ.
   warnings: a long run shorter than another run, a deload no lighter than its
   loading weeks (a time-trial or tune-up week, lighter by design, is not
   compared), one session over 35% of a week beside the long run, a heavy
-  accent after the race and a block that repeats the previous one (ADR-047).
+  accent after the race and a block that repeats the previous one (ADR-047;
+  not when the time budget holds both blocks, which `plan` already says).
   `check --strict` fails on them; a plan from an earlier engine shows them
   until `trainctl plan` regenerates it.
 - The weekly time budget caps the macrocycle's peak instead of trimming each
@@ -124,7 +125,7 @@ change between minor versions — a regenerated plan can differ.
   `adapt` proposes a return block you can approve with `--prepare` and
   `--apply`, also in the morning before
   today's session and during the first week back (not while an approved
-  return block is already running); when the break is logged
+  return block is running or about to start); when the break is logged
   ahead, with or without a reason, the block starts the day after its last day:
   about 55% of the earlier volume, at least 7 days easy after illness (R-5) or
   the loading weeks of the first block easy after any other break (R-11; the
@@ -159,7 +160,8 @@ change between minor versions — a regenerated plan can differ.
   within P-3. Once `recentWeeklyKm` is above the earlier volume, the return no
   longer applies; a `since` date in the future does not apply yet. Added during
   a plan, the field starts a return block from `since` on the next
-  `trainctl plan` and keeps it for the rest of the cycle. `plan` mentions the
+  `trainctl plan` and keeps it for the rest of the cycle, also after an
+  approved return when it describes a later break. `plan` mentions the
   return, at the start of the plan or added later, while its block is still
   ahead. A plan with no deload
   before the taper keeps the first half of its loading weeks easy, so accents

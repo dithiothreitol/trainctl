@@ -259,6 +259,7 @@ export const coreEn = {
     onTrack: (pct: number, missed: number) =>
       `Execution matches the plan (${pct}% of volume, ${missed} sessions missed).`,
     holdCourse: 'No changes — carry on with the current mesocycle.',
+    returnPlanned: 'The plan already has an approved return block for this break; there is nothing new to prepare (R-5, R-11).',
     returnInProgress: 'A return block is running: the return curve sets the volume, so compliance in a window that still holds the break does not change the baseline (R-5, R-11).',
     missedQuality: (count: number) =>
       `Accents missed: ${count}. Those, not the kilometres, build the top end of your fitness.`,

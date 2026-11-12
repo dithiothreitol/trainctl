@@ -230,6 +230,9 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
   }
   if (current.length) blocks.push(current)
   const signature = (r: SeasonRow) => JSON.stringify([r.longKm, r.accents.map((a) => [a.kind, a.dose])])
+  // Tydzień trzymany budżetem czasu (E-2, B7): powtórka bloku to wtedy decyzja biegacza
+  // o minutach, o której `plan` mówi w ostrzeżeniu budżetu — nie błąd progresji silnika
+  const budgetHeld = new Set(weeks.filter((w) => w.skeleton.uncappedKm !== undefined || w.skeleton.timeCappedKm !== undefined).map((w) => w.weekStart))
   for (let i = 1; i < blocks.length; i++) {
     const a = blocks[i - 1]!, z = blocks[i]!
     const pairs: [SeasonRow, SeasonRow][] = []
@@ -239,7 +242,8 @@ export function seasonShapeIssues(plan: { goal: Pick<RaceGoal, 'kind' | 'distanc
     }
     // co najmniej dwa porównywalne tygodnie: jeden tydzień (np. ostatni tydzień ładowania
     // przed taperem po odciążeniu) to szczyt, a nie powtórzony blok
-    if (pairs.length >= 2 && pairs.every(([x, y]) => signature(x) === signature(y))) {
+    const heldByBudget = pairs.every(([x, y]) => budgetHeld.has(x.weekStart) && budgetHeld.has(y.weekStart))
+    if (pairs.length >= 2 && !heldByBudget && pairs.every(([x, y]) => signature(x) === signature(y))) {
       issues.push({ code: 'staleProgression', date: z.at(-1)!.weekStart, ruleRefs: ['P-1'], values: [a.at(-1)!.index + 1, z.at(-1)!.index + 1] })
     }
   }

@@ -354,6 +354,31 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(later.feasibilityWarnings.join(' ')).not.toContain('return after a break')
   })
 
+  it('plan: powrót z profilu po nowszej przerwie wygrywa ze starszym zatwierdzonym (B11)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 45', 'recentWeeklyKm: 45\n  returning: { since: "2027-01-18", previousWeeklyKm: 50 }'), 'utf-8')
+    const cfg = loadConfig(dir)
+    // zatwierdzony powrót z listopada, a w styczniu kolejna przerwa dopisana do profilu
+    const plan = computePlan(cfg, '2026-10-22', '2027-01-19', { returnFrom: { since: '2026-11-13', previousWeeklyKm: 45, illness: true } })
+    const week = plan.weeks.find((w) => w.weekStart === '2027-01-18')!
+    expect(week.skeleton.ruleRefs).toContain('R-11')
+    expect(week.skeleton.targetKm).toBeLessThanOrEqual(Math.round(0.55 * 50))
+    expect(plan.feasibilityWarnings.join(' ')).toContain('return after a break')
+  })
+
+  it('plan zaczęty w trakcie powrotu: późniejszy przyjęty powrót nie trzyma ostrzeżenia ze startu planu (R-11)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(25, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 25', 'recentWeeklyKm: 25\n  returning: { since: "2026-10-19", previousWeeklyKm: 50 }'), 'utf-8')
+    const cfg = loadConfig(dir)
+    const start = computePlan(cfg, '2026-10-22', '2026-10-22')
+    const lastEasy = start.weeks.filter((w) => w.skeleton.ruleRefs.includes('R-11')).at(-1)!
+    const today = addDays(lastEasy.weekStart, 14)
+    // przyjęty powrót (nie po chorobie, R-11) od jutra, po spokojnym bloku ze startu planu
+    const later = computePlan(cfg, '2026-10-22', today, { returnFrom: { since: addDays(today, 1), previousWeeklyKm: 40, illness: false } })
+    expect(later.weeks.some((w) => w.weekStart > today && w.skeleton.ruleRefs.includes('R-11'))).toBe(true)
+    // ostrzeżenie ze startu planu mówi o 50 km/tydz. sprzed tamtej przerwy
+    expect(start.feasibilityWarnings.join(' ')).toContain('the 50 km/week before the break')
+    expect(later.feasibilityWarnings.join(' ')).not.toContain('the 50 km/week before the break')
+  })
+
   it('plan: ostrzeżenie o powrocie z profilu tylko dopóki blok powrotu trwa (R-11)', () => {
     writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 45', 'recentWeeklyKm: 45\n  returning: { since: "2026-11-16", previousWeeklyKm: 45 }'), 'utf-8')
     const cfg = loadConfig(dir)
@@ -404,6 +429,17 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(prepared.code, prepared.output).toBe(0)
     expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
     expect(loadPlan(dir).returnState).toMatchObject({ since: '2026-11-16', illness: true })
+  })
+
+  it('adapt po przyjęciu powrotu, który zacznie się po przerwie zapisanej z góry: bez drugiego restartu', () => {
+    breakUntilToday('illness')
+    expect(cmdLog(dir, { date: '2026-11-13', to: '2026-11-15', reason: 'illness' }).code).toBe(0)
+    const prepared = cmdAdapt(dir, { prepare: true })
+    expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
+    // ten sam dzień, powrót dopiero od 2026-11-16: przerwa ma już swój blok
+    const again = cmdAdapt(dir, {})
+    expect(restartOf(again)).toBeUndefined()
+    expect(again.output).toContain('already has an approved return block')
   })
 
   it('adapt po przerwie: podpowiedź prowadzi do --prepare, nie do ręcznej zmiany recentWeeklyKm', () => {

@@ -110,5 +110,4 @@ longBelowGoal  9/21 [J-2,P-7]
 24 2027-03-29 transition      8 2b L0 S0
 25 2027-04-05 transition     16 3b L6 S1
 
-staleProgression 2027-01-25 11/15 [P-1]
 longBelowGoal  12.8/21 [J-2,P-7]

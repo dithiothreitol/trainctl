@@ -288,6 +288,18 @@ describe('etap 2: linty kształtu na syntetycznych tygodniach', () => {
     expect(codes(growing)).not.toContain('staleProgression')
   })
 
+  it('staleProgression: bloki trzymane budżetem czasu nie są powtórką (E-2, B7)', () => {
+    const block = (start: string) => {
+      const w = week(start, { tue: quality(4), sat: long(18) })
+      w.skeleton.uncappedKm = w.skeleton.targetKm + 10
+      return w
+    }
+    const deload = week('2027-01-25', { tue: quality(3), sat: long(12) })
+    deload.skeleton.deload = true
+    const held = [block('2027-01-04'), block('2027-01-11'), block('2027-01-18'), deload, block('2027-02-01'), block('2027-02-08')]
+    expect(codes(held)).not.toContain('staleProgression')
+  })
+
   it('staleProgression: bloki porównane tydzień do tygodnia od końca, bez tygodnia sprawdzianu', () => {
     const block = (start: string, km: number) => week(start, { tue: quality(4), sat: long(km) })
     const test = (start: string) => {

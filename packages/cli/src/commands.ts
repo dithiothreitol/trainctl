@@ -1155,6 +1155,8 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       ...(skippedAhead.length ? { skippedAhead } : {}),
       ...(preBreakWeeklyKm !== undefined ? { preBreakWeeklyKm } : {}),
       ...(returnInProgress ? { returnInProgress } : {}),
+      // przyjęty powrót od jutra albo po przerwie zapisanej z góry: bez drugiego restartu
+      ...(ret !== undefined && ret.since > today ? { returnPending: true } : {}),
       // B7, B1: tydzień przycięty budżetem czasu (sufit szczytu z B7 obniża już sam cel —
       // wtedy jest `uncappedKm`) albo pojemnością dni — nadwyżka mówi o czasie, nie o bazie
       ...(currentWeek && (currentWeek.skeleton.uncappedKm !== undefined || plannedWeekKm(currentWeek.skeleton) < currentWeek.skeleton.targetKm - WEEK_KM_TOLERANCE) ? { volumeLimited: true } : {}),

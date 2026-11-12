@@ -312,7 +312,7 @@
 45km-3d-m-16w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 45km-3d-m-16w-360min       | peak 48  | long 25.6 | err 0 | 0 0 0 0 0 0
 45km-3d-m-24w              | peak 60  | long 28.4 | err 0 | 0 0 0 0 0 0
-45km-3d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 1 1
+45km-3d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 45km-3d-m-24w-360min       | peak 48  | long 26  | err 0 | 0 0 0 0 0 0
 45km-3d-base-8w            | peak 52  | long 25.9 | err 0 | 0 0 0 0 0 0
 45km-3d-base-8w-240min     | peak 30  | long 12  | err 0 | 0 0 0 0 0 0
@@ -348,7 +348,7 @@
 45km-4d-m-16w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 45km-4d-m-16w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 45km-4d-m-24w              | peak 63  | long 28.6 | err 0 | 0 0 0 0 0 0
-45km-4d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 1 1
+45km-4d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 45km-4d-m-24w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 45km-4d-base-8w            | peak 52  | long 24  | err 0 | 0 0 0 0 0 0
 45km-4d-base-8w-240min     | peak 30  | long 15  | err 0 | 0 0 0 0 0 0
@@ -384,7 +384,7 @@
 45km-5d-m-16w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 45km-5d-m-16w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 45km-5d-m-24w              | peak 63  | long 28.6 | err 0 | 0 0 0 0 0 0
-45km-5d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 1 1
+45km-5d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 45km-5d-m-24w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 45km-5d-base-8w            | peak 52  | long 24  | err 0 | 0 0 0 0 0 0
 45km-5d-base-8w-240min     | peak 30  | long 15  | err 0 | 0 0 0 0 0 0
@@ -420,7 +420,7 @@
 45km-6d-m-16w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 45km-6d-m-16w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 45km-6d-m-24w              | peak 63  | long 28.6 | err 0 | 0 0 0 0 0 0
-45km-6d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 1 1
+45km-6d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 45km-6d-m-24w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 45km-6d-base-8w            | peak 52  | long 24  | err 0 | 0 0 0 0 0 0
 45km-6d-base-8w-240min     | peak 30  | long 15  | err 0 | 0 0 0 0 0 0
@@ -456,7 +456,7 @@
 70km-3d-m-16w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 70km-3d-m-16w-360min       | peak 48  | long 26  | err 0 | 0 0 0 0 0 0
 70km-3d-m-24w              | peak 60  | long 29  | err 0 | 0 0 0 0 0 0
-70km-3d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 1 1
+70km-3d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 70km-3d-m-24w-360min       | peak 48  | long 26  | err 0 | 0 0 0 0 0 0
 70km-3d-base-8w            | peak 60  | long 29  | err 0 | 0 0 0 0 0 0
 70km-3d-base-8w-240min     | peak 30  | long 12  | err 0 | 0 0 0 0 0 0
@@ -492,7 +492,7 @@
 70km-4d-m-16w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 70km-4d-m-16w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 70km-4d-m-24w              | peak 69  | long 29.6 | err 0 | 0 0 0 0 0 0
-70km-4d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 1 1
+70km-4d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 70km-4d-m-24w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 70km-4d-base-8w            | peak 69  | long 29.5 | err 0 | 0 0 0 0 0 0
 70km-4d-base-8w-240min     | peak 30  | long 15  | err 0 | 0 0 0 0 0 0
@@ -528,7 +528,7 @@
 70km-5d-m-16w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 70km-5d-m-16w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 70km-5d-m-24w              | peak 81  | long 29.1 | err 0 | 0 0 0 0 0 0
-70km-5d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 1 1
+70km-5d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 70km-5d-m-24w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 70km-5d-base-8w            | peak 81  | long 29  | err 0 | 0 0 0 0 0 0
 70km-5d-base-8w-240min     | peak 30  | long 15  | err 0 | 0 0 0 0 0 0
@@ -564,7 +564,7 @@
 70km-6d-m-16w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 70km-6d-m-16w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 70km-6d-m-24w              | peak 81  | long 29.1 | err 0 | 0 0 0 0 0 0
-70km-6d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 1 1
+70km-6d-m-24w-240min       | peak 30  | long 15.9 | err 0 | 0 0 0 0 0 1
 70km-6d-m-24w-360min       | peak 47  | long 23.8 | err 0 | 0 0 0 0 0 1
 70km-6d-base-8w            | peak 81  | long 29  | err 0 | 0 0 0 0 0 0
 70km-6d-base-8w-240min     | peak 30  | long 15  | err 0 | 0 0 0 0 0 0

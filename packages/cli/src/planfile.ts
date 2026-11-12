@@ -206,9 +206,11 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   const capped = budgetCap !== undefined && budgetCap < free.peakKmPlanned
   const macro = capped ? planMacrocycle({ today, goal, athlete, peakCapKm: budgetCap }) : free
   // B11: zatwierdzony powrót (`adapt --apply`) albo powrót z profilu zaczęty po starcie
-  // planu (pole dopisane w trakcie, B8) — blok powrotu od `since`
-  const profileReturn = opts.returnFrom ? undefined : profileReturnBlock(athlete, today, calibrationDate)
-  const returnFrom = opts.returnFrom ?? profileReturn
+  // planu (pole dopisane w trakcie, B8) — blok powrotu od `since`. Jedna decyzja naraz:
+  // wygrywa nowsza przerwa — powrót z profilu po zatwierdzonym opisuje kolejną przerwę
+  const fromProfile = profileReturnBlock(athlete, today, calibrationDate)
+  const profileReturn = fromProfile && (!opts.returnFrom || fromProfile.since > opts.returnFrom.since) ? fromProfile : undefined
+  const returnFrom = profileReturn ?? opts.returnFrom
   // Blok powrotu działa na plan z budżetem i bez niego, więc różnica między nimi to
   // wyłącznie budżet — krzywa powrotu nie trafia do ostrzeżenia E-2
   const withReturn = (weeks: WeekSkeleton[]) => (returnFrom ? applyReturnBlock(weeks, returnFrom) : weeks)
@@ -259,13 +261,17 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
   if (trailOnly) plan.feasibilityWarnings.push(ui().planMd.trailOnlyCalibration)
   // powrót z profilu w trakcie planu mówi o sobie tak jak powrót na starcie planu (R-11) —
   // dopóki blok trwa: tydzień bieżący albo późniejszy jest jeszcze na krzywej albo spokojny.
-  // Potem ostrzeżenie opisywałoby blok, którego w planie przed biegaczem już nie ma.
-  const returnAhead = skeletons.some((w) => w.weekStart >= mondayOf(calibrationDate) && w.ruleRefs.includes('R-11'))
-  // Ten sam warunek dla powrotu ze startu planu (volumeBase): regeneracja liczy plan od
-  // startu, więc makrocykl powtarza ostrzeżenie przez cały cykl — znika, gdy spokojny blok
-  // jest już za biegaczem
+  // Potem ostrzeżenie opisywałoby blok, którego w planie przed biegaczem już nie ma. Każdy
+  // powrót patrzy na swoje tygodnie: ze startu planu — przed blokiem w trakcie, ten w trakcie
+  // — od swojego `since`.
+  const ahead = (w: WeekSkeleton) => w.weekStart >= mondayOf(calibrationDate) && w.ruleRefs.includes('R-11')
+  const midStart = returnFrom ? mondayOf(returnFrom.since) : undefined
+  const returnAhead = midStart !== undefined && skeletons.some((w) => ahead(w) && w.weekStart >= midStart)
+  // Powrót ze startu planu (volumeBase): regeneracja liczy plan od startu, więc makrocykl
+  // powtarza ostrzeżenie przez cały cykl — znika, gdy jego spokojny blok jest już za biegaczem
   const startReturn = volumeBase(athlete, today)
-  if (startReturn.returning && !returnAhead) {
+  const startAhead = skeletons.some((w) => ahead(w) && (midStart === undefined || w.weekStart < midStart))
+  if (startReturn.returning && !startAhead) {
     const text = messages().macro.returnBlock(startReturn.start, athlete.returning!.previousWeeklyKm)
     plan.feasibilityWarnings = plan.feasibilityWarnings.filter((w) => w !== text)
   }

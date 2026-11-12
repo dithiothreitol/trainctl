@@ -92,6 +92,12 @@ export interface AdaptationInput {
    */
   returnInProgress?: boolean
   /**
+   * B11: przyjęty blok powrotu zaczyna się po dziś (`since` jutro albo po przerwie zapisanej
+   * z góry). Bieżąca albo świeżo zakończona przerwa ma już swój powrót w planie — bez nowego
+   * restartu i bez zmiany bazy przez zgodność.
+   */
+  returnPending?: boolean
+  /**
    * B11: wpisy dziennika z przyczyną przerwy. O bieżącej przerwie mówią tylko te po
    * ostatnim biegu w oknie — wcześniejsza przerwa, po której biegacz biegał, nie.
    */
@@ -181,7 +187,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const brk = recentBreak(input.execution, input.today)
   // Przerwa zakończona przy trwającym bloku powrotu (przyjętym albo z profilu): blok już
   // prowadzi powrót — drugi restart liczyłby się od obniżonych tygodni i składał redukcje
-  const ended = currentGap < LAYOFF_DAYS && brk.returnedOn && brk.before && !input.returnInProgress
+  const ended = currentGap < LAYOFF_DAYS && brk.returnedOn && brk.before && !input.returnInProgress && !input.returnPending
     ? { before: brk.before, run: brk.returnedOn }
     : undefined
   const layoff = ended ? diffDays(ended.before, ended.run) : currentGap
@@ -208,7 +214,9 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   if (injury) warnings.push(m.adapt.injuryReturn)
   if (layoffFound) {
     diagnosis.push(m.adapt.layoffDiagnosis(layoff))
-    if (!injury) {
+    // przyjęty powrót, który dopiero się zacznie, już prowadzi tę przerwę
+    if (input.returnPending && !injury) diagnosis.push(m.adapt.returnPlanned)
+    if (!injury && !input.returnPending) {
       // B11: restart do przyjęcia jako blok powrotu — po chorobie R-5, po innej przerwie R-11
       const illness = breakReason === 'illness'
       const previousWeeklyKm = input.preBreakWeeklyKm ?? input.currentWeeklyKm
@@ -272,7 +280,7 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
 
   // 4) Zgodność objętości. W trakcie bloku powrotu objętość prowadzi krzywa (R-5, R-11), a okno
   // zawiera jeszcze przerwę — obniżenie bazy zastąpiłoby powrót i złożyło drugie cięcie
-  if (input.returnInProgress && dataStatus === 'complete' && layoff < LAYOFF_DAYS && !injury) {
+  if ((input.returnInProgress || input.returnPending) && dataStatus === 'complete' && layoff < LAYOFF_DAYS && !injury) {
     diagnosis.push(m.adapt.returnInProgress)
     actions.push({ type: 'hold-course', detail: m.adapt.holdCourse, ruleRefs: ['R-11'] })
   } else if (dataStatus === 'complete' && plannedKm > 0 && layoff < LAYOFF_DAYS && !injury) {
