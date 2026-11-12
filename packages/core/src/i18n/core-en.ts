@@ -95,6 +95,28 @@ export const coreEn = {
   },
 
   /**
+   * PLAN-v0.7 C1: notacja jednostki generowana ze struktury (`sessionLine`). Skróty
+   * neutralne (decyzja 2), objaśnione jednym wierszem legendy pod widokiem.
+   */
+  notation: {
+    warmup: 'WU',
+    cooldown: 'CD',
+    recovery: 'r.',
+    walk: 'walk',
+    jog: 'jog',
+    hills: 'hills',
+    strides: 'strides',
+    timeTrial: 'time trial',
+    race: 'RACE',
+    drill: 'drill',
+    sendoff: 'on',
+    strength: 'strength',
+    /** Dłuższa przerwa w połowie serii: po którym odcinku. */
+    afterRep: (rep: number) => `after rep ${rep}`,
+    legend: 'WU warm-up · CD cool-down · r. recovery · pace in min/km',
+  },
+
+  /**
    * Nazwy kroków treningu w pliku FIT — czyta je zegarek w biegu.
    * Limit 23 znaków (STEP_NAME_SIZE): krótko i jednoznacznie.
    */

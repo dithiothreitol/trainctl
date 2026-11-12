@@ -104,6 +104,23 @@ export const corePl: CoreMessages = {
     restDay: 'dzień wolny',
   },
 
+  notation: {
+    warmup: 'RG',
+    cooldown: 'SCH',
+    recovery: 'p.',
+    walk: 'marsz',
+    jog: 'trucht',
+    hills: 'podbiegi',
+    strides: 'przebieżki',
+    timeTrial: 'na czas',
+    race: 'START',
+    drill: 'technika',
+    sendoff: 'co',
+    strength: 'siła',
+    afterRep: (rep: number) => `po ${rep}. odcinku`,
+    legend: 'RG rozgrzewka · SCH schłodzenie · p. przerwa · tempo w min/km',
+  },
+
   fitStep: {
     warmup: 'Rozgrzewka',
     cooldown: 'Trucht',
