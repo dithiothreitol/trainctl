@@ -5,6 +5,7 @@
  * Nazewnictwo typów jak w intervals.icu/Stravie, bo CLI rozpoznaje bieg
  * wyrażeniem `/^(run|running|trailrun|…|virtualrun|treadmill…)$/i` na `type`.
  */
+import type { ActivityLap } from 'trainctl-core'
 
 /** Typy, które parsery zwracają. Wszystko spoza listy trafia do `Other`. */
 export type ActivityType =
@@ -18,6 +19,18 @@ export type ActivityType =
   | 'WeightTraining'
   | 'Other'
   | 'Transition'
+
+/**
+ * D1: okrążenie w jednostkach surowych (metry, sekundy) — `files.ts` zamienia je
+ * na `ActivityLap` w km. Czas to czas stopera okrążenia, jak `movingTimeSec` sesji.
+ */
+export interface ParsedLap {
+  distanceM: number
+  movingTimeSec: number
+  avgHr?: number
+  trigger?: ActivityLap['trigger']
+  intensity?: ActivityLap['intensity']
+}
 
 export interface ParsedActivity {
   parts?: ParsedActivity[]
@@ -40,6 +53,8 @@ export interface ParsedActivity {
   elapsedTimeSec?: number
   elevationGainM?: number
   avgHr?: number
+  /** D1: okrążenia w kolejności (FIT `lap`, TCX `<Lap>`); GPX ich nie ma. */
+  laps?: ParsedLap[]
 }
 
 export const isRunType = (type: ActivityType): boolean =>
@@ -61,6 +76,7 @@ export interface ActivityPart {
   elapsedTimeSec?: number
   elevationGainM?: number
   avgHr?: number
+  laps?: ParsedLap[]
 }
 
 const sum = (values: (number | undefined)[]): number | undefined => {
@@ -74,6 +90,7 @@ const sum = (values: (number | undefined)[]): number | undefined => {
  * udawać 40 km biegu. Gdy części biegowych brak, sumujemy wszystkie, a typ
  * bierzemy z pierwszej. Start zawsze z pierwszej części (data całego zdarzenia).
  * Tętno: średnia ważona czasem ruchu (albo czasem całkowitym, gdy ruchu brak).
+ * Okrążenia: z tych samych części, w kolejności startu (D1).
  */
 export function combineParts(parts: ActivityPart[]): ActivityPart | undefined {
   if (parts.length === 0) return undefined
@@ -100,6 +117,8 @@ export function combineParts(parts: ActivityPart[]): ActivityPart | undefined {
     hrSum += p.avgHr * weight
   }
   if (hrWeight > 0) combined.avgHr = hrSum / hrWeight
+  const laps = chosen.flatMap((p) => p.laps ?? [])
+  if (laps.length) combined.laps = laps
   return combined
 }
 
@@ -120,5 +139,6 @@ export function toParsed(part: ActivityPart, date: string, name?: string): Parse
   if (part.avgPowerWatts !== undefined) parsed.avgPowerWatts = part.avgPowerWatts
   if (part.avgCadence !== undefined) parsed.avgCadence = part.avgCadence
   if (part.poolLengthM !== undefined) parsed.poolLengthM = part.poolLengthM
+  if (part.laps?.length) parsed.laps = part.laps.map((lap) => ({ ...lap }))
   return parsed
 }

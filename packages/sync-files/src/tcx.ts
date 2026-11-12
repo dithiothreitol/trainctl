@@ -12,13 +12,18 @@
  * - Tętno: średnia `AverageHeartRateBpm/Value` okrążeń ważona ich czasem.
  * - Podejścia: TCX ich nie podsumowuje — liczymy z `AltitudeMeters` punktów.
  * - Multisport (`MultiSportSession`): części biegowe sumowane (jak w FIT).
+ * - Okrążenia (D1): każde `Lap` z dystansem i czasem; `Intensity` Active/Resting
+ *   i `TriggerMethod` Manual/Distance/Time (Location i HeartRate to „other").
  */
-import { combineParts, toParsed, type ActivityPart, type ActivityType, type ParsedActivity } from './activity.ts'
+import { combineParts, toParsed, type ActivityPart, type ActivityType, type ParsedActivity, type ParsedLap } from './activity.ts'
 import { localDateFromIso, parseIsoMs } from './dates.ts'
 import { elevationGainM } from './measure.ts'
 import { attr, childNumber, childText, element, elements, stripComments, without, type XmlElement } from './xml.ts'
 
 const SPORTS: Record<string, ActivityType> = { running: 'Run', biking: 'Ride', swimming: 'Swim', transition: 'Transition' }
+/** Schemat TCX v2: `Intensity_t` i `TriggerMethod_t`. */
+const LAP_INTENSITY: Record<string, ParsedLap['intensity']> = { Active: 'work', Resting: 'rest' }
+const LAP_TRIGGER: Record<string, ParsedLap['trigger']> = { Manual: 'manual', Distance: 'distance', Time: 'time' }
 
 interface TcxPart {
   part: ActivityPart
@@ -39,6 +44,7 @@ function activityPart(activity: XmlElement): TcxPart | undefined {
   let hrWeighted = 0
   let hrWeight = 0
   const altitudes: number[] = []
+  const lapList: ParsedLap[] = []
 
   for (const lap of laps) {
     const summary = without(lap.inner, 'Track')
@@ -51,6 +57,15 @@ function activityPart(activity: XmlElement): TcxPart | undefined {
     if (hr !== undefined && total !== undefined && total > 0) {
       hrWeighted += hr * total
       hrWeight += total
+    }
+    if (distance !== undefined && distance >= 0 && total !== undefined && total > 0) {
+      const entry: ParsedLap = { distanceM: distance, movingTimeSec: total }
+      if (hr !== undefined) entry.avgHr = hr
+      const intensity = childText(summary, 'Intensity')
+      if (intensity !== undefined && Object.hasOwn(LAP_INTENSITY, intensity)) entry.intensity = LAP_INTENSITY[intensity]!
+      const trigger = childText(summary, 'TriggerMethod')
+      if (trigger !== undefined) entry.trigger = Object.hasOwn(LAP_TRIGGER, trigger) ? LAP_TRIGGER[trigger]! : 'other'
+      lapList.push(entry)
     }
     const lapStartIso = attr(lap.attrs, 'StartTime')
     const lapStart = lapStartIso === undefined ? undefined : parseIsoMs(lapStartIso)
@@ -77,6 +92,7 @@ function activityPart(activity: XmlElement): TcxPart | undefined {
   if (hrWeight > 0) part.avgHr = hrWeighted / hrWeight
   const gain = elevationGainM(altitudes)
   if (gain !== undefined) part.elevationGainM = gain
+  if (lapList.length) part.laps = lapList
 
   const result: TcxPart = { part, startIso }
   // `Notes` aktywności (nie okrążenia) — tam Garmin i część eksporterów wpisują nazwę.

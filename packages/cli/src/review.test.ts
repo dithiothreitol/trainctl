@@ -63,7 +63,8 @@ describe('trainctl review — z kluczem API', () => {
     withKey()
     const listActivities = vi.fn(provider.listActivities)
     const r = await cmdReview(dir, { date: TODAY, prepare: true }, () => ({ ...provider, listActivities }))
-    expect(listActivities).toHaveBeenCalledWith('2026-07-28', TODAY)
+    // D1: z okrążeniami, jak pull — odświeżenie nie może ich zgubić z migawki
+    expect(listActivities).toHaveBeenCalledWith('2026-07-28', TODAY, { laps: true })
     expect(r.data!.period).toEqual({ from: '2026-08-11', to: TODAY, days: 7 })
   })
   it('odświeża dane i pokazuje wszystkie cztery sekcje', async () => {

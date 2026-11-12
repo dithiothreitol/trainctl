@@ -142,6 +142,29 @@ describe('trainctl pull', () => {
     expect(snap.activities.length).toBeGreaterThan(0)
     expect(snap.wellness[0].hrv).toBe(90)
   })
+
+  it('D1: prosi o okrążenia; migawka trzyma je, gdy kolejne pobranie ich nie niesie', async () => {
+    const asked: unknown[] = []
+    const laps = [{ distanceKm: 1, movingTimeSec: 240, intensity: 'work' as const }]
+    const withLaps = (): SyncProvider => ({
+      ...fakeProvider,
+      listActivities: async (oldest, newest, opts) => {
+        asked.push(opts)
+        return activities
+          .filter((a) => a.date >= oldest && a.date <= newest)
+          .map((a) => (a.externalId === 'a2' ? { ...a, laps } : a))
+      },
+    })
+    const lapsOf = (id: string) =>
+      (JSON.parse(readFileSync(join(dir, 'sync.json'), 'utf-8')).activities as SyncedActivity[]).find((a) => a.externalId === id)?.laps
+    await cmdPull(dir, { days: '5', date: '2026-08-09' }, withLaps)
+    expect(asked).toEqual([{ laps: true }])
+    expect(lapsOf('a2')).toEqual(laps)
+    // drugie pobranie bez okrążeń (limit 429 przerwał dociąganie): stare zostają
+    await cmdPull(dir, { days: '5', date: '2026-08-09' }, factory)
+    expect(lapsOf('a2')).toEqual(laps)
+    expect(lapsOf('a1')).toBeUndefined()
+  })
 })
 
 describe('porównanie plan ↔ wykonanie', () => {

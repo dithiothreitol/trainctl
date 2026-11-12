@@ -1065,7 +1065,8 @@ export async function cmdPull(
     const choice = chooseSource(cwd, opts.from, factory)
     const provider = choice ? { name: choice.label, ...pick(choice.source) } : factory(cwd)
     const [activities, wellness] = await Promise.all([
-      provider.listActivities(from, to),
+      // D1: okrążenia biegów do porównania akcentów w `review`
+      provider.listActivities(from, to, { laps: true }),
       provider.listWellness(from, to).catch(() => []),
     ])
     const skipped = choice?.skipped() ?? []
@@ -1626,7 +1627,8 @@ export async function cmdReview(
       try {
         const provider = choice.source
         const [activities, wellness] = await Promise.all([
-          provider.listActivities(syncFrom, today),
+          // D1: z okrążeniami, jak `pull` — migawka nie może ich zgubić przy odświeżeniu
+          provider.listActivities(syncFrom, today, { laps: true }),
           provider.listWellness(syncFrom, today).catch(() => []),
         ])
         writeSnapshot(cwd, { pulledAt: today, from: syncFrom, to: today, activities, wellness })
@@ -2180,7 +2182,7 @@ function raceDistanceLine(plan: StoredPlan, toRace: number): string {
 /** Metody źródła jako zwykłe funkcje — `this` klasy zostaje przy nich. */
 function pick(source: ActivitySource): Pick<ActivitySource, 'listActivities' | 'listWellness'> {
   return {
-    listActivities: (a, z) => source.listActivities(a, z),
+    listActivities: (a, z, o) => source.listActivities(a, z, o),
     listWellness: (a, z) => source.listWellness(a, z),
   }
 }

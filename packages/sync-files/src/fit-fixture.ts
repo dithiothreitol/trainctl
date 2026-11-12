@@ -186,10 +186,27 @@ export interface SessionSpec {
   ascentM?: number
 }
 
+/** Okrążenie (komunikat `lap` 19); wyliczenia jak w Profile.xlsx. */
+export interface LapSpec {
+  start: string
+  elapsedSec?: number
+  timerSec?: number
+  distanceM?: number
+  avgHr?: number
+  /** `intensity`: 0 active, 1 rest, 2 warmup, 3 cooldown. */
+  intensity?: number
+  /** `lap_trigger`: 0 manual, 1 time, 2 distance, 7 session_end. */
+  trigger?: number
+  /** Bez pola start_time — start wynika z timestamp − czas całkowity. */
+  noStartTime?: boolean
+}
+
 export interface ActivitySpec {
   /** file_id.type; 4 = activity (domyślnie). */
   fileType?: number
   sessions: SessionSpec[]
+  /** Okrążenia zapisane przed sesjami, jak robi to zegarek. */
+  laps?: LapSpec[]
   /** Przesunięcie strefy w komunikacie `activity`; `undefined` = brak komunikatu. */
   utcOffsetSec?: number
   bigEndian?: boolean
@@ -215,6 +232,17 @@ export const SESSION_FIELDS: FieldSpec[] = [
   { num: 9, type: 'uint32' }, // total_distance (cm)
   { num: 16, type: 'uint8' }, // avg_heart_rate
   { num: 22, type: 'uint16' }, // total_ascent
+]
+
+export const LAP_FIELDS: FieldSpec[] = [
+  { num: 253, type: 'uint32' }, // timestamp
+  { num: 2, type: 'uint32' }, // start_time
+  { num: 7, type: 'uint32' }, // total_elapsed_time (ms)
+  { num: 8, type: 'uint32' }, // total_timer_time (ms)
+  { num: 9, type: 'uint32' }, // total_distance (cm)
+  { num: 15, type: 'uint8' }, // avg_heart_rate
+  { num: 23, type: 'enum' }, // intensity
+  { num: 24, type: 'enum' }, // lap_trigger
 ]
 
 export const ACTIVITY_FIELDS: FieldSpec[] = [
@@ -244,7 +272,22 @@ export function sessionValues(s: SessionSpec): (number | undefined)[] {
   ]
 }
 
-/** Plik aktywności: file_id → sesje → activity (z przesunięciem strefy). */
+export function lapValues(l: LapSpec): (number | undefined)[] {
+  const start = fitTime(l.start)
+  const scale = (v: number | undefined, k: number) => (v === undefined ? undefined : Math.round(v * k))
+  return [
+    start + (l.elapsedSec ?? l.timerSec ?? 0),
+    l.noStartTime ? undefined : start,
+    scale(l.elapsedSec, 1000),
+    scale(l.timerSec, 1000),
+    scale(l.distanceM, 100),
+    l.avgHr,
+    l.intensity,
+    l.trigger,
+  ]
+}
+
+/** Plik aktywności: file_id → okrążenia → sesje → activity (z przesunięciem strefy). */
 export function activityFit(spec: ActivitySpec): Uint8Array {
   const bigEndian = spec.bigEndian ?? false
   const first = spec.sessions[0]
@@ -252,6 +295,10 @@ export function activityFit(spec: ActivitySpec): Uint8Array {
   const b = new FitBuilder()
     .define(0, 0, FILE_ID_FIELDS, { bigEndian })
     .data(0, fileIdValues(spec.fileType ?? 4, created))
+  if (spec.laps?.length) {
+    b.define(3, 19, LAP_FIELDS, { bigEndian })
+    for (const l of spec.laps) b.data(3, lapValues(l))
+  }
   const devFields = (spec.devFieldSizes ?? []).map((size, i) => ({ num: i, size, devIndex: 0 }))
   b.define(1, 18, SESSION_FIELDS, { bigEndian, devFields })
   let end = created

@@ -4,6 +4,20 @@
  */
 import type { PlannedDay } from '../domain/types.ts'
 
+/**
+ * PLAN-v0.7 D1: okrążenie aktywności — z zegarka (komunikat `lap` w FIT, `<Lap>` w TCX)
+ * albo interwał wyznaczony przez hub (intervals.icu `icu_intervals`). GPX okrążeń nie ma.
+ */
+export interface ActivityLap {
+  distanceKm: number
+  movingTimeSec: number
+  avgHr?: number
+  /** Jak okrążenie się zamknęło: ręcznie, automatycznie po dystansie albo po czasie, inaczej. */
+  trigger?: 'manual' | 'distance' | 'time' | 'other'
+  /** Rola odcinka, gdy źródło ją podaje: praca, przerwa, rozgrzewka, schłodzenie. */
+  intensity?: 'work' | 'rest' | 'warmup' | 'cooldown'
+}
+
 /** Wykonana aktywność pobrana z serwisu (znormalizowana). */
 export interface SyncedActivity {
   externalId: string
@@ -28,6 +42,8 @@ export interface SyncedActivity {
   avgHr?: number
   /** Najwyższe tętno aktywności — C8: szacunek HRmax w `init --from-intervals` (Z-5). */
   maxHr?: number
+  /** D1: okrążenia w kolejności — do porównania akcentu z planem w `review` (D2). */
+  laps?: ActivityLap[]
   avgPaceSecPerKm?: number
   /** Odczuwana ciężkość sesji (RPE) — jeśli użytkownik ją wprowadził. */
   rpe?: number
@@ -93,7 +109,11 @@ export interface RemotePlannedWorkout {
  */
 export interface ActivitySource {
   readonly name: string
-  listActivities(oldest: string, newest: string): Promise<SyncedActivity[]>
+  /**
+   * `laps`: okrążenia biegów (D1). Hub liczy je osobnym zapytaniem na aktywność,
+   * więc tylko na życzenie (`pull`), nie przy wnioskowaniu profilu z 16 tygodni.
+   */
+  listActivities(oldest: string, newest: string, opts?: { laps?: boolean }): Promise<SyncedActivity[]>
   listWellness(oldest: string, newest: string): Promise<SyncedWellness[]>
 }
 

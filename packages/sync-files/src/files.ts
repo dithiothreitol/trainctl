@@ -10,8 +10,8 @@ import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { gunzipSync } from 'node:zlib'
-import type { SyncedActivity } from 'trainctl-core'
-import { isRunType, type ParsedActivity } from './activity.ts'
+import type { ActivityLap, SyncedActivity } from 'trainctl-core'
+import { isRunType, type ParsedActivity, type ParsedLap } from './activity.ts'
 import { parseFitActivity } from './fit.ts'
 import { parseGpxActivity } from './gpx.ts'
 import { parseTcxActivity } from './tcx.ts'
@@ -137,6 +137,21 @@ function readActivityFile(file: string, kind: FileKind, preserveParts: boolean):
   return { parsed, externalId }
 }
 
+/**
+ * D1: okrążenie w km z dokładnością do metra — dystans aktywności ma 10 m,
+ * a przy odcinkach 400 m to za mało. Okrążenie krótsze niż pół sekundy znika.
+ */
+function toLaps(laps: ParsedLap[]): ActivityLap[] {
+  return laps.flatMap((lap) => {
+    const out: ActivityLap = { distanceKm: Math.round(lap.distanceM) / 1000, movingTimeSec: Math.round(lap.movingTimeSec) }
+    if (!(out.movingTimeSec > 0)) return []
+    if (lap.avgHr !== undefined) out.avgHr = Math.round(lap.avgHr)
+    if (lap.trigger) out.trigger = lap.trigger
+    if (lap.intensity) out.intensity = lap.intensity
+    return [out]
+  })
+}
+
 function toSynced(parsed: ParsedActivity, externalId: string, fallbackName: string): SyncedActivity {
   const activity: SyncedActivity = {
     externalId,
@@ -153,6 +168,9 @@ function toSynced(parsed: ParsedActivity, externalId: string, fallbackName: stri
   if (parsed.distanceM !== undefined && parsed.distanceM > 0 && parsed.movingTimeSec) {
     activity.avgPaceSecPerKm = Math.round(parsed.movingTimeSec / (parsed.distanceM / 1000))
   }
+  // Okrążenia tylko biegu, jak w adapterze intervals.icu: D2 porównuje akcenty biegowe.
+  const laps = parsed.laps && isRunType(parsed.type) ? toLaps(parsed.laps) : []
+  if (laps.length) activity.laps = laps
   return activity
 }
 

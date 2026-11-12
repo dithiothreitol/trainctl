@@ -890,6 +890,17 @@ w commicie punktu.
   wykonalności, regeneracja) i pakiet startowy zostają w km: nie ma ich na
   liście z pkt 2. Flaga `log --km` zachowuje nazwę, a wartość jest w jednostce
   profilu. Kreator pyta o jednostkę na początku.
+- **D1.** Okrążenie niesie poza dystansem, czasem i tętnem rolę odcinka (praca,
+  przerwa, rozgrzewka, schłodzenie) i sposób zamknięcia (ręcznie, po dystansie,
+  po czasie). D2 potrzebuje obu, żeby odróżnić automatyczne okrążenia od
+  struktury. intervals.icu daje okrążenia osobnym zapytaniem na bieg, więc port
+  pobiera je na życzenie (`listActivities(…, { laps: true })`): w `pull`
+  i w odświeżeniu danych `review`, bez `init --from-intervals`. Hub nie podaje
+  sposobu zamknięcia (`docs/integrations/intervalsicu.md` §2d). Okrążenia są
+  tylko przy biegach, w obu źródłach. Migawka zachowuje okrążenia z wcześniejszego
+  pobrania, gdy nowe ich nie niesie (limit 429). `sports pull` nie prosi huba
+  o okrążenia; plan v2 dostanie porównanie odcinków z jednym modelem danych
+  w etapie 4.
 
 ---
 

@@ -117,6 +117,45 @@ describe('parseTcxActivity', () => {
     expect(a.startTime).toBe('2026-09-20T07:00:00.000Z')
   })
 
+  it('okrążenia (D1): dystans, czas, tętno, Intensity i TriggerMethod z poziomu Lap', () => {
+    expect(parseTcxActivity(runningTcx())!.laps).toEqual([
+      { distanceM: 3000, movingTimeSec: 1000, avgHr: 140, intensity: 'work', trigger: 'manual' },
+      { distanceM: 1600, movingTimeSec: 500, avgHr: 170, intensity: 'work', trigger: 'manual' },
+    ])
+  })
+
+  it('okrążenia (D1): Resting to przerwa; Location i HeartRate to inny sposób; bez dystansu albo czasu odpada', () => {
+    const lap = (start: string, inner: string) => `<Lap StartTime="${start}">${inner}</Lap>`
+    const tcx = `<TrainingCenterDatabase><Activities><Activity Sport="Running"><Id>2026-09-15T05:00:00Z</Id>
+      ${lap('2026-09-15T05:00:00Z', '<TotalTimeSeconds>240</TotalTimeSeconds><DistanceMeters>1000</DistanceMeters><Intensity>Active</Intensity><TriggerMethod>Distance</TriggerMethod>')}
+      ${lap('2026-09-15T05:04:00Z', '<TotalTimeSeconds>90</TotalTimeSeconds><DistanceMeters>0</DistanceMeters><Intensity>Resting</Intensity><TriggerMethod>Time</TriggerMethod>')}
+      ${lap('2026-09-15T05:05:30Z', '<TotalTimeSeconds>241</TotalTimeSeconds><DistanceMeters>1000</DistanceMeters><Intensity>Unknown</Intensity><TriggerMethod>Location</TriggerMethod>')}
+      ${lap('2026-09-15T05:09:31Z', '<TotalTimeSeconds>60</TotalTimeSeconds><DistanceMeters>200</DistanceMeters><TriggerMethod>HeartRate</TriggerMethod>')}
+      ${lap('2026-09-15T05:10:31Z', '<TotalTimeSeconds>120</TotalTimeSeconds>')}
+      ${lap('2026-09-15T05:12:31Z', '<TotalTimeSeconds>0</TotalTimeSeconds><DistanceMeters>5</DistanceMeters>')}
+    </Activity></Activities></TrainingCenterDatabase>`
+    expect(parseTcxActivity(tcx)!.laps).toEqual([
+      { distanceM: 1000, movingTimeSec: 240, intensity: 'work', trigger: 'distance' },
+      // przerwa w miejscu: 0 m, ale 90 s — zostaje, oddziela odcinki
+      { distanceM: 0, movingTimeSec: 90, intensity: 'rest', trigger: 'time' },
+      { distanceM: 1000, movingTimeSec: 241, trigger: 'other' },
+      { distanceM: 200, movingTimeSec: 60, trigger: 'other' },
+    ])
+  })
+
+  it('okrążenia (D1) w multisporcie: tylko z części biegowych', () => {
+    const lap = (start: string, sec: number, m: number) =>
+      `<Lap StartTime="${start}"><TotalTimeSeconds>${sec}</TotalTimeSeconds><DistanceMeters>${m}</DistanceMeters></Lap>`
+    const tcx = `<TrainingCenterDatabase><Activities><MultiSportSession>
+      <FirstSport><Activity Sport="Biking"><Id>2026-09-20T07:00:00Z</Id>${lap('2026-09-20T07:00:00Z', 2400, 20000)}</Activity></FirstSport>
+      <NextSport><Activity Sport="Running"><Id>2026-09-20T07:41:00Z</Id>${lap('2026-09-20T07:41:00Z', 700, 2500)}${lap('2026-09-20T07:52:40Z', 800, 2500)}</Activity></NextSport>
+    </MultiSportSession></Activities></TrainingCenterDatabase>`
+    expect(parseTcxActivity(tcx)!.laps).toEqual([
+      { distanceM: 2500, movingTimeSec: 700 },
+      { distanceM: 2500, movingTimeSec: 800 },
+    ])
+  })
+
   it('kilka zwykłych Activity w jednym pliku: bierzemy pierwszą, bez sumowania', () => {
     const one = (start: string, m: number) =>
       `<Activity Sport="Running"><Id>${start}</Id><Lap StartTime="${start}"><TotalTimeSeconds>600</TotalTimeSeconds><DistanceMeters>${m}</DistanceMeters></Lap></Activity>`

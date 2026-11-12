@@ -173,6 +173,15 @@ change between minor versions — a regenerated plan can differ.
   kilometres; the wizard asks for the unit first. `plan` refreshes `PLAN.md`
   when only its view changed, for example after switching units. Diagnostic
   messages in `adapt`, `review` and the race pack still use kilometres.
+- Laps: `pull` and the data refresh in `review` keep the laps of each run in
+  `sync.json`: distance, time, heart rate and, where the source gives them, the
+  lap's role (work, rest, warm-up, cool-down) and how it closed (manual, by
+  distance, by time). They come from FIT `lap` messages, TCX `<Lap>` elements
+  and, for intervals.icu, one extra request per run
+  (`GET /activity/{id}/intervals`); a rate-limit answer stops these requests
+  and keeps the activities. `init --from-intervals` does not fetch laps. Laps
+  already in `sync.json` stay when a later pull does not bring them. GPX has no
+  laps.
 
 - A break during the plan: `trainctl log --date … --to … --status skipped
   --reason illness|injury|travel|other` records every day of the break, also in

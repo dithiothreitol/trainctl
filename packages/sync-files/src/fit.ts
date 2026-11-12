@@ -11,11 +11,12 @@
  * Czytamy tylko to, czego potrzebuje porównanie z planem:
  * - file_id (0): `type` = 4 (activity) — inaczej to nie jest aktywność;
  * - session (18): start, sport, czasy, dystans, tętno, podejścia;
+ * - lap (19): okrążenia — dystans, czas stopera, tętno, rola i sposób zamknięcia (D1);
  * - activity (34): local_timestamp − timestamp = przesunięcie strefy;
  * - sport (12) i record (20): tylko gdy pliku nie zamyka żadna sesja.
  * Pliki łańcuchowe (kilka FIT sklejonych w jeden) czytamy do końca pierwszego.
  */
-import { combineParts, toParsed, type ActivityPart, type ActivityType, type ParsedActivity } from './activity.ts'
+import { combineParts, toParsed, type ActivityPart, type ActivityType, type ParsedActivity, type ParsedLap } from './activity.ts'
 import { dateWithOffset, localDateFromMs } from './dates.ts'
 import { classifyByPace, elevationGainM, movingTimeSec, type MotionSample } from './measure.ts'
 
@@ -247,6 +248,7 @@ export function readFitMessages(bytes: Uint8Array, onMessage: (global: number, f
 const MESG_FILE_ID = 0
 const MESG_SPORT = 12
 const MESG_SESSION = 18
+const MESG_LAP = 19
 const MESG_RECORD = 20
 const MESG_ACTIVITY = 34
 /** file_id.type: 4 = activity (Profile, typ `file`). */
@@ -327,6 +329,57 @@ function sessionPart(f: FitFields, fallbackType: ActivityType | undefined): Acti
   return part
 }
 
+/**
+ * Profile, typ `intensity`: 0 active, 1 rest, 2 warmup, 3 cooldown. „active" to każdy
+ * odcinek poza przerwą, rozgrzewką i schłodzeniem — także okrążenie zwykłego biegu.
+ */
+const LAP_INTENSITY: Record<number, ParsedLap['intensity']> = { 0: 'work', 1: 'rest', 2: 'warmup', 3: 'cooldown' }
+/** Profile, typ `lap_trigger`: 0 manual, 1 time, 2 distance; dalej pozycja, koniec sesji, urządzenie. */
+const LAP_TRIGGER: Record<number, ParsedLap['trigger']> = { 0: 'manual', 1: 'time', 2: 'distance' }
+
+interface TimedLap {
+  /** Start okrążenia w sekundach FIT — do przypisania okrążenia do sesji. */
+  start: number
+  lap: ParsedLap
+}
+
+/**
+ * Okrążenie FIT (komunikat `lap`, D1): start_time (2), total_elapsed_time (7)
+ * i total_timer_time (8) w skali 1000, total_distance (9) w skali 100,
+ * avg_heart_rate (15), intensity (23), lap_trigger (24). Bez dystansu albo
+ * z zerowym czasem okrążenie nic nie mówi o tempie — pomijamy je.
+ */
+function fitLap(f: FitFields): TimedLap | undefined {
+  const elapsed = scaled(f.get(7), 1000)
+  const timer = scaled(f.get(8), 1000) ?? elapsed
+  const distance = scaled(f.get(9), 100)
+  const start = f.get(2) ?? (f.has(TIMESTAMP_FIELD) && elapsed !== undefined ? f.get(TIMESTAMP_FIELD)! - elapsed : undefined)
+  if (start === undefined || distance === undefined || timer === undefined || !(timer > 0)) return undefined
+  const lap: ParsedLap = { distanceM: distance, movingTimeSec: timer }
+  const hr = f.get(15)
+  if (hr !== undefined) lap.avgHr = hr
+  const intensity = f.get(23)
+  if (intensity !== undefined && Object.hasOwn(LAP_INTENSITY, intensity)) lap.intensity = LAP_INTENSITY[intensity]!
+  const trigger = f.get(24)
+  if (trigger !== undefined) lap.trigger = Object.hasOwn(LAP_TRIGGER, trigger) ? LAP_TRIGGER[trigger]! : 'other'
+  return { start, lap }
+}
+
+/**
+ * Okrążenia do części: każde trafia do ostatniej części, która zaczęła się
+ * najpóźniej w chwili startu okrążenia (pierwsza bierze też te sprzed swojego startu).
+ * Multisport: okrążenia roweru zostają przy rowerze, a combineParts bierze tylko biegowe.
+ */
+function assignLaps(parts: ActivityPart[], laps: TimedLap[]): void {
+  const ordered = [...parts].sort((a, b) => a.startMs - b.startMs)
+  for (const { start, lap } of [...laps].sort((a, b) => a.start - b.start)) {
+    const startMs = fitTimeToMs(start)
+    let owner = ordered[0]
+    for (const p of ordered) if (p.startMs <= startMs) owner = p
+    if (owner) (owner.laps ??= []).push(lap)
+  }
+}
+
 /** Plik bez `session` (przerwany zapis, część eksporterów): suma z punktów `record`. */
 function recordsPart(records: RecordSample[], sportType: ActivityType | undefined): ActivityPart | undefined {
   const timed = records.filter((r): r is RecordSample & { t: number } => r.t !== undefined)
@@ -363,6 +416,7 @@ function recordsPart(records: RecordSample[], sportType: ActivityType | undefine
 export function parseFitActivity(bytes: Uint8Array, opts: { preserveParts?: boolean } = {}): ParsedActivity | undefined {
   let fileType: number | undefined
   const sessions: FitFields[] = []
+  const laps: TimedLap[] = []
   const records: RecordSample[] = []
   let activity: FitFields | undefined
   let sport: FitFields | undefined
@@ -375,6 +429,11 @@ export function parseFitActivity(bytes: Uint8Array, opts: { preserveParts?: bool
       case MESG_SESSION:
         sessions.push(f)
         break
+      case MESG_LAP: {
+        const lap = fitLap(f)
+        if (lap) laps.push(lap)
+        break
+      }
       case MESG_ACTIVITY:
         activity = f
         break
@@ -403,7 +462,9 @@ export function parseFitActivity(bytes: Uint8Array, opts: { preserveParts?: bool
   const parts = sessions
     .map((s) => sessionPart(s, sportType))
     .filter((p): p is ActivityPart => p !== undefined)
-  const part = parts.length ? combineParts(parts) : recordsPart(records, sportType)
+  const fallback = parts.length ? undefined : recordsPart(records, sportType)
+  assignLaps(fallback ? [fallback] : parts, laps)
+  const part = fallback ?? combineParts(parts)
   if (!part) return undefined
 
   const ts = activity?.get(TIMESTAMP_FIELD)

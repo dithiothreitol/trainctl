@@ -32,8 +32,11 @@ export class FileActivitySource implements ActivitySource {
     return this.skipped
   }
 
-  /** Aktywności z zakresu `oldest`…`newest` włącznie (daty `YYYY-MM-DD`, lokalne). */
-  async listActivities(oldest: string, newest: string): Promise<SyncedActivity[]> {
+  /**
+   * Aktywności z zakresu `oldest`…`newest` włącznie (daty `YYYY-MM-DD`, lokalne).
+   * Okrążenia (D1) są w samym pliku, więc przychodzą zawsze, bez względu na `laps`.
+   */
+  async listActivities(oldest: string, newest: string, _opts: { laps?: boolean } = {}): Promise<SyncedActivity[]> {
     const { activities, skipped } = scanActivityFiles(this.path, { preserveParts: this.preserveParts })
     this.skipped = skipped
     return activities.filter((a) => a.date >= oldest && a.date <= newest)

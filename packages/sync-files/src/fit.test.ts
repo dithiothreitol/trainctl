@@ -9,12 +9,15 @@ import {
   ACTIVITY_FIELDS,
   FILE_ID_FIELDS,
   FitBuilder,
+  LAP_FIELDS,
   SESSION_FIELDS,
   activityFit,
   crc16Arc,
   fileIdValues,
   fitTime,
+  lapValues,
   sessionValues,
+  type LapSpec,
   type SessionSpec,
 } from './fit-fixture.ts'
 
@@ -194,6 +197,94 @@ describe('parseFitActivity: multisport', () => {
     )!
     expect(a.type).toBe('Swim')
     expect(a.distanceM).toBe(31500)
+  })
+})
+
+describe('parseFitActivity: okrążenia (D1)', () => {
+  // Akcent 2× 1000 m z przerwą 90 s, rozgrzewką i schłodzeniem — wartości wymyślone.
+  const LAPS: LapSpec[] = [
+    { start: '2026-09-15T05:00:00Z', timerSec: 600, elapsedSec: 600, distanceM: 2000, avgHr: 135, intensity: 2, trigger: 0 },
+    { start: '2026-09-15T05:10:00Z', timerSec: 240, elapsedSec: 240, distanceM: 1000, avgHr: 168, intensity: 0, trigger: 2 },
+    { start: '2026-09-15T05:14:00Z', timerSec: 90, elapsedSec: 90, distanceM: 180, avgHr: 140, intensity: 1, trigger: 1 },
+    { start: '2026-09-15T05:15:30Z', timerSec: 238.5, elapsedSec: 239, distanceM: 1003.27, avgHr: 171, intensity: 0, trigger: 2 },
+    { start: '2026-09-15T05:19:29Z', timerSec: 420, elapsedSec: 421, distanceM: 1200, avgHr: 142, intensity: 3, trigger: 7 },
+  ]
+  const SESSION: SessionSpec = { start: '2026-09-15T05:00:00Z', sport: 1, timerSec: 1588.5, elapsedSec: 1590, distanceM: 5383.27, avgHr: 150 }
+
+  it('akcent: dystans, czas stopera, tętno, rola i sposób zamknięcia każdego okrążenia', () => {
+    const a = parseFitActivity(activityFit({ sessions: [SESSION], laps: LAPS, utcOffsetSec: 7200 }))!
+    expect(a.laps).toEqual([
+      { distanceM: 2000, movingTimeSec: 600, avgHr: 135, intensity: 'warmup', trigger: 'manual' },
+      { distanceM: 1000, movingTimeSec: 240, avgHr: 168, intensity: 'work', trigger: 'distance' },
+      { distanceM: 180, movingTimeSec: 90, avgHr: 140, intensity: 'rest', trigger: 'time' },
+      { distanceM: 1003.27, movingTimeSec: 238.5, avgHr: 171, intensity: 'work', trigger: 'distance' },
+      // lap_trigger 7 (session_end) to „inny" sposób zamknięcia
+      { distanceM: 1200, movingTimeSec: 420, avgHr: 142, intensity: 'cooldown', trigger: 'other' },
+    ])
+    // okrążenia nie zmieniają sum sesji
+    expect(a.distanceM).toBe(5383.27)
+    expect(a.movingTimeSec).toBe(1589)
+  })
+
+  it('okrążenie bez dystansu albo z zerowym czasem odpada; brak pól to brak wartości, nie zero', () => {
+    const laps: LapSpec[] = [
+      { start: '2026-09-15T05:00:00Z', timerSec: 300, avgHr: 150, intensity: 0, trigger: 0 }, // bez dystansu
+      { start: '2026-09-15T05:05:00Z', timerSec: 0, elapsedSec: 0, distanceM: 10, intensity: 0 }, // zerowy czas
+      // bez czasu stopera (bierzemy całkowity), bez tętna, intensity 6 spoza listy, bez start_time
+      { start: '2026-09-15T05:05:00Z', elapsedSec: 300, distanceM: 1000, intensity: 6, noStartTime: true },
+      { start: '2026-09-15T05:10:00Z', timerSec: 280, distanceM: 1000, trigger: 4 }, // position_lap
+    ]
+    const a = parseFitActivity(activityFit({ sessions: [SESSION], laps, utcOffsetSec: 0 }))!
+    expect(a.laps).toEqual([
+      { distanceM: 1000, movingTimeSec: 300 },
+      { distanceM: 1000, movingTimeSec: 280, trigger: 'other' },
+    ])
+  })
+
+  it('sesja bez okrążeń: pole laps nie istnieje', () => {
+    expect(parseFitActivity(activityFit({ sessions: [SESSION], utcOffsetSec: 0 }))!).not.toHaveProperty('laps')
+  })
+
+  it('multisport: okrążenia roweru zostają przy rowerze, bieg dostaje swoje w kolejności', () => {
+    const sessions: SessionSpec[] = [
+      { start: '2026-09-20T07:00:00Z', sport: 1, timerSec: 1500, elapsedSec: 1510, distanceM: 5000 },
+      { start: '2026-09-20T07:26:00Z', sport: 2, timerSec: 2400, elapsedSec: 2420, distanceM: 20000 },
+      { start: '2026-09-20T08:07:00Z', sport: 1, timerSec: 800, elapsedSec: 805, distanceM: 2500 },
+    ]
+    const laps: LapSpec[] = [
+      // zapisane w odwrotnej kolejności: przypisanie idzie po czasie startu, nie po miejscu w pliku
+      { start: '2026-09-20T08:07:00Z', timerSec: 800, distanceM: 2500 },
+      { start: '2026-09-20T07:26:00Z', timerSec: 2400, distanceM: 20000 },
+      { start: '2026-09-20T07:00:00Z', timerSec: 1500, distanceM: 5000 },
+    ]
+    const bytes = activityFit({ sessions, laps, utcOffsetSec: 3600 })
+    expect(parseFitActivity(bytes)!.laps).toEqual([
+      { distanceM: 5000, movingTimeSec: 1500 },
+      { distanceM: 2500, movingTimeSec: 800 },
+    ])
+    const parts = parseFitActivity(bytes, { preserveParts: true })!.parts!
+    expect(parts.map((p) => p.laps)).toEqual([
+      [{ distanceM: 5000, movingTimeSec: 1500 }],
+      [{ distanceM: 20000, movingTimeSec: 2400 }],
+      [{ distanceM: 2500, movingTimeSec: 800 }],
+    ])
+  })
+
+  it('plik bez sesji: okrążenia trafiają do aktywności złożonej z punktów', () => {
+    const t0 = fitTime('2026-09-16T05:00:00Z')
+    const b = new FitBuilder()
+      .define(0, 0, FILE_ID_FIELDS)
+      .data(0, fileIdValues(4, t0))
+      .define(3, 19, LAP_FIELDS)
+      .data(3, lapValues({ start: '2026-09-16T05:00:00Z', timerSec: 20, distanceM: 60, intensity: 0, trigger: 0 }))
+      .define(1, 20, [
+        { num: 253, type: 'uint32' },
+        { num: 5, type: 'uint32' },
+      ])
+    for (const [dt, d] of [[0, 0], [10, 30], [20, 60]] as const) b.data(1, [t0 + dt, d * 100])
+    const a = parseFitActivity(b.build())!
+    expect(a.distanceM).toBe(60)
+    expect(a.laps).toEqual([{ distanceM: 60, movingTimeSec: 20, intensity: 'work', trigger: 'manual' }])
   })
 })
 

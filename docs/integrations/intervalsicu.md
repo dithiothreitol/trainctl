@@ -73,6 +73,7 @@ dedykowanych wątków forum (konkretne curl w sekcji 2):
 |---|---|---|
 | Lista aktywności | `GET /api/v1/athlete/{id}/activities?oldest=...&newest=...` | [Cookbook](https://forum.intervals.icu/t/intervals-icu-api-integration-cookbook/80090) |
 | Szczegóły aktywności + interwały/okrążenia | `GET /api/v1/activity/{id}?intervals=true` | [wątek API access](https://forum.intervals.icu/t/api-access-to-intervals-icu/609) (synteza, nie bezpośredni cytat — do weryfikacji) |
+| Interwały aktywności (okrążenia, PLAN-v0.7 D1) | `GET /api/v1/activity/{id}/intervals` → `icu_intervals`, `icu_groups` | §2d |
 | Oryginalny plik aktywności | `GET /api/v1/activity/{id}/file` → `.fit.gz` | [Cookbook](https://forum.intervals.icu/t/intervals-icu-api-integration-cookbook/80090) |
 | Streams (moc/HR/kadencja/...) | `GET /api/v1/activity/{id}/streams.json?types=watts,heartrate,cadence,...` | [Access Activities Streams via API](https://forum.intervals.icu/t/access-activities-streams-via-api/101065) — endpoint zweryfikowany przez autora wątku metodą prób i błędów (404 na złej ścieżce, 200 na tej) |
 | Wellness (odczyt) | `GET /api/v1/athlete/{id}/wellness?oldest=...&newest=...` | [Cookbook](https://forum.intervals.icu/t/intervals-icu-api-integration-cookbook/80090) |
@@ -531,6 +532,48 @@ okna 2024-01-01 → dziś), więc nie dało się sprawdzić:
 Kiedy konto dostanie realną historię (spięcie z Garminem), wystarczy uruchomić
 `trainctl init --from-intervals` w pustym katalogu i porównać propozycje z faktycznym
 stanem wytrenowania — wynik dopisać do tej sekcji.
+
+## 2d. OKRĄŻENIA AKTYWNOŚCI (PLAN-v0.7 D1) — stan weryfikacji (2026-11-12)
+
+`trainctl pull` i odświeżenie danych w `review` dociągają interwały biegów
+osobnym zapytaniem na aktywność:
+
+```
+GET /api/v1/activity/{id}/intervals
+→ { "icu_intervals": [ ... ], "icu_groups": [ ... ] }
+```
+
+| Fakt | Źródło |
+|---|---|
+| Ścieżka `/activity/{id}/intervals`; odpowiedź z kluczami `icu_intervals` i `icu_groups` | [mvilanova/intervals-mcp-server, `tools/activities.py`](https://github.com/mvilanova/intervals-mcp-server/blob/main/src/intervals_mcp_server/tools/activities.py), funkcja `get_activity_intervals` (bezpośredni odczyt kodu) |
+| Pola interwału: `distance` (Float, m), `moving_time` i `elapsed_time` (int, s), `average_heartrate` (Integer), `type` (`WORK`, `RECOVERY`), `start_time` i `end_time` (s od startu aktywności), `label` | [„Server side data model for scripts"](https://forum.intervals.icu/t/server-side-data-model-for-scripts/25781), klasa `Interval` (bezpośredni odczyt) |
+| Wariant `GET /activity/{id}?intervals=true` z tablicą `icu_intervals` w aktywności | [wątek API access](https://forum.intervals.icu/t/api-access-to-intervals-icu/609) (synteza wyszukiwarki, nie cytat); nie używamy |
+
+**Decyzje adaptera:**
+
+- Okrążenia tylko na życzenie (`listActivities(…, { laps: true })`): `pull`
+  i odświeżenie w `review` tak, `init --from-intervals` nie. Szesnaście tygodni
+  historii to kilkadziesiąt zapytań, których wnioskowanie profilu nie potrzebuje.
+- Tylko biegi (`Run`, `TrailRun`, `VirtualRun`) z dystansem. Aktywności
+  zatrzymane przez Stravę (§1.8.1) nie mają typu ani dystansu, więc nie kosztują
+  zapytania.
+- Zapytania po kolei, bez równoległości: limit 10 połączeń na sekundę na adres IP
+  (§1.5). Okno `pull` (28 dni) to zwykle kilkanaście do dwudziestu kilku zapytań,
+  daleko od 2500 na 15 minut.
+- Błąd jednej aktywności: brak okrążeń tylko dla niej. `429`: koniec dociągania.
+  Aktywności zostają, a okrążenia pobrane wcześniej zostają w `sync.json`.
+- `type`: `WORK` to praca, `RECOVERY` to przerwa, inne wartości zostają bez roli.
+  Przerwa w miejscu ma 0 m i zerowy `moving_time`; wtedy liczy się `elapsed_time`.
+- Model danych nie mówi, czy interwał to okrążenie z zegarka, czy odcinek
+  wykryty przez intervals.icu. Nie ma pola pochodzenia, a `use_laps_for_power_intervals`
+  w `SportSettings` dotyczy mocy. Dlatego sposób zamknięcia okrążenia (`trigger`)
+  z huba zostaje pusty i rozpoznanie automatycznych okrążeń (D2) nie może się
+  opierać wyłącznie na nim.
+
+**Niezweryfikowane na żywym koncie:** konto testowe nie ma aktywności (§2b),
+więc kształt odpowiedzi znamy ze źródeł, nie z ruchu sieciowego. Test adaptera
+jedzie na odpowiedziach wymyślonych w tym kształcie. Po podpięciu zegarka:
+`trainctl pull`, porównać okrążenia w `sync.json` z zegarkiem i dopisać wynik tutaj.
 
 ## 3. Pytania otwarte
 

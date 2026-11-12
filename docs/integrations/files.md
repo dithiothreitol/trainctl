@@ -36,13 +36,18 @@ but your own export can.
 - **FIT**: the `session` message (sport, start, distance, moving and elapsed
   time, heart rate, ascent), local date from the `activity` message's
   local timestamp; multisport files count only their running parts.
-- **TCX**: laps (time, distance, heart rate), sport from the `Activity` element.
+  The `lap` messages give the laps of a run: distance, timer time, heart rate,
+  the lap's role (work, rest, warm-up, cool-down) and how it closed (manual,
+  by distance, by time).
+- **TCX**: laps (time, distance, heart rate, `Intensity`, `TriggerMethod`),
+  sport from the `Activity` element.
 - **GPX**: track points — distance by haversine, moving time without pauses over
   60 s or below 0.5 m/s (engineering choices). Without a `type`, a pace between
   3:00 and 9:30 min/km counts as a run.
 
 Running, trail running and treadmill sessions count as runs; everything else is
-kept but not compared with the plan. Zones never come from these files — they
+kept but not compared with the plan. Laps are kept for runs only; `review` uses
+them to set a session with repetitions against its targets. GPX has no laps. Zones never come from these files — they
 come from race results in `athlete.results`.
 
 ## Limits

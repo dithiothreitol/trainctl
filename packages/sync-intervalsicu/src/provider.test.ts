@@ -171,6 +171,80 @@ describe('aktywności, których hub nie oddaje', () => {
   })
 })
 
+describe('okrążenia biegów (D1)', () => {
+  // Odpowiedzi wymyślone, w kształcie z docs/integrations/intervalsicu.md §2d.
+  const LIST = [
+    { id: 'i1001', start_date_local: '2026-08-04T07:00:00', type: 'Run', distance: 6420, moving_time: 1800 },
+    { id: 'i1002', start_date_local: '2026-08-05T07:00:00', type: 'Ride', distance: 30000, moving_time: 3600 },
+    { id: 'i1003', start_date_local: '2026-08-05T18:00:00', source: 'STRAVA' },
+    { id: 'i1004', start_date_local: '2026-08-06T07:00:00', type: 'TrailRun', distance: 8000, moving_time: 3000 },
+    // bieg wpisany ręcznie, bez dystansu: odcinków z niego nie będzie
+    { id: 'i1005', start_date_local: '2026-08-07T07:00:00', type: 'Run', moving_time: 1800 },
+  ]
+  const INTERVALS = {
+    icu_intervals: [
+      { id: 1, type: 'RECOVERY', distance: 2000.4, moving_time: 600, elapsed_time: 600, average_heartrate: 135.6 },
+      { id: 2, type: 'WORK', distance: 1000, moving_time: 240, elapsed_time: 240, average_heartrate: 168 },
+      // przerwa w miejscu: zero metrów i zero ruchu, ale 90 s zegara
+      { id: 3, type: 'RECOVERY', distance: 0, moving_time: 0, elapsed_time: 90 },
+      { id: 4, type: 'WORK', distance: 1002.6, moving_time: 239.6, elapsed_time: 240, average_heartrate: 171.4 },
+      { id: 5, type: 'WORK', moving_time: 30 }, // bez dystansu — odpada
+      { id: 6, distance: 1420, moving_time: 480, elapsed_time: 482 }, // bez typu — bez roli
+    ],
+    icu_groups: [],
+  }
+  const route = (status: Record<string, number> = {}) => (url: string) => {
+    if (url.includes('/activities?')) return { body: LIST }
+    const id = /\/activity\/([^/]+)\/intervals$/.exec(url)?.[1]
+    if (id && status[id]) return { status: status[id], body: {} }
+    return { body: id ? INTERVALS : {} }
+  }
+
+  it('na życzenie: jedno zapytanie na bieg z dystansem, bez roweru i bez aktywności zatrzymanych przez Stravę', async () => {
+    const { provider: p, calls } = provider(route())
+    const activities = await p.listActivities('2026-08-01', '2026-08-07', { laps: true })
+    expect(calls.map((c) => c.url)).toEqual([
+      'https://intervals.icu/api/v1/athlete/0/activities?oldest=2026-08-01&newest=2026-08-07',
+      'https://intervals.icu/api/v1/activity/i1001/intervals',
+      'https://intervals.icu/api/v1/activity/i1004/intervals',
+    ])
+    expect(activities[0]!.laps).toEqual([
+      { distanceKm: 2, movingTimeSec: 600, avgHr: 136, intensity: 'rest' },
+      { distanceKm: 1, movingTimeSec: 240, avgHr: 168, intensity: 'work' },
+      { distanceKm: 0, movingTimeSec: 90, intensity: 'rest' },
+      { distanceKm: 1.003, movingTimeSec: 240, avgHr: 171, intensity: 'work' },
+      { distanceKm: 1.42, movingTimeSec: 480 },
+    ])
+    expect(activities[1]).not.toHaveProperty('laps')
+    expect(activities[2]).not.toHaveProperty('laps')
+    expect(activities[3]!.laps).toHaveLength(5)
+    expect(activities[4]).not.toHaveProperty('laps')
+  })
+
+  it('bez flagi laps: samo zapytanie o listę (init --from-intervals nie płaci za okrążenia)', async () => {
+    const { provider: p, calls } = provider(route())
+    const activities = await p.listActivities('2026-08-01', '2026-08-07')
+    expect(calls).toHaveLength(1)
+    expect(activities.some((a) => a.laps)).toBe(false)
+  })
+
+  it('błąd jednej aktywności: bez okrążeń dla niej, następna dalej pobierana', async () => {
+    const { provider: p, calls } = provider(route({ i1001: 500 }))
+    const activities = await p.listActivities('2026-08-01', '2026-08-07', { laps: true })
+    expect(calls).toHaveLength(3)
+    expect(activities[0]).not.toHaveProperty('laps')
+    expect(activities[3]!.laps).toHaveLength(5)
+  })
+
+  it('limit zapytań (429): koniec dociągania, aktywności zostają', async () => {
+    const { provider: p, calls } = provider(route({ i1001: 429 }))
+    const activities = await p.listActivities('2026-08-01', '2026-08-07', { laps: true })
+    expect(calls).toHaveLength(2)
+    expect(activities).toHaveLength(5)
+    expect(activities.some((a) => a.laps)).toBe(false)
+  })
+})
+
 describe('pull wellness', () => {
   it('czyta oba warianty casingu pól (§1.2 — niespójność w dokumentacji)', async () => {
     const { provider: p } = provider(() => ({

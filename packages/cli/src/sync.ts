@@ -125,7 +125,13 @@ export function writeSnapshot(cwd: string, snapshot: SyncSnapshot): void {
   if (previous && snapshot.from && snapshot.to) {
     const outside = (date: string) => date < snapshot.from! || date > snapshot.to!
     const merged = new Map(previous.activities.filter((a) => outside(a.date)).map((a) => [a.externalId, a]))
-    for (const a of snapshot.activities) merged.set(a.externalId, a)
+    const before = new Map(previous.activities.map((a) => [a.externalId, a]))
+    for (const a of snapshot.activities) {
+      // D1: okrążenia z wcześniejszego pobrania zostają, gdy nowe ich nie niesie
+      // (limit zapytań przerwał dociąganie albo źródło pobrało bez okrążeń).
+      const laps = a.laps ?? before.get(a.externalId)?.laps
+      merged.set(a.externalId, laps && !a.laps ? { ...a, laps } : a)
+    }
     snapshot = { ...snapshot, activities: [...merged.values()],
       wellness: [...previous.wellness.filter((w) => outside(w.date)), ...snapshot.wellness] }
   }

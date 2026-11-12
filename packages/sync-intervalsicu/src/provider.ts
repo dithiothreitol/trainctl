@@ -5,6 +5,7 @@
  */
 import { messages } from 'trainctl-core'
 import type {
+  ActivityLap,
   PushResult,
   PushableWorkout,
   RemotePlannedWorkout,
@@ -12,7 +13,7 @@ import type {
   SyncedActivity,
   SyncedWellness,
 } from 'trainctl-core'
-import { IntervalsIcuClient, type ClientOptions } from './client.ts'
+import { IntervalsIcuClient, IntervalsIcuError, type ClientOptions } from './client.ts'
 
 /** Prefiks pozwala odróżnić nasze wpisy od tych dodanych ręcznie przez atletę. */
 export const EXTERNAL_ID_PREFIX = 'trainctl-'
@@ -41,6 +42,21 @@ interface RawActivity {
   icu_rpe?: number
   source?: string
 }
+
+/**
+ * D1: interwał aktywności wyznaczony przez intervals.icu (`icu_intervals`): dystans
+ * w metrach, czasy w sekundach, typ WORK albo RECOVERY (docs/integrations/intervalsicu.md §2d).
+ */
+interface RawInterval {
+  distance?: number
+  moving_time?: number
+  elapsed_time?: number
+  average_heartrate?: number
+  type?: string
+}
+
+/** Typy biegu w intervals.icu — okrążenia dociągamy tylko dla nich. */
+const RUN_TYPES = new Set(['Run', 'TrailRun', 'VirtualRun'])
 
 interface RawWellness {
   id?: string
@@ -75,11 +91,11 @@ export class IntervalsIcuProvider implements SyncProvider {
     }
   }
 
-  async listActivities(oldest: string, newest: string): Promise<SyncedActivity[]> {
+  async listActivities(oldest: string, newest: string, opts: { laps?: boolean } = {}): Promise<SyncedActivity[]> {
     const raw = await this.client.request<RawActivity[]>(
       this.client.athletePath(`/activities?oldest=${oldest}&newest=${newest}`),
     )
-    return (raw ?? []).map((a) => {
+    const activities = (raw ?? []).map((a) => {
       const distanceKm = typeof a.distance === 'number' ? a.distance / 1000 : undefined
       const movingTimeSec = a.moving_time
       // Wykrycie strukturalne, nie po treści pola `_note`: hub zwraca wtedy sam
@@ -109,6 +125,37 @@ export class IntervalsIcuProvider implements SyncProvider {
       if (a.icu_rpe !== undefined) activity.rpe = a.icu_rpe
       return activity
     })
+    if (opts.laps) await this.attachLaps(activities)
+    return activities
+  }
+
+  /**
+   * D1: interwały biegów — osobne zapytanie na aktywność (`GET /activity/{id}/intervals`).
+   * Błąd jednej aktywności nie zatrzymuje `pull` (okrążeń wtedy po prostu nie ma),
+   * a limit zapytań (429) kończy dociąganie: same aktywności już mamy.
+   * Przerwa w miejscu ma 0 m i zerowy czas ruchu — wtedy liczy się czas całkowity.
+   * Hub nie mówi, czy interwał to okrążenie z zegarka, więc `trigger` zostaje pusty.
+   */
+  private async attachLaps(activities: SyncedActivity[]): Promise<void> {
+    for (const activity of activities) {
+      if (!activity.externalId || !RUN_TYPES.has(activity.type) || !(activity.distanceKm ?? 0)) continue
+      try {
+        const raw = await this.client.request<{ icu_intervals?: RawInterval[] }>(`/activity/${encodeURIComponent(activity.externalId)}/intervals`)
+        const laps = (raw?.icu_intervals ?? []).flatMap((iv): ActivityLap[] => {
+          const moving = typeof iv.moving_time === 'number' && iv.moving_time > 0 ? iv.moving_time : iv.elapsed_time
+          const seconds = typeof moving === 'number' ? Math.round(moving) : 0
+          if (typeof iv.distance !== 'number' || !(iv.distance >= 0) || !(seconds > 0)) return []
+          const lap: ActivityLap = { distanceKm: Math.round(iv.distance) / 1000, movingTimeSec: seconds }
+          if (typeof iv.average_heartrate === 'number') lap.avgHr = Math.round(iv.average_heartrate)
+          if (iv.type === 'WORK') lap.intensity = 'work'
+          else if (iv.type === 'RECOVERY') lap.intensity = 'rest'
+          return [lap]
+        })
+        if (laps.length) activity.laps = laps
+      } catch (e) {
+        if (e instanceof IntervalsIcuError && e.status === 429) return
+      }
+    }
   }
 
   async listWellness(oldest: string, newest: string): Promise<SyncedWellness[]> {

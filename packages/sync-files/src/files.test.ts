@@ -267,3 +267,49 @@ describe('duplikaty: okno po starcie i dystans', () => {
     expect(scan.skipped).toEqual([])
   })
 })
+
+describe('okrążenia (D1)', () => {
+  it('bieg: okrążenia w km z dokładnością do metra, czas w pełnych sekundach; rower ich nie niesie', () => {
+    const d = mkdtempSync(join(tmpdir(), 'trainctl-sync-files-laps-'))
+    try {
+      const laps = [
+        { start: '2026-09-15T05:00:00Z', timerSec: 238.5, distanceM: 1003.27, avgHr: 171, intensity: 0, trigger: 2 },
+        { start: '2026-09-15T05:03:59Z', timerSec: 90, distanceM: 0, intensity: 1, trigger: 1 },
+        // pół sekundy po zaokrągleniu to zero — takie okrążenie nic nie mówi
+        { start: '2026-09-15T05:05:29Z', timerSec: 0.4, distanceM: 1 },
+      ]
+      writeFileSync(join(d, 'run.fit'), activityFit({
+        sessions: [{ start: '2026-09-15T05:00:00Z', sport: 1, timerSec: 329, distanceM: 1004.27 }],
+        laps,
+        utcOffsetSec: 0,
+      }))
+      writeFileSync(join(d, 'ride.fit'), activityFit({
+        sessions: [{ start: '2026-09-16T05:00:00Z', sport: 2, timerSec: 329, distanceM: 1004.27 }],
+        laps: laps.map((l) => ({ ...l, start: l.start.replace('09-15', '09-16') })),
+        utcOffsetSec: 0,
+      }))
+      const [run, ride] = scanActivityFiles(d).activities
+      expect(run!.laps).toEqual([
+        { distanceKm: 1.003, movingTimeSec: 239, avgHr: 171, intensity: 'work', trigger: 'distance' },
+        { distanceKm: 0, movingTimeSec: 90, intensity: 'rest', trigger: 'time' },
+      ])
+      expect(ride!.type).toBe('Ride')
+      expect(ride).not.toHaveProperty('laps')
+    } finally {
+      rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    }
+  })
+
+  it('TCX: okrążenia z Lap, GPX: brak pola laps', () => {
+    const scan = scanActivityFiles(dir)
+    const walk = scan.activities.find((a) => a.type === 'Walk')!
+    expect(walk).not.toHaveProperty('laps')
+    const d = mkdtempSync(join(tmpdir(), 'trainctl-sync-files-tcx-laps-'))
+    try {
+      writeFileSync(join(d, 'run.tcx'), tcxRun('2026-09-14T05:00:00Z', 10000))
+      expect(scanActivityFiles(d).activities[0]!.laps).toEqual([{ distanceKm: 10, movingTimeSec: 3000 }])
+    } finally {
+      rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    }
+  })
+})
