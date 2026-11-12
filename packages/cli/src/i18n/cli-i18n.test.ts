@@ -90,7 +90,6 @@ describe('polski nie jest kalką', () => {
         'wizard.hintHour',
         'print.columns.km',
         'print.columns.done',
-        'print.rest',
         'racePack.km',
         'planMd.rest',
         'configFile.templateAthlete.sex',

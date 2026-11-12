@@ -142,7 +142,10 @@ describe('rozpiska do wydruku', () => {
     expect(html).toContain('page-break-inside: avoid')
     expect(html).toContain('Tydzień 1')
     expect(html).toContain('Maraton testowy')
-    expect(html).toContain('truchtu')
+    // C3: te same wiersze co `week` — typ, km, czas, rozpiska w notacji C1, legenda pod tytułem
+    expect(html).toContain('<th>Typ</th><th>Km</th><th>Czas</th><th>Rozpiska</th>')
+    expect(html).toMatch(/<td class="what">RG \d+(,\d+)? km · [^<]* · SCH \d+(,\d+)? km<\/td>/)
+    expect(html).toContain('RG rozgrzewka · SCH schłodzenie')
     expect(html).not.toContain('<script')
   })
 

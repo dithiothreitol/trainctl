@@ -11,15 +11,19 @@ export interface PrintWeek {
   targetKm: number
   totalKm: number
   deload: boolean
-  /** `rest` przychodzi z planu, nie z porównania tekstu — inaczej wyszarzenie
-   *  dnia wolnego działałoby tylko w języku, w którym napisano myślnik. */
-  days: { weekday: string; date: string; km: string; text: string; rest: boolean }[]
+  /**
+   * Wiersz jednostki z PLAN-v0.7 C2 (ta sama funkcja co `week` i PLAN.md): dzień
+   * i data tylko w pierwszym wierszu dnia, typ, km, czas, rozpiska w notacji C1.
+   * `rest` przychodzi z planu, nie z porównania tekstu — inaczej wyszarzenie
+   * dnia wolnego działałoby tylko w języku, w którym napisano myślnik.
+   */
+  days: { weekday: string; date: string; kind: string; km: string; time: string; text: string; rest: boolean }[]
 }
 
 /** Napisy wydruku — renderer nie zna katalogu, dostaje je gotowe (jak w racepack.ts). */
 export interface PrintLabels {
   lang: string
-  columns: { day: string; date: string; km: string; workout: string; done: string }
+  columns: { day: string; date: string; kind: string; km: string; time: string; workout: string; done: string }
   weekTitle: (index: number) => string
   weekMeta: (weekStart: string, phase: string, km: number) => string
   deload: string
@@ -28,6 +32,8 @@ export interface PrintLabels {
 export interface PrintOptions {
   title: string
   subtitle: string
+  /** Objaśnienie skrótów notacji pod podtytułem. */
+  legend?: string
   weeks: PrintWeek[]
   footer?: string
   labels: PrintLabels
@@ -46,7 +52,9 @@ export function toPrintableHtml(opts: PrintOptions): string {
         (d) => `      <tr${d.rest ? ' class="rest"' : ''}>
         <td class="day">${escapeHtml(d.weekday)}</td>
         <td class="date">${escapeHtml(d.date)}</td>
+        <td class="kind">${escapeHtml(d.kind)}</td>
         <td class="km">${escapeHtml(d.km)}</td>
+        <td class="time">${escapeHtml(d.time)}</td>
         <td class="what">${escapeHtml(d.text)}</td>
         <td class="check"></td>
       </tr>`,
@@ -62,8 +70,10 @@ export function toPrintableHtml(opts: PrintOptions): string {
     <table>
       <thead>
         <tr><th>${escapeHtml(L.columns.day)}</th><th>${escapeHtml(L.columns.date)}</th><th>${escapeHtml(
-          L.columns.km,
-        )}</th><th>${escapeHtml(L.columns.workout)}</th><th>${escapeHtml(L.columns.done)}</th></tr>
+          L.columns.kind,
+        )}</th><th>${escapeHtml(L.columns.km)}</th><th>${escapeHtml(L.columns.time)}</th><th>${escapeHtml(
+          L.columns.workout,
+        )}</th><th>${escapeHtml(L.columns.done)}</th></tr>
       </thead>
       <tbody>
 ${rows(w)}
@@ -92,8 +102,9 @@ ${rows(w)}
        color: #666; padding: 1mm 1.5mm; border-bottom: 1px solid #ccc; }
   td { padding: 1.4mm 1.5mm; vertical-align: top; border-bottom: 1px solid #eee; }
   .day { width: 11mm; font-weight: 600; }
-  .date { width: 15mm; color: #555; }
-  .km { width: 14mm; white-space: nowrap; }
+  .date { width: 13mm; color: #555; }
+  .kind { width: 24mm; }
+  .km, .time { width: 11mm; white-space: nowrap; text-align: right; }
   .check { width: 8mm; border: 1px solid #bbb; border-width: 0 0 1px 1px; }
   .rest td { color: #999; }
   .rest .check { border-left-color: transparent; }
@@ -105,6 +116,7 @@ ${rows(w)}
 <body>
 <h1>${escapeHtml(opts.title)}</h1>
 <p class="sub">${escapeHtml(opts.subtitle)}</p>
+${opts.legend ? `<p class="sub">${escapeHtml(opts.legend)}</p>` : ''}
 ${weeks}
 ${opts.footer ? `<footer>${escapeHtml(opts.footer)}</footer>` : ''}
 </body>

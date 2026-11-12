@@ -4,10 +4,12 @@ import { join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { parse, stringify } from 'yaml'
 import {
-  ENDURANCE_SPORTS, addDays, coachingLines, sessionStepLines, estimateWorkoutMinutes, getLocale, mondayOf,
+  ENDURANCE_SPORTS, addDays, coachingLines, sessionStepLines, estimateWorkoutMinutes, getLocale, messages, mondayOf,
   sportMessages as msg, validateSportsConfig, validateSportsPlan,
   type EnduranceSport, type SessionLog, type SportsConfig, type SportsPlan, type TrainingSession,
 } from 'trainctl-core'
+import { ui } from './i18n/index.ts'
+import { rowsTable, seasonTable, sessionRows, sessionsSeasonRows, tableMarkdown } from './ui/rows.ts'
 import { CONFIG_FILE, loadConfig } from './config.ts'
 import { PLAN_YAML, PLAN_MD, loadPlan, workoutText } from './planfile.ts'
 import { LOG_FILE } from './logfile.ts'
@@ -57,12 +59,24 @@ export function sessionText(s: TrainingSession): string {
   return [`${t.sport[s.sport]} · ${s.coaching?.title ?? t.purpose[s.purpose]} · ${Math.round(s.durationSec / 6) / 10} min${s.distanceM ? ` · ${s.distanceM} m` : ''}`, ...coachingLines(s), steps].join('\n')
 }
 const cell = (s: string): string => s.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ')
+/**
+ * PLAN.md planu v2 (C3): siatka sezonu na górze, niżej tygodnie w układzie wiersza
+ * z C2, a pod tabelą tygodnia szczegóły każdej sesji (ID, cel, kroki) — plik
+ * zachowuje pełny coaching tak jak dotąd.
+ */
 export function sportsMarkdown(p: SportsPlan): string {
-  const t = msg()
-  return ['# ' + cell(p.goal.name), '', t.engineering, '', '| ID | Date | Start | Session |', '| --- | --- | --- | --- |',
-    ...p.sessions.map(s => '| '+cell(s.id)+' | '+s.date+' | '+(s.start??'')+' | '+cell(t.sport[s.sport]+' · '+(s.coaching?.title??t.purpose[s.purpose])+' · '+Number((s.durationSec/60).toFixed(1))+' min')+' |'), '',
-    ...p.sessions.flatMap(s=>['### '+s.date+' · '+t.sport[s.sport]+' · '+cell(s.coaching?.title??t.purpose[s.purpose]),'', 'ID: '+s.id, '', ...coachingLines(s).map(x=>cell(x)), '', ...sessionStepLines(s).map(x=>cell(x)), '']),
-    ...p.warnings.map(w => '- '+w), '', '## History', ...p.replacements.map(r => '- '+r.sourceId+' → '+r.targetId+': '+r.tradeoffs.join(' ')), ''].join('\n')
+  const t = msg(), m = ui().planMd, r = ui().rows
+  const season = sessionsSeasonRows(p.sessions)
+  const lines = ['# ' + cell(p.goal.name), '', t.engineering, '', `## ${m.season}`, '', ...tableMarkdown(seasonTable(season, { sessions: true })), '',
+    `> ${r.season.legendSessions('↓', season.some(w => w.accents.length > 0))}  `, `> ${messages().notation.legend}`]
+  for (const monday of [...new Set(p.sessions.map(s => mondayOf(s.date)))].sort()) {
+    const week = p.sessions.filter(s => mondayOf(s.date) === monday).sort((a, z) => a.date.localeCompare(z.date) || (a.start ?? '').localeCompare(z.start ?? ''))
+    lines.push('', `## ${r.sessionsHeading(r.shortDate(monday), r.shortDate(addDays(monday, 6)), week.length)}`, '', ...tableMarkdown(rowsTable(sessionRows(week), { sport: true })))
+    for (const s of week) lines.push('', '### ' + s.date + (s.start ? ' ' + s.start : '') + ' · ' + t.sport[s.sport] + ' · ' + cell(s.coaching?.title ?? t.purpose[s.purpose]), '', 'ID: ' + s.id, '', ...coachingLines(s).map(x => cell(x)), '', ...sessionStepLines(s).map(x => cell(x)))
+  }
+  if (p.warnings.length) lines.push('', ...p.warnings.map(w => '- ' + w))
+  if (p.replacements.length) lines.push('', `## ${m.changes}`, '', ...p.replacements.map(x => '- ' + x.sourceId + ' → ' + x.targetId + ': ' + x.tradeoffs.join(' ')))
+  return lines.join('\n') + '\n'
 }
 export const planFiles = (p: SportsPlan): Record<string, string> => ({ [PLAN_YAML]: stringify(p), [PLAN_MD]: sportsMarkdown(p) })
 export function writeSportsPlan(cwd: string, p: SportsPlan): void {

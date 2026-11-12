@@ -131,7 +131,7 @@ describe('week pokazuje prawdziwy czas trwania siły', () => {
     // C2: siła to osobny wiersz z czasem h:mm z danych sesji
     const minutes = day.strength!.durationMin
     const clock = `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
-    expect(week.output).toMatch(new RegExp(`^(?:\\S+ \\| )?siła \\| ${clock}$`, 'm'))
+    expect(week.output).toMatch(new RegExp(`^(?:\\S+ \\| )?siła \\| ${clock} \\| (wejście|ciężka|podtrzymująca)$`, 'm'))
     expect(week.data!.rows).toContainEqual(expect.objectContaining({ date: day.date, sport: 'strength', minutes }))
   })
 })

@@ -914,10 +914,10 @@ strength
   Mon  rest
 ✓ Tue  intervals   8  1:06  WU 3 km · 4×1 km @4:32 r. 2'
                             walk · CD 1 km
-  Wed  strength       0:35
+  Wed  strength       0:35  intro
 ▸ Thu  hills      12  1:28  5 km @5:05–6:05 · hills 15×200 m
                             · CD 1 km
-  Fri  strength       0:35
+  Fri  strength       0:35  intro
   Sat  long run   17  2:07  17 km @6:05–6:35
   Sun  tempo       7  0:55  WU 3 km · 3 km 5:01→4:32 · CD 1
                             km
@@ -932,9 +932,9 @@ exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i A
   day  type       km  time  session
   Mon  rest
 ✓ Tue  intervals   8  1:06  WU 3 km · 4×1 km @4:32 r. 2' walk · CD 1 km
-  Wed  strength       0:35
+  Wed  strength       0:35  intro
 ▸ Thu  hills      12  1:28  5 km @5:05–6:05 · hills 15×200 m · CD 1 km
-  Fri  strength       0:35
+  Fri  strength       0:35  intro
   Sat  long run   17  2:07  17 km @6:05–6:35
   Sun  tempo       7  0:55  WU 3 km · 3 km 5:01→4:32 · CD 1 km
        total      44  6:46
@@ -948,9 +948,9 @@ exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i A
   day  type       km  time  session
   Mon  rest
 ✓ Tue  intervals   8  1:06  WU 3 km · 4×1 km @4:32 r. 2' walk · CD 1 km
-  Wed  strength       0:35
+  Wed  strength       0:35  intro
 ▸ Thu  hills      12  1:28  5 km @5:05–6:05 · hills 15×200 m · CD 1 km
-  Fri  strength       0:35
+  Fri  strength       0:35  intro
   Sat  long run   17  2:07  17 km @6:05–6:35
   Sun  tempo       7  0:55  WU 3 km · 3 km 5:01→4:32 · CD 1 km
        total      44  6:46
@@ -964,9 +964,9 @@ exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i A
   day  type       km  time  session
   Mon  rest
 ✓ Tue  intervals   8  1:06  WU 3 km · 4×1 km @4:32 r. 2' walk · CD 1 km
-  Wed  strength       0:35
+  Wed  strength       0:35  intro
 ▸ Thu  hills      12  1:28  5 km @5:05–6:05 · hills 15×200 m · CD 1 km
-  Fri  strength       0:35
+  Fri  strength       0:35  intro
   Sat  long run   17  2:07  17 km @6:05–6:35
   Sun  tempo       7  0:55  WU 3 km · 3 km 5:01→4:32 · CD 1 km
        total      44  6:46
@@ -980,9 +980,9 @@ exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i A
   day  type       km  time  session
   Mon  rest
 + Tue  intervals   8  1:06  WU 3 km | 4x1 km @4:32 r. 2' walk | CD 1 km
-  Wed  strength       0:35
+  Wed  strength       0:35  intro
 > Thu  hills      12  1:28  5 km @5:05-6:05 | hills 15x200 m | CD 1 km
-  Fri  strength       0:35
+  Fri  strength       0:35  intro
   Sat  long run   17  2:07  17 km @6:05-6:35
   Sun  tempo       7  0:55  WU 3 km | 3 km 5:01->4:32 | CD 1 km
        total      44  6:46
@@ -994,9 +994,9 @@ exports[`C2: migawki widoków > run · en · week: 60–120 kolumn, NO_COLOR i A
 day | type | km | time | session
 Mon | rest
 Tue | intervals | 8 | 1:06 | WU 3 km · 4×1 km @4:32 r. 2' walk · CD 1 km | done
-Wed | strength | 0:35
+Wed | strength | 0:35 | intro
 Thu | hills | 12 | 1:28 | 5 km @5:05–6:05 · hills 15×200 m · CD 1 km | today
-Fri | strength | 0:35
+Fri | strength | 0:35 | intro
 Sat | long run | 17 | 2:07 | 17 km @6:05–6:35
 Sun | tempo | 7 | 0:55 | WU 3 km · 3 km 5:01→4:32 · CD 1 km
 total | 44 | 6:46
@@ -1362,10 +1362,10 @@ exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i A
   PN  wolne
 ✓ WT  interwały     8  1:06  RG 3 km · 4×1 km @4:32 p. 2'
                              marsz · SCH 1 km
-  ŚR  siła             0:35
+  ŚR  siła             0:35  wejście
 ▸ CZ  podbiegi     12  1:28  5 km @5:05–6:05 · podbiegi
                              15×200 m · SCH 1 km
-  PT  siła             0:35
+  PT  siła             0:35  wejście
   SB  długie       17  2:07  17 km @6:05–6:35
   ND  narastające   7  0:55  RG 3 km · 3 km 5:01→4:32 · SCH
                              1 km
@@ -1381,9 +1381,9 @@ exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i A
   dz  typ          km  czas  rozpiska
   PN  wolne
 ✓ WT  interwały     8  1:06  RG 3 km · 4×1 km @4:32 p. 2' marsz · SCH 1 km
-  ŚR  siła             0:35
+  ŚR  siła             0:35  wejście
 ▸ CZ  podbiegi     12  1:28  5 km @5:05–6:05 · podbiegi 15×200 m · SCH 1 km
-  PT  siła             0:35
+  PT  siła             0:35  wejście
   SB  długie       17  2:07  17 km @6:05–6:35
   ND  narastające   7  0:55  RG 3 km · 3 km 5:01→4:32 · SCH 1 km
       suma         44  6:46
@@ -1397,9 +1397,9 @@ exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i A
   dz  typ          km  czas  rozpiska
   PN  wolne
 ✓ WT  interwały     8  1:06  RG 3 km · 4×1 km @4:32 p. 2' marsz · SCH 1 km
-  ŚR  siła             0:35
+  ŚR  siła             0:35  wejście
 ▸ CZ  podbiegi     12  1:28  5 km @5:05–6:05 · podbiegi 15×200 m · SCH 1 km
-  PT  siła             0:35
+  PT  siła             0:35  wejście
   SB  długie       17  2:07  17 km @6:05–6:35
   ND  narastające   7  0:55  RG 3 km · 3 km 5:01→4:32 · SCH 1 km
       suma         44  6:46
@@ -1413,9 +1413,9 @@ exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i A
   dz  typ          km  czas  rozpiska
   PN  wolne
 ✓ WT  interwały     8  1:06  RG 3 km · 4×1 km @4:32 p. 2' marsz · SCH 1 km
-  ŚR  siła             0:35
+  ŚR  siła             0:35  wejście
 ▸ CZ  podbiegi     12  1:28  5 km @5:05–6:05 · podbiegi 15×200 m · SCH 1 km
-  PT  siła             0:35
+  PT  siła             0:35  wejście
   SB  długie       17  2:07  17 km @6:05–6:35
   ND  narastające   7  0:55  RG 3 km · 3 km 5:01→4:32 · SCH 1 km
       suma         44  6:46
@@ -1429,9 +1429,9 @@ exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i A
   dz  typ          km  czas  rozpiska
   PN  wolne
 + WT  interwały     8  1:06  RG 3 km | 4x1 km @4:32 p. 2' marsz | SCH 1 km
-  ŚR  siła             0:35
+  ŚR  siła             0:35  wejście
 > CZ  podbiegi     12  1:28  5 km @5:05-6:05 | podbiegi 15x200 m | SCH 1 km
-  PT  siła             0:35
+  PT  siła             0:35  wejście
   SB  długie       17  2:07  17 km @6:05-6:35
   ND  narastające   7  0:55  RG 3 km | 3 km 5:01->4:32 | SCH 1 km
       suma         44  6:46
@@ -1443,9 +1443,9 @@ exports[`C2: migawki widoków > run · pl · week: 60–120 kolumn, NO_COLOR i A
 dz | typ | km | czas | rozpiska
 PN | wolne
 WT | interwały | 8 | 1:06 | RG 3 km · 4×1 km @4:32 p. 2' marsz · SCH 1 km | wykonany
-ŚR | siła | 0:35
+ŚR | siła | 0:35 | wejście
 CZ | podbiegi | 12 | 1:28 | 5 km @5:05–6:05 · podbiegi 15×200 m · SCH 1 km | dziś
-PT | siła | 0:35
+PT | siła | 0:35 | wejście
 SB | długie | 17 | 2:07 | 17 km @6:05–6:35
 ND | narastające | 7 | 0:55 | RG 3 km · 3 km 5:01→4:32 · SCH 1 km
 suma | 44 | 6:46

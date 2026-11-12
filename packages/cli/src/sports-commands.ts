@@ -9,7 +9,7 @@ import {
   type EnduranceSport, type SessionExecution, type SessionLog, type SportsConfig, type SportsPlan, type TrainingSession,
 } from 'trainctl-core'
 import { b, renderPlain, type Block, type RowMark } from './ui/blocks.ts'
-import { asciiOutput, dayHeading, markKind, rowsTable, seasonTable, sessionRows, sessionsSeasonRows, structureTable } from './ui/rows.ts'
+import { asciiOutput, dayHeading, hoursMinutes, markKind, rowsTable, seasonTable, sessionRows, sessionsSeasonRows, structureTable } from './ui/rows.ts'
 import { ui } from './i18n/index.ts'
 import { clockToday } from './clock.ts'
 import { packageVersion } from './version.ts'
@@ -453,7 +453,30 @@ function generate(cwd: string, config: SportsConfig, o: SportsOptions, preview =
   const changed = !existing || fingerprint({ sessions: existing.sessions, goal: existing.goal, groups: existing.groups }) !== fingerprint({ sessions: next.sessions, goal: next.goal, groups: next.groups })
   if (preview) return sportsResult([b.info(changed ? t.written : t.unchanged)], { changed, plan: next })
   if (changed) writeSportsPlan(cwd, next)
-  return commitResult(cwd, o, sportsResult([b.success(changed ? t.written : t.unchanged), ...next.warnings.map(w => b.warn(w))], { plan: changed ? next : existing, changed, applied: changed }), [PLAN_YAML, PLAN_MD], 'plan')
+  const shown = changed || !existing ? next : existing
+  return commitResult(cwd, o, sportsResult([
+    ...planOverview(shown, effectiveConfig, date),
+    // „Zapisano" z nazwami plików, jak w planie biegowym (sam „Zapisano:" wisiał bez dopełnienia)
+    b.blank(), b.success(changed ? ui().common.saved(`${PLAN_YAML} + ${PLAN_MD}`) : t.unchanged), ...next.warnings.map(w => b.warn(w)),
+    b.hint('trainctl today · trainctl week · trainctl season'),
+  ], { plan: shown, changed, applied: changed, season: sessionsSeasonRows(shown.sessions) }), [PLAN_YAML, PLAN_MD], 'plan')
+}
+
+/**
+ * C4: `plan` w katalogu v2 mówi to samo co w planie biegowym — cel, horyzont,
+ * czas tygodniowy na sport z profilu (po zatwierdzonej bazie) i siatkę sezonu.
+ */
+function planOverview(plan: SportsPlan, config: SportsConfig, today: string): Block[] {
+  const r = ui().rows, ascii = asciiOutput()
+  const season = sessionsSeasonRows(plan.sessions, { ascii })
+  const goal = plan.goal.distanceM ? `${plan.goal.name} · ${kmLabel(plan.goal.distanceM / 1000)}` : plan.goal.name
+  const when = plan.goal.kind === 'base' ? ui().plan.baseUntil(plan.goal.date) : plan.goal.date
+  const sports = ENDURANCE_SPORTS.filter(s => config.athlete.sports[s])
+  return [
+    b.title(goal, `${when} · ${ui().plan.weeksOfPlan(season.length)}`),
+    ...(sports.length ? [b.kv([[ui().plan.weeklyTime, sports.map(s => `${r.sport[s]} ${hoursMinutes(config.athlete.sports[s]!.weeklyMinutes)}`).join(' · ')]])] : []),
+    ...(season.length ? [b.section(ui().plan.structure), seasonTable(season, { today, ascii, sessions: true }), b.text(r.season.legendSessions(ascii ? 'v' : '↓', season.some(w => w.accents.length > 0)), 'muted')] : []),
+  ]
 }
 
 function adapt(cwd: string, plan: SportsPlan, config: SportsConfig, o: SportsOptions): SportsResult {

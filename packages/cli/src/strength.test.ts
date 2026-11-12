@@ -84,7 +84,7 @@ describe('widoczność w komendach', () => {
     const day = strengthDays().find((d) => d.date >= '2026-08-03')!
     const r = cmdWeek(dir, { date: day.date })
     // C2: siła w osobnym wierszu, a nagłówek tygodnia ją liczy
-    expect(r.output).toMatch(/\| siła \| \d:\d\d$/m)
+    expect(r.output).toMatch(/\| siła \| \d:\d\d \| (wejście|ciężka|podtrzymująca)$/m)
     expect(r.output).toMatch(/· \d+ (siła|siły|sił)$/m)
   })
 

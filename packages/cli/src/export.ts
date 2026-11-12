@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { estimateWorkoutMinutes, getLocale, heatLadder, messages, plannedWeekKm, type PlannedDay } from 'trainctl-core'
+import { estimateWorkoutMinutes, formatNumber, getLocale, heatLadder, messages, plannedWeekKm, workoutLine, workoutStructure, type PlannedDay } from 'trainctl-core'
 import {
   encodeWorkoutFit,
   fmtClock,
@@ -22,6 +22,7 @@ import { ui } from './i18n/index.ts'
 import { kmLabel, shownKm, workoutKm } from './format.ts'
 import { cycleWeeksOf, findDay, loadPlan, weekPosition, workoutText, type StoredPlan } from './planfile.ts'
 import { kindPurpose, ruleExplain, ruleEvidence } from './rules-explain.ts'
+import { hoursMinutes, runningWeekRows } from './ui/rows.ts'
 
 /**
  * Tabela korekty na temperaturę (H-1…H-5). Model milczy powyżej 25 °C i poniżej
@@ -128,13 +129,18 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
     const day = hit.day
     const labels = ui().improve
     const minutes = (day.workout ? estimateWorkoutMinutes(day.workout, plan.preparationMinutes ?? 15) : 0) + (day.strength?.durationMin ?? 0)
+    // C3: kroki ze struktury dnia (`today`) i rozpiska w notacji C1, jak w `week`
+    const recovery = ui().rows.structure.recovery
     const html = toMobileHtml({
       lang: getLocale(), title: labels.mobile, date: day.date, goal: plan.goal.name,
       kind: day.workout ? kindLabel(day.workout.kind) : labels.mobileRest,
       distance: day.workout ? messages().units.km(shownKm(day.workout)) : '',
       duration: Number.isFinite(minutes) ? labels.minuteEstimate(minutes) : labels.unknownDuration,
+      ...(day.workout ? { line: workoutLine(day.workout) } : {}),
       purpose: day.workout ? kindPurpose(day.workout.kind) : ui().today.restDayBody,
-      steps: day.workout?.segments.map((s) => s.description) ?? [ui().today.restDayBody],
+      steps: day.workout
+        ? workoutStructure(day.workout).map((s) => [`${s.part}: ${s.dose}`, s.target, s.recovery ? `${recovery} ${s.recovery}` : ''].filter(Boolean).join(' · '))
+        : [ui().today.restDayBody],
       rules: [...new Set([...(day.workout?.ruleRefs ?? []), ...hit.week.skeleton.ruleRefs])].map((id) => `${id} — ${ruleExplain(id) ?? id} (${labels[ruleEvidence(id)]})`),
       ...(day.strength ? { strength: day.strength.description } : {}), labels,
     })
@@ -224,27 +230,35 @@ export function runExport(cwd: string, req: ExportRequest): ExportedFile[] {
   const core = messages()
   const p = ui().print
   // Kartka na lodówkę to bieżący cykl — historia poprzedniego zostaje w pliku i w gicie.
+  // C3: wiersze z tej samej funkcji co `week` i PLAN.md (rozpiska w notacji C1)
   const cycle = cycleWeeksOf(plan)
-  const weeks: PrintWeek[] = cycle.map((w) => ({
-    index: weekPosition(plan, w).index,
-    weekStart: w.weekStart,
-    phase: core.phase[w.skeleton.phase] ?? w.skeleton.phase,
-    targetKm: plannedWeekKm(w.skeleton),
-    totalKm: w.totalKm,
-    deload: w.skeleton.deload,
-    days: w.days.map((d) => ({
-      weekday: core.weekdayShort[d.weekday],
-      date: d.date.slice(5).replace('-', '.'),
-      km: d.workout && shownKm(d.workout) ? workoutKm(d.workout) : '',
-      rest: !d.workout,
-      text:
-        (d.workout ? workoutText(d) : p.rest) +
-        (d.strength ? ` ${p.strengthTag(d.strength.durationMin)}` : ''),
-    })),
-  }))
+  const weeks: PrintWeek[] = cycle.map((w) => {
+    const rows = runningWeekRows(w, { preparationMinutes: plan.preparationMinutes ?? 15, runs: new Map(), strength: new Map() })
+    return {
+      index: weekPosition(plan, w).index,
+      weekStart: w.weekStart,
+      phase: core.phase[w.skeleton.phase] ?? w.skeleton.phase,
+      targetKm: plannedWeekKm(w.skeleton),
+      totalKm: w.totalKm,
+      deload: w.skeleton.deload,
+      days: rows.map((r, i) => {
+        const first = i === 0 || rows[i - 1]!.date !== r.date
+        return {
+          weekday: first ? core.weekdayShort[r.weekday] : '',
+          date: first ? ui().rows.shortDate(r.date) : '',
+          kind: r.kind,
+          km: r.km ? formatNumber(getLocale(), r.km) : '',
+          time: hoursMinutes(r.minutes),
+          text: r.line,
+          rest: r.sport === 'rest',
+        }
+      }),
+    }
+  })
   const html = toPrintableHtml({
     title: `${plan.goal.name} — ${plan.goal.date}`,
     subtitle: p.subtitle(cycle.length, plan.peakKmPlanned, plan.vdot, plan.generatedAt),
+    legend: core.notation.legend,
     weeks,
     footer: p.footer,
     labels: { lang: getLocale(), ...p },

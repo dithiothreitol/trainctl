@@ -858,6 +858,13 @@ w commicie punktu.
   liczbę sesji + 9. Test pilnuje wtedy tylko szerokości wierszy.
 - **C2, przegląd v2.** `status` w planie v2 też pokazuje wiersze sesji,
   z datą przy dniu, bo obejmuje siedem dni od dziś.
+- **C3.** Sesje siły są w `PLAN.md` opisane raz, w osobnej sekcji. Wiersz siły
+  w tabeli tygodnia, także w `week`, podaje wariant: wejście, ciężka albo
+  podtrzymująca. Pełny opis w każdym wierszu dublowałby ten sam akapit
+  dwa razy w tygodniu przez cały sezon. `PLAN.md` planu v2 zachowuje pod tabelą
+  tygodnia cel i kroki każdej sesji, bo plik jest zapisem coachingu
+  (`sports.test.ts`). Wydruk ma kolumny typu i czasu, a strona mobilna kroki ze
+  struktury dnia zamiast opisów segmentów.
 
 ---
 
@@ -1117,3 +1124,4 @@ Wypełniany w trakcie realizacji przez krok 6 zamknięcia etapu.
 | 2026-11-12 | 2 | `planfile.ts` (`fitTimeBudget`) | tydzień generowany od nowa przez budżet tygodnia dziedziczy `layoutKm` sprzed budżetu obok nowego `timeCappedKm` | sugestia porządkowa (runda 28): bez skutku, bo `plannedWeekKm` czyta najpierw `timeCappedKm`; jedno pole „rozpisano” zamiast dwóch (etap 4) |
 | 2026-11-12 | 2 | `macrocycle.ts` (`applyReturnBlock`) | sprawdzian zostaje w tygodniu po spokojnym bloku powrotu, gdy krzywa nie obniża tygodnia (plan niżej niż krzywa) | do przeglądu trenerskiego (F1, runda 29): tydzień nieobniżony to zwykły tydzień planu, a spokojny blok już odsunął pomiar od przerwy; czy pomiar ma czekać dłużej po chorobie (W-11, W-12) |
 | 2026-11-12 | 2 | `execution.ts`, `adapt.ts` (pierwszy tydzień planu) | dni pierwszego tygodnia sprzed daty startu planu mają sesje, które `adapt` przez trzy tygodnie liczy jako niezapisane (dane niepełne), dopóki biegacz ich nie zaloguje | zauważone w sondzie rundy 27; układ pierwszego tygodnia bez zmian w etapie 2, więc najpewniej stan z 0.6.0 — do potwierdzenia i rozstrzygnięcia w etapie 3 (dni sprzed startu jako odpoczynek albo poza oknem) |
+| 2026-11-12 | 3 | `sports-commands.ts` (`diff` bez `--plan`) | podgląd regeneracji v2 pisze „Zapisano:” przy zmianie, choć niczego nie zapisuje; `plan` od C4 podaje zapisane pliki | poza zakresem C4 (`diff`): komunikat podglądu do poprawy razem z `diff` v2 w etapie 4 |

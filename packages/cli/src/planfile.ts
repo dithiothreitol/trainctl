@@ -36,6 +36,7 @@ import {
 import { CONFIG_FILE, type StrengthConfig, type TrainctlConfig } from './config.ts'
 import { ui } from './i18n/index.ts'
 import { kmLabel } from './format.ts'
+import { rowsTable, runningSeasonRows, runningWeekRows, seasonTable, tableMarkdown } from './ui/rows.ts'
 import { inspectCalibration, isRoadGoal, roundVdot, zoneCalibration, type Calibration } from './calibration.ts'
 import { packageVersion } from './version.ts'
 
@@ -833,6 +834,19 @@ export function renderMarkdown(plan: StoredPlan): string {
     )
   }
   for (const w of plan.feasibilityWarnings) lines.push(`> ⚠ ${w}`)
+  // C3: na górze siatka sezonu (ta sama co `trainctl season`), niżej tygodnie
+  // w układzie wiersza z C2; opis słowny jednostek zostaje w plan.yaml i w `why`
+  lines.push('', `## ${m.season}`, '', ...tableMarkdown(seasonTable(runningSeasonRows(cycleWeeksOf(plan)))), '')
+  lines.push(`> ${ui().rows.season.legend('↓')}  `, `> ${core.notation.legend}`)
+  // sesje siły opisane raz: w tabelach tygodni wiersz siły ma tylko wariant
+  const strength = new Map<string, NonNullable<PlannedDay['strength']>>()
+  for (const day of plan.weeks.flatMap((w) => w.days)) {
+    if (day.strength && !strength.has(`${day.strength.kind}\n${day.strength.description}`)) strength.set(`${day.strength.kind}\n${day.strength.description}`, day.strength)
+  }
+  if (strength.size) {
+    const kinds = ui().rows.strengthKind as Record<string, string>
+    lines.push('', `## ${m.strength}`, '', ...[...strength.values()].map((s) => `- **${kinds[s.kind] ?? s.kind}**: ${s.description}`))
+  }
   for (const week of plan.weeks) {
     const sk = week.skeleton
     const label = [
@@ -842,18 +856,9 @@ export function renderMarkdown(plan: StoredPlan): string {
       ...(sk.deload ? [m.deload] : []),
     ].join(' · ')
     lines.push('', `## ${m.weekHeading(weekPosition(plan, week).index + 1, week.weekStart, label)}`, '')
-    lines.push(
-      `| ${m.columns.day} | ${m.columns.date} | ${m.columns.workout} |`,
-      '|---|---|---|',
-    )
-    for (const day of week.days) {
-      const [, mo, d] = day.date.split('-')
-      const strength = day.strength ? m.strengthTag(day.strength.durationMin) : ''
-      lines.push(
-        `| ${core.weekdayShort[day.weekday]} | ${Number(d)}.${mo} | ${workoutText(day)}${strength} |`,
-      )
-    }
-    for (const note of week.strengthNotes ?? []) lines.push(`> ${note}`)
+    const rows = runningWeekRows(week, { preparationMinutes: plan.preparationMinutes ?? 15, runs: new Map(), strength: new Map() })
+    lines.push(...tableMarkdown(rowsTable(rows)))
+    for (const note of week.strengthNotes ?? []) lines.push('', `> ${note}`)
   }
   if (plan.changes.length) {
     lines.push('', `## ${m.changes}`, '')

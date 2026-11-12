@@ -199,6 +199,7 @@ export const cliPl: CliMessages = {
     goalConservative: (target: string) => `Cel ${target} jest zachowawczy względem predykcji.`,
     goalInRange: (target: string) => `Cel ${target} mieści się w przedziale predykcji.`,
     structure: 'Struktura',
+    weeklyTime: 'Czas tygodniowo',
     regenSection: 'Co zmienia regeneracja',
     sameCycle: (start: string) =>
       `Ten sam cykl treningowy: fazy zostają zakotwiczone w ${start}; przyszłe dni idą za trainctl.yaml.`,
@@ -278,6 +279,7 @@ export const cliPl: CliMessages = {
     total: 'suma',
     rest: 'wolne',
     strength: 'siła',
+    strengthKind: { intro: 'wejście', heavy: 'ciężka', maintenance: 'podtrzymująca' },
     today: 'dziś',
     deload: 'odciążenie',
     shortDate: (iso: string) => `${Number(iso.slice(8, 10))}.${iso.slice(5, 7)}`,
@@ -793,7 +795,7 @@ export const cliPl: CliMessages = {
   },
 
   print: {
-    columns: { day: 'Dzień', date: 'Data', km: 'Km', workout: 'Trening', done: '✓' },
+    columns: { day: 'Dzień', date: 'Data', kind: 'Typ', km: 'Km', time: 'Czas', workout: 'Rozpiska', done: '✓' },
     weekTitle: (index: number) => `Tydzień ${index}`,
     weekMeta: (weekStart: string, phase: string, km: number) =>
       `od ${weekStart} · ${phase} · ${n(km)} km`,
@@ -802,8 +804,6 @@ export const cliPl: CliMessages = {
       `Plan ${weeks}-tygodniowy · szczyt ${n(peakKm)} km/tydz. · VDOT ${n(vdot)} · ` +
       `wygenerowano ${generatedAt}`,
     footer: 'Wygenerowane przez trainctl. Uzasadnienia jednostek: trainctl why --date <data>.',
-    strengthTag: (minutes: number) => `[+ siła ~${n(minutes)} min]`,
-    rest: '—',
   },
 
   racePack: {
@@ -978,8 +978,8 @@ export const cliPl: CliMessages = {
       `Predykcja na ${n(distanceKm)} km: **${lo}–${hi}** (metoda: ${method}; W-1: zawsze przedział).`,
     weekHeading: (index: number, weekStart: string, label: string) =>
       `Tydzień ${index} — od ${weekStart} (${label})`,
-    columns: { day: 'Dzień', date: 'Data', workout: 'Trening' },
-    strengthTag: (minutes: number) => ` **+ SIŁA** ~${n(minutes)} min`,
+    season: 'Sezon',
+    strength: 'Siła',
     deload: 'odciążenie',
     rest: '—',
     changes: 'Zmiany',

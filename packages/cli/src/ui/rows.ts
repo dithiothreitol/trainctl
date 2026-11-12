@@ -93,9 +93,10 @@ export function runningWeekRows(week: Microcycle, opts: {
     }
     if (day.strength) {
       const entry = opts.strength.get(day.date)
+      // rozpiska siły to jej wariant (wejście, ciężka, podtrzymująca); pełny opis w today i PLAN.md
       out.push({
         date: day.date, weekday: day.weekday, sport: 'strength', kind: t.strength,
-        minutes: day.strength.durationMin, line: '',
+        minutes: day.strength.durationMin, line: (t.strengthKind as Record<string, string>)[day.strength.kind] ?? '',
         ...(entry ? { status: markKind(entry.status), statusWord: logStatusText(entry.status, true) } : {}),
         accent: 'accent',
       })
@@ -120,14 +121,16 @@ export function sessionRows(sessions: TrainingSession[], opts: {
       kind: s.sport === 'strength' ? '' : t.purpose[s.purpose],
       ...(s.distanceM ? { km: s.distanceM / 1000 } : {}),
       minutes: (s.durationSec + s.preparationSec) / 60,
-      line: sessionLine(s, { ascii: opts.ascii ?? false }),
+      // siła v2 nie ma kroków: kolumna sportu już mówi „siła"
+      line: s.sport === 'strength' ? '' : sessionLine(s, { ascii: opts.ascii ?? false }),
       ...(status ? { status: status.kind, statusWord: status.word } : {}),
       accent: s.sport === 'strength' ? 'accent' : s.sport,
     }
   })
 }
 
-const hoursMinutes = (minutes: number | undefined): string => {
+/** Czas `h:mm` w kolumnie czasu (wiersz jednostki, wydruk). */
+export const hoursMinutes = (minutes: number | undefined): string => {
   if (minutes === undefined) return ''
   const total = Math.round(minutes)
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
@@ -264,6 +267,23 @@ export function seasonTable(rows: SeasonRow[], opts: { today?: string; ascii?: b
     accents ? cells : cells.map((row) => row.slice(0, -1)),
     accent, { marks },
   )
+}
+
+/**
+ * Tabela wierszy jako Markdown (`PLAN.md`, C3): ten sam blok co w terminalu, więc
+ * te same kolumny, podpis dnia raz i wiersz sumy. Bez znaczników — dokument planu
+ * nie zna dziennika ani dzisiejszej daty.
+ */
+export function tableMarkdown(block: Block): string[] {
+  if (block.t !== 'table') return []
+  const cell = (value: string) => value.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ')
+  const line = (cells: string[]) => `| ${cells.map(cell).join(' | ')} |`
+  return [
+    line(block.head),
+    `|${block.head.map(() => '---').join('|')}|`,
+    ...block.rows.map(line),
+    ...(block.foot ? [line(block.foot.map((value) => (value ? `**${value}**` : '')))] : []),
+  ]
 }
 
 /** Nagłówek dnia: „WT 27.10 · interwały · 8 km · około 66 min" (części puste pominięte). */

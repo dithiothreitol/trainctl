@@ -121,6 +121,19 @@ change between minor versions — a regenerated plan can differ.
   once per view instead of in every card.
 - `plan` shows the season grid instead of the list of phases. The multisport
   overview (`status`) lists the next seven days as session rows.
+- `PLAN.md` opens with the season grid and lists each week as session rows in
+  the short notation, with one legend line; the worded descriptions stay in
+  `plan.yaml` and `why`. Strength sessions are described once in their own
+  section, and a strength row names its variant (intro, heavy, maintenance),
+  also in `week`. The multisport `PLAN.md` has the same grid and week tables and
+  keeps every session's purpose and steps under its week; its headings are no
+  longer in English in a Polish file.
+- The printable sheet uses the same rows (type, km, time, session, with the
+  legend under the title) and writes dates as `27.10` in Polish. The mobile
+  page shows the session line and the steps with their targets.
+- `plan` in a multisport workspace shows the goal, the horizon, the weekly
+  time per sport and the season grid, and says which files it saved instead
+  of a bare "Written:".
 
 ### Added
 

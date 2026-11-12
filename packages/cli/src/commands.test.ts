@@ -62,7 +62,12 @@ describe('trainctl plan', () => {
     expect(md).toContain('# Plan: Maraton testowy')
     expect(md).toContain('Tydzień 1')
     expect(md).toContain('| PN |')
-    expect(md).toContain('truchtu')
+    // C3: siatka sezonu na górze, tygodnie w układzie wiersza z notacją C1 i legendą
+    expect(md).toContain('## Sezon\n\n| tydz | od | faza | km | akcenty | długie |')
+    expect(md).toContain('| dz | typ | km | czas | rozpiska |')
+    expect(md).toMatch(/\| RG \d+(,\d+)? km · .* · SCH \d+(,\d+)? km \|/)
+    expect(md).toContain('> RG rozgrzewka · SCH schłodzenie')
+    expect(md.indexOf('## Sezon')).toBeLessThan(md.indexOf('Tydzień 1'))
   })
 
   it('plan.yaml wczytuje się z powrotem (17 tygodni do startu, potem 2 tygodnie po starcie — R-8)', () => {
