@@ -256,8 +256,11 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
     plan.feasibilityWarnings.push(ui().planMd.zonesFromGoal)
   }
   if (trailOnly) plan.feasibilityWarnings.push(ui().planMd.trailOnlyCalibration)
-  // powrót z profilu w trakcie planu mówi o sobie tak jak powrót na starcie planu (R-11)
-  if (profileReturn) plan.feasibilityWarnings.push(messages().macro.returnBlock(Math.round(RETURN_RESTART_SHARE * profileReturn.previousWeeklyKm), profileReturn.previousWeeklyKm))
+  // powrót z profilu w trakcie planu mówi o sobie tak jak powrót na starcie planu (R-11) —
+  // dopóki blok trwa: tydzień bieżący albo późniejszy jest jeszcze na krzywej albo spokojny.
+  // Potem ostrzeżenie opisywałoby blok, którego w planie przed biegaczem już nie ma.
+  const returnAhead = skeletons.some((w) => w.weekStart >= mondayOf(calibrationDate) && w.ruleRefs.includes('R-11'))
+  if (profileReturn && returnAhead) plan.feasibilityWarnings.push(messages().macro.returnBlock(Math.round(RETURN_RESTART_SHARE * profileReturn.previousWeeklyKm), profileReturn.previousWeeklyKm))
   // R-5, R-11: start kontrolny w spokojnym bloku powrotu zostaje, bo to kalendarz biegacza
   // (ADR-011), ale plan mówi, że reguła powrotu go nie przewiduje
   for (const w of plan.weeks) {
@@ -308,10 +311,12 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
       ? earliestFeasibleRaceDate({ ...athlete, recentWeeklyKm: Math.round(RETURN_RESTART_SHARE * ret.previousWeeklyKm), returning: { since: ret.since, previousWeeklyKm: ret.previousWeeklyKm } }, goal, ret.since)
       : earliestFeasibleRaceDate(athlete, goal, calibrationDate)
     // w werdykcie tylko progi, do których plan nie dochodzi — spełniony próg w zdaniu
-    // „nie dochodzi do progów” czytałby się jak brak
+    // „nie dochodzi do progów” czytałby się jak brak. Szczyt obcięty budżetem ma własne
+    // ostrzeżenie (E-2), więc werdykt podaje szczyt profilu bez budżetu — ten, od którego
+    // liczy się też data osiągalności
     plan.feasibilityWarnings.push(ui().planMd.verdict({
       distanceKm: goal.distanceKm,
-      ...(peakShort ? { peak: { km: verdictPeak, recommendedKm: plan.peakKmRecommended } } : {}),
+      ...(peakShort ? { peak: { km: capped ? freePeak : verdictPeak, recommendedKm: plan.peakKmRecommended } } : {}),
       ...(plannedAhead.length ? { afterReturn: true } : {}),
       ...(longShort && threshold ? { longest: { km: longest, thresholdKm: threshold.km, atLeast: threshold.inclusive, rules: threshold.ruleRefs.join(', ') } } : {}),
       ...(reachableFrom && reachableFrom > goal.date ? { reachableFrom } : {}),

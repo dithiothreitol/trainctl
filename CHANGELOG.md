@@ -96,7 +96,8 @@ change between minor versions — a regenerated plan can differ.
 - When the plan stays below the distance's thresholds, `plan` gives one verdict
   instead of two warnings, naming only the thresholds it misses (the plan peak
   against the recommended peak, the longest run against the distance's
-  threshold), with the ways out — a later race date when the profile allows it
+  threshold; with a time budget, the peak without the budget, which has its own
+  warning), with the ways out — a later race date when the profile allows it
   (counted from today, or from the return after a break),
   `peakWeeklyKm` or `returning` if you have run more before, or a base goal.
 
@@ -133,7 +134,8 @@ change between minor versions — a regenerated plan can differ.
   proposal says so when it replaces one. During an approved return `adapt`
   does not raise the baseline: the return curve grows on its own. A tune-up race in the
   easy part of a return stays in the plan, and `plan` says the return rule
-  does not expect it.
+  does not expect it. After the A race only the first week is without a long
+  run and strength (R-8, R-9); a return block in the weeks after it keeps both.
 - `trainctl rules` explains R-5, R-6, R-7 and R-11.
 - `athlete.returning: { since, previousWeeklyKm }` for a return after two
   weeks or more without running (R-11): the plan restarts at 50–60% of the
@@ -142,7 +144,8 @@ change between minor versions — a regenerated plan can differ.
   within P-3. Once `recentWeeklyKm` is above the earlier volume, the return no
   longer applies; a `since` date in the future does not apply yet. Added during
   a plan, the field starts a return block from `since` on the next
-  `trainctl plan` and keeps it for the rest of the cycle. A plan with no deload
+  `trainctl plan` and keeps it for the rest of the cycle; `plan` mentions the
+  return while the block is still ahead. A plan with no deload
   before the taper keeps the first half of its loading weeks easy, so accents
   come back before the taper. `init` asks for it, and `init --from-intervals` proposes it when
   the history ends with two weeks off (in the wizard Enter accepts the proposal

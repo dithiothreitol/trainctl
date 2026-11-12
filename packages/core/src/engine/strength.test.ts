@@ -41,6 +41,18 @@ describe('dawka (F-1/F-12)', () => {
     expect(dates(planStrengthWeek({ week: week('build', true), phase: 'build', deload: true }))).toHaveLength(1)
   })
 
+  it('po starcie: bez siły tylko w pierwszym tygodniu, nie w spokojnym bloku powrotu dalej (R-9, B11)', () => {
+    const transition = (over: Partial<WeekSkeleton>) => generateMicrocycle({
+      skeleton: { weekStart: '2026-08-03', index: 20, phase: 'transition', intensityModel: 'pyramidal', targetKm: 30, deload: false, keepIntensity: false, keepFrequency: false, qualitySessions: 0, flags: [], ruleRefs: [], ...over },
+      athlete, zones,
+    })
+    expect(dates(planStrengthWeek({ week: transition({ firstAfterRace: true }), phase: 'transition', deload: false }))).toHaveLength(0)
+    // drugi tydzień po starcie w bloku powrotu po chorobie: zero akcentów (R-5), ale siła wraca
+    const second = planStrengthWeek({ week: transition({ easyOnly: true, ruleRefs: ['R-5', 'P-3'] }), phase: 'transition', deload: false })
+    expect(dates(second).length).toBeGreaterThan(0)
+    expect(second.notes).not.toContain(messages().strength.transitionNote)
+  })
+
   it('sesja opisuje ciężką pracę wielostawową, nie „obwód na macie" — w obu językach', () => {
     expect(strengthSession().ruleRefs).toContain('F-4')
     for (const [locale, pattern] of [

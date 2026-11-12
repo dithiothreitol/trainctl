@@ -35,7 +35,7 @@ export const coachEn = {
   /** Decyzje generatora o układzie tygodnia (WeekNote): dystanse już sformatowane. */
   weekNote: {
     hillsDropped: 'The hills day is an easy run this week: the week cannot hold it within its limits — the remaining distance, the hard-kilometre ceiling of 25% or one session\'s share (S-11, E-3).',
-    accentAsStrides: 'This accent is an easy run with strides: with warm-up and cool-down it would carry more than 35% of a week this small (J-6, E-3).',
+    accentAsStrides: 'This accent is an easy run with strides: with warm-up and cool-down it would carry too much of a week this small — over 35%, or over half with two runs, where the long run stays the longest (J-6, E-3, J-1).',
     volumeShort: (planned: string, target: string) => `This week has ${planned} instead of ${target}: the available days cannot hold the rest under the easy-run ceiling (S-10).`,
   },
   dose: 'The actual prescription',

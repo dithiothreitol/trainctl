@@ -497,6 +497,15 @@ export const plannedWeekKm = (skeleton: Pick<WeekSkeleton, 'targetKm' | 'timeCap
   skeleton.timeCappedKm ?? skeleton.layoutKm ?? skeleton.targetKm
 
 /**
+ * R-8, R-9: pierwszy tydzień po starcie celu — jawny znacznik makrocyklu, a w szkielecie
+ * zapisanym przez starszy silnik (bez znacznika) tydzień przejściowy bez akcentów, który
+ * nie jest spokojnym blokiem powrotu (B11: blok powrotu też zeruje akcenty). Jedno źródło
+ * dla generatora (bez długiego) i siły (bez sesji).
+ */
+export const isFirstAfterRace = (skeleton: Pick<WeekSkeleton, 'phase' | 'firstAfterRace' | 'qualitySessions' | 'easyOnly'>): boolean =>
+  skeleton.firstAfterRace === true || (skeleton.phase === 'transition' && skeleton.qualitySessions === 0 && !skeleton.easyOnly)
+
+/**
  * Kilometry poza Z1 jednej jednostki: wszystko poza rozgrzewką, schłodzeniem
  * i biegiem spokojnym; podbiegi w połowie, bo `distanceKm` liczy też zbieg.
  * Jedna definicja dla generatora (sufit mocnych km) i lintów sezonu.
@@ -595,9 +604,8 @@ function planNormalWeek(
   // sloty — dzień startu i dzień przed nim wypadają z puli
   const free = available.filter((wd) => wd !== peakWd && wd !== dayBeforePeak)
   // T-11: długie wybieganie ZOSTAJE po starcie (w korpusie: sobota start → niedziela long)
-  // Pierwszy tydzień po starcie (R-8): jawny znacznik albo — w szkielecie zapisanym przez
-  // starszy silnik, bez znacznika — zero akcentów w tygodniu przejściowym bez bloku powrotu
-  const longWd = inTaper || skeleton.firstAfterRace || (recovering && skeleton.qualitySessions === 0 && !skeleton.easyOnly)
+  // Pierwszy tydzień po starcie (R-8) bez długiego
+  const longWd = inTaper || isFirstAfterRace(skeleton)
     ? undefined
     : (style.longRunDayPreference.find((wd) => free.includes(wd)) ?? free.at(-1))
   const qualityWds: Weekday[] = []

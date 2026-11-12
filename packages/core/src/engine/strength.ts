@@ -14,6 +14,7 @@
 import type { MacroPhase, Microcycle, PlannedDay, StrengthSession, Weekday } from '../domain/types.ts'
 import { messages } from '../i18n/index.ts'
 import { addDays, diffDays } from '../util/dates.ts'
+import { isFirstAfterRace } from './microcycle.ts'
 
 /** F-1/F-12: 2 sesje/tydz. w ładowaniu. */
 const SESSIONS_PER_WEEK = 2
@@ -102,8 +103,9 @@ export function planStrengthWeek(input: StrengthWeekInput): StrengthAssignment {
     notes.push(messages().strength.taperNote)
     return { byDate: new Map(), notes }
   }
-  // R-9 (inż.): po starcie siła wraca dopiero w drugim tygodniu bloku, jedną sesją wejścia
-  const firstTransitionWeek = phase === 'transition' && week.skeleton.qualitySessions === 0
+  // R-9 (inż.): po starcie siła wraca dopiero w drugim tygodniu bloku, jedną sesją wejścia.
+  // Spokojny blok powrotu (B11) też zeruje akcenty, ale to nie jest pierwszy tydzień po starcie.
+  const firstTransitionWeek = phase === 'transition' && isFirstAfterRace(week.skeleton)
   if (firstTransitionWeek) {
     notes.push(messages().strength.transitionNote)
     return { byDate: new Map(), notes }

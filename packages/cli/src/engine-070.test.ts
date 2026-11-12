@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { earliestFeasibleRaceDate, estimateWorkoutMinutes, longRunThreshold, plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
+import { addDays, earliestFeasibleRaceDate, estimateWorkoutMinutes, longRunThreshold, plannedWeekKm, setLocale, type AdaptationProposal, type WeekNote } from 'trainctl-core'
 import { kmLabel } from './format.ts'
 import { matrixPlan } from './plan-shape.fixture.ts'
 import { applyProposal, prepareProposal } from './proposals.ts'
@@ -61,6 +61,8 @@ describe.each(['pl', 'en'] as const)('B1, B2 w komendach · %s', (lang) => {
     const out = cmdWhy(dir, { date }).output
     expect(out).toContain(lang === 'pl' ? 'Akcent zamieniony na bieg spokojny z przebieżkami' : 'This accent is an easy run with strides')
     expect(out).toContain('J-6')
+    // próg zależy od liczby biegów: 35% tygodnia, a przy dwóch biegach połowa (J-1)
+    expect(out).toContain(lang === 'pl' ? 'przy dwóch biegach ponad połowę' : 'over half with two runs')
   })
 
   it('why: dzień podbiegów zamieniony na bieg spokojny — tylko przy tym dniu', () => {
@@ -339,6 +341,17 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(week.skeleton.targetKm).toBeLessThanOrEqual(Math.round(0.55 * 45))
     expect(week.skeleton.easyOnly).toBe(true)
     expect(r.output).toContain('return after a break')
+  })
+
+  it('plan: ostrzeżenie o powrocie z profilu tylko dopóki blok powrotu trwa (R-11)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 45', 'recentWeeklyKm: 45\n  returning: { since: "2026-11-16", previousWeeklyKm: 45 }'), 'utf-8')
+    const cfg = loadConfig(dir)
+    const during = computePlan(cfg, '2026-10-22', '2026-11-17')
+    expect(during.feasibilityWarnings.join(' ')).toContain('return after a break')
+    // tygodnie od powrotu, które krzywa jeszcze obniża albo trzyma spokojnie (R-11)
+    const lastReturnWeek = during.weeks.filter((w) => w.skeleton.ruleRefs.includes('R-11')).at(-1)!
+    const after = computePlan(cfg, '2026-10-22', addDays(lastReturnWeek.weekStart, 7))
+    expect(after.feasibilityWarnings.join(' ')).not.toContain('return after a break')
   })
 
   it('plan: powrót z profilu po 6 tygodniach nadal obowiązuje — bez skoku przyszłych tygodni (P-3)', () => {
@@ -704,6 +717,19 @@ describe('B1: tydzień mieszany (regeneracja, propozycja)', () => {
     week.notes = [{ code: 'volumeShort', targetKm: total, plannedKm: total - 3 }]
     writePlan(dir, plan)
     expect(cmdWhy(dir, { date: day.date }).output).not.toContain('This week has')
+  })
+
+  it('werdykt przy budżecie: szczyt profilu bez budżetu, nie obcięty budżetem (E-2, B8)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun') + 'time:\n  weeklyMinutes: 150\n', 'utf-8')
+    const cfg = loadConfig(dir)
+    const plan = computePlan(cfg, '2026-10-22')
+    const verdict = plan.feasibilityWarnings.find((w) => /stays below the thresholds/.test(w))!
+    const shown = Number(verdict.match(/peaks at ([\d.]+) km\/week/)![1])
+    // przypadek ma sens tylko wtedy, gdy budżet obcina szczyt poniżej profilu
+    expect(plan.peakKmPlanned).toBeLessThan(shown)
+    writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun'), 'utf-8')
+    const free = computePlan(loadConfig(dir), '2026-10-22')
+    expect(Math.abs(shown - Math.max(...free.weeks.map((w) => w.skeleton.targetKm)))).toBeLessThanOrEqual(1)
   })
 
   it('werdykt wymienia tylko progi, do których plan nie dochodzi (B8)', () => {
