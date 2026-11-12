@@ -100,7 +100,7 @@ change between minor versions — a regenerated plan can differ.
   instead of two warnings, naming only the thresholds it misses (the plan peak
   against the recommended peak, the longest run against the distance's
   threshold; with a time budget, the peak without the budget, which has its own
-  warning), with the ways out — a later race date when the profile allows it
+  warning), with the ways out — a race in a later week when the profile allows it
   (counted from today, or from the return after a break),
   `peakWeeklyKm` or `returning` if you have run more before, or a base goal.
 
@@ -118,10 +118,11 @@ change between minor versions — a regenerated plan can differ.
   `--strength` reject `--to` and `--reason` instead of logging one session)
   (`--date mon --to fri` is one week). The MCP
   `trainctl_log` tool and the log prompt take the same fields. Days of a break
-  logged with a reason do not count against compliance, so a short break does
-  not lower the baseline. After a break of 10 days or more
+  logged with a reason do not count against compliance unless you ran on them,
+  so a short break does not lower the baseline. After a break of 10 days or more
   `adapt` proposes a return block you can approve, also in the morning before
-  today's session and during the first week back; when the break is logged
+  today's session and during the first week back (not while an approved
+  return block is already running); when the break is logged
   ahead, the block starts the day after its last day:
   about 55% of the earlier volume, at least 7 days easy after illness (R-5) or
   the loading weeks of the first block easy after any other break (R-11; the
@@ -129,7 +130,8 @@ change between minor versions — a regenerated plan can differ.
   within P-3 until the plan catches up, a deload at 0.7 of the return's last
   loading week (P-2), and
   no time trial in the return block (the accent it replaced comes back). The
-  earlier volume is the plan's last loading week up to your last run, not a
+  earlier volume is the plan's last loading week up to your last run before the
+  break, not a
   deload or taper week and not the plan's target during the break, so it stays
   the same when you run `adapt` again, also when your last run was before the
   plan; the taper inside a return block keeps falling, also after a tune-up

@@ -94,6 +94,18 @@ describe('przerwa w treningu', () => {
     const later = analyzeExecution({ today: '2026-09-07', execution: [...back, ...history(8, 1, { from: '2026-09-07' }).filter((e) => e.date > '2026-08-30')], currentWeeklyKm: 60, breakLog })
     expect(later.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
   })
+  it('B11: przerwa zakończona przy trwającym bloku powrotu nie daje drugiego restartu', () => {
+    const back = layoff().map((e) => (e.date === '2026-08-30' ? { ...e, actualKm: 5, status: 'done' as const } : e))
+    const p = analyzeExecution({ today: TODAY, execution: back, currentWeeklyKm: 33, returnInProgress: true, breakLog: [{ date: '2026-08-20', reason: 'illness' }] })
+    expect(p.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
+  })
+  it('B11: dzień przerwy z biegiem (wyjazd z góry, a biegacz pobiegł) liczy się do zgodności', () => {
+    // cztery dni wyjazdu, w które biegacz przebiegł po 30 km zamiast 12
+    const trip = ['2026-08-25', '2026-08-26', '2026-08-27', '2026-08-29']
+    const exec = history(21, 1).map((e) => (trip.includes(e.date) ? { ...e, actualKm: 30 } : e))
+    const p = analyzeExecution({ today: TODAY, execution: exec, currentWeeklyKm: 60, breakLog: trip.map((date) => ({ date, reason: 'travel' as const })) })
+    expect(p.complianceKm).toBeGreaterThan(1.2)
+  })
   it('B11: przerwa zapisana także na kolejne dni — powrót po jej końcu', () => {
     const ahead = ['2026-09-01', '2026-09-02', '2026-09-03'].map((date) => ({ date, reason: 'illness' as const }))
     const p = analyzeExecution({ today: TODAY, execution: layoff(), currentWeeklyKm: 60, breakLog: [{ date: '2026-08-20', reason: 'illness' }, ...ahead, { date: '2026-09-20', reason: 'travel' }] })

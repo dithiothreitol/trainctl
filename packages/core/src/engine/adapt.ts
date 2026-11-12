@@ -109,6 +109,24 @@ const LAYOFF_DAYS = 10
 /** R-5 (7 dni spokojnie po chorobie): przerwa zakończona tyle dni temu nadal daje blok powrotu. */
 const RECENT_RETURN_DAYS = 7
 
+/**
+ * B11: przerwa, o której mówi `adapt` — bieżąca (bez biegu od ostatniego do dziś) albo
+ * zakończona w ostatnim tygodniu: pierwszy bieg (`returnedOn`) po co najmniej LAYOFF_DAYS
+ * dniach bez biegania (R-5, R-11). `before` to ostatni bieg przed przerwą — od jego tygodnia
+ * CLI liczy objętość sprzed przerwy. Bez przerwy `before` to po prostu ostatni bieg.
+ */
+export function recentBreak(execution: Pick<ExecutionRecord, 'date' | 'actualKm'>[], today: string): { before?: string; returnedOn?: string } {
+  const runs = [...new Set(execution.filter((e) => e.date <= today && (e.actualKm ?? 0) > 0).map((e) => e.date))].sort()
+  const last = runs.at(-1)
+  if (!last) return {}
+  if (diffDays(last, today) >= LAYOFF_DAYS) return { before: last }
+  const ended = runs.flatMap((run, i) => {
+    const before = runs[i - 1]
+    return before && diffDays(run, today) < RECENT_RETURN_DAYS && diffDays(before, run) >= LAYOFF_DAYS ? [{ before, returnedOn: run }] : []
+  }).at(-1)
+  return ended ?? { before: last }
+}
+
 export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const from = new Date(Date.parse(input.today) - (WINDOW_DAYS - 1) * 86_400_000)
     .toISOString()
@@ -123,7 +141,9 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   // B11: dzień przerwy zapisanej z przyczyną nie jest niezgodnością z planem — zgodność
   // objętości i opuszczone sesje liczą się z pozostałych dni okna. Inaczej krótka przerwa
   // (choroba, wyjazd) dawała stałą redukcję bazy, a po niej R-5 wraca do planu bez cięcia.
-  const excused = new Set((input.breakLog ?? []).map((l) => l.date))
+  // Dzień przerwy z biegiem (wyjazd zapisany z góry, a biegacz pobiegł) liczy się normalnie.
+  const ranOn = new Set(window.filter((e) => (e.actualKm ?? 0) > 0).map((e) => e.date))
+  const excused = new Set((input.breakLog ?? []).map((l) => l.date).filter((date) => !ranOn.has(date)))
   const training = window.filter(e => e.kind !== 'race' && !excused.has(e.date))
   const plannedKm = training.reduce((s, e) => s + e.plannedKm, 0)
   const actualKm = training.reduce((s, e) => s + (e.actualKm ?? 0), 0)
@@ -152,14 +172,13 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   const lastRun = runDays.at(-1)
   const observedDays = window.length ? Math.min(WINDOW_DAYS, diffDays(window[0]!.date, input.today) + 1) : 0
   const currentGap = lastRun ? diffDays(lastRun, input.today) : observedDays
-  const allRuns = [...new Set(input.execution.filter((e) => e.date <= input.today && (e.actualKm ?? 0) > 0).map((e) => e.date))].sort()
-  const lastRunEver = allRuns.at(-1)
-  const ended = currentGap >= LAYOFF_DAYS
-    ? undefined
-    : allRuns.flatMap((run, i) => {
-      const before = allRuns[i - 1]
-      return before && diffDays(run, input.today) < RECENT_RETURN_DAYS && diffDays(before, run) >= LAYOFF_DAYS ? [{ before, run }] : []
-    }).at(-1)
+  const brk = recentBreak(input.execution, input.today)
+  const lastRunEver = input.execution.filter((e) => e.date <= input.today && (e.actualKm ?? 0) > 0).map((e) => e.date).sort().at(-1)
+  // Przerwa zakończona przy trwającym bloku powrotu (przyjętym albo z profilu): blok już
+  // prowadzi powrót — drugi restart liczyłby się od obniżonych tygodni i składał redukcje
+  const ended = currentGap < LAYOFF_DAYS && brk.returnedOn && brk.before && !input.returnInProgress
+    ? { before: brk.before, run: brk.returnedOn }
+    : undefined
   const layoff = ended ? diffDays(ended.before, ended.run) : currentGap
   // B11: przyczyna przerwy — wpisy od dnia biegu przed nią (kontuzja albo choroba w trakcie
   // biegu zaczyna przerwę tego samego dnia) do dziś, a przy przerwie zakończonej do pierwszego

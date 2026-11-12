@@ -328,7 +328,9 @@ export function computePlan(config: TrainctlConfig, today: string, calibrationDa
       ...(peakShort ? { peak: { km: capped ? freePeak : verdictPeak, recommendedKm: plan.peakKmRecommended } } : {}),
       ...(plannedAhead.length ? { afterReturn: true } : {}),
       ...(longShort && threshold ? { longest: { km: longest, thresholdKm: threshold.km, atLeast: threshold.inclusive, rules: threshold.ruleRefs.join(', ') } } : {}),
-      ...(reachableFrom && reachableFrom > goal.date ? { reachableFrom } : {}),
+      // data osiągalności to niedziela tygodnia startu: start w tym samym tygodniu (np. w sobotę)
+      // ma ten sam plan, więc rada „przesuń start” dotyczy dopiero późniejszego tygodnia
+      ...(reachableFrom && mondayOf(reachableFrom) > mondayOf(goal.date) ? { reachableFrom } : {}),
     }))
   }
   // B4 + B7: budżet ogranicza szczyt, a długie zostaje poniżej progu dystansu — ostrzeżenie

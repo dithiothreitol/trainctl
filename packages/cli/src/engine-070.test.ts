@@ -406,6 +406,27 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(loadPlan(dir).returnState).toMatchObject({ since: '2026-11-16', illness: true })
   })
 
+  it('adapt po pierwszym biegu po przerwie: objętość sprzed przerwy z tygodnia przed nią, a przyjęty powrót się nie składa', () => {
+    breakUntilToday('illness')
+    // pierwszy bieg po przerwie nazajutrz, bez przyjętego powrotu
+    process.env['TRAINCTL_TODAY'] = '2026-11-13'
+    const firstBack = loadPlan(dir).weeks.flatMap((w) => w.days).find((d) => d.date === '2026-11-13')!
+    writeSnapshot(dir, { pulledAt: '2026-11-13', activities: [{ externalId: 'back', date: firstBack.date, type: 'Run', distanceKm: 5 }], wellness: [] })
+    const restart = restartOf(cmdAdapt(dir, {}))!
+    // tydzień ostatniego biegu przed przerwą (2026-10-28), nie tydzień powrotu
+    expect(restart.returnBlock?.previousWeeklyKm).toBe(plannedWeekKm(loadPlan(dir).weeks.find((w) => w.weekStart === '2026-10-26')!.skeleton))
+    const prepared = cmdAdapt(dir, { prepare: true })
+    expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
+    // dwa dni później, z kolejnymi sesjami w trwającym bloku powrotu (pełne dane): bez drugiego restartu
+    process.env['TRAINCTL_TODAY'] = '2026-11-15'
+    for (const d of loadPlan(dir).weeks.flatMap((w) => w.days).filter((x) => x.workout && x.date >= '2026-11-14' && x.date <= '2026-11-15')) {
+      expect(cmdLog(dir, { date: d.date, status: 'done' }).code).toBe(0)
+    }
+    const later = cmdAdapt(dir, {})
+    expect((later.data as { proposal: { dataStatus: string } }).proposal.dataStatus).toBe('complete')
+    expect(restartOf(later)).toBeUndefined()
+  })
+
   it('adapt rano po przerwie zapisanej do wczoraj: dzisiejsza sesja bez wpisu nie blokuje powrotu', () => {
     setup()
     // dziś: pierwszy dzień z sesją od 2026-11-10
@@ -791,6 +812,16 @@ describe('B1: tydzień mieszany (regeneracja, propozycja)', () => {
     writeFileSync(join(dir, 'trainctl.yaml'), config(12, 'tue, wed, thu, sat, sun'), 'utf-8')
     const free = computePlan(loadConfig(dir), '2026-10-22')
     expect(Math.abs(shown - Math.max(...free.weeks.map((w) => w.skeleton.targetKm)))).toBeLessThanOrEqual(1)
+  })
+
+  it('werdykt: start w sobotę tygodnia, od którego próg jest osiągalny, nie dostaje rady „o dzień później” (B8)', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(30, 'tue, thu, sat, sun').replace('date: "2027-03-28"', 'date: "2026-12-19"'), 'utf-8')
+    const cfg = loadConfig(dir)
+    // przypadek ma sens tylko wtedy, gdy najwcześniejsza data to niedziela tego samego tygodnia
+    expect(earliestFeasibleRaceDate(cfg.athlete, cfg.goal, '2026-10-22')).toBe('2026-12-20')
+    const verdict = computePlan(cfg, '2026-10-22').feasibilityWarnings.find((w) => /stays below the thresholds/.test(w))!
+    expect(verdict).toBeDefined()
+    expect(verdict).not.toContain('a race on or after')
   })
 
   it('werdykt wymienia tylko progi, do których plan nie dochodzi (B8)', () => {

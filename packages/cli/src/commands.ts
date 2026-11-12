@@ -20,6 +20,7 @@ import {
   parseIso,
   planDeskDay,
   plannedWeekKm,
+  recentBreak,
   reschedule,
   seasonShapeIssues,
   validatePlan,
@@ -1124,7 +1125,9 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     // nie cel planu z czasu przerwy, którego biegacz nie biegał. Odciążenie, taper, tydzień
     // ze startem kontrolnym i blok po starcie mają cel niższy niż poziom bloku. Przyjęty
     // powrót bez nowego biegania nie zmienia odniesienia, więc kolejne `adapt` nie składa redukcji.
-    const lastRun = execution.filter((e) => (e.actualKm ?? 0) > 0).map((e) => e.date).sort().at(-1)
+    // ostatni bieg przed przerwą — bieżącą albo zakończoną w ostatnim tygodniu (tę samą widzi
+    // analiza); bez przerwy po prostu ostatni bieg
+    const lastRun = recentBreak(execution, today).before
     const breakWeek = lastRun ? mondayOf(lastRun) : currentWeek?.weekStart ?? today
     const loadingWeek = plan.weeks
       .filter((w) => w.weekStart <= breakWeek && !w.skeleton.deload && !w.skeleton.tuneUp && ['base', 'build', 'peak'].includes(w.skeleton.phase))
