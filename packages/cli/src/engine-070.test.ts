@@ -469,6 +469,48 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(restartOf(cmdAdapt(dir, {}))).toBeUndefined()
   })
 
+  it('adapt przy powrocie zapisanym w profilu po przerwie: ta przerwa ma już swój blok, bez drugiego restartu', () => {
+    breakUntilToday('illness')
+    // biegacz dopisuje powrót od dziś do profilu i przelicza plan
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 45', 'recentWeeklyKm: 45\n  returning: { since: "2026-11-12", previousWeeklyKm: 45 }'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    const r = cmdAdapt(dir, {})
+    expect(restartOf(r)).toBeUndefined()
+    expect(r.output).toContain('already has an approved return block')
+  })
+
+  it('adapt --prepare: przerwa zapisana z góry tylko na dni z sesjami — dzień odpoczynku jej nie przerywa', () => {
+    breakUntilToday('illness')
+    // kolejne dni z sesjami zapisane z góry, dni odpoczynku między nimi bez wpisu
+    const ahead = loadPlan(dir).weeks.flatMap((w) => w.days).filter((d) => d.workout && d.date > '2026-11-12' && d.date <= '2026-11-19').map((d) => d.date)
+    const days = loadPlan(dir).weeks.flatMap((w) => w.days).filter((d) => d.date > '2026-11-12' && d.date <= ahead.at(-1)!)
+    // przypadek ma sens tylko wtedy, gdy między dniami z sesjami jest dzień odpoczynku
+    expect(days.some((d) => !d.workout)).toBe(true)
+    for (const date of ahead) expect(cmdLog(dir, { date, status: 'skipped', reason: 'illness' }).code).toBe(0)
+    const prepared = cmdAdapt(dir, { prepare: true })
+    expect(prepared.code, prepared.output).toBe(0)
+    expect(cmdAdapt(dir, { apply: (prepared.data as { prepared: { id: string } }).prepared.id }).code).toBe(0)
+    expect(loadPlan(dir).returnState?.since).toBe(addDays(ahead.at(-1)!, 1))
+  })
+
+  it('plan: powrót z profilu dopisany po zatwierdzonej bazie ją zastępuje (jedna decyzja o objętości naraz)', () => {
+    setup()
+    process.env['TRAINCTL_TODAY'] = '2026-11-12'
+    const reduce: AdaptationProposal = {
+      dataStatus: 'complete', unknownSessions: 0, windowDays: 21, complianceKm: 0.6, missedSessions: 2, diagnosis: [], warnings: [],
+      actions: [{ type: 'reduce-volume', detail: 'reduce', suggestedWeeklyKm: 35, ruleRefs: ['P-1', 'P-3'] }],
+    }
+    applyProposal(dir, prepareProposal(dir, '2026-11-12', reduce).id)
+    expect(loadPlan(dir).loadState).toBeDefined()
+    // w grudniu przerwa i powrót dopisany do profilu
+    process.env['TRAINCTL_TODAY'] = '2026-12-02'
+    writeFileSync(join(dir, 'trainctl.yaml'), config(45, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 45', 'recentWeeklyKm: 45\n  returning: { since: "2026-12-01", previousWeeklyKm: 45 }'), 'utf-8')
+    const r = cmdPlan(dir)
+    expect(r.code, r.output).toBe(0)
+    expect(r.data).toMatchObject({ regeneration: { loadState: 'cleared' } })
+    expect(loadPlan(dir).loadState).toBeUndefined()
+  })
+
   it('adapt po przyjęciu powrotu, który zacznie się po przerwie zapisanej z góry: bez drugiego restartu', () => {
     breakUntilToday('illness')
     expect(cmdLog(dir, { date: '2026-11-13', to: '2026-11-15', reason: 'illness' }).code).toBe(0)

@@ -126,10 +126,12 @@ change between minor versions — a regenerated plan can differ.
   `adapt` proposes a return block you can approve with `--prepare` and
   `--apply`, also in the morning before
   today's session and during the first week back (not when the break already
-  has an approved return block, running or about to start; a break that lasts
+  has a return block, approved or from an `athlete.returning` set after your
+  last run, running or about to start; a break that lasts
   into a later week gets a proposal that moves the block, from the same earlier
   volume); when the break is logged
-  ahead, with or without a reason, the block starts the day after its last day:
+  ahead, with or without a reason (rest days between the logged days count as
+  part of it), the block starts the day after its last day:
   about 55% of the earlier volume, at least 7 days easy after illness (R-5) or
   the loading weeks of the first block easy after any other break (R-11; the
   taper keeps its intensity), the long run shrinking with the week, growth
@@ -161,7 +163,8 @@ change between minor versions — a regenerated plan can differ.
   earlier volume (more when you have been back for some weeks, at most P-3
   growth a week), keeps the first block after `since` easy with no time trial
   (a return that began weeks before the plan has less of it left, or none), and
-  grows back within P-3; an approved baseline does not scale the return weeks. Once `recentWeeklyKm` is above the earlier volume, the return no
+  grows back within P-3. Added after an approved baseline, the return replaces
+  it, as an approved return does (one volume decision at a time). Once `recentWeeklyKm` is above the earlier volume, the return no
   longer applies; a `since` date in the future does not apply yet. Added during
   a plan, the field starts a return block from `since` on the next
   `trainctl plan` and keeps it for the rest of the cycle, also after an

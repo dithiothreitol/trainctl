@@ -26,6 +26,7 @@ import {
   addDays,
   estimateWorkoutMinutes,
   mondayOf,
+  profileReturnBlock,
   weekTotals,
   type Microcycle,
   type PlannedDay,
@@ -82,7 +83,12 @@ export function rebuildPlan(
     !raceBehind && sameDistance(existing.goal.distanceKm, config.goal.distanceKm) ? 'same-cycle' : 'new-cycle'
 
   const ls = existing.loadState
-  const keepLoad = ls !== undefined && (ls.profileWeeklyKm === undefined || ls.profileWeeklyKm === config.athlete.recentWeeklyKm)
+  // Jedna decyzja o objętości naraz (B11): powrót z profilu dopisany po zatwierdzonej bazie
+  // (`since` po jej dacie) zastępuje ją jak przyjęty powrót — skalowanie krzywej składałoby
+  // redukcje, a skalowanie samych tygodni po niej robiło skok na styku (P-3)
+  const profileReturn = profileReturnBlock(config.athlete, mode === 'same-cycle' ? existing.generatedAt : today, today)
+  const keepLoad = ls !== undefined && (ls.profileWeeklyKm === undefined || ls.profileWeeklyKm === config.athlete.recentWeeklyKm) &&
+    !(profileReturn && profileReturn.since > ls.effectiveFrom)
   // Nowy cel po starcie: pozostałe tygodnie bloku przejściowego (R-8) zostają,
   // nowy cykl zaczyna się po nich — powrót do biegania nie przepada przez nowy plan.
   const lastTransition = existing.weeks.filter((w) => w.skeleton.phase === 'transition').at(-1)

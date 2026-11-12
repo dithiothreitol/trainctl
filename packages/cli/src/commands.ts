@@ -1123,8 +1123,18 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     const latestLogs = [...latestByDate(logs).values()]
     const breakLog = latestLogs.flatMap((l) => (l.reason ? [{ date: l.date, reason: l.reason }] : []))
     // dni po dziś zapisane z góry jako opuszczone, z przyczyną albo bez — blok powrotu zaczyna
-    // się po ich końcu
-    const skippedAhead = latestLogs.filter((l) => l.date > today && l.status === 'skipped').map((l) => l.date)
+    // się po ich końcu. Dzień odpoczynku (bez sesji w planie) między nimi nie przerywa
+    // przerwy: biegacz zapisuje z góry zwykle tylko dni z sesjami.
+    const skippedSet = new Set(latestLogs.filter((l) => l.date > today && l.status === 'skipped').map((l) => l.date))
+    const restDays = new Set(plan.weeks.flatMap((w) => w.days).filter((d) => d.date > today && !d.workout).map((d) => d.date))
+    const skippedAhead: string[] = []
+    let bridged: string[] = []
+    for (let d = addDays(today, 1); skippedSet.has(d) || restDays.has(d); d = addDays(d, 1)) {
+      if (skippedSet.has(d)) {
+        skippedAhead.push(...bridged, d)
+        bridged = []
+      } else bridged.push(d)
+    }
     // B11: objętość sprzed przerwy to ostatni tydzień ładowania do tygodnia ostatniego biegu —
     // nie cel planu z czasu przerwy, którego biegacz nie biegał. Odciążenie, taper, tydzień
     // ze startem kontrolnym i blok po starcie mają cel niższy niż poziom bloku. Przyjęty
@@ -1143,6 +1153,8 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     // decyzji, inaczej restart liczyłby się od obniżonego tygodnia i składał redukcje
     const ret = plan.returnState
     const returnPrevious = ret?.previousWeeklyKm ?? config.athlete.returning?.previousWeeklyKm
+    // najnowsza decyzja o powrocie: przyjęta przez `adapt --apply` albo zapisana w profilu
+    const coveringSince = [ret?.since, config.athlete.returning?.since].filter((s): s is string => s !== undefined).sort().at(-1)
     const preBreakWeeklyKm = (!lastRun || !loadingWeek) && returnPrevious !== undefined ? returnPrevious : loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
     // B11: bieżący tydzień w bloku powrotu (obniżony przez krzywą albo spokojny, R-5/R-11) —
     // przyjętym przez `adapt --apply` albo z profilu (`athlete.returning` na starcie planu
@@ -1157,12 +1169,12 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       ...(skippedAhead.length ? { skippedAhead } : {}),
       ...(preBreakWeeklyKm !== undefined ? { preBreakWeeklyKm } : {}),
       ...(returnInProgress ? { returnInProgress } : {}),
-      // przyjęty powrót zaczyna się po ostatnim biegu przed przerwą: ta przerwa ma już swój
-      // blok (od jutra, po przerwie zapisanej z góry albo w tygodniu, którego krzywa nie obniża).
-      // Gdy przerwa trwa dalej, a powrót od jutra wypadłby w późniejszym tygodniu, nowa
-      // propozycja przesuwa blok (ta sama objętość sprzed przerwy, bez składania redukcji)
-      ...(ret !== undefined && (lastRun === undefined || ret.since > lastRun) &&
-        (brk.returnedOn !== undefined || mondayOf(addDays(today, 1)) <= mondayOf(ret.since)) ? { breakHasReturn: true } : {}),
+      // przyjęty powrót albo powrót z profilu zaczyna się po ostatnim biegu przed przerwą: ta
+      // przerwa ma już swój blok (od jutra, po przerwie zapisanej z góry albo w tygodniu, którego
+      // krzywa nie obniża). Gdy przerwa trwa dalej, a powrót od jutra wypadłby w późniejszym
+      // tygodniu, nowa propozycja przesuwa blok (ta sama objętość sprzed przerwy)
+      ...(coveringSince !== undefined && (lastRun === undefined || coveringSince > lastRun) &&
+        (brk.returnedOn !== undefined || mondayOf(addDays(today, 1)) <= mondayOf(coveringSince)) ? { breakHasReturn: true } : {}),
       // B7, B1: tydzień przycięty budżetem czasu (sufit szczytu z B7 obniża już sam cel —
       // wtedy jest `uncappedKm`) albo pojemnością dni — nadwyżka mówi o czasie, nie o bazie
       ...(currentWeek && (currentWeek.skeleton.uncappedKm !== undefined || plannedWeekKm(currentWeek.skeleton) < currentWeek.skeleton.targetKm - WEEK_KM_TOLERANCE) ? { volumeLimited: true } : {}),
