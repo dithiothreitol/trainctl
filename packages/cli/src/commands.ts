@@ -1136,10 +1136,12 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
       .filter((w) => w.weekStart <= breakWeek && !w.skeleton.deload && !w.skeleton.tuneUp && ['base', 'build', 'peak'].includes(w.skeleton.phase))
       .at(-1)
     // Bez biegu w planie (plan zaczęty w trakcie przerwy, ostatni bieg sprzed planu albo żaden)
-    // bieżący tydzień może być już obniżony przez przyjęty powrót — wtedy odniesieniem zostaje
-    // objętość z tamtej decyzji
+    // bieżący tydzień może być już obniżony przez powrót — przyjęty albo z profilu
+    // (`athlete.returning`) — wtedy odniesieniem zostaje objętość sprzed przerwy z tamtej
+    // decyzji, inaczej restart liczyłby się od obniżonego tygodnia i składał redukcje
     const ret = plan.returnState
-    const preBreakWeeklyKm = (!lastRun || !loadingWeek) && ret ? ret.previousWeeklyKm : loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
+    const returnPrevious = ret?.previousWeeklyKm ?? config.athlete.returning?.previousWeeklyKm
+    const preBreakWeeklyKm = (!lastRun || !loadingWeek) && returnPrevious !== undefined ? returnPrevious : loadingWeek ? plannedWeekKm(loadingWeek.skeleton) : undefined
     // B11: bieżący tydzień w bloku powrotu (obniżony przez krzywą albo spokojny, R-5/R-11) —
     // przyjętym przez `adapt --apply` albo z profilu (`athlete.returning` na starcie planu
     // albo dopisane w trakcie): krzywa rośnie sama, podniesienie bazy by ją przesunęło
@@ -1189,9 +1191,11 @@ function analyzeAdapt(cwd: string, opts: { date?: string | undefined } = {}): Cm
     }
     const volume = proposal.actions.find((a) => a.suggestedWeeklyKm)
     if (volume) {
+      // B11: blok powrotu przyjmuje się przez --prepare/--apply — ręczna zmiana recentWeeklyKm
+      // obniżyłaby cały makrocykl od startu planu zamiast dać blok powrotu (R-5, R-11)
       blocks.push(
         b.blank(),
-        b.info(ui().adapt.applyHint(volume.suggestedWeeklyKm!)),
+        b.info(volume.returnBlock ? ui().adapt.returnApplyHint : ui().adapt.applyHint(volume.suggestedWeeklyKm!)),
       )
     }
     return okDoc(blocks, { proposal, execution, snapshotDate: snapshot?.pulledAt ?? null })

@@ -173,12 +173,12 @@ export function analyzeExecution(input: AdaptationInput): AdaptationProposal {
   // najmniej 7 dni spokojnie po chorobie; R-11). Zakończona luka liczy się jak bieżąca: dni
   // od biegu przed nią do pierwszego biegu po niej, w całym wykonaniu (przerwa bywa dłuższa
   // niż okno).
-  const runDays = window.filter((e) => (e.actualKm ?? 0) > 0).map((e) => e.date)
-  const lastRun = runDays.at(-1)
   const observedDays = window.length ? Math.min(WINDOW_DAYS, diffDays(window[0]!.date, input.today) + 1) : 0
-  const currentGap = lastRun ? diffDays(lastRun, input.today) : observedDays
-  const brk = recentBreak(input.execution, input.today)
   const lastRunEver = input.execution.filter((e) => e.date <= input.today && (e.actualKm ?? 0) > 0).map((e) => e.date).sort().at(-1)
+  // bieżąca przerwa od ostatniego biegu w całym wykonaniu, także sprzed okna (plan zaczęty
+  // w trakcie przerwy, przerwa dłuższa niż okno); bez żadnego biegu — tyle, ile widać
+  const currentGap = lastRunEver ? diffDays(lastRunEver, input.today) : observedDays
+  const brk = recentBreak(input.execution, input.today)
   // Przerwa zakończona przy trwającym bloku powrotu (przyjętym albo z profilu): blok już
   // prowadzi powrót — drugi restart liczyłby się od obniżonych tygodni i składał redukcje
   const ended = currentGap < LAYOFF_DAYS && brk.returnedOn && brk.before && !input.returnInProgress

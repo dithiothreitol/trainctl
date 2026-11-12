@@ -406,6 +406,22 @@ describe('B11: przerwa w trakcie planu', () => {
     expect(loadPlan(dir).returnState).toMatchObject({ since: '2026-11-16', illness: true })
   })
 
+  it('adapt po przerwie: podpowiedź prowadzi do --prepare, nie do ręcznej zmiany recentWeeklyKm', () => {
+    breakUntilToday('illness')
+    const out = cmdAdapt(dir, {}).output
+    expect(out).toContain('trainctl adapt --prepare')
+    expect(out).not.toContain('athlete.recentWeeklyKm:')
+  })
+
+  it('adapt w planie zaczętym w trakcie powrotu z profilu: restart od objętości sprzed przerwy, nie od obniżonego tygodnia', () => {
+    writeFileSync(join(dir, 'trainctl.yaml'), config(25, 'tue, wed, thu, sat, sun').replace('recentWeeklyKm: 25', 'recentWeeklyKm: 25\n  returning: { since: "2026-10-19", previousWeeklyKm: 50 }'), 'utf-8')
+    expect(cmdPlan(dir).code).toBe(0)
+    // od początku pierwszego tygodnia planu bez biegania: choroba zapisana do dziś
+    process.env['TRAINCTL_TODAY'] = '2026-11-05'
+    expect(cmdLog(dir, { date: '2026-10-19', to: '2026-11-05', reason: 'illness' }).code).toBe(0)
+    expect(restartOf(cmdAdapt(dir, {}))?.returnBlock).toEqual({ previousWeeklyKm: 50, illness: true })
+  })
+
   it('adapt po przerwie zapisanej z góry bez przyczyny: blok powrotu od dnia po jej końcu', () => {
     breakUntilToday('illness')
     // kolejne trzy dni opuszczone z góry, bez przyczyny

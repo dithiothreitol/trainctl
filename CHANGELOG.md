@@ -119,8 +119,10 @@ change between minor versions — a regenerated plan can differ.
   (`--date mon --to fri` is one week). The MCP
   `trainctl_log` tool and the log prompt take the same fields. Days of a break
   logged with a reason do not count against compliance unless you ran on them,
-  so a short break does not lower the baseline. After a break of 10 days or more
-  `adapt` proposes a return block you can approve, also in the morning before
+  so a short break does not lower the baseline. After a break of 10 days or more,
+  counted from your last run (also one before the plan or the 21-day window),
+  `adapt` proposes a return block you can approve with `--prepare` and
+  `--apply`, also in the morning before
   today's session and during the first week back (not while an approved
   return block is already running); when the break is logged
   ahead, with or without a reason, the block starts the day after its last day:

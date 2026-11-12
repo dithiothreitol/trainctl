@@ -413,6 +413,8 @@ export const cliEn = {
     applyHint: (weeklyKm: number) =>
       `To apply: athlete.recentWeeklyKm: ${weeklyKm} in trainctl.yaml → trainctl diff → trainctl plan. ` +
       'The engine never rewrites the plan on its own.',
+    returnApplyHint:
+      'To take the return block: trainctl adapt --prepare, then trainctl adapt --apply <id>. The engine never rewrites the plan on its own.',
   },
 
   desk: {

@@ -94,6 +94,16 @@ describe('przerwa w treningu', () => {
     const later = analyzeExecution({ today: '2026-09-07', execution: [...back, ...history(8, 1, { from: '2026-09-07' }).filter((e) => e.date > '2026-08-30')], currentWeeklyKm: 60, breakLog })
     expect(later.actions.some((a) => a.type === 'conservative-restart')).toBe(false)
   })
+  it('B11: przerwa liczona od ostatniego biegu także sprzed okna (plan zaczęty w trakcie przerwy)', () => {
+    // ostatni bieg 30 dni temu, plan od pięciu dni bez biegania
+    const exec: ExecutionRecord[] = [
+      { date: '2026-08-01', plannedKm: 0, actualKm: 10, status: 'unplanned' },
+      ...['2026-08-27', '2026-08-28', '2026-08-29', '2026-08-30', '2026-08-31'].map((date): ExecutionRecord => ({ date, plannedKm: 8, status: 'missed', kind: 'easy' })),
+    ]
+    const p = analyzeExecution({ today: TODAY, execution: exec, currentWeeklyKm: 40 })
+    expect(p.layoff?.days).toBe(30)
+    expect(p.actions.some((a) => a.type === 'conservative-restart')).toBe(true)
+  })
   it('B11: przerwa zakończona przy trwającym bloku powrotu nie daje drugiego restartu', () => {
     const back = layoff().map((e) => (e.date === '2026-08-30' ? { ...e, actualKm: 5, status: 'done' as const } : e))
     const p = analyzeExecution({ today: TODAY, execution: back, currentWeeklyKm: 33, returnInProgress: true, breakLog: [{ date: '2026-08-20', reason: 'illness' }] })
