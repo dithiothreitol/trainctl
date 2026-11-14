@@ -8,7 +8,14 @@
     "cli",
     "mcp",
     "intervals-icu",
-    "plan-as-code"
+    "plan-as-code",
+    "marathon",
+    "half-marathon",
+    "running-coach",
+    "claude-code",
+    "codex",
+    "ai-agent",
+    "garmin"
   ],
   "license": "MIT",
   "author": "Dariusz Tyszka",

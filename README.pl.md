@@ -1,4 +1,32 @@
-# trainctl
+# trainctl — trener biegowy w terminalu (CLI + serwer MCP)
+
+[![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.18-brightgreen.svg)](package.json)
+
+**Trener biegowy, który mieszka w terminalu.** Silnik planów z interfejsem CLI
+i serwerem MCP: plan treningowy na maraton albo półmaraton to plik YAML
+w repozytorium gita, każda jednostka cytuje badania, na których stoi, a Twój
+agent AI (Claude Code, Codex, dowolny klient MCP) dostaje trenera jako
+narzędzie. Treningi trafiają na zegarek Garmin, Coros albo Wahoo przez
+intervals.icu lub jako pliki FIT; to, co przebiegłeś, wraca z eksportów FIT,
+TCX i GPX. Plany rowerowe i pływackie mieszczą się w tym samym profilu.
+
+```console
+$ trainctl today
+2026-08-04 · wtorek
+tydzień 1/17 · baza · do startu: 117 dni
+───────────────────────────
+╭─ interwały · 8 km ───────────────────────────────────────────────────────────
+│ 3 kilometry (tempo rozgrzewkowe) + 4*1 km (w tempie 4:32 na km), przerwy 2
+│ minutowe w marszu. Na koniec treningu 1 kilometr truchtu.
+╰──────────────────────────────────────────────────────────────────────────────
+→ dlaczego ten trening: trainctl why --date 2026-08-04
+```
+
+Bez konta, bez bazy, bez backendu. Wszystko jest plikami w bieżącym katalogu —
+`trainctl.yaml`, `plan/`, `log.jsonl` — więc historia Twojego treningu to
+historia gita.
 
 Nowości w **0.9.0**: silnik biegowy sprawdzony na korpusie trenerskim (kształt
 sezonu, tor długiego wybiegania, narastające akcenty, powrót po przerwie), widoki
@@ -18,31 +46,6 @@ trainctl status                   # jeden ekran: profil, plan, klucz, sync, prop
 ręczne edycje i zatwierdzoną bazę objętości. Każda komenda przyjmuje `--json`,
 `-C <katalog>` i daty względne, np. `jutro` albo `sob`. Szczegóły:
 [changelog](CHANGELOG.md).
-
-[![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.18-brightgreen.svg)](package.json)
-
-**Trener biegowy, który mieszka w terminalu.** Silnik planów z interfejsem CLI
-i serwerem MCP: plan treningowy to plik YAML w repozytorium gita, każda jednostka
-cytuje badania, na których stoi, a Twój agent (Claude Code, Codex, dowolny klient
-MCP) dostaje trenera jako narzędzie.
-
-```console
-$ trainctl today
-2026-08-04 · wtorek
-tydzień 1/17 · baza · do startu: 117 dni
-───────────────────────────
-╭─ interwały · 8 km ───────────────────────────────────────────────────────────
-│ 3 kilometry (tempo rozgrzewkowe) + 4*1 km (w tempie 4:32 na km), przerwy 2
-│ minutowe w marszu. Na koniec treningu 1 kilometr truchtu.
-╰──────────────────────────────────────────────────────────────────────────────
-→ dlaczego ten trening: trainctl why --date 2026-08-04
-```
-
-Bez konta, bez bazy, bez backendu. Wszystko jest plikami w bieżącym katalogu —
-`trainctl.yaml`, `plan/`, `log.jsonl` — więc historia Twojego treningu to
-historia gita.
 
 *English version: [README.md](README.md).*
 

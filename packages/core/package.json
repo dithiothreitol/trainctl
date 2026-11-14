@@ -7,7 +7,10 @@
     "training-plan",
     "periodization",
     "vdot",
-    "sports-science"
+    "sports-science",
+    "marathon",
+    "half-marathon",
+    "running-coach"
   ],
   "license": "MIT",
   "author": "Dariusz Tyszka",

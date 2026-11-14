@@ -8,7 +8,12 @@
     "training-plan",
     "cli",
     "mcp",
-    "coach"
+    "coach",
+    "marathon",
+    "half-marathon",
+    "running-coach",
+    "claude-code",
+    "ai-agent"
   ],
   "license": "MIT",
   "author": "Dariusz Tyszka",

@@ -1,4 +1,32 @@
-# trainctl
+# trainctl — running coach in your terminal (CLI + MCP server)
+
+[![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.18-brightgreen.svg)](package.json)
+
+**A running coach that lives in your terminal.** A plan-generating engine with a
+CLI and an MCP server: your marathon or half-marathon training plan is a YAML
+file in a git repository, every session cites the research behind it, and your
+AI agent (Claude Code, Codex, any MCP client) gets the coach as a tool. Workouts
+go to Garmin, Coros or Wahoo through intervals.icu or as FIT files; what you ran
+comes back from FIT, TCX and GPX exports. Cycling and swimming plans live in the
+same profile.
+
+```console
+$ trainctl today
+2026-08-04 · Tuesday
+week 1/17 · base · 117 days to race
+────────────────────────────
+╭─ intervals · 8 km ───────────────────────────────────────────────────────────
+│ 3 km warm-up + 4 × 1 km @ 4:32/km, 2 min walk recovery. 1 km cool-down jog
+│ to finish.
+╰──────────────────────────────────────────────────────────────────────────────
+→ why this session: trainctl why --date 2026-08-04
+```
+
+No account, no database, no backend. Everything is files in the current
+directory — `trainctl.yaml`, `plan/`, `log.jsonl` — so the history of your
+training is your git history.
 
 New in **0.9.0**: a running engine checked against a coaching corpus (season
 shape, a long-run track, accents that progress, a return after a break), season,
@@ -17,31 +45,6 @@ trainctl status                   # one screen: profile, plan, key, sync, propos
 `plan` on an existing plan keeps past and logged days, pins, hand edits and the
 volume baseline you approved. Every command takes `--json`, `-C <dir>` and
 relative dates such as `tomorrow` or `sat`. See the [changelog](CHANGELOG.md).
-
-[![CI](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml/badge.svg)](https://github.com/dithiothreitol/trainctl/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.18-brightgreen.svg)](package.json)
-
-**A running coach that lives in your terminal.** A plan-generating engine with a
-CLI and an MCP server: your training plan is a YAML file in a git repository,
-every session cites the research behind it, and your agent (Claude Code, Codex,
-any MCP client) gets the coach as a tool.
-
-```console
-$ trainctl today
-2026-08-04 · Tuesday
-week 1/17 · base · 117 days to race
-────────────────────────────
-╭─ intervals · 8 km ───────────────────────────────────────────────────────────
-│ 3 km warm-up + 4 × 1 km @ 4:32/km, 2 min walk recovery. 1 km cool-down jog
-│ to finish.
-╰──────────────────────────────────────────────────────────────────────────────
-→ why this session: trainctl why --date 2026-08-04
-```
-
-No account, no database, no backend. Everything is files in the current
-directory — `trainctl.yaml`, `plan/`, `log.jsonl` — so the history of your
-training is your git history.
 
 *Polska wersja: [README.pl.md](README.pl.md).*
 

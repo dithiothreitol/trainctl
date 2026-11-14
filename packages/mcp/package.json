@@ -7,7 +7,12 @@
     "model-context-protocol",
     "running",
     "training-plan",
-    "ai-agent"
+    "ai-agent",
+    "mcp-server",
+    "claude-code",
+    "codex",
+    "running-coach",
+    "marathon"
   ],
   "license": "MIT",
   "author": "Dariusz Tyszka",
